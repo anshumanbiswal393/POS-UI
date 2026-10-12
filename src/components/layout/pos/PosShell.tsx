@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { PosSidebar } from "@/components/layout/pos/PosSidebar";
 import { PosTopBar } from "@/components/layout/pos/PosTopBar";
-import { ThemePreference } from "@/components/shared/pos/ThemePreference";
 import { OnlineOrderAlertModal } from "@/components/shared/pos/orders/OnlineOrderAlertModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -63,7 +62,6 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      <ThemePreference variant="fab" />
       <OnlineOrderAlertModal />
     </div>
   );

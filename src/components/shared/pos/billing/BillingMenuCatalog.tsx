@@ -240,7 +240,7 @@ export function BillingMenuCatalog({
       </div>
 
       {/* 3. Row-Wise Dish Table (Image 1 Layout with Dish Picture) */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur-xs border-b border-slate-200 text-slate-600 font-bold uppercase text-[10.5px] tracking-wider">
             <tr>

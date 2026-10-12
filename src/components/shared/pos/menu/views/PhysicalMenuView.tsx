@@ -9,9 +9,6 @@ import {
   RotateCcw,
   Store,
   Layers,
-  FileText,
-  Plus,
-  Trash2,
   Crown,
   Coffee,
   Moon,
@@ -27,12 +24,9 @@ import {
 import type { MenuItem, MenuItemType } from "@/types/posMenu";
 import {
   useMenuItems,
-  usePhysicalMenus,
-  useDeletePhysicalMenu,
   useAddPhysicalMenu,
 } from "@/hooks/queries/usePosMenu";
 import { useOutletContext } from "@/context/PosOutletContext";
-import { AddPhysicalMenuModal } from "../modals/AddPhysicalMenuModal";
 import { toast } from "sonner";
 
 export type MenuTemplateId = "royal" | "modern" | "rustic" | "lounge" | "diner" | "visual";
@@ -114,12 +108,7 @@ const TEMPLATES: TemplateConfig[] = [
 export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
   const { activeOutlet } = useOutletContext();
   const { data: menuItems, isLoading } = useMenuItems(activeOutlet.id);
-  const { data: physicalMenus } = usePhysicalMenus();
   const addMenuMutation = useAddPhysicalMenu();
-  const deleteMenuMutation = useDeletePhysicalMenu();
-
-  // Active Main Tab: "designer" (Live Generator) vs "files" (Uploaded PDF Records)
-  const [activeMainTab, setActiveMainTab] = useState<"designer" | "files">("designer");
 
   // Template Selection
   const [selectedTemplate, setSelectedTemplate] = useState<MenuTemplateId>("royal");
@@ -148,9 +137,6 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
   const [onlyActiveItems, setOnlyActiveItems] = useState(true);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [zoomLevel, setZoomLevel] = useState(100);
-
-  // Upload Modal for external PDF files
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   // Sync outlet name when active outlet switches
   useMemo(() => {
@@ -215,16 +201,9 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
       {
         onSuccess: () => {
           toast.success("Saved printed menu snapshot to physical records!");
-          setActiveMainTab("files");
         },
       },
     );
-  };
-
-  const handleDeleteFile = (id: string, name: string) => {
-    deleteMenuMutation.mutate(id, {
-      onSuccess: () => toast.success(`Deleted "${name}"`),
-    });
   };
 
   const renderDietaryIcon = (type: MenuItemType) => {
@@ -262,138 +241,101 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
 
   return (
     <div className="space-y-5">
-      {/* 1. Main Navigation Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs no-print">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setActiveMainTab("designer")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition cursor-pointer ${
-              activeMainTab === "designer"
-                ? "bg-teal-600 text-white shadow-xs"
-                : "text-slate-600 hover:bg-slate-100"
-            }`}
-          >
-            <Sparkles className="h-4 w-4" />
-            Live Menu Generator & Print Studio
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveMainTab("files")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition cursor-pointer ${
-              activeMainTab === "files"
-                ? "bg-teal-600 text-white shadow-xs"
-                : "text-slate-600 hover:bg-slate-100"
-            }`}
-          >
-            <FileText className="h-4 w-4" />
-            Saved / Uploaded Files ({physicalMenus?.length || 0})
-          </button>
+      {/* 1. Header & Actions (Single Page — Tab switch bar removed) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200 shadow-2xs no-print">
+        <div className="flex items-center gap-2.5">
+          <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+            <Sparkles className="h-4.5 w-4.5" />
+          </div>
+          <div>
+            <h2 className="text-[14px] sm:text-[15px] font-bold text-slate-900 flex items-center gap-2 leading-tight">
+              Live Menu Generator & Print Studio
+            </h2>
+            <p className="text-[11.5px] text-slate-500 leading-tight mt-0.5">
+              Auto-format and print physical menus for{" "}
+              <span className="font-semibold text-slate-800">{activeOutlet.name}</span>
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {activeMainTab === "designer" ? (
-            <>
-              <button
-                type="button"
-                onClick={handleSaveSnapshot}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-[12.5px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-              >
-                <Download className="h-4 w-4" />
-                Save Snapshot
-              </button>
+          <button
+            type="button"
+            onClick={handleSaveSnapshot}
+            className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Save Snapshot
+          </button>
 
-              <button
-                type="button"
-                onClick={handlePrint}
-                className="flex items-center gap-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 px-5 py-2 text-[13px] font-bold text-white shadow-2xs transition cursor-pointer"
-              >
-                <Printer className="h-4 w-4" />
-                Print Physical Menu
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setIsUploadModalOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 px-4 py-2 text-[13px] font-bold text-white shadow-2xs transition cursor-pointer"
-            >
-              <Plus className="h-4 w-4" />
-              Upload PDF File
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="flex items-center gap-1.5 rounded-xl bg-primary hover:bg-primary/90 px-4 py-2 text-[12.5px] font-bold text-primary-foreground shadow-2xs transition cursor-pointer"
+          >
+            <Printer className="h-4 w-4" />
+            Print Physical Menu
+          </button>
         </div>
       </div>
 
-      {activeMainTab === "designer" ? (
-        <div className="space-y-6">
-          {/* 2. Template Selector (5 Distinct Templates) */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-3 no-print">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-[14.5px] font-bold text-slate-900 flex items-center gap-2">
-                  <Palette className="h-4.5 w-4.5 text-teal-600" />
-                  Select Physical Menu Design Template
-                </h3>
-                <p className="text-[12px] text-slate-500">
-                  Choose from 5 curated restaurant menu layouts. All items from "{activeOutlet.name}
-                  " are automatically formatted.
-                </p>
-              </div>
-              <span className="text-[11.5px] font-bold text-teal-700 uppercase tracking-wider">
-                {TEMPLATES.length} Styles Available
-              </span>
-            </div>
+      {/* 2. Menu Design Templates (Small Height Based Cards) */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-3.5 shadow-2xs space-y-2 no-print">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[13px] font-bold text-slate-900 flex items-center gap-1.5">
+            <Palette className="h-4 w-4 text-primary" />
+            Menu Design Templates
+          </h3>
+          <span className="text-[11px] font-semibold text-primary">
+            {TEMPLATES.length} Styles Available
+          </span>
+        </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 pt-1">
-              {TEMPLATES.map((tmpl) => {
-                const Icon = tmpl.icon;
-                const isSelected = selectedTemplate === tmpl.id;
-                return (
-                  <button
-                    key={tmpl.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedTemplate(tmpl.id);
-                      toast.success(`Switched to "${tmpl.name}" layout`);
-                    }}
-                    className={`relative rounded-xl border-2 p-3 text-left transition cursor-pointer flex flex-col justify-between min-h-[112px] ${
-                      isSelected
-                        ? "border-orange-500 bg-gradient-to-br from-orange-100 via-amber-100/90 to-orange-100 ring-3 ring-orange-400/35 shadow-sm text-orange-950"
-                        : "border-orange-200/80 bg-gradient-to-br from-orange-50/90 via-amber-50/70 to-orange-50/50 hover:border-orange-400 hover:bg-orange-100/60 shadow-2xs hover:shadow-xs text-orange-950"
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div
-                          className={`p-1.5 rounded-lg border border-orange-200/80 ${tmpl.previewBg}`}
-                        >
-                          <Icon className="h-4 w-4" style={{ color: tmpl.accentColor }} />
-                        </div>
-                        {isSelected ? (
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-600 text-white text-[10px] font-bold shadow-xs">
-                            ✓
-                          </span>
-                        ) : (
-                          <span className="rounded bg-orange-200/70 border border-orange-300/60 px-1.5 py-0.2 text-[9px] font-bold text-orange-900">
-                            {tmpl.badge.split("/")[0].trim()}
-                          </span>
-                        )}
-                      </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-0.5">
+          {TEMPLATES.map((tmpl) => {
+            const Icon = tmpl.icon;
+            const isSelected = selectedTemplate === tmpl.id;
+            return (
+              <button
+                key={tmpl.id}
+                type="button"
+                onClick={() => {
+                  setSelectedTemplate(tmpl.id);
+                  toast.success(`Switched to "${tmpl.name}" layout`);
+                }}
+                className={`relative rounded-xl border p-2 text-left transition-all cursor-pointer flex items-center gap-2.5 h-[56px] select-none ${
+                  isSelected
+                    ? "border-primary bg-primary/10 ring-2 ring-primary/25 shadow-xs"
+                    : "border-slate-200 bg-slate-50/70 hover:bg-white hover:border-slate-300 shadow-2xs"
+                }`}
+              >
+                <div
+                  className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 border border-slate-200/80 ${tmpl.previewBg}`}
+                >
+                  <Icon className="h-4 w-4" style={{ color: tmpl.accentColor }} />
+                </div>
 
-                      <div className="text-[12.5px] font-bold text-orange-950 leading-tight">
-                        {tmpl.name}
-                      </div>
-                      <div className="text-[10.5px] text-orange-900/80 mt-0.5 line-clamp-2">
-                        {tmpl.subtitle}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[12px] font-bold text-slate-900 truncate leading-tight">
+                    {tmpl.name}
+                  </div>
+                  <div className="text-[10px] text-slate-500 truncate leading-tight mt-0.5">
+                    {tmpl.badge.split("/")[0].trim()}
+                  </div>
+                </div>
+
+                {isSelected && (
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[9px] font-bold shrink-0">
+                    ✓
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-6">
 
           {/* 3. Designer Controls & Customizer Panel */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -402,7 +344,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <h4 className="text-[13.5px] font-bold text-slate-900 flex items-center gap-2">
-                    <Sliders className="h-4 w-4 text-teal-600" />
+                    <Sliders className="h-4 w-4 text-primary" />
                     Menu Customizer
                   </h4>
                   <button
@@ -435,7 +377,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                       type="text"
                       value={restaurantName}
                       onChange={(e) => setRestaurantName(e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] font-semibold text-slate-800 focus:outline-hidden focus:border-teal-500"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] font-semibold text-slate-800 focus:outline-hidden focus:border-primary"
                     />
                   </div>
                   <div>
@@ -446,7 +388,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                       type="text"
                       value={tagline}
                       onChange={(e) => setTagline(e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12px] text-slate-700 focus:outline-hidden focus:border-teal-500"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12px] text-slate-700 focus:outline-hidden focus:border-primary"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -487,7 +429,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                       type="checkbox"
                       checked={showDescriptions}
                       onChange={(e) => setShowDescriptions(e.target.checked)}
-                      className="rounded text-teal-600 focus:ring-teal-500 h-4 w-4"
+                      className="rounded text-primary focus:ring-primary h-4 w-4"
                     />
                   </label>
 
@@ -497,7 +439,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                       type="checkbox"
                       checked={showDietaryBadges}
                       onChange={(e) => setShowDietaryBadges(e.target.checked)}
-                      className="rounded text-teal-600 focus:ring-teal-500 h-4 w-4"
+                      className="rounded text-primary focus:ring-primary h-4 w-4"
                     />
                   </label>
 
@@ -507,7 +449,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                       type="checkbox"
                       checked={showItemCodes}
                       onChange={(e) => setShowItemCodes(e.target.checked)}
-                      className="rounded text-teal-600 focus:ring-teal-500 h-4 w-4"
+                      className="rounded text-primary focus:ring-primary h-4 w-4"
                     />
                   </label>
 
@@ -517,7 +459,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                       type="checkbox"
                       checked={showPrices}
                       onChange={(e) => setShowPrices(e.target.checked)}
-                      className="rounded text-teal-600 focus:ring-teal-500 h-4 w-4"
+                      className="rounded text-primary focus:ring-primary h-4 w-4"
                     />
                   </label>
 
@@ -527,7 +469,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                       type="checkbox"
                       checked={onlyActiveItems}
                       onChange={(e) => setOnlyActiveItems(e.target.checked)}
-                      className="rounded text-teal-600 focus:ring-teal-500 h-4 w-4"
+                      className="rounded text-primary focus:ring-primary h-4 w-4"
                     />
                   </label>
                 </div>
@@ -542,7 +484,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                       <button
                         type="button"
                         onClick={() => setSelectedCategories([])}
-                        className="text-[11px] text-teal-700 font-semibold cursor-pointer"
+                        className="text-[11px] text-primary font-semibold cursor-pointer"
                       >
                         Select All
                       </button>
@@ -563,7 +505,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                             type="checkbox"
                             checked={isIncluded}
                             onChange={() => toggleCategorySelection(cat)}
-                            className="rounded text-teal-600 focus:ring-teal-500 h-3.5 w-3.5"
+                            className="rounded text-primary focus:ring-primary h-3.5 w-3.5"
                           />
                         </label>
                       );
@@ -857,103 +799,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
             </div>
           </div>
         </div>
-      ) : (
-        /* 4. Files List View (Saved / Uploaded Records) */
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-            <div>
-              <h3 className="text-[15px] font-bold text-slate-900">
-                Printed Menu Archives & Digital Files
-              </h3>
-              <p className="text-[12px] text-slate-500">
-                Uploaded PDFs, brochures, and generated menu snapshots.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsUploadModalOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2 text-[12.5px] font-bold text-white hover:bg-teal-700 transition cursor-pointer"
-            >
-              <Plus className="h-4 w-4" />
-              Upload PDF
-            </button>
-          </div>
-
-          {!physicalMenus || physicalMenus.length === 0 ? (
-            <div className="text-center py-16">
-              <FileText className="h-12 w-12 text-slate-300 mx-auto mb-2" />
-              <h4 className="text-[14px] font-bold text-slate-700">No Saved Menu Records</h4>
-              <p className="text-[12px] text-slate-400 mt-1 max-w-sm mx-auto">
-                Generate a live menu from the Live Generator tab or upload a PDF document.
-              </p>
-              <button
-                type="button"
-                onClick={() => setActiveMainTab("designer")}
-                className="mt-4 rounded-lg bg-teal-50 px-4 py-2 text-[12.5px] font-bold text-teal-700 border border-teal-200 hover:bg-teal-100 transition cursor-pointer"
-              >
-                Go To Live Menu Generator
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {physicalMenus.map((file) => (
-                <div
-                  key={file.id}
-                  className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 hover:bg-white hover:shadow-xs transition flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50 text-teal-700 border border-teal-200">
-                        <FileText className="h-5 w-5" />
-                      </div>
-                      <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[10.5px] font-bold text-teal-800 border border-teal-200">
-                        {file.type}
-                      </span>
-                    </div>
-                    <h4
-                      className="text-[13.5px] font-bold text-slate-900 line-clamp-1"
-                      title={file.name}
-                    >
-                      {file.name}
-                    </h4>
-                    <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
-                      <span>{file.uploadedAt}</span>
-                      <span>•</span>
-                      <span>{file.fileSize}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={handlePrint}
-                      className="flex items-center gap-1 text-[11.5px] font-bold text-teal-700 hover:underline cursor-pointer"
-                    >
-                      <Printer className="h-3.5 w-3.5" />
-                      Print Menu
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteFile(file.id, file.name)}
-                      className="rounded p-1 text-slate-400 hover:text-red-600 transition cursor-pointer"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Upload File Modal */}
-      <AddPhysicalMenuModal
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
-      />
-    </div>
+      </div>
   );
 }
 

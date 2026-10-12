@@ -418,29 +418,31 @@ export function PosBillingManager() {
   }, [handleNewBill, handleHoldBill, handlePrintKot, cartItems.length]);
 
   return (
-    <div className="flex flex-col gap-3 min-h-[calc(100vh-5.5rem)]">
+    <div className="flex flex-col gap-2.5 lg:h-[calc(100dvh-5.5rem)] lg:max-h-[calc(100dvh-5.5rem)] lg:overflow-hidden min-h-[calc(100vh-5.5rem)]">
       {/* 1. Top Order Mode & Action Header */}
-      <BillingHeader
-        orderType={orderType}
-        setOrderType={setOrderType}
-        activeTable={activeTable}
-        onOpenTableSelector={() => setIsTableModalOpen(true)}
-        guestCount={guestCount}
-        setGuestCount={setGuestCount}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        heldCount={heldBills.length}
-        onOpenHeldDrawer={() => setIsHeldDrawerOpen(true)}
-        onNewBill={handleNewBill}
-        billNumber={billNumber}
-        captainName={captainName}
-        roomNumber={roomNumber}
-      />
+      <div className="shrink-0">
+        <BillingHeader
+          orderType={orderType}
+          setOrderType={setOrderType}
+          activeTable={activeTable}
+          onOpenTableSelector={() => setIsTableModalOpen(true)}
+          guestCount={guestCount}
+          setGuestCount={setGuestCount}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          heldCount={heldBills.length}
+          onOpenHeldDrawer={() => setIsHeldDrawerOpen(true)}
+          onNewBill={handleNewBill}
+          billNumber={billNumber}
+          captainName={captainName}
+          roomNumber={roomNumber}
+        />
+      </div>
 
       {/* 2. Main Workspace: Menu Catalog (Left/Center) + Cart Register (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 flex-1 min-h-0 lg:overflow-hidden items-stretch">
         {/* Left / Center Catalog (7 cols on desktop, 8 on 2xl) */}
-        <div className="lg:col-span-7 xl:col-span-7 2xl:col-span-8 flex flex-col min-h-[520px]">
+        <div className="lg:col-span-7 xl:col-span-7 2xl:col-span-8 flex flex-col h-full min-h-0 overflow-hidden">
           <BillingMenuCatalog
             items={billingItems}
             cartItems={cartItems}
@@ -456,7 +458,7 @@ export function PosBillingManager() {
         </div>
 
         {/* Right Billing Cart Register & Settlement (5 cols on desktop, 4 on 2xl) */}
-        <div className="lg:col-span-5 xl:col-span-5 2xl:col-span-4 flex flex-col sticky top-1">
+        <div className="lg:col-span-5 xl:col-span-5 2xl:col-span-4 flex flex-col h-full min-h-0 overflow-hidden">
           <BillingCartRegister
             cartItems={cartItems}
             orderType={orderType}

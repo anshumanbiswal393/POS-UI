@@ -66,9 +66,9 @@ export function BillingHeader({
   ];
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs p-3.5 space-y-3">
+    <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs p-2.5 sm:p-3 space-y-2">
       {/* Top Row: Meta info & Primary Action Badges */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-100 pb-2">
         {/* Left: Terminal & Bill Info */}
         <div className="flex items-center gap-2.5 text-xs text-slate-600">
           <div className="flex items-center gap-1.5 font-semibold text-slate-900 bg-slate-100/90 px-2.5 py-1 rounded-md border border-slate-200">

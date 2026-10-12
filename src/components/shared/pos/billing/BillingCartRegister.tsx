@@ -151,9 +151,9 @@ export function BillingCartRegister({
   ];
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs flex flex-col overflow-hidden">
+    <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs flex flex-col h-full max-h-full overflow-hidden">
       {/* 1. Register Header & Table Ticket Badge (Compact) */}
-      <div className="px-3 py-2 bg-slate-900 text-white flex items-center justify-between gap-2 border-b border-slate-800">
+      <div className="px-3 py-2 bg-slate-900 text-white flex items-center justify-between gap-2 border-b border-slate-800 shrink-0">
         <div className="flex items-center gap-2">
           <span className="font-bold text-xs text-primary">
             {orderType === "dine_in"
@@ -192,7 +192,7 @@ export function BillingCartRegister({
       </div>
 
       {/* 2. Customer Loyalty Lookup Bar (Slim) */}
-      <div className="px-2.5 py-1.5 bg-slate-50 border-b border-slate-200 text-xs">
+      <div className="px-2.5 py-1.5 bg-slate-50 border-b border-slate-200 text-xs shrink-0">
         {selectedCustomer ? (
           <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-md px-2 py-1 text-foreground">
             <div className="flex items-center gap-1.5 min-w-0">
@@ -266,7 +266,7 @@ export function BillingCartRegister({
       </div>
 
       {/* 3. Cart Line Items List (Compact, Tight, Stretchable without extra gaps) */}
-      <div className="overflow-y-auto px-2 py-1.5 space-y-1 max-h-[300px] min-h-[90px]">
+      <div className="flex-1 min-h-[75px] overflow-y-auto px-2 py-1.5 space-y-1">
         {cartItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 text-center text-slate-400">
             <FileText className="h-6 w-6 mb-1 stroke-1 text-slate-300" />
@@ -394,7 +394,7 @@ export function BillingCartRegister({
       </div>
 
       {/* 4. Totals, Taxes & Discount Breakdown (Tight) */}
-      <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 space-y-1.5 text-xs">
+      <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 space-y-1.5 text-xs shrink-0">
         {/* Coupon Code Input */}
         <div className="flex items-center gap-1.5">
           <div className="relative flex-1">
@@ -487,7 +487,7 @@ export function BillingCartRegister({
       </div>
 
       {/* 5. Payment Tender Mode Selector (Slim) */}
-      <div className="px-3 py-2 bg-white border-t border-slate-200 space-y-1.5">
+      <div className="px-3 py-2 bg-white border-t border-slate-200 space-y-1.5 shrink-0">
         <div className="grid grid-cols-5 gap-1">
           {paymentOptions.map((opt) => {
             const Icon = opt.icon;
@@ -547,7 +547,7 @@ export function BillingCartRegister({
       </div>
 
       {/* 6. Action Footer */}
-      <div className="p-2.5 bg-slate-100 border-t border-slate-200 grid grid-cols-4 gap-1.5">
+      <div className="p-2.5 bg-slate-100 border-t border-slate-200 grid grid-cols-4 gap-1.5 shrink-0">
         <button
           type="button"
           onClick={onHoldBill}
