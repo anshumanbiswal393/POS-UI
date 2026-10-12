@@ -25,7 +25,7 @@ export function TableStatusCard({ tables }: TableStatusCardProps) {
         <h2 className="text-[14px] font-bold text-slate-900">Table status</h2>
         <Link
           to="/pos/tables"
-          className="text-[12px] font-semibold text-teal-600 hover:text-teal-700 hover:underline"
+          className="text-[12px] font-semibold text-primary hover:underline"
         >
           View floor plan →
         </Link>

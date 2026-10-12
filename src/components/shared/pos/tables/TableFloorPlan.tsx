@@ -73,7 +73,7 @@ export function TableFloorPlan({
                     onClick={() => onSelectArea(area)}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                       isActive
-                        ? "bg-teal-700 text-white shadow-xs"
+                        ? "bg-primary text-primary-foreground shadow-xs"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
                     }`}
                   >
@@ -88,7 +88,7 @@ export function TableFloorPlan({
                   type="button"
                   onClick={onOpenAddArea}
                   title="Add new floor / area"
-                  className="flex items-center justify-center p-1 text-slate-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
+                  className="flex items-center justify-center p-1 text-slate-600 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -100,7 +100,7 @@ export function TableFloorPlan({
               <button
                 type="button"
                 onClick={onOpenAddTable}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 active:bg-teal-800 rounded-xl shadow-xs transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-primary-foreground bg-primary hover:bg-primary/90 active:scale-95 rounded-xl shadow-xs transition-all cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Table</span>
@@ -111,7 +111,7 @@ export function TableFloorPlan({
 
         {/* 2. Sub-strip: Legend & Direct Quick Action Buttons (Book Reservation & Assign Guest) */}
         <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-          {/* Status Legends with rich high-contrast styling */}
+          {/* Status Legends with theme styling */}
           <div className="flex items-center gap-2.5 sm:gap-3 font-medium">
             {/* Available (Vacant) */}
             <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100/90 border border-slate-300 text-slate-800 font-semibold text-[11px]">
@@ -123,10 +123,10 @@ export function TableFloorPlan({
             </div>
 
             {/* Reserved */}
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal-50 border border-teal-300/80 text-teal-950 font-bold text-[11px]">
-              <span className="h-2 w-2 rounded-full bg-teal-600 border border-teal-700" />
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/30 text-primary font-bold text-[11px]">
+              <span className="h-2 w-2 rounded-full bg-primary border border-primary" />
               <span>Reserved</span>
-              <span className="text-[10px] text-teal-700 font-extrabold ml-0.5">
+              <span className="text-[10px] text-primary font-extrabold ml-0.5">
                 ({tables.filter((t) => t.status === "reserved").length})
               </span>
             </div>
@@ -147,9 +147,9 @@ export function TableFloorPlan({
               <button
                 type="button"
                 onClick={() => onOpenTakeOrder()}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 active:bg-teal-800 border border-teal-700 rounded-xl shadow-xs transition-all hover:scale-[1.02] cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-primary-foreground bg-primary hover:bg-primary/90 border border-primary/20 rounded-xl shadow-xs transition-all hover:scale-[1.02] cursor-pointer"
               >
-                <Utensils className="w-3.5 h-3.5 text-teal-200" />
+                <Utensils className="w-3.5 h-3.5 text-primary-foreground/80" />
                 <span>Take Order / Book Table</span>
               </button>
             )}
@@ -160,7 +160,7 @@ export function TableFloorPlan({
                 onClick={onOpenBookReservation}
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-[#0b192c] hover:bg-[#132c4e] active:bg-[#07111e] border border-slate-800 rounded-xl shadow-xs transition-all hover:scale-[1.02] cursor-pointer"
               >
-                <CalendarPlus className="w-3.5 h-3.5 text-teal-300" />
+                <CalendarPlus className="w-3.5 h-3.5 text-amber-300" />
                 <span>Book Reservation</span>
               </button>
             )}
@@ -189,7 +189,7 @@ export function TableFloorPlan({
               <button
                 type="button"
                 onClick={onOpenAddTable}
-                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg transition-colors cursor-pointer"
+                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-lg transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add First Table in {activeArea}

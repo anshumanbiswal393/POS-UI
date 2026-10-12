@@ -11,7 +11,7 @@ export function OperationalMetricsStrip({ operations }: OperationalMetricsStripP
     <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
       {/* 1. Avg. preparation */}
       <div className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
-        <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-lg bg-teal-50 border border-teal-300 text-teal-700">
+        <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/30 text-primary">
           <Clock className="h-4 w-4" />
         </div>
         <div>
@@ -26,7 +26,7 @@ export function OperationalMetricsStrip({ operations }: OperationalMetricsStripP
 
       {/* 2. Successful */}
       <div className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
-        <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-lg bg-teal-50 border border-teal-300 text-teal-700">
+        <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/30 text-primary">
           <CheckCircle2 className="h-4 w-4" />
         </div>
         <div>
@@ -78,7 +78,7 @@ export function OperationalMetricsStrip({ operations }: OperationalMetricsStripP
             <div className="text-[15px] font-bold text-slate-900">{operations.discountsCount}</div>
           </div>
         </div>
-        <Link to="/pos/reports" className="text-[11px] font-bold text-teal-700 hover:underline">
+        <Link to="/pos/reports" className="text-[11px] font-bold text-primary hover:underline">
           View →
         </Link>
       </div>

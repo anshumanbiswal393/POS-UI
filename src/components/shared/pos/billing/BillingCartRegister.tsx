@@ -155,7 +155,7 @@ export function BillingCartRegister({
       {/* 1. Register Header & Table Ticket Badge (Compact) */}
       <div className="px-3 py-2 bg-slate-900 text-white flex items-center justify-between gap-2 border-b border-slate-800">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-xs text-teal-300">
+          <span className="font-bold text-xs text-primary">
             {orderType === "dine_in"
               ? tableNumber || "Table T-12"
               : orderType === "room_service"
@@ -194,15 +194,15 @@ export function BillingCartRegister({
       {/* 2. Customer Loyalty Lookup Bar (Slim) */}
       <div className="px-2.5 py-1.5 bg-slate-50 border-b border-slate-200 text-xs">
         {selectedCustomer ? (
-          <div className="flex items-center justify-between bg-teal-50 border border-teal-200 rounded-md px-2 py-1 text-teal-950">
+          <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-md px-2 py-1 text-foreground">
             <div className="flex items-center gap-1.5 min-w-0">
-              <UserCheck className="h-3.5 w-3.5 text-teal-700 shrink-0" />
+              <UserCheck className="h-3.5 w-3.5 text-primary shrink-0" />
               <div className="truncate flex items-center gap-1.5">
                 <span className="font-bold text-[11.5px]">{selectedCustomer.name}</span>
-                <span className="text-[9.5px] font-semibold bg-teal-200/80 text-teal-900 px-1 rounded">
+                <span className="text-[9.5px] font-semibold bg-primary/20 text-primary px-1 rounded">
                   {selectedCustomer.tier}
                 </span>
-                <span className="text-[10px] text-teal-700 font-medium">
+                <span className="text-[10px] text-primary font-medium">
                   ({selectedCustomer.loyaltyPoints} Pts)
                 </span>
               </div>
@@ -229,7 +229,7 @@ export function BillingCartRegister({
                     setCustomerSearch(e.target.value);
                     setIsSearchingCustomer(true);
                   }}
-                  className="w-full pl-7 pr-2 py-1 text-[11.5px] bg-white border border-slate-200 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-600"
+                  className="w-full pl-7 pr-2 py-1 text-[11.5px] bg-white border border-slate-200 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>
@@ -246,7 +246,7 @@ export function BillingCartRegister({
                       setCustomerSearch("");
                       setIsSearchingCustomer(false);
                     }}
-                    className="w-full text-left p-1.5 hover:bg-teal-50 border-b border-slate-100 flex items-center justify-between text-xs cursor-pointer"
+                    className="w-full text-left p-1.5 hover:bg-primary/10 border-b border-slate-100 flex items-center justify-between text-xs cursor-pointer"
                   >
                     <div>
                       <div className="font-bold text-slate-900 text-[11.5px]">{c.name}</div>
@@ -349,7 +349,7 @@ export function BillingCartRegister({
                     <button
                       type="button"
                       onClick={() => onUpdateCartQty(cartItem.cartId, cartItem.quantity + 1)}
-                      className="h-4.5 w-4.5 rounded bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-center font-bold text-[10px] cursor-pointer"
+                      className="h-4.5 w-4.5 rounded bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center font-bold text-[10px] cursor-pointer"
                     >
                       <Plus className="h-2 w-2" />
                     </button>
@@ -404,14 +404,14 @@ export function BillingCartRegister({
               placeholder="Promo coupon (e.g. RETROD10)..."
               value={couponCode}
               onChange={(e) => setCouponCode(e.target.value)}
-              className="w-full pl-6 pr-2 py-0.5 text-xs uppercase bg-white border border-slate-200 rounded-md text-slate-800 placeholder:normal-case placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-600"
+              className="w-full pl-6 pr-2 py-0.5 text-xs uppercase bg-white border border-slate-200 rounded-md text-slate-800 placeholder:normal-case placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
           <button
             type="button"
             onClick={handleApplyCoupon}
             disabled={!couponCode.trim()}
-            className="px-2 py-0.5 rounded-md bg-teal-700 hover:bg-teal-800 text-white text-[11px] font-bold transition disabled:opacity-40 cursor-pointer"
+            className="px-2 py-0.5 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] font-bold transition disabled:opacity-40 cursor-pointer"
           >
             Apply
           </button>
@@ -462,7 +462,7 @@ export function BillingCartRegister({
                 type="checkbox"
                 checked={serviceChargeEnabled}
                 onChange={(e) => setServiceChargeEnabled(e.target.checked)}
-                className="h-3 w-3 accent-teal-600 rounded"
+                className="h-3 w-3 accent-primary rounded"
               />
               <span>Service Charge (5%)</span>
             </label>
@@ -480,7 +480,7 @@ export function BillingCartRegister({
         {/* Grand Total Display */}
         <div className="pt-1.5 border-t border-slate-200 flex items-center justify-between text-slate-900">
           <span className="font-bold text-xs">Grand Total Payable</span>
-          <span className="font-extrabold text-base text-teal-800">
+          <span className="font-extrabold text-base text-primary">
             ₹{grandTotal.toLocaleString()}
           </span>
         </div>
@@ -504,12 +504,12 @@ export function BillingCartRegister({
                 }}
                 className={`flex flex-col items-center justify-center py-1 px-0.5 rounded-lg border text-[10px] font-bold transition cursor-pointer ${
                   isSelected
-                    ? "bg-teal-700 text-white border-teal-700 shadow-2xs"
+                    ? "bg-primary text-primary-foreground border-primary shadow-2xs"
                     : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                 }`}
               >
                 <Icon
-                  className={`h-3 w-3 mb-0.5 ${isSelected ? "text-white" : "text-slate-600"}`}
+                  className={`h-3 w-3 mb-0.5 ${isSelected ? "text-primary-foreground" : "text-slate-600"}`}
                 />
                 <span>{opt.label}</span>
               </button>
@@ -572,7 +572,7 @@ export function BillingCartRegister({
           type="button"
           onClick={() => onSettleBill(paymentMethod, effectiveTendered)}
           disabled={cartItems.length === 0}
-          className="col-span-2 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold transition disabled:opacity-40 cursor-pointer shadow-xs active:scale-[0.99]"
+          className="col-span-2 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold transition disabled:opacity-40 cursor-pointer shadow-xs active:scale-[0.99]"
         >
           <CheckCircle2 className="h-4 w-4" />
           <span>Settle & Bill [F10]</span>

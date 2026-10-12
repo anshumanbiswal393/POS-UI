@@ -164,7 +164,7 @@ export function NewRoomOrderModal({
               <select
                 value={selectedRoomNumber}
                 onChange={(e) => setSelectedRoomNumber(e.target.value)}
-                className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               >
                 {rooms.map((r) => (
                   <option key={r.id} value={r.roomNumber} disabled={!r.isOccupied}>
@@ -181,7 +181,7 @@ export function NewRoomOrderModal({
               <select
                 value={traySetup}
                 onChange={(e) => setTraySetup(e.target.value as any)}
-                className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               >
                 <option value="Single Tray">Single Tray (Room Runner)</option>
                 <option value="Full Dining Trolley">Full Dining Trolley (with Cloches)</option>
@@ -203,7 +203,7 @@ export function NewRoomOrderModal({
                     key={item.id}
                     className={`p-2 rounded-lg border text-xs flex items-center justify-between transition-all ${
                       qty > 0
-                        ? "bg-teal-50/80 border-teal-300 text-teal-900"
+                        ? "bg-primary/10 border-primary/40 text-foreground"
                         : "bg-white border-slate-200 text-slate-800"
                     }`}
                   >
@@ -228,7 +228,7 @@ export function NewRoomOrderModal({
                       <button
                         type="button"
                         onClick={() => handleAddItem(item.id)}
-                        className="h-6 w-6 rounded-md bg-teal-700 text-white flex items-center justify-center hover:bg-teal-800"
+                        className="h-6 w-6 rounded-md bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary-pressed"
                       >
                         <Plus className="w-3 h-3" />
                       </button>
@@ -248,7 +248,7 @@ export function NewRoomOrderModal({
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value as any)}
-                className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               >
                 <option value="room_folio">Post to Room Folio (PMS)</option>
                 <option value="card_at_door">Pay by Card at Door</option>
@@ -266,7 +266,7 @@ export function NewRoomOrderModal({
                 placeholder="e.g. Extra hot, dressing on side"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
             </div>
           </div>
@@ -278,7 +278,7 @@ export function NewRoomOrderModal({
               id="urgentOrderCheck"
               checked={isUrgent}
               onChange={(e) => setIsUrgent(e.target.checked)}
-              className="rounded text-teal-600 focus:ring-teal-500"
+              className="rounded text-primary focus:ring-primary"
             />
             <label
               htmlFor="urgentOrderCheck"
@@ -297,7 +297,7 @@ export function NewRoomOrderModal({
             </div>
             <div className="text-right">
               <span className="text-xs text-slate-500 block">Total Folio Charge:</span>
-              <span className="text-base font-bold text-teal-800 font-mono">
+              <span className="text-base font-bold text-primary font-mono">
                 ${totalAmount.toFixed(2)}
               </span>
             </div>
@@ -314,7 +314,7 @@ export function NewRoomOrderModal({
             <button
               type="submit"
               disabled={orderItems.length === 0}
-              className="px-5 py-2 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 disabled:opacity-50 rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-5 py-2 text-xs font-bold text-primary-foreground bg-primary hover:bg-primary-pressed disabled:opacity-50 rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
             >
               <Check className="w-3.5 h-3.5" />
               Dispatch to Kitchen (KOT)

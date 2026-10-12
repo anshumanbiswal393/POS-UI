@@ -66,7 +66,7 @@ export function ReservationDetailSlide({
         <div className="p-6 border-b border-slate-100 bg-slate-50/70">
           <div className="flex items-center justify-between pr-6">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-600 text-white font-bold text-base shadow-xs">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-base shadow-xs">
                 {selectedTable?.tableNumberRaw || "#"}
               </span>
               <div>
@@ -85,7 +85,7 @@ export function ReservationDetailSlide({
 
             {/* Current Status Pill */}
             {isReserved && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-200">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
                 <CheckCircle2 className="w-3 h-3" />
                 Reserved
               </span>
@@ -117,7 +117,7 @@ export function ReservationDetailSlide({
 
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white font-bold text-lg shadow-xs">
+                    <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg shadow-xs">
                       {res.customerName
                         .split(" ")
                         .map((n) => n[0])
@@ -383,7 +383,7 @@ export function ReservationDetailSlide({
                   }
                   onClose();
                 }}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-teal-600 text-white font-bold text-sm shadow-sm hover:bg-teal-700 active:scale-[0.99] transition-all cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-sm hover:bg-primary/90 active:scale-[0.99] transition-all cursor-pointer"
               >
                 <UserCheck className="w-4 h-4" />
                 Seat Guests Now (Mark On Dine)
@@ -422,7 +422,7 @@ export function ReservationDetailSlide({
                     onOpenEditOrder(selectedTable);
                     onClose();
                   }}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-teal-700 text-white font-bold text-sm shadow-sm hover:bg-teal-800 active:scale-[0.99] transition-all cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-sm hover:bg-primary/90 active:scale-[0.99] transition-all cursor-pointer"
                 >
                   <Utensils className="w-4 h-4" />
                   Edit Order / Add Dishes
@@ -458,7 +458,7 @@ export function ReservationDetailSlide({
                   onSeatGuests(selectedTable.id);
                   onClose();
                 }}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-teal-600 text-white font-bold text-sm shadow-sm hover:bg-teal-700 transition-colors cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-sm hover:bg-primary/90 transition-colors cursor-pointer"
               >
                 <UserCheck className="w-4 h-4" />
                 Seat Walk-in Guests
@@ -469,7 +469,7 @@ export function ReservationDetailSlide({
                   onOpenNewBooking(selectedTable.id);
                   onClose();
                 }}
-                className="w-full py-2.5 rounded-xl border border-teal-200 text-teal-700 font-semibold text-xs bg-teal-50/50 hover:bg-teal-100/60 transition-colors cursor-pointer"
+                className="w-full py-2.5 rounded-xl border border-primary/20 text-primary font-semibold text-xs bg-primary/10 hover:bg-primary/20 transition-colors cursor-pointer"
               >
                 + Book Reservation for {selectedTable.tableNumber}
               </button>

@@ -323,7 +323,7 @@ export function TableOrderWizardModal({
                 <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase">
                   1. Choose Table <span className="text-slate-400 font-normal">(Optional)</span>
                 </label>
-                <span className="text-[11px] font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
+                <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
                   {availableTables.filter((t) => t.status === "vacant").length} Vacant Tables
                 </span>
               </div>
@@ -349,7 +349,7 @@ export function TableOrderWizardModal({
                         }}
                         className={`p-2 sm:p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                           isSelected
-                            ? "bg-teal-50/40 border-teal-600 ring-1 ring-teal-500 shadow-xs"
+                            ? "bg-primary/10 border-primary ring-1 ring-primary shadow-xs"
                             : isVacant
                               ? "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/60"
                               : "bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed"
@@ -362,7 +362,7 @@ export function TableOrderWizardModal({
                           <span
                             className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
                               isSelected
-                                ? "bg-teal-700 text-white"
+                                ? "bg-primary text-primary-foreground"
                                 : isVacant
                                   ? "bg-amber-100 text-amber-900"
                                   : "bg-slate-200 text-slate-600"
@@ -394,7 +394,7 @@ export function TableOrderWizardModal({
                     onClick={() => setPax(num)}
                     className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                       pax === num
-                        ? "bg-teal-700 text-white border-teal-700 shadow-xs"
+                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
                         : "bg-slate-50/80 text-slate-700 border-slate-200 hover:bg-slate-100"
                     }`}
                   >
@@ -431,7 +431,7 @@ export function TableOrderWizardModal({
                   <button
                     type="button"
                     onClick={() => setIsCustomWaiter(!isCustomWaiter)}
-                    className="text-[11px] text-teal-700 hover:underline font-bold cursor-pointer"
+                    className="text-[11px] text-primary hover:underline font-bold cursor-pointer"
                   >
                     {isCustomWaiter ? "Select from List" : "+ Custom Name"}
                   </button>
@@ -443,13 +443,13 @@ export function TableOrderWizardModal({
                     placeholder="Type server or captain name..."
                     value={customWaiter}
                     onChange={(e) => setCustomWaiter(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium placeholder:text-slate-400"
+                    className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium placeholder:text-slate-400"
                   />
                 ) : (
                   <select
                     value={waiterName}
                     onChange={(e) => setWaiterName(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium text-slate-700 cursor-pointer"
+                    className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium text-slate-700 cursor-pointer"
                   >
                     <option value="">Select Waiter / Butler (Optional)</option>
                     {WAITER_OPTIONS.map((w) => (
@@ -470,7 +470,7 @@ export function TableOrderWizardModal({
                   placeholder="e.g. Extra cutlery, ice bucket, hot water"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium placeholder:text-slate-400"
+                  className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium placeholder:text-slate-400"
                 />
               </div>
             </div>
@@ -487,7 +487,7 @@ export function TableOrderWizardModal({
                   placeholder="e.g. Walk-in / Guest Name"
                   value={guestName}
                   onChange={(e) => setGuestName(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium placeholder:text-slate-400"
+                  className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium placeholder:text-slate-400"
                 />
               </div>
 
@@ -501,7 +501,7 @@ export function TableOrderWizardModal({
                   placeholder="e.g. +91 98765 43210"
                   value={guestPhone}
                   onChange={(e) => setGuestPhone(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium placeholder:text-slate-400"
+                  className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium placeholder:text-slate-400"
                 />
               </div>
             </div>
@@ -524,7 +524,7 @@ export function TableOrderWizardModal({
 
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 px-6 py-2.5 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 rounded-xl shadow-xs transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-6 py-2.5 text-xs font-bold text-primary-foreground bg-primary hover:bg-primary/90 rounded-xl shadow-xs transition cursor-pointer"
               >
                 <span>Next</span>
                 <ArrowRight className="w-3.5 h-3.5" />

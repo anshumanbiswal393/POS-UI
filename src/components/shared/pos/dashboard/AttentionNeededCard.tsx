@@ -36,7 +36,7 @@ export function AttentionNeededCard({ alerts }: AttentionNeededCardProps) {
 
             <Link
               to={alert.actionRoute}
-              className="text-[12px] font-medium text-teal-600 hover:text-teal-700 hover:underline"
+              className="text-[12px] font-medium text-primary hover:underline"
             >
               {alert.actionText}
             </Link>

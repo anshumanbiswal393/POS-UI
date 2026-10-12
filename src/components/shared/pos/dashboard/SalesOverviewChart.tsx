@@ -34,7 +34,7 @@ export function SalesOverviewChart({ data }: SalesOverviewChartProps) {
           {/* Legend */}
           <div className="mt-2 flex items-center gap-4 text-[12px]">
             <div className="flex items-center gap-1.5 font-medium text-slate-700">
-              <span className="h-0.5 w-3.5 rounded-full bg-teal-500" />
+              <span className="h-0.5 w-3.5 rounded-full bg-primary" />
               <span>Today</span>
             </div>
             <div className="flex items-center gap-1.5 text-slate-400">
@@ -66,7 +66,7 @@ export function SalesOverviewChart({ data }: SalesOverviewChartProps) {
                   }}
                   className={`w-full rounded-md px-2 py-1.5 text-left text-[12px] ${
                     timeRange === t
-                      ? "bg-teal-50 text-teal-700 font-semibold"
+                      ? "bg-primary/10 text-primary font-semibold"
                       : "text-slate-600 hover:bg-slate-50"
                   }`}
                 >
@@ -85,8 +85,8 @@ export function SalesOverviewChart({ data }: SalesOverviewChartProps) {
             <AreaChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
               <defs>
                 <linearGradient id="todaySalesGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0d9488" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#0d9488" stopOpacity={0.0} />
+                  <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="var(--primary)" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -127,15 +127,15 @@ export function SalesOverviewChart({ data }: SalesOverviewChartProps) {
                 dot={false}
                 activeDot={{ r: 4 }}
               />
-              {/* Today Teal Area */}
+              {/* Today Primary Area */}
               <Area
                 type="monotone"
                 dataKey="todaySales"
-                stroke="#0d9488"
+                stroke="var(--primary)"
                 strokeWidth={2.5}
                 fillOpacity={1}
                 fill="url(#todaySalesGradient)"
-                activeDot={{ r: 5, fill: "#0d9488", stroke: "#fff", strokeWidth: 2 }}
+                activeDot={{ r: 5, fill: "var(--primary)", stroke: "#fff", strokeWidth: 2 }}
               />
             </AreaChart>
           </ResponsiveContainer>

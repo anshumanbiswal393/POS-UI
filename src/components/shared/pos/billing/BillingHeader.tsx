@@ -82,7 +82,7 @@ export function BillingHeader({
           </div>
 
           <div className="hidden md:flex items-center gap-1.5 text-slate-600 bg-slate-50 px-2 py-1 rounded-md border border-slate-200/70">
-            <User className="h-3 w-3 text-teal-600" />
+            <User className="h-3 w-3 text-primary" />
             <span>
               Steward: <strong className="text-slate-800 font-semibold">{captainName}</strong>
             </span>
@@ -120,11 +120,11 @@ export function BillingHeader({
           <button
             type="button"
             onClick={onNewBill}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-primary bg-primary/10 border border-primary/20 hover:bg-primary/20 transition cursor-pointer shadow-2xs"
           >
-            <PlusCircle className="h-3.5 w-3.5 text-teal-600" />
+            <PlusCircle className="h-3.5 w-3.5 text-primary" />
             <span>New Check</span>
-            <kbd className="hidden sm:inline-block ml-1 rounded bg-teal-200/70 px-1 text-[10px] text-teal-900 font-mono">
+            <kbd className="hidden sm:inline-block ml-1 rounded bg-primary/20 px-1 text-[10px] text-primary font-mono">
               F2
             </kbd>
           </button>
@@ -145,11 +145,11 @@ export function BillingHeader({
                 onClick={() => setOrderType(mode.id)}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                   isActive
-                    ? "bg-teal-700 text-white shadow-xs"
+                    ? "bg-primary text-primary-foreground shadow-xs"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/80"
                 }`}
               >
-                <Icon className={`h-3.5 w-3.5 ${isActive ? "text-teal-100" : "text-slate-500"}`} />
+                <Icon className={`h-3.5 w-3.5 ${isActive ? "text-primary-foreground/80" : "text-slate-500"}`} />
                 <span>{mode.label}</span>
               </button>
             );
@@ -160,24 +160,24 @@ export function BillingHeader({
         <div className="flex flex-wrap items-center gap-2.5 flex-1 lg:justify-end">
           {/* Table / Room Selector button */}
           {orderType === "dine_in" && (
-            <div className="flex items-center gap-2 bg-teal-50 border border-teal-200/90 rounded-lg px-2.5 py-1 text-xs">
-              <span className="text-teal-700 font-medium">Table:</span>
+            <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1 text-xs">
+              <span className="text-primary font-medium">Table:</span>
               <button
                 type="button"
                 onClick={onOpenTableSelector}
-                className="font-bold text-teal-900 bg-white hover:bg-teal-100/70 px-2 py-0.5 rounded border border-teal-300 shadow-2xs transition cursor-pointer"
+                className="font-bold text-foreground bg-white hover:bg-primary/10 px-2 py-0.5 rounded border border-primary/30 shadow-2xs transition cursor-pointer"
               >
                 {activeTable || "Select Table"} ▾
               </button>
-              <div className="flex items-center gap-1 border-l border-teal-200 pl-2">
-                <span className="text-teal-700">Guests:</span>
+              <div className="flex items-center gap-1 border-l border-primary/20 pl-2">
+                <span className="text-primary">Guests:</span>
                 <input
                   type="number"
                   min="1"
                   max="50"
                   value={guestCount}
                   onChange={(e) => setGuestCount(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-10 text-center font-bold text-teal-900 bg-white border border-teal-300 rounded px-1 py-0.5 text-xs focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                  className="w-10 text-center font-bold text-foreground bg-white border border-primary/30 rounded px-1 py-0.5 text-xs focus:ring-1 focus:ring-primary focus:outline-none"
                 />
               </div>
             </div>
@@ -211,7 +211,7 @@ export function BillingHeader({
               placeholder="Search items by name, code (#101)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-8 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1.5 focus:ring-teal-600 focus:border-teal-600 transition"
+              className="w-full pl-8 pr-8 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1.5 focus:ring-primary focus:border-primary transition"
             />
             {searchQuery && (
               <button

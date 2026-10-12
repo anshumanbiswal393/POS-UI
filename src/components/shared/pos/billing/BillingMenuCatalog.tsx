@@ -158,7 +158,7 @@ export function BillingMenuCatalog({
               placeholder="Search dishes or scan barcode... (Press '/' to focus)"
               value={effectiveQuery}
               onChange={(e) => handleSearchInput(e.target.value)}
-              className="w-full pl-9 pr-14 py-2 text-xs text-slate-900 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-600/30 font-medium placeholder:text-slate-400 shadow-2xs"
+              className="w-full pl-9 pr-14 py-2 text-xs text-slate-900 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium placeholder:text-slate-400 shadow-2xs"
             />
             <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
               {effectiveQuery ? (
@@ -228,8 +228,8 @@ export function BillingMenuCatalog({
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border ${
                   isActive
-                    ? "bg-[#0c4a45] text-white border-[#0c4a45] shadow-xs font-bold"
-                    : "bg-white text-slate-700 border-slate-200/80 hover:bg-teal-50/50 hover:text-teal-800"
+                    ? "bg-primary text-primary-foreground border-primary shadow-xs font-bold"
+                    : "bg-white text-slate-700 border-slate-200/80 hover:bg-primary/10 hover:text-primary"
                 }`}
               >
                 {cat}
@@ -344,7 +344,7 @@ export function BillingMenuCatalog({
                                 }
                                 className={`px-2 py-0.5 text-[10.5px] font-bold rounded-md transition-all cursor-pointer ${
                                   isSelected
-                                    ? "bg-[#0c4a45] text-white shadow-xs"
+                                    ? "bg-primary text-primary-foreground shadow-xs"
                                     : "text-slate-600 hover:text-slate-900"
                                 }`}
                               >
@@ -366,22 +366,22 @@ export function BillingMenuCatalog({
                     {/* Action Button: + Add or Quantity controls */}
                     <td className="py-2.5 px-3.5 text-right">
                       {inCart && cartId ? (
-                        <div className="inline-flex items-center border border-[#0c4a45]/30 rounded-lg overflow-hidden bg-teal-50">
+                        <div className="inline-flex items-center border border-primary/30 rounded-lg overflow-hidden bg-primary/10">
                           <button
                             type="button"
                             onClick={() => onUpdateCartQty(cartId, totalQty - 1)}
-                            className="h-7 w-7 flex items-center justify-center text-[#0c4a45] hover:bg-teal-100 active:scale-95 transition cursor-pointer"
+                            className="h-7 w-7 flex items-center justify-center text-primary hover:bg-primary/20 active:scale-95 transition cursor-pointer"
                             title="Decrease quantity"
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
-                          <span className="px-2 font-mono text-xs font-bold text-[#0c4a45]">
+                          <span className="px-2 font-mono text-xs font-bold text-primary">
                             {totalQty}
                           </span>
                           <button
                             type="button"
                             onClick={() => onUpdateCartQty(cartId, totalQty + 1)}
-                            className="h-7 w-7 flex items-center justify-center text-[#0c4a45] hover:bg-teal-100 active:scale-95 transition cursor-pointer"
+                            className="h-7 w-7 flex items-center justify-center text-primary hover:bg-primary/20 active:scale-95 transition cursor-pointer"
                             title="Increase quantity"
                           >
                             <Plus className="w-3.5 h-3.5" />
@@ -391,7 +391,7 @@ export function BillingMenuCatalog({
                         <button
                           type="button"
                           onClick={() => handleAddClick(item)}
-                          className="inline-flex items-center gap-1 h-7 px-3 rounded-lg text-xs font-bold bg-[#0c4a45] hover:bg-[#115e59] text-white shadow-xs hover:shadow-sm active:scale-95 transition-all cursor-pointer"
+                          className="inline-flex items-center gap-1 h-7 px-3 rounded-lg text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs hover:shadow-sm active:scale-95 transition-all cursor-pointer"
                         >
                           <Plus className="w-3 h-3" />
                           <span>Add</span>

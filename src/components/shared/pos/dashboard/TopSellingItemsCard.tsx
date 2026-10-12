@@ -13,7 +13,7 @@ export function TopSellingItemsCard({ items }: TopSellingItemsCardProps) {
         <h2 className="text-[14px] font-bold text-slate-900">Top selling items</h2>
         <Link
           to="/pos/menu"
-          className="text-[12px] font-semibold text-teal-600 hover:text-teal-700 hover:underline"
+          className="text-[12px] font-semibold text-primary hover:underline"
         >
           View all
         </Link>
@@ -25,8 +25,12 @@ export function TopSellingItemsCard({ items }: TopSellingItemsCardProps) {
             <div className="flex items-center gap-3">
               {/* Dish Icon / Thumbnail */}
               <div
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white font-bold text-[12px] shadow-2xs ${
-                  idx === 0 ? "bg-teal-700" : idx === 1 ? "bg-teal-600" : "bg-slate-700"
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-bold text-[12px] shadow-2xs ${
+                  idx === 0
+                    ? "bg-primary text-primary-foreground"
+                    : idx === 1
+                      ? "bg-primary/80 text-primary-foreground"
+                      : "bg-slate-700 text-white"
                 }`}
               >
                 <Utensils className="h-4 w-4" />

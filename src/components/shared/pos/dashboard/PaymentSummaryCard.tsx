@@ -10,13 +10,13 @@ export function PaymentSummaryCard({ paymentSummary }: PaymentSummaryCardProps) 
       label: "Cash",
       amount: paymentSummary.cash.formatted,
       percentage: paymentSummary.cash.percentage,
-      color: "bg-teal-700",
+      color: "bg-primary",
     },
     {
       label: "Card",
       amount: paymentSummary.card.formatted,
       percentage: paymentSummary.card.percentage,
-      color: "bg-teal-600",
+      color: "bg-primary/80",
     },
     {
       label: "UPI & wallets",

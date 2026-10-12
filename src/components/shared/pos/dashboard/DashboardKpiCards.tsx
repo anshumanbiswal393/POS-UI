@@ -11,7 +11,7 @@ export function DashboardKpiCards({ stats }: DashboardKpiCardsProps) {
     <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
       {/* 1. Total collections */}
       <div className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 border border-teal-300 text-teal-700">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/30 text-primary">
           <IndianRupee className="h-4.5 w-4.5" />
         </div>
         <div className="min-w-0">
@@ -21,7 +21,7 @@ export function DashboardKpiCards({ stats }: DashboardKpiCardsProps) {
           <div className="mt-0.5 text-[18px] font-black text-slate-900 leading-tight">
             {stats.totalCollectionsFormatted}
           </div>
-          <div className="text-[10.5px] text-teal-700 font-medium">Paid today</div>
+          <div className="text-[10.5px] text-primary font-medium">Paid today</div>
         </div>
       </div>
 
@@ -59,11 +59,11 @@ export function DashboardKpiCards({ stats }: DashboardKpiCardsProps) {
           <div className="mt-0.5 flex items-center gap-1.5">
             <div className="h-1.5 w-14 overflow-hidden rounded-full bg-slate-200">
               <div
-                className="h-full rounded-full bg-teal-600"
+                className="h-full rounded-full bg-primary"
                 style={{ width: `${stats.occupancyPercentage}%` }}
               />
             </div>
-            <span className="text-[10.5px] text-teal-700 font-medium">
+            <span className="text-[10.5px] text-primary font-medium">
               {stats.occupancyPercentage}% occupied
             </span>
           </div>
@@ -84,7 +84,7 @@ export function DashboardKpiCards({ stats }: DashboardKpiCardsProps) {
           </div>
           <Link
             to="/pos/settlement"
-            className="text-[10.5px] font-bold text-teal-700 hover:underline"
+            className="text-[10.5px] font-bold text-primary hover:underline"
           >
             Review dues →
           </Link>
@@ -93,7 +93,7 @@ export function DashboardKpiCards({ stats }: DashboardKpiCardsProps) {
 
       {/* 5. Room charges */}
       <div className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 border border-teal-300 text-teal-700">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/30 text-primary">
           <KeyRound className="h-4.5 w-4.5" />
         </div>
         <div className="min-w-0">

@@ -68,19 +68,19 @@ export function RoomOrderCategoryGridView({
               placeholder="Search rooms..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-44 pl-8 pr-3 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00827a]/20 focus:border-[#00827a] transition-all"
+              className="w-44 pl-8 pr-3 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             />
           </div>
 
-          {/* Legend matching reference image */}
+          {/* Legend matching dynamic theme */}
           <div className="flex items-center gap-4 text-xs font-medium">
             <div className="flex items-center gap-2">
-              <div className="w-3.5 h-3.5 rounded-[3px] bg-[#c7efe9] border border-[#00827a] shadow-2xs" />
-              <span className="text-slate-700 font-semibold text-[11.5px]">Vacant</span>
+              <div className="w-3.5 h-3.5 rounded-[3px] bg-primary/15 border border-primary/40 shadow-2xs" />
+              <span className="text-slate-700 font-semibold text-[11.5px]">Available</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="w-3.5 h-3.5 rounded-[3px] bg-[#00827a] shadow-2xs" />
+              <div className="w-3.5 h-3.5 rounded-[3px] bg-primary shadow-2xs" />
               <span className="text-slate-700 font-semibold text-[11.5px]">Occupied</span>
             </div>
           </div>
@@ -157,7 +157,7 @@ export function RoomOrderCategoryGridView({
                   const isOccupied = room.isOccupied;
 
                   // ==========================================
-                  // 1. OCCUPIED ROOM DOOR (Dark Teal, Clickable)
+                  // 1. OCCUPIED ROOM DOOR (Dynamic Theme Primary, Clickable)
                   // ==========================================
                   if (isOccupied) {
                     return (
@@ -168,15 +168,15 @@ export function RoomOrderCategoryGridView({
                         className="group relative flex flex-col items-center cursor-pointer transition-transform duration-150 hover:-translate-y-1"
                       >
                         {/* Outer Door Frame Arch */}
-                        <div className="relative w-[50px] sm:w-[58px] md:w-[64px] h-[70px] sm:h-[80px] md:h-[88px] rounded-t-[22px] sm:rounded-t-[26px] rounded-b-none p-[3.5px] sm:p-[4px] bg-[#006e67] shadow-2xs group-hover:shadow-md group-hover:bg-[#005c56] transition-all">
+                        <div className="relative w-[50px] sm:w-[58px] md:w-[64px] h-[70px] sm:h-[80px] md:h-[88px] rounded-t-[22px] sm:rounded-t-[26px] rounded-b-none p-[3.5px] sm:p-[4px] bg-primary shadow-2xs group-hover:shadow-md transition-all">
                           {/* Inner Door Leaf */}
-                          <div className="w-full h-full rounded-t-[16px] sm:rounded-t-[20px] rounded-b-none bg-[#00837b] text-white relative flex flex-col items-center justify-between pt-2.5 sm:pt-3.5 pb-1 px-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)] overflow-hidden">
+                          <div className="w-full h-full rounded-t-[16px] sm:rounded-t-[20px] rounded-b-none bg-primary/90 text-primary-foreground relative flex flex-col items-center justify-between pt-2.5 sm:pt-3.5 pb-1 px-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)] overflow-hidden">
                             {/* Inner Recessed Moulding Groove Line */}
-                            <div className="absolute inset-x-1 top-1 bottom-0 rounded-t-[12px] sm:rounded-t-[15px] rounded-b-none border-t border-x border-[#006c65]/80 pointer-events-none" />
+                            <div className="absolute inset-x-1 top-1 bottom-0 rounded-t-[12px] sm:rounded-t-[15px] rounded-b-none border-t border-x border-white/20 pointer-events-none" />
 
                             {/* Room Number on Door */}
                             <div className="relative z-10 text-center">
-                              <span className="text-[11px] sm:text-xs md:text-sm font-extrabold tracking-tight text-white drop-shadow-xs">
+                              <span className="text-[11px] sm:text-xs md:text-sm font-extrabold tracking-tight text-primary-foreground drop-shadow-xs">
                                 {room.roomNumber}
                               </span>
                             </div>
@@ -191,7 +191,7 @@ export function RoomOrderCategoryGridView({
 
                             {/* Guest Name ONLY at bottom (no price) */}
                             <div className="relative z-10 w-full mt-auto text-center">
-                              <span className="text-[7.5px] sm:text-[8px] text-teal-100/90 font-semibold truncate max-w-[48px] block mx-auto group-hover:text-white leading-tight">
+                              <span className="text-[7.5px] sm:text-[8px] text-primary-foreground/90 font-semibold truncate max-w-[48px] block mx-auto leading-tight">
                                 {room.guest?.name?.split(" ")[0] || "Guest"}
                               </span>
                             </div>
@@ -205,7 +205,7 @@ export function RoomOrderCategoryGridView({
                   }
 
                   // ==========================================
-                  // 2. VACANT / AVAILABLE ROOM DOOR (Light Mint, Clickable to take order)
+                  // 2. VACANT / AVAILABLE ROOM DOOR (Dynamic Theme Tint, Clickable to take order)
                   // ==========================================
                   return (
                     <div
@@ -215,15 +215,15 @@ export function RoomOrderCategoryGridView({
                       className="group relative flex flex-col items-center cursor-pointer transition-transform duration-150 hover:-translate-y-1 select-none"
                     >
                       {/* Outer Door Frame Arch */}
-                      <div className="relative w-[50px] sm:w-[58px] md:w-[64px] h-[70px] sm:h-[80px] md:h-[88px] rounded-t-[22px] sm:rounded-t-[26px] rounded-b-none p-[3.5px] sm:p-[4px] bg-[#00827a] shadow-2xs group-hover:shadow-md transition-all">
-                        {/* Inner Door Leaf (Light Mint Cyan) */}
-                        <div className="w-full h-full rounded-t-[16px] sm:rounded-t-[20px] rounded-b-none bg-gradient-to-b from-[#e3f7f5] via-[#d0f0ed] to-[#c4ebe8] group-hover:from-[#f0fcfb] group-hover:to-[#d2f3f0] text-[#0f2e2b] relative flex flex-col items-center justify-between pt-2.5 sm:pt-3.5 pb-1 px-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] overflow-hidden">
+                      <div className="relative w-[50px] sm:w-[58px] md:w-[64px] h-[70px] sm:h-[80px] md:h-[88px] rounded-t-[22px] sm:rounded-t-[26px] rounded-b-none p-[3.5px] sm:p-[4px] bg-primary/40 border border-primary/30 shadow-2xs group-hover:bg-primary/60 transition-all">
+                        {/* Inner Door Leaf (Theme Tint) */}
+                        <div className="w-full h-full rounded-t-[16px] sm:rounded-t-[20px] rounded-b-none bg-primary/10 group-hover:bg-primary/15 text-foreground relative flex flex-col items-center justify-between pt-2.5 sm:pt-3.5 pb-1 px-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] overflow-hidden">
                           {/* Inner Recessed Moulding Groove Line */}
-                          <div className="absolute inset-x-1 top-1 bottom-0 rounded-t-[12px] sm:rounded-t-[15px] rounded-b-none border-t border-x border-[#b0e6e2] pointer-events-none" />
+                          <div className="absolute inset-x-1 top-1 bottom-0 rounded-t-[12px] sm:rounded-t-[15px] rounded-b-none border-t border-x border-primary/20 pointer-events-none" />
 
                           {/* Room Number on Door (Dark Bold) */}
                           <div className="relative z-10 text-center">
-                            <span className="text-[11px] sm:text-xs md:text-sm font-extrabold tracking-tight text-[#0f2e2b]">
+                            <span className="text-[11px] sm:text-xs md:text-sm font-extrabold tracking-tight text-foreground">
                               {room.roomNumber}
                             </span>
                           </div>
@@ -238,7 +238,7 @@ export function RoomOrderCategoryGridView({
 
                           {/* Available label */}
                           <div className="relative z-10 w-full mt-auto text-center">
-                            <span className="text-[7.5px] sm:text-[8px] text-teal-800 font-semibold block leading-tight">
+                            <span className="text-[7.5px] sm:text-[8px] text-primary font-bold block leading-tight">
                               Available
                             </span>
                           </div>

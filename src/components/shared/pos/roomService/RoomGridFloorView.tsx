@@ -39,7 +39,7 @@ export function RoomGridFloorView({
                 onClick={() => onSelectFloor(floor)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                   isActive
-                    ? "bg-teal-700 text-white shadow-xs"
+                    ? "bg-primary text-primary-foreground shadow-xs"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
                 }`}
               >
@@ -51,7 +51,7 @@ export function RoomGridFloorView({
 
         <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
           <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-teal-600" />
+            <span className="h-2.5 w-2.5 rounded-full bg-primary" />
             <span>Active Dining</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -77,7 +77,7 @@ export function RoomGridFloorView({
               "border-rose-300 bg-rose-50/40 hover:border-rose-400 ring-1 ring-rose-300/40";
           } else if (activeOrder) {
             cardBorder =
-              "border-teal-300 bg-[#f4faf8] hover:border-teal-400 ring-1 ring-teal-400/20";
+              "border-primary/40 bg-primary/5 hover:border-primary ring-1 ring-primary/20";
           }
 
           return (
@@ -107,8 +107,8 @@ export function RoomGridFloorView({
                       Clear Tray
                     </span>
                   ) : activeOrder ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-800">
-                      <Utensils className="w-2.5 h-2.5 text-teal-700" />
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/15 text-primary">
+                      <Utensils className="w-2.5 h-2.5 text-primary" />
                       Dining
                     </span>
                   ) : isOccupied ? (
@@ -148,10 +148,10 @@ export function RoomGridFloorView({
                 {activeOrder && (
                   <div
                     onClick={() => onSelectRoomOrder(activeOrder)}
-                    className="mt-3 p-2.5 rounded-xl bg-white border border-teal-200/80 shadow-xs hover:border-teal-400 cursor-pointer transition-all"
+                    className="mt-3 p-2.5 rounded-xl bg-white border border-primary/20 shadow-xs hover:border-primary cursor-pointer transition-all"
                   >
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-teal-800">{activeOrder.orderNumber}</span>
+                      <span className="font-bold text-primary">{activeOrder.orderNumber}</span>
                       <span className="font-bold text-slate-900">
                         ${activeOrder.totalAmount.toFixed(2)}
                       </span>
@@ -173,7 +173,7 @@ export function RoomGridFloorView({
                   <button
                     type="button"
                     onClick={() => onSelectRoomOrder(activeOrder)}
-                    className="w-full py-1.5 rounded-xl text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-700 hover:text-white transition-colors cursor-pointer"
+                    className="w-full py-1.5 rounded-xl text-xs font-bold text-primary bg-primary/10 hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
                   >
                     View Room Folio
                   </button>
@@ -181,7 +181,7 @@ export function RoomGridFloorView({
                   <button
                     type="button"
                     onClick={() => onOpenNewOrderModal(roomNumber)}
-                    className="w-full py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-teal-700 hover:text-white transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-primary hover:text-primary-foreground transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     New Room Order

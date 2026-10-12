@@ -108,7 +108,7 @@ export function RoomOrderDetailSlide({
         <div className="p-6 border-b border-slate-100 bg-slate-50/80">
           <div className="flex items-center justify-between pr-6">
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-700 text-white font-extrabold text-lg shadow-xs">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground font-extrabold text-lg shadow-xs">
                 {roomNumber}
               </span>
               <div>
@@ -150,9 +150,9 @@ export function RoomOrderDetailSlide({
 
                 let circleClass = "bg-slate-100 text-slate-400 border-slate-200";
                 if (isCompleted) {
-                  circleClass = "bg-teal-700 text-white border-teal-700";
+                  circleClass = "bg-primary text-primary-foreground border-primary";
                 } else if (isCurrent) {
-                  circleClass = "bg-teal-600 text-white border-teal-600 ring-4 ring-teal-100";
+                  circleClass = "bg-primary text-primary-foreground border-primary ring-4 ring-primary/20";
                 }
 
                 return (
@@ -164,7 +164,7 @@ export function RoomOrderDetailSlide({
                     </div>
                     <span
                       className={`text-[10px] font-bold mt-1 text-center whitespace-nowrap ${
-                        isCurrent ? "text-teal-900" : "text-slate-400"
+                        isCurrent ? "text-primary" : "text-slate-400"
                       }`}
                     >
                       {s.label}
@@ -212,7 +212,7 @@ export function RoomOrderDetailSlide({
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
             <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">
               <span>Tray Items & Food Prep</span>
-              <span className="font-mono text-teal-700">{items.length} Items</span>
+              <span className="font-mono text-primary font-bold">{items.length} Items</span>
             </div>
 
             <div className="space-y-2.5 divide-y divide-slate-100">
@@ -223,7 +223,7 @@ export function RoomOrderDetailSlide({
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-1.5 font-bold text-slate-900">
-                      <span className="text-teal-700">{item.quantity}x</span>
+                      <span className="text-primary">{item.quantity}x</span>
                       <span>{item.name}</span>
                     </div>
                     {item.specialInstructions && (
@@ -249,7 +249,7 @@ export function RoomOrderDetailSlide({
               <button
                 type="button"
                 onClick={onOpenAddItems}
-                className="w-full py-2.5 px-3 rounded-xl border border-dashed border-teal-400 bg-teal-50/60 hover:bg-teal-100/70 text-teal-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                className="w-full py-2.5 px-3 rounded-xl border border-dashed border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add More Items / Supplementary KOT</span>
@@ -277,7 +277,7 @@ export function RoomOrderDetailSlide({
               <span className="text-[11px] text-slate-400 block font-semibold">
                 Assigned Butler
               </span>
-              <span className="font-bold text-teal-800 text-sm mt-0.5 block truncate">
+              <span className="font-bold text-primary text-sm mt-0.5 block truncate">
                 {assignedRunner || "Unassigned"}
               </span>
             </div>
@@ -299,13 +299,13 @@ export function RoomOrderDetailSlide({
             </div>
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
               <span className="font-bold text-slate-900 text-sm">Total In-Room Bill</span>
-              <span className="font-bold text-teal-800 text-lg font-mono">
+              <span className="font-bold text-primary text-lg font-mono">
                 ${totalAmount.toFixed(2)}
               </span>
             </div>
 
-            <div className="mt-2 flex items-center gap-2 p-2 rounded-xl bg-teal-50/70 border border-teal-200 text-teal-900 text-xs">
-              <Building2 className="w-4 h-4 text-teal-700" />
+            <div className="mt-2 flex items-center gap-2 p-2 rounded-xl bg-primary/10 border border-primary/20 text-foreground text-xs">
+              <Building2 className="w-4 h-4 text-primary" />
               <span>
                 Billing Method:{" "}
                 <strong className="capitalize font-bold">{paymentMethod.replace("_", " ")}</strong>
@@ -324,7 +324,7 @@ export function RoomOrderDetailSlide({
                 onUpdateStatus(order.id, "tray_ready");
                 onClose();
               }}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-teal-700 text-white font-bold text-xs shadow-xs hover:bg-teal-800 transition-colors cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-xs hover:bg-primary/90 transition-colors cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
               Mark Tray Packed & Ready
@@ -338,7 +338,7 @@ export function RoomOrderDetailSlide({
                 onUpdateStatus(order.id, "dispatched");
                 onClose();
               }}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-teal-600 text-white font-bold text-xs shadow-xs hover:bg-teal-700 transition-colors cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-xs hover:bg-primary/90 transition-colors cursor-pointer"
             >
               <Truck className="w-4 h-4" />
               Dispatch Tray to Room {roomNumber}
@@ -352,7 +352,7 @@ export function RoomOrderDetailSlide({
                 onUpdateStatus(order.id, "delivered");
                 onClose();
               }}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-teal-700 text-white font-bold text-xs shadow-xs hover:bg-teal-800 transition-colors cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-xs hover:bg-primary/90 transition-colors cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
               Confirm Delivery to Guest

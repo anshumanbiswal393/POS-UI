@@ -56,7 +56,7 @@ export function DashboardHeader({ dateLabel, isMockData, onDateChange }: Dashboa
                   }}
                   className={`flex w-full items-center rounded-md px-3 py-2 text-left text-[12.5px] transition cursor-pointer ${
                     selectedRange === r.label
-                      ? "bg-teal-50 text-teal-700 font-semibold"
+                      ? "bg-primary/10 text-primary font-semibold"
                       : "text-slate-600 hover:bg-slate-50"
                   }`}
                 >
@@ -70,7 +70,7 @@ export function DashboardHeader({ dateLabel, isMockData, onDateChange }: Dashboa
         {/* Primary CTA: + New Order */}
         <Link
           to="/pos/billing"
-          className="flex h-9 items-center gap-1.5 rounded-lg bg-teal-600 px-4 text-[13px] font-medium text-white shadow-sm hover:bg-teal-700 active:scale-98 transition cursor-pointer"
+          className="flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-[13px] font-medium text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-98 transition cursor-pointer"
         >
           <Plus className="h-4 w-4 stroke-[2.5]" />
           <span>New Order</span>
@@ -80,7 +80,7 @@ export function DashboardHeader({ dateLabel, isMockData, onDateChange }: Dashboa
         <div className="flex items-center gap-1.5 pl-1 text-[11px] font-medium text-slate-500">
           <span
             className={`h-2 w-2 rounded-full ${
-              isMockData ? "bg-emerald-500" : "bg-teal-500 animate-pulse"
+              isMockData ? "bg-emerald-500" : "bg-primary animate-pulse"
             }`}
           />
           <span>{isMockData ? "Sample data" : "Live data"}</span>

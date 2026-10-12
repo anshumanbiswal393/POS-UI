@@ -66,6 +66,18 @@
   --color-text-secondary: var(--text-secondary);
   --color-text-disabled: var(--text-disabled);
 
+  --color-teal-50: var(--teal-50);
+  --color-teal-100: var(--teal-100);
+  --color-teal-200: var(--teal-200);
+  --color-teal-300: var(--teal-300);
+  --color-teal-400: var(--teal-400);
+  --color-teal-500: var(--teal-500);
+  --color-teal-600: var(--teal-600);
+  --color-teal-700: var(--teal-700);
+  --color-teal-800: var(--teal-800);
+  --color-teal-900: var(--teal-900);
+  --color-teal-950: var(--teal-950);
+
   --shadow-e1: 0 1px 3px rgba(15, 118, 110, 0.14);
   --shadow-e2: 0 4px 12px rgba(15, 118, 110, 0.2);
   --shadow-e3: 0 8px 24px rgba(15, 118, 110, 0.28);
@@ -130,6 +142,19 @@
   --sidebar-hover: oklch(0.255 0.05 256); /* #0F2747 */
   --sidebar-muted: oklch(0.65 0.025 256);
   --sidebar-border: oklch(0.295 0.04 256);
+
+  /* Theme-adaptive teal color scale mapping */
+  --teal-50: var(--primary-tint, color-mix(in srgb, var(--primary) 8%, white));
+  --teal-100: color-mix(in srgb, var(--primary) 16%, white);
+  --teal-200: color-mix(in srgb, var(--primary) 28%, white);
+  --teal-300: color-mix(in srgb, var(--primary) 45%, white);
+  --teal-400: color-mix(in srgb, var(--primary) 65%, white);
+  --teal-500: var(--primary);
+  --teal-600: var(--primary);
+  --teal-700: var(--primary-pressed, color-mix(in srgb, var(--primary) 85%, black));
+  --teal-800: color-mix(in srgb, var(--primary) 70%, black);
+  --teal-900: color-mix(in srgb, var(--primary) 55%, black);
+  --teal-950: color-mix(in srgb, var(--primary) 40%, black);
 }
 
 .dark {
@@ -183,6 +208,19 @@
   --sidebar-hover: oklch(0.20 0.025 250);
   --sidebar-muted: oklch(0.70 0.015 250);
   --sidebar-border: oklch(0.24 0.02 250);
+
+  /* Dark mode theme-adaptive teal color scale mapping */
+  --teal-50: color-mix(in srgb, var(--primary) 18%, #121824);
+  --teal-100: color-mix(in srgb, var(--primary) 26%, #121824);
+  --teal-200: color-mix(in srgb, var(--primary) 40%, #121824);
+  --teal-300: color-mix(in srgb, var(--primary) 58%, #121824);
+  --teal-400: var(--primary);
+  --teal-500: var(--primary);
+  --teal-600: var(--primary);
+  --teal-700: var(--primary-pressed, var(--primary));
+  --teal-800: color-mix(in srgb, var(--primary) 80%, white);
+  --teal-900: color-mix(in srgb, var(--primary) 92%, white);
+  --teal-950: #ffffff;
 }
 
 .theme-rose-indigo-premium {

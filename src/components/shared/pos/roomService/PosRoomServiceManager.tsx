@@ -116,7 +116,7 @@ export function PosRoomServiceManager() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-700 text-white font-bold text-sm shadow-xs">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-xs">
                 <BedDouble className="w-5 h-5" />
               </span>
               <div>
@@ -139,7 +139,7 @@ export function PosRoomServiceManager() {
                 placeholder="Search room, guest..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-48 sm:w-56 pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                className="w-48 sm:w-56 pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
             </div>
 
@@ -176,7 +176,7 @@ export function PosRoomServiceManager() {
             <button
               type="button"
               onClick={() => handleOpenNewOrder()}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-pressed text-primary-foreground font-bold text-xs shadow-xs transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Take Room Order</span>
@@ -205,7 +205,7 @@ export function PosRoomServiceManager() {
               onClick={() => setStatusFilter("all")}
               className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 statusFilter === "all"
-                  ? "bg-teal-600 text-white shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-xs"
                   : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
               }`}
             >
@@ -216,7 +216,7 @@ export function PosRoomServiceManager() {
               onClick={() => setStatusFilter("kitchen_prep")}
               className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 statusFilter === "kitchen_prep"
-                  ? "bg-teal-600 text-white shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-xs"
                   : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
               }`}
             >
@@ -227,7 +227,7 @@ export function PosRoomServiceManager() {
               onClick={() => setStatusFilter("tray_ready")}
               className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 statusFilter === "tray_ready"
-                  ? "bg-teal-600 text-white shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-xs"
                   : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
               }`}
             >
@@ -238,7 +238,7 @@ export function PosRoomServiceManager() {
               onClick={() => setStatusFilter("dispatched")}
               className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 statusFilter === "dispatched"
-                  ? "bg-teal-600 text-white shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-xs"
                   : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
               }`}
             >
@@ -249,7 +249,7 @@ export function PosRoomServiceManager() {
               onClick={() => setStatusFilter("delivered")}
               className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 statusFilter === "delivered"
-                  ? "bg-teal-600 text-white shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-xs"
                   : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
               }`}
             >

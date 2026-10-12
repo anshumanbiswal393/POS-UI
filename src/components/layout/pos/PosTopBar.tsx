@@ -136,7 +136,7 @@ export function PosTopBar({
             <span
               className={`hidden md:inline-flex items-center rounded-full px-1.5 py-0.2 text-[10px] font-bold uppercase tracking-wider ${
                 activeOutlet.type === "Primary Outlet"
-                  ? "bg-teal-50 text-teal-700 border border-teal-200"
+                  ? "bg-primary/10 text-primary border border-primary/20"
                   : "bg-indigo-50 text-indigo-700 border border-indigo-200"
               }`}
             >

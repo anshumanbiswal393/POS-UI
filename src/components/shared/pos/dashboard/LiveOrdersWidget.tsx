@@ -12,15 +12,15 @@ export function LiveOrdersWidget({ orders }: LiveOrdersWidgetProps) {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-200 pb-2">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-teal-600 animate-pulse" />
+          <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
           <h2 className="text-[13.5px] font-bold text-slate-900">Current Orders</h2>
-          <span className="rounded-full bg-teal-50 px-2 py-0.2 text-[10.5px] font-bold text-teal-700 border border-teal-300">
+          <span className="rounded-full bg-primary/10 px-2 py-0.2 text-[10.5px] font-bold text-primary border border-primary/20">
             {orders.length} Active
           </span>
         </div>
         <Link
           to="/pos/orders"
-          className="text-[11.5px] font-bold text-teal-700 hover:text-teal-800 hover:underline"
+          className="text-[11.5px] font-bold text-primary hover:underline"
         >
           View all
         </Link>
@@ -54,8 +54,8 @@ export function LiveOrdersWidget({ orders }: LiveOrdersWidgetProps) {
             </div>
 
             <div className="shrink-0">
-              <span className="inline-flex items-center gap-1 rounded-full border border-teal-300 bg-teal-50 px-2 py-0.5 text-[10.5px] font-bold text-teal-800">
-                <span className="h-1.5 w-1.5 rounded-full bg-teal-600" />
+              <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10.5px] font-bold text-primary">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                 {ord.statusLabel}
               </span>
             </div>
@@ -67,7 +67,7 @@ export function LiveOrdersWidget({ orders }: LiveOrdersWidgetProps) {
       <div className="border-t border-slate-200 pt-2 text-center">
         <Link
           to="/pos/orders"
-          className="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-teal-700 hover:text-teal-800 hover:underline"
+          className="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-primary hover:underline"
         >
           <span>Open Current Orders Command Center</span>
           <ArrowRight className="h-3.5 w-3.5" />

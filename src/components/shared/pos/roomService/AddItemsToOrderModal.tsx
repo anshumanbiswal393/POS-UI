@@ -150,7 +150,7 @@ export function AddItemsToOrderModal({
                 onClick={() => setActiveCategory(cat)}
                 className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
                   activeCategory === cat
-                    ? "bg-teal-700 text-white shadow-xs"
+                    ? "bg-primary text-primary-foreground shadow-xs"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
@@ -168,7 +168,7 @@ export function AddItemsToOrderModal({
                   key={item.id}
                   className={`p-2.5 rounded-xl border text-xs flex items-center justify-between transition-all ${
                     qty > 0
-                      ? "bg-teal-50/80 border-teal-400 text-teal-950 shadow-xs"
+                      ? "bg-primary/10 border-primary/50 text-foreground shadow-xs"
                       : "bg-white border-slate-200 text-slate-800 hover:border-slate-300"
                   }`}
                 >
@@ -193,7 +193,7 @@ export function AddItemsToOrderModal({
                     <button
                       type="button"
                       onClick={() => handleAddItem(item.id)}
-                      className="h-6 w-6 rounded-md bg-teal-700 text-white flex items-center justify-center hover:bg-teal-800 transition-colors"
+                      className="h-6 w-6 rounded-md bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary-pressed transition-colors"
                     >
                       <Plus className="w-3 h-3" />
                     </button>
@@ -213,23 +213,23 @@ export function AddItemsToOrderModal({
               placeholder="e.g. Bring extra wine glasses, deliver immediately with dessert spoons"
               value={specialNote}
               onChange={(e) => setSpecialNote(e.target.value)}
-              className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+              className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
           </div>
 
           {/* Cost update preview */}
-          <div className="p-3.5 bg-teal-50/70 rounded-xl border border-teal-200/80 text-xs space-y-1.5">
+          <div className="p-3.5 bg-primary/5 rounded-xl border border-primary/20 text-xs space-y-1.5">
             <div className="flex items-center justify-between text-slate-600">
               <span>Existing Order Total:</span>
               <span className="font-mono font-semibold">${order.totalAmount.toFixed(2)}</span>
             </div>
-            <div className="flex items-center justify-between text-teal-900 font-medium">
+            <div className="flex items-center justify-between text-primary font-medium">
               <span>Additional Items (+15% Service + 8% Tax):</span>
               <span className="font-mono font-bold">+${addedTotal.toFixed(2)}</span>
             </div>
-            <div className="pt-1.5 border-t border-teal-200/60 flex items-center justify-between">
+            <div className="pt-1.5 border-t border-primary/20 flex items-center justify-between">
               <span className="font-bold text-slate-900">New Room Folio Total:</span>
-              <span className="font-bold text-teal-800 text-sm font-mono">
+              <span className="font-bold text-primary text-sm font-mono">
                 ${projectedTotal.toFixed(2)}
               </span>
             </div>
@@ -246,7 +246,7 @@ export function AddItemsToOrderModal({
             <button
               type="submit"
               disabled={newItemsList.length === 0}
-              className="px-5 py-2 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 disabled:opacity-50 rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-5 py-2 text-xs font-bold text-primary-foreground bg-primary hover:bg-primary-pressed disabled:opacity-50 rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
             >
               <Check className="w-3.5 h-3.5" />
               Add to Room Ticket & Fire KOT

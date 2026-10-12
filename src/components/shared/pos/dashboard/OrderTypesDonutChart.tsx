@@ -14,6 +14,12 @@ export function OrderTypesDonutChart({ orderTypes, totalCount }: OrderTypesDonut
     setMounted(true);
   }, []);
 
+  const resolveSliceColor = (entry: OrderTypeMixItem) => {
+    if (entry.type === "dine_in") return "var(--primary)";
+    if (entry.type === "takeaway") return "var(--color-primary-pressed, var(--primary))";
+    return entry.color;
+  };
+
   return (
     <div className="flex h-full flex-col justify-between rounded-xl border border-slate-300 bg-white p-3.5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-slate-200 pb-2">
@@ -37,7 +43,7 @@ export function OrderTypesDonutChart({ orderTypes, totalCount }: OrderTypesDonut
                   dataKey="count"
                 >
                   {orderTypes.map((entry) => (
-                    <Cell key={entry.id} fill={entry.color} stroke="#fff" strokeWidth={2} />
+                    <Cell key={entry.id} fill={resolveSliceColor(entry)} stroke="#fff" strokeWidth={2} />
                   ))}
                 </Pie>
               </PieChart>
@@ -62,7 +68,7 @@ export function OrderTypesDonutChart({ orderTypes, totalCount }: OrderTypesDonut
               <div className="flex items-center gap-1.5">
                 <span
                   className="h-2 w-2 rounded-full shrink-0"
-                  style={{ backgroundColor: item.color }}
+                  style={{ backgroundColor: resolveSliceColor(item) }}
                 />
                 <span className="font-medium text-slate-700">{item.label}</span>
               </div>

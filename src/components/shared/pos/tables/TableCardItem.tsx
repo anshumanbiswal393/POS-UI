@@ -21,7 +21,7 @@ function Chair({
   // Color palette for chairs matching table status with high contrast
   let chairBg = "bg-slate-400 border-slate-500 shadow-2xs";
   if (status === "reserved") {
-    chairBg = "bg-teal-600 border-teal-700 shadow-xs";
+    chairBg = "bg-primary border-primary/80 shadow-xs";
   } else if (status === "occupied") {
     chairBg = "bg-orange-500 border-orange-600 shadow-xs";
   }
@@ -81,7 +81,7 @@ export function TableCardItem({ table, onSelectReserved, onSelectTable }: TableC
 
   if (status === "reserved") {
     tableStyle =
-      "bg-[#ecfdf5] text-teal-950 border-teal-400 hover:bg-[#d1fae5] shadow-xs ring-1 ring-teal-500/40";
+      "bg-primary/5 text-foreground border-primary/40 hover:bg-primary/10 shadow-xs ring-1 ring-primary/30";
     statusBadge = (
       <button
         type="button"
@@ -89,7 +89,7 @@ export function TableCardItem({ table, onSelectReserved, onSelectTable }: TableC
           e.stopPropagation();
           onSelectReserved(table, activeReservation);
         }}
-        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-teal-700 text-white shadow-xs hover:bg-teal-800 transition-colors cursor-pointer"
+        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors cursor-pointer"
         title="Click to view reservation details"
       >
         <CalendarCheck className="w-3 h-3" />
@@ -187,7 +187,7 @@ export function TableCardItem({ table, onSelectReserved, onSelectTable }: TableC
           )}
 
           {status === "reserved" && activeReservation && (
-            <div className="mt-0.5 text-[9.5px] font-bold text-teal-950 bg-teal-100/90 px-1.5 py-0.2 rounded border border-teal-200/80 truncate max-w-[110px]">
+            <div className="mt-0.5 text-[9.5px] font-bold text-primary bg-primary/10 px-1.5 py-0.2 rounded border border-primary/30 truncate max-w-[110px]">
               {activeReservation.customerName.split(" ")[0]} ({activeReservation.reservationTime})
             </div>
           )}
