@@ -97,21 +97,9 @@ export function PosTakeOrderManager() {
 
   // ===================== HANDLERS: RESTAURANT =====================
   const handleSelectTable = (table: RestaurantTable) => {
-    if (table.status === "vacant") {
-      // Redirect directly to unified billing interface
-      navigate({
-        to: "/pos/billing",
-        search: {
-          orderType: "dine_in",
-          table: table.tableNumber,
-          guests: table.capacity,
-        },
-      });
-    } else {
-      setSelectedTable(table);
-      setSelectedReservation(table.activeReservation || null);
-      setIsDetailSlideOpen(true);
-    }
+    // Open the setup wizard to ask for guest details and waiter name dropdown (all optional)
+    setWizardTableId(table.id);
+    setIsTakeOrderWizardOpen(true);
   };
 
   const handleSelectReserved = (table: RestaurantTable, res?: ReservationItem) => {
@@ -184,15 +172,10 @@ export function PosTakeOrderManager() {
 
   // ===================== HANDLERS: ROOM =====================
   const handleSelectOccupiedRoom = (room: HotelRoom) => {
-    navigate({
-      to: "/pos/billing",
-      search: {
-        orderType: "room_service",
-        room: room.roomNumber,
-        guests: 2,
-        guestName: room.guest?.name || "",
-      },
-    });
+    // Open room order setup wizard asking for waiter and guest details (all optional)
+    setSelectedRoomForWizard(room);
+    setActiveHeldOrder(null);
+    setIsRoomWizardOpen(true);
   };
 
   const handleResumeHeldOrder = (held: HeldRoomOrder) => {
@@ -401,16 +384,9 @@ export function PosTakeOrderManager() {
         selectedTable={selectedTable}
         selectedReservation={selectedReservation}
         onSeatGuests={(tableId) => {
-          const tbl = allTables.find((t) => t.id === tableId) || selectedTable;
-          navigate({
-            to: "/pos/billing",
-            search: {
-              orderType: "dine_in",
-              table: tbl?.tableNumber || "",
-              guests: tbl?.capacity || 4,
-              guestName: selectedReservation?.customerName || tbl?.activeReservation?.customerName || "",
-            },
-          });
+          setIsDetailSlideOpen(false);
+          setWizardTableId(tableId);
+          setIsTakeOrderWizardOpen(true);
         }}
         onCancelReservation={(resId) => cancelReservationMutation.mutate(resId)}
         onVacateTable={(tableId) => vacateTableMutation.mutate(tableId)}
@@ -419,6 +395,7 @@ export function PosTakeOrderManager() {
           setIsNewReservationOpen(true);
         }}
         onOpenEditOrder={(tbl) => {
+          setIsDetailSlideOpen(false);
           navigate({
             to: "/pos/billing",
             search: {
@@ -448,6 +425,7 @@ export function PosTakeOrderManager() {
         onClearTray={(orderId) => clearTrayMutation.mutate(orderId)}
         onOpenAddItems={() => {
           if (selectedRoomOrder) {
+            setIsRoomSlideOpen(false);
             navigate({
               to: "/pos/billing",
               search: {

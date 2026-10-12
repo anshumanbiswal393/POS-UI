@@ -182,13 +182,9 @@ export function RoomOrderWizardModal({
     });
   };
 
-  // Step 1 Proceed
-  const handleProceedToMenu = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pax <= 0) {
-      setStep1Error("Please select at least 1 guest / pax");
-      return;
-    }
+  // Step 1 Proceed (All fields optional, proceeds directly to billing)
+  const handleProceedToMenu = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setStep1Error("");
     onClose();
     navigate({
@@ -196,8 +192,9 @@ export function RoomOrderWizardModal({
       search: {
         orderType: "room_service",
         room: roomNumber,
-        guests: pax,
+        guests: pax > 0 ? pax : 2,
         guestName: guestName.trim() || "",
+        waiterName: effectiveWaiter || "",
       },
     });
   };
@@ -322,7 +319,7 @@ export function RoomOrderWizardModal({
             {/* 1. Pax / Party Size */}
             <div>
               <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
-                Number of Guests / Pax <span className="text-rose-500">*</span>
+                Number of Guests / Pax <span className="text-slate-400 font-normal">(Optional)</span>
               </label>
               <div className="flex items-center gap-1.5">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
@@ -431,9 +428,9 @@ export function RoomOrderWizardModal({
 
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 rounded-xl shadow-xs transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-6 py-2.5 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 rounded-xl shadow-xs transition cursor-pointer"
               >
-                <span>Next: Take Order & Menu</span>
+                <span>Next</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>

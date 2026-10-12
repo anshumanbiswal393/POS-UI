@@ -25,7 +25,7 @@ import { useOutletContext } from "@/context/PosOutletContext";
 
 export function PosBillingManager() {
   const { activeOutlet } = useOutletContext();
-  const { data: menuList = [] } = useMenuItems(activeOutlet?.id);
+  const { data: menuList = [] } = useMenuItems(activeOutlet?.id || "outlet-primary");
 
   // 1. Order & Header State
   const [orderType, setOrderType] = useState<BillingOrderType>("dine_in");
@@ -33,17 +33,18 @@ export function PosBillingManager() {
   const [roomNumber, setRoomNumber] = useState("Room 312");
   const [guestCount, setGuestCount] = useState(4);
   const [billNumber, setBillNumber] = useState("RET-2026-9024");
-  const [captainName] = useState("Rahul V.");
+  const [captainName, setCaptainName] = useState("Rahul V.");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Map dynamic menu items from Food Menu service
+  // Real-time synchronization: disabled/inactive items and deleted items are NOT shown; newly added active items are shown!
   const billingItems: BillingMenuItem[] = useMemo(() => {
-    if (!menuList || menuList.length === 0) {
-      return MOCK_MENU_ITEMS;
+    if (!menuList) {
+      return [];
     }
 
     return menuList
-      .filter((item) => item.status === "Active")
+      .filter((item) => item.status === "Active" && item.baseMenu !== false)
       .map((item) => {
         const primaryImg =
           item.images?.find((img) => img.isPrimary)?.url || item.images?.[0]?.url;
@@ -66,7 +67,7 @@ export function PosBillingManager() {
           category: item.category as any,
           diet,
           price: item.price,
-          inStock: item.status === "Active",
+          inStock: true,
           prepTimeMinutes: 15,
           imageUrl: primaryImg,
           description: item.description,
@@ -85,6 +86,7 @@ export function PosBillingManager() {
     const qRoom = params.get("room");
     const qGuests = params.get("guests") || params.get("pax");
     const qGuestName = params.get("guestName");
+    const qWaiterName = params.get("waiterName") || params.get("captainName");
 
     if (qOrderType) {
       setOrderType(qOrderType);
@@ -101,6 +103,9 @@ export function PosBillingManager() {
       if (!isNaN(parsed) && parsed > 0) {
         setGuestCount(parsed);
       }
+    }
+    if (qWaiterName) {
+      setCaptainName(decodeURIComponent(qWaiterName));
     }
     if (qGuestName) {
       setSelectedCustomer({
@@ -120,53 +125,11 @@ export function PosBillingManager() {
     }
   }, []);
 
-  // 2. Cart Items State (Initial preloaded sample check)
-  const [cartItems, setCartItems] = useState<BillingCartItem[]>([
-    {
-      cartId: "c-1",
-      item: MOCK_MENU_ITEMS[0], // Paneer Tikka Angara
-      quantity: 1,
-      selectedVariant: MOCK_MENU_ITEMS[0].variants?.[1], // Full
-      selectedModifiers: [
-        {
-          groupId: "mg-spice",
-          groupName: "Spice Level",
-          optionId: "sp-extra",
-          optionName: "Extra Angara Spicy",
-          price: 0,
-        },
-      ],
-      specialInstructions: "Serve with onion salad",
-      addedAt: "12:10 PM",
-    },
-    {
-      cartId: "c-2",
-      item: MOCK_MENU_ITEMS[4], // Butter Chicken
-      quantity: 1,
-      selectedVariant: MOCK_MENU_ITEMS[4].variants?.[0], // Boneless
-      selectedModifiers: [],
-      addedAt: "12:12 PM",
-    },
-    {
-      cartId: "c-3",
-      item: MOCK_MENU_ITEMS[8], // Garlic Butter Naan
-      quantity: 3,
-      selectedModifiers: [],
-      addedAt: "12:14 PM",
-    },
-    {
-      cartId: "c-4",
-      item: MOCK_MENU_ITEMS[17], // Signature Berry Mojito
-      quantity: 2,
-      selectedModifiers: [],
-      addedAt: "12:15 PM",
-    },
-  ]);
+  // 2. Cart Items State (empty for fresh and redirected billing sessions)
+  const [cartItems, setCartItems] = useState<BillingCartItem[]>([]);
 
   // 3. Customer Loyalty State
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerProfile | null>(
-    MOCK_CUSTOMERS[0],
-  );
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerProfile | null>(null);
 
   // 4. Parked/Held Bills State
   const [heldBills, setHeldBills] = useState<HeldBill[]>(MOCK_HELD_BILLS);

@@ -205,18 +205,19 @@ export function RoomOrderCategoryGridView({
                   }
 
                   // ==========================================
-                  // 2. VACANT ROOM DOOR (Light Mint, Not Clickable, No Text)
+                  // 2. VACANT / AVAILABLE ROOM DOOR (Light Mint, Clickable to take order)
                   // ==========================================
                   return (
                     <div
                       key={room.id}
-                      title={`Room ${room.roomNumber} is Vacant`}
-                      className="relative flex flex-col items-center cursor-not-allowed select-none opacity-95"
+                      onClick={() => onSelectOccupiedRoom(room)}
+                      title={`Room ${room.roomNumber} - Available (Click to take order)`}
+                      className="group relative flex flex-col items-center cursor-pointer transition-transform duration-150 hover:-translate-y-1 select-none"
                     >
                       {/* Outer Door Frame Arch */}
-                      <div className="relative w-[50px] sm:w-[58px] md:w-[64px] h-[70px] sm:h-[80px] md:h-[88px] rounded-t-[22px] sm:rounded-t-[26px] rounded-b-none p-[3.5px] sm:p-[4px] bg-[#00827a] shadow-2xs">
+                      <div className="relative w-[50px] sm:w-[58px] md:w-[64px] h-[70px] sm:h-[80px] md:h-[88px] rounded-t-[22px] sm:rounded-t-[26px] rounded-b-none p-[3.5px] sm:p-[4px] bg-[#00827a] shadow-2xs group-hover:shadow-md transition-all">
                         {/* Inner Door Leaf (Light Mint Cyan) */}
-                        <div className="w-full h-full rounded-t-[16px] sm:rounded-t-[20px] rounded-b-none bg-gradient-to-b from-[#e3f7f5] via-[#d0f0ed] to-[#c4ebe8] text-[#0f2e2b] relative flex flex-col items-center justify-between pt-2.5 sm:pt-3.5 pb-1 px-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] overflow-hidden">
+                        <div className="w-full h-full rounded-t-[16px] sm:rounded-t-[20px] rounded-b-none bg-gradient-to-b from-[#e3f7f5] via-[#d0f0ed] to-[#c4ebe8] group-hover:from-[#f0fcfb] group-hover:to-[#d2f3f0] text-[#0f2e2b] relative flex flex-col items-center justify-between pt-2.5 sm:pt-3.5 pb-1 px-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] overflow-hidden">
                           {/* Inner Recessed Moulding Groove Line */}
                           <div className="absolute inset-x-1 top-1 bottom-0 rounded-t-[12px] sm:rounded-t-[15px] rounded-b-none border-t border-x border-[#b0e6e2] pointer-events-none" />
 
@@ -235,13 +236,17 @@ export function RoomOrderCategoryGridView({
                             <div className="w-2 sm:w-2.5 h-0.5 -ml-0.5 rounded-r-full bg-gradient-to-b from-white via-slate-200 to-slate-400 border border-slate-400/90 shadow-2xs" />
                           </div>
 
-                          {/* Vacant door has NO bottom text at all */}
-                          <div className="h-1" />
+                          {/* Available label */}
+                          <div className="relative z-10 w-full mt-auto text-center">
+                            <span className="text-[7.5px] sm:text-[8px] text-teal-800 font-semibold block leading-tight">
+                              Available
+                            </span>
+                          </div>
                         </div>
                       </div>
 
                       {/* Soft Floor Shadow at Door Base */}
-                      <div className="w-[85%] h-1 bg-slate-300/35 rounded-full blur-[1px] -mt-0.5" />
+                      <div className="w-[85%] h-1 bg-slate-300/35 rounded-full blur-[1px] -mt-0.5 group-hover:bg-slate-400/40 transition-all" />
                     </div>
                   );
                 })}

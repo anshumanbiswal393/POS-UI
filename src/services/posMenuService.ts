@@ -1500,8 +1500,37 @@ const initialScheduleTables: ScheduleTableItem[] = [
   { id: "stab-5", tableNo: "T-02", areaName: "AC Family", noOfPersons: 4, status: true },
 ];
 
-// In-memory runtime store
-let menuItemsStore: MenuItem[] = [...initialMenuItems];
+const STORAGE_KEY_MENU_ITEMS = "retrod_pos_menu_items_store";
+
+function loadMenuItemsFromStorage(): MenuItem[] {
+  if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_MENU_ITEMS);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return [...initialMenuItems];
+}
+
+function saveMenuItemsToStorage(items: MenuItem[]) {
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(STORAGE_KEY_MENU_ITEMS, JSON.stringify(items));
+    } catch {
+      // ignore
+    }
+  }
+}
+
+// In-memory runtime store with localStorage persistence
+let menuItemsStore: MenuItem[] = loadMenuItemsFromStorage();
 let specialNotesStore: SpecialNote[] = [...initialSpecialNotes];
 let commissionsStore: MenuItemCommission[] = [...initialCommissions];
 let schedulesStore: MenuScheduleItem[] = [...initialSchedules];
@@ -1520,6 +1549,7 @@ export const posMenuService = {
       });
       if (res.data && Array.isArray(res.data) && res.data.length > 0) {
         menuItemsStore = res.data;
+        saveMenuItemsToStorage(menuItemsStore);
         return res.data;
       }
     } catch {
@@ -1542,6 +1572,7 @@ export const posMenuService = {
   addMenuItem: async (item: Omit<MenuItem, "id" | "updatedAt">) => {
     const newItem: MenuItem = {
       ...item,
+      outletId: item.outletId || "outlet-primary",
       id: `itm-${Date.now()}`,
       updatedAt: "Just now",
       images: item.images || [],
@@ -1550,12 +1581,14 @@ export const posMenuService = {
       const res = await httpClient.post<MenuItem>(API_ENDPOINTS.MENU.CREATE_ITEM, newItem);
       if (res.data) {
         menuItemsStore = [res.data, ...menuItemsStore];
+        saveMenuItemsToStorage(menuItemsStore);
         return res.data;
       }
     } catch {
       // Fallback
     }
     menuItemsStore = [newItem, ...menuItemsStore];
+    saveMenuItemsToStorage(menuItemsStore);
     return newItem;
   },
 
@@ -1568,6 +1601,7 @@ export const posMenuService = {
     menuItemsStore = menuItemsStore.map((item) =>
       item.id === id ? { ...item, ...data, updatedAt: "Just now" } : item,
     );
+    saveMenuItemsToStorage(menuItemsStore);
     return menuItemsStore.find((i) => i.id === id);
   },
 
@@ -1578,6 +1612,7 @@ export const posMenuService = {
       // Fallback
     }
     menuItemsStore = menuItemsStore.filter((i) => i.id !== id);
+    saveMenuItemsToStorage(menuItemsStore);
     return true;
   },
 
@@ -1599,6 +1634,7 @@ export const posMenuService = {
       }
       return item;
     });
+    saveMenuItemsToStorage(menuItemsStore);
     return menuItemsStore.find((i) => i.id === id);
   },
 

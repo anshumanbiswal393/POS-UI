@@ -11,6 +11,8 @@ import {
 import type { MenuItem, MenuItemType } from "@/types/posMenu";
 import {
   useMenuItems,
+  useAddMenuItem,
+  useUpdateMenuItem,
   useDeleteMenuItem,
   useToggleItemPlatform,
 } from "@/hooks/queries/usePosMenu";
@@ -25,6 +27,7 @@ export function MenuListManagerView() {
   const { activeOutlet } = useOutletContext();
   const { data: menuItems = [], isLoading, refetch, isFetching } = useMenuItems(activeOutlet.id);
   const deleteMutation = useDeleteMenuItem();
+  const updateMutation = useUpdateMenuItem();
   const togglePlatformMutation = useToggleItemPlatform();
 
   // Modals state
@@ -50,6 +53,23 @@ export function MenuListManagerView() {
           );
         },
         onError: () => toast.error("Failed to update Direct QR availability"),
+      }
+    );
+  };
+
+  const handleToggleStatus = (item: MenuItem) => {
+    const nextStatus = item.status === "Active" ? "Inactive" : "Active";
+    updateMutation.mutate(
+      { id: item.id, data: { status: nextStatus } },
+      {
+        onSuccess: () => {
+          toast.success(
+            nextStatus === "Active"
+              ? `"${item.name}" enabled (now visible in Billing)`
+              : `"${item.name}" disabled (hidden from Billing)`
+          );
+        },
+        onError: () => toast.error("Failed to update dish status"),
       }
     );
   };
@@ -285,20 +305,24 @@ export function MenuListManagerView() {
       align: "center",
       minWidth: 120,
       cell: ({ row }) => (
-        <span
-          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+        <button
+          type="button"
+          onClick={() => handleToggleStatus(row)}
+          disabled={updateMutation.isPending}
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer ${
             row.status === "Active"
-              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-              : "bg-slate-100 text-slate-600 border border-slate-200"
+              ? "bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100"
+              : "bg-slate-100 text-slate-600 border border-slate-300 hover:bg-slate-200"
           }`}
+          title={`Click to ${row.status === "Active" ? "Disable" : "Enable"} "${row.name}"`}
         >
           <span
-            className={`h-1.5 w-1.5 rounded-full ${
-              row.status === "Active" ? "bg-emerald-500" : "bg-slate-400"
+            className={`h-2 w-2 rounded-full ${
+              row.status === "Active" ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
             }`}
           />
-          {row.status}
-        </span>
+          <span>{row.status}</span>
+        </button>
       ),
     },
     {

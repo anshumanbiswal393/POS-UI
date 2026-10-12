@@ -197,26 +197,20 @@ export function TableOrderWizardModal({
     });
   };
 
-  // Step 1 Validation & Proceed
-  const handleProceedToMenu = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedTableId) {
-      setStep1Error("Please choose a table to continue");
-      return;
-    }
-    if (pax <= 0) {
-      setStep1Error("Please choose at least 1 guest / pax");
-      return;
-    }
+  // Step 1 Validation & Proceed (All fields optional, proceeds directly to billing)
+  const handleProceedToMenu = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setStep1Error("");
     onClose();
+    const effectiveTable = currentSelectedTable || availableTables.find((t) => t.id === selectedTableId) || availableTables[0];
     navigate({
       to: "/pos/billing",
       search: {
         orderType: "dine_in",
-        table: currentSelectedTable?.tableNumber || selectedTableId,
-        guests: pax,
+        table: effectiveTable?.tableNumber || "Table #1",
+        guests: pax > 0 ? pax : (effectiveTable?.capacity || 2),
         guestName: guestName.trim() || "",
+        waiterName: effectiveWaiter || "",
       },
     });
   };
@@ -327,7 +321,7 @@ export function TableOrderWizardModal({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase">
-                  1. Choose Table <span className="text-rose-500">*</span>
+                  1. Choose Table <span className="text-slate-400 font-normal">(Optional)</span>
                 </label>
                 <span className="text-[11px] font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
                   {availableTables.filter((t) => t.status === "vacant").length} Vacant Tables
@@ -390,7 +384,7 @@ export function TableOrderWizardModal({
             {/* 2. NUMBER OF GUESTS / PAX * */}
             <div>
               <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
-                Number of Guests / Pax <span className="text-rose-500">*</span>
+                Number of Guests / Pax <span className="text-slate-400 font-normal">(Optional)</span>
               </label>
               <div className="flex items-center gap-1.5">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
@@ -530,10 +524,9 @@ export function TableOrderWizardModal({
 
               <button
                 type="submit"
-                disabled={!selectedTableId}
-                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-6 py-2.5 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 rounded-xl shadow-xs transition cursor-pointer"
               >
-                <span>Next: Take Order & Menu</span>
+                <span>Next</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
