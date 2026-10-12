@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PosSidebar } from "@/components/layout/pos/PosSidebar";
 import { PosTopBar } from "@/components/layout/pos/PosTopBar";
-import { OnlineOrderAlertModal } from "@/components/shared/pos/orders/OnlineOrderAlertModal";
+// import { OnlineOrderAlertModal } from "@/components/shared/pos/orders/OnlineOrderAlertModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +62,8 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      <OnlineOrderAlertModal />
+      {/* Online orders alert modal commented out until Zomato/Swiggy integration */}
+      {/* <OnlineOrderAlertModal /> */}
     </div>
   );
 }

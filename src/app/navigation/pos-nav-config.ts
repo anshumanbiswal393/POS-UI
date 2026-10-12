@@ -60,7 +60,7 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
     children: [
       { id: "live-orders", label: "Current Orders", to: "/pos/orders" },
       { id: "all-orders", label: "Order History", to: "/pos/orders/all" },
-      { id: "online-orders", label: "Online Orders", to: "/pos/orders/online" },
+      // { id: "online-orders", label: "Online Orders", to: "/pos/orders/online" }, // Commented out until Zomato/Swiggy integration
       { id: "kot", label: "Kitchen Orders", to: "/pos/kot" },
       { id: "settlement", label: "Pending Payments", to: "/pos/settlement" },
     ],
