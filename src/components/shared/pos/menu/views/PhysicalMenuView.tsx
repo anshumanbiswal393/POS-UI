@@ -291,10 +291,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
     return groups;
   }, [menuItems, onlyActiveItems, selectedCategories]);
 
-  const isTwoColumnLayout =
-    layoutColumns === "double" ||
-    selectedTemplate === "diner" ||
-    selectedTemplate === "showcase";
+  const isTwoColumnLayout = layoutColumns === "double";
 
   // Multi-Page A4 Pagination: fills pages nicely so quantity of paper is reduced
   const menuPages = useMemo(() => {
@@ -312,9 +309,21 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
   }, [menuPages.length, currentPage]);
 
   const toggleCategorySelection = (cat: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
-    );
+    setSelectedCategories((prev) => {
+      // If currently all categories are included (prev is empty):
+      if (prev.length === 0) {
+        // Unchecking cat means keeping all categories except cat
+        return allCategories.filter((c) => c !== cat);
+      }
+      // If cat is already selected in subset, uncheck it:
+      if (prev.includes(cat)) {
+        return prev.filter((c) => c !== cat);
+      }
+      // Otherwise add it back:
+      const next = [...prev, cat];
+      if (next.length === allCategories.length) return [];
+      return next;
+    });
   };
 
   const handlePrint = () => {
@@ -867,10 +876,17 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                   <span>{restaurantName}</span>
                                   <span className="h-px w-8 bg-stone-300" />
                                 </div>
-                                <div className="text-[10px] italic text-stone-400">― ESTABLISHED DINING ―</div>
+                                <div className="text-[10px] italic text-stone-500">
+                                  {tagline ? `― ${tagline} ―` : "― ESTABLISHED DINING ―"}
+                                </div>
                                 <h1 className="text-[22px] sm:text-[24px] font-serif font-bold uppercase tracking-wider text-stone-900 leading-tight">
                                   RESTAURANT MENU
                                 </h1>
+                                <div className="flex flex-wrap items-center justify-center gap-2 text-[9.5px] text-stone-500 font-medium">
+                                  {addressLine && <span>{addressLine}</span>}
+                                  {addressLine && phoneContact && <span>•</span>}
+                                  {phoneContact && <span>Reservations: {phoneContact}</span>}
+                                </div>
 
                                 {/* Arched Hero Food Photo (Page 1 Only - Following Screenshot 2) */}
                                 <div className="relative w-full h-36 rounded-t-full rounded-b-xl overflow-hidden border border-stone-300/80 shadow-xs my-1 bg-stone-100">
@@ -1072,12 +1088,14 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                               )}
                                             </div>
 
+                                            {/* Dotted leader line between dish name and price */}
+                                            {(selectedTemplate === "royal" ||
+                                              selectedTemplate === "diner") && (
+                                              <span className="border-b border-dotted border-current/30 flex-1 mx-2 min-w-2 self-center" />
+                                            )}
+
                                             {showPrices && (
                                               <div className="flex items-baseline gap-1 shrink-0 font-bold text-[12px]">
-                                                {(selectedTemplate === "royal" ||
-                                                  selectedTemplate === "diner") && (
-                                                  <span className="hidden sm:inline-block border-b border-dotted border-current/30 flex-1 w-4" />
-                                                )}
                                                 <span
                                                   className={
                                                     selectedTemplate === "showcase"
