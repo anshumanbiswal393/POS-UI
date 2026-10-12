@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import type {
   BillingMenuItem,
@@ -20,8 +20,13 @@ import { BillingReceiptModal } from "./BillingReceiptModal";
 import { BillingSplitModal } from "./BillingSplitModal";
 import { BillingHeldDrawer } from "./BillingHeldDrawer";
 import { BillingTableModal } from "./BillingTableModal";
+import { useMenuItems } from "@/hooks/queries/usePosMenu";
+import { useOutletContext } from "@/context/PosOutletContext";
 
 export function PosBillingManager() {
+  const { activeOutlet } = useOutletContext();
+  const { data: menuList = [] } = useMenuItems(activeOutlet?.id);
+
   // 1. Order & Header State
   const [orderType, setOrderType] = useState<BillingOrderType>("dine_in");
   const [activeTable, setActiveTable] = useState("T-12");
@@ -30,6 +35,90 @@ export function PosBillingManager() {
   const [billNumber, setBillNumber] = useState("RET-2026-9024");
   const [captainName] = useState("Rahul V.");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Map dynamic menu items from Food Menu service
+  const billingItems: BillingMenuItem[] = useMemo(() => {
+    if (!menuList || menuList.length === 0) {
+      return MOCK_MENU_ITEMS;
+    }
+
+    return menuList
+      .filter((item) => item.status === "Active")
+      .map((item) => {
+        const primaryImg =
+          item.images?.find((img) => img.isPrimary)?.url || item.images?.[0]?.url;
+        const diet: "veg" | "non_veg" | "egg" | "drinks" =
+          item.itemType === "Veg"
+            ? "veg"
+            : item.itemType === "Egg"
+              ? "egg"
+              : item.category.toLowerCase().includes("bev") ||
+                item.category.toLowerCase().includes("cocktail") ||
+                item.category.toLowerCase().includes("vodka") ||
+                item.category.toLowerCase().includes("whisky")
+                ? "drinks"
+                : "non_veg";
+
+        return {
+          id: item.id,
+          code: item.code.startsWith("#") ? item.code : `#${item.code}`,
+          name: item.name,
+          category: item.category as any,
+          diet,
+          price: item.price,
+          inStock: item.status === "Active",
+          prepTimeMinutes: 15,
+          imageUrl: primaryImg,
+          description: item.description,
+          variants: item.variants && item.variants.length > 0 ? (item.variants as any) : undefined,
+          modifierGroups: item.modifierGroups,
+        };
+      });
+  }, [menuList]);
+
+  // Read URL Query parameters on mount (when redirected from Take Order for a Table or Room)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const qOrderType = params.get("orderType") as BillingOrderType | null;
+    const qTable = params.get("table");
+    const qRoom = params.get("room");
+    const qGuests = params.get("guests") || params.get("pax");
+    const qGuestName = params.get("guestName");
+
+    if (qOrderType) {
+      setOrderType(qOrderType);
+    }
+    if (qTable) {
+      setActiveTable(qTable);
+    }
+    if (qRoom) {
+      const formatted = qRoom.toLowerCase().startsWith("room") ? qRoom : `Room ${qRoom}`;
+      setRoomNumber(formatted);
+    }
+    if (qGuests) {
+      const parsed = parseInt(qGuests, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        setGuestCount(parsed);
+      }
+    }
+    if (qGuestName) {
+      setSelectedCustomer({
+        id: `guest-${Date.now()}`,
+        name: decodeURIComponent(qGuestName),
+        phone: "+91 98765 00000",
+        tier: "Silver",
+        loyaltyPoints: 0,
+        visitCount: 1,
+        lastVisit: "Today",
+      });
+    }
+
+    if (qTable || qRoom) {
+      const target = qOrderType === "room_service" ? `Room ${qRoom}` : `Table ${qTable}`;
+      toast.success(`Active billing session for ${target}`);
+    }
+  }, []);
 
   // 2. Cart Items State (Initial preloaded sample check)
   const [cartItems, setCartItems] = useState<BillingCartItem[]>([
@@ -93,23 +182,17 @@ export function PosBillingManager() {
 
   // --- Handlers ---
 
-  // Add plain item or open modifier
-  const handleAddItem = (item: BillingMenuItem) => {
-    if (
-      (item.variants && item.variants.length > 0) ||
-      (item.modifierGroups && item.modifierGroups.length > 0)
-    ) {
-      setModifierItem(item);
-      setIsModifierModalOpen(true);
-      return;
-    }
+  // Add item with chosen portion variant
+  const handleAddItem = (item: BillingMenuItem, selectedVariant?: BillingItemVariant) => {
+    const chosenVariant =
+      selectedVariant ||
+      (item.variants && item.variants.length > 0 ? item.variants[0] : undefined);
 
-    // Direct add for items without variants
     setCartItems((prev) => {
       const existingIndex = prev.findIndex(
         (ci) =>
           ci.item.id === item.id &&
-          !ci.selectedVariant &&
+          ci.selectedVariant?.id === chosenVariant?.id &&
           ci.selectedModifiers.length === 0 &&
           !ci.specialInstructions,
       );
@@ -126,13 +209,17 @@ export function PosBillingManager() {
           cartId: `c-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
           item,
           quantity: 1,
+          selectedVariant: chosenVariant,
           selectedModifiers: [],
           addedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ];
     });
 
-    toast.success(`Added ${item.name} to bill`, { duration: 1500 });
+    toast.success(
+      `Added ${item.name}${chosenVariant ? ` (${chosenVariant.name})` : ""} to check`,
+      { duration: 1500 },
+    );
   };
 
   // Confirm custom item add
@@ -392,7 +479,7 @@ export function PosBillingManager() {
         {/* Left / Center Catalog (7 cols on desktop, 8 on 2xl) */}
         <div className="lg:col-span-7 xl:col-span-7 2xl:col-span-8 flex flex-col min-h-[520px]">
           <BillingMenuCatalog
-            items={MOCK_MENU_ITEMS}
+            items={billingItems}
             cartItems={cartItems}
             onAddItem={handleAddItem}
             onOpenModifierModal={(item) => {
@@ -401,6 +488,7 @@ export function PosBillingManager() {
             }}
             onUpdateCartQty={handleUpdateCartQty}
             searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
           />
         </div>
 

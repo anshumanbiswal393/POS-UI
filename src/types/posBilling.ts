@@ -11,7 +11,8 @@ export type BillingCategory =
   | "Desserts"
   | "Beverages & Shakes"
   | "Bar & Cocktails"
-  | "Combos";
+  | "Combos"
+  | (string & {});
 
 export type BillingItemVariant = {
   id: string;

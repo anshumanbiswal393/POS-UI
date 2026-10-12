@@ -144,32 +144,20 @@ export function MenuItemViewModal({
             </div>
           )}
 
-          {/* Online Channels Status */}
+          {/* Menu & QR Availability Status */}
           <div className="rounded-xl border border-slate-200 p-4 space-y-3">
             <div className="text-[12.5px] font-bold text-slate-800">
-              Channel Availability Status
+              Menu Availability Status
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[12px]">
-              <div className="flex items-center justify-between rounded-lg bg-slate-50 p-2 border border-slate-200">
-                <span className="font-semibold text-slate-700">POS Base</span>
-                <span className="text-emerald-600 font-bold">Active</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[12px]">
+              <div className="flex items-center justify-between rounded-lg bg-slate-50 p-2.5 border border-slate-200">
+                <span className="font-semibold text-slate-700">POS Counter Menu</span>
+                <span className="text-emerald-600 font-bold">Active on Counter</span>
               </div>
-              <div className="flex items-center justify-between rounded-lg bg-slate-50 p-2 border border-slate-200">
-                <span className="font-semibold text-slate-700">Zomato</span>
-                <span className={item.zomato ? "text-emerald-600 font-bold" : "text-slate-400"}>
-                  {item.zomato ? "Live" : "Off"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between rounded-lg bg-slate-50 p-2 border border-slate-200">
-                <span className="font-semibold text-slate-700">Swiggy</span>
-                <span className={item.swiggy ? "text-emerald-600 font-bold" : "text-slate-400"}>
-                  {item.swiggy ? "Live" : "Off"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between rounded-lg bg-slate-50 p-2 border border-slate-200">
-                <span className="font-semibold text-slate-700">Direct QR</span>
-                <span className={item.direct ? "text-emerald-600 font-bold" : "text-slate-400"}>
-                  {item.direct ? "Live" : "Off"}
+              <div className="flex items-center justify-between rounded-lg bg-slate-50 p-2.5 border border-slate-200">
+                <span className="font-semibold text-slate-700">Direct QR Menu</span>
+                <span className={item.direct ? "text-teal-700 font-bold" : "text-slate-400 font-semibold"}>
+                  {item.direct ? "Direct Live" : "Off"}
                 </span>
               </div>
             </div>

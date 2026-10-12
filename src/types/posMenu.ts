@@ -2,10 +2,8 @@ export type MenuTabKey =
   | "menu_list"
   | "menu_management"
   | "upload_item_images"
-  | "item_on_off"
   | "special_note_list"
   | "menucommission_list"
-  | "menu_scheduling"
   | "physical_menu";
 
 export type MenuItemImage = {
@@ -33,6 +31,8 @@ export type MenuItem = {
   status: "Active" | "Inactive";
   description?: string;
   images: MenuItemImage[];
+  variants?: Array<{ id: string; name: string; price: number }>;
+  modifierGroups?: any[];
   // Channel availability
   baseMenu: boolean;
   zomato: boolean;

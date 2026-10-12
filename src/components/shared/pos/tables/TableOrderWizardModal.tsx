@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   X,
   UserCheck,
@@ -79,6 +80,8 @@ export function TableOrderWizardModal({
   onConfirmOrder,
   onHoldOrder,
 }: TableOrderWizardModalProps) {
+  const navigate = useNavigate();
+
   // Step state: 1 = Table & Guest Setup, 2 = Tabular Menu & Live Bill
   const [step, setStep] = useState<1 | 2>(1);
 
@@ -206,7 +209,16 @@ export function TableOrderWizardModal({
       return;
     }
     setStep1Error("");
-    setStep(2);
+    onClose();
+    navigate({
+      to: "/pos/billing",
+      search: {
+        orderType: "dine_in",
+        table: currentSelectedTable?.tableNumber || selectedTableId,
+        guests: pax,
+        guestName: guestName.trim() || "",
+      },
+    });
   };
 
   // Hold Order Action

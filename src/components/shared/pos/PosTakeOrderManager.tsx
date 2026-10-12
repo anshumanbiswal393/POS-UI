@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   usePosTables,
   useDiningAreas,
@@ -41,6 +42,8 @@ import type {
 } from "@/types/posRoomService";
 
 export function PosTakeOrderManager() {
+  const navigate = useNavigate();
+
   // Slide Switcher State: "restaurant" (Table) vs "room" (Room)
   const [activeSlide, setActiveSlide] = useState<"restaurant" | "room">("restaurant");
 
@@ -95,8 +98,15 @@ export function PosTakeOrderManager() {
   // ===================== HANDLERS: RESTAURANT =====================
   const handleSelectTable = (table: RestaurantTable) => {
     if (table.status === "vacant") {
-      setWizardTableId(table.id);
-      setIsTakeOrderWizardOpen(true);
+      // Redirect directly to unified billing interface
+      navigate({
+        to: "/pos/billing",
+        search: {
+          orderType: "dine_in",
+          table: table.tableNumber,
+          guests: table.capacity,
+        },
+      });
     } else {
       setSelectedTable(table);
       setSelectedReservation(table.activeReservation || null);
@@ -174,9 +184,15 @@ export function PosTakeOrderManager() {
 
   // ===================== HANDLERS: ROOM =====================
   const handleSelectOccupiedRoom = (room: HotelRoom) => {
-    setSelectedRoomForWizard(room);
-    setActiveHeldOrder(null);
-    setIsRoomWizardOpen(true);
+    navigate({
+      to: "/pos/billing",
+      search: {
+        orderType: "room_service",
+        room: room.roomNumber,
+        guests: 2,
+        guestName: room.guest?.name || "",
+      },
+    });
   };
 
   const handleResumeHeldOrder = (held: HeldRoomOrder) => {
@@ -308,8 +324,15 @@ export function PosTakeOrderManager() {
             }}
             onOpenSeatGuest={() => setIsAssignGuestOpen(true)}
             onOpenTakeOrder={(tblId) => {
-              setWizardTableId(tblId);
-              setIsTakeOrderWizardOpen(true);
+              const selectedTbl = tblId ? allTables.find((t) => t.id === tblId) : null;
+              navigate({
+                to: "/pos/billing",
+                search: {
+                  orderType: "dine_in",
+                  table: selectedTbl?.tableNumber || "",
+                  guests: selectedTbl?.capacity || 4,
+                },
+              });
             }}
             stats={stats}
             onRefresh={() => refetchTables()}
@@ -378,8 +401,16 @@ export function PosTakeOrderManager() {
         selectedTable={selectedTable}
         selectedReservation={selectedReservation}
         onSeatGuests={(tableId) => {
-          setWizardTableId(tableId);
-          setIsTakeOrderWizardOpen(true);
+          const tbl = allTables.find((t) => t.id === tableId) || selectedTable;
+          navigate({
+            to: "/pos/billing",
+            search: {
+              orderType: "dine_in",
+              table: tbl?.tableNumber || "",
+              guests: tbl?.capacity || 4,
+              guestName: selectedReservation?.customerName || tbl?.activeReservation?.customerName || "",
+            },
+          });
         }}
         onCancelReservation={(resId) => cancelReservationMutation.mutate(resId)}
         onVacateTable={(tableId) => vacateTableMutation.mutate(tableId)}
@@ -388,8 +419,14 @@ export function PosTakeOrderManager() {
           setIsNewReservationOpen(true);
         }}
         onOpenEditOrder={(tbl) => {
-          setEditingTable(tbl);
-          setIsEditOrderOpen(true);
+          navigate({
+            to: "/pos/billing",
+            search: {
+              orderType: "dine_in",
+              table: tbl.tableNumber,
+              guests: tbl.capacity,
+            },
+          });
         }}
       />
 
@@ -409,7 +446,19 @@ export function PosTakeOrderManager() {
         order={selectedRoomOrder}
         onUpdateStatus={(orderId, status) => updateRoomStatusMutation.mutate({ orderId, status })}
         onClearTray={(orderId) => clearTrayMutation.mutate(orderId)}
-        onOpenAddItems={() => setIsAddItemsModalOpen(true)}
+        onOpenAddItems={() => {
+          if (selectedRoomOrder) {
+            navigate({
+              to: "/pos/billing",
+              search: {
+                orderType: "room_service",
+                room: selectedRoomOrder.roomNumber,
+                guests: 2,
+                guestName: selectedRoomOrder.guest?.name || "",
+              },
+            });
+          }
+        }}
       />
 
       {/* 7. Room Order Wizard Modal (Card in Middle, Waiter & Pax -> Tabular Menu + Live Bill + Hold) */}

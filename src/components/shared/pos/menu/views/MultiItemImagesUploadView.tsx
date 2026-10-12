@@ -5,7 +5,10 @@ import { toast } from "sonner";
 export function MultiItemImagesUploadView() {
   const [activeStep, setActiveStep] = useState<1 | 2>(1);
   const [selectedModule, setSelectedModule] = useState<"Item" | "Category" | "Addons">("Item");
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["Zomato", "Swiggy"]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([
+    "POS Counter",
+    "Direct QR Menu",
+  ]);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -25,7 +28,7 @@ export function MultiItemImagesUploadView() {
 
   const handleReset = () => {
     setSelectedModule("Item");
-    setSelectedPlatforms(["Zomato", "Swiggy"]);
+    setSelectedPlatforms(["POS Counter", "Direct QR Menu"]);
     setUploadedFiles([]);
     setActiveStep(1);
     toast.info("Image upload form reset");
@@ -183,7 +186,7 @@ export function MultiItemImagesUploadView() {
             {/* Target Platforms */}
             <div className="flex flex-wrap items-center gap-6 border-b border-slate-100 pb-5">
               <span className="text-[13.5px] font-bold text-slate-800 min-w-[70px]">Platforms</span>
-              {["Zomato", "Swiggy", "POS Counter", "DineIn QR Menu"].map((plat) => (
+              {["POS Counter", "Direct QR Menu"].map((plat) => (
                 <label
                   key={plat}
                   className="flex items-center gap-2 cursor-pointer text-[13px] text-slate-700 font-medium"

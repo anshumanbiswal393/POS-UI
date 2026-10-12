@@ -73,10 +73,8 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
     icon: UtensilsCrossed,
     children: [
       { id: "menu-list", label: "Menu List", to: "/pos/menu" },
-      { id: "menu-onoff", label: "Menu Availability", to: "/pos/menu/on-off" },
       { id: "menu-notes", label: "Special Notes", to: "/pos/menu/special-notes" },
       { id: "menu-commission", label: "Set Item Commission", to: "/pos/menu/commission" },
-      { id: "menu-schedule", label: "Menu Schedule", to: "/pos/menu/schedule" },
       { id: "menu-physical", label: "Printed Menu", to: "/pos/menu/physical" },
     ],
   },

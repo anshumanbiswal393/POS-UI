@@ -10,10 +10,8 @@ export function PosMenuHeader() {
   const syncMutation = useSyncPos();
 
   const getTitle = () => {
-    if (pathname.includes("/on-off")) return "Menu Availability";
     if (pathname.includes("/special-notes")) return "Special Notes";
     if (pathname.includes("/commission")) return "Set Item Commission";
-    if (pathname.includes("/schedule")) return "Menu Schedule";
     if (pathname.includes("/physical")) return "Printed Menu";
     return "Menu List";
   };

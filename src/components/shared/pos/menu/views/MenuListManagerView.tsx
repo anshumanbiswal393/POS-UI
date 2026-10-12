@@ -9,7 +9,11 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import type { MenuItem, MenuItemType } from "@/types/posMenu";
-import { useMenuItems, useDeleteMenuItem } from "@/hooks/queries/usePosMenu";
+import {
+  useMenuItems,
+  useDeleteMenuItem,
+  useToggleItemPlatform,
+} from "@/hooks/queries/usePosMenu";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { MenuItemEditModal } from "../modals/MenuItemEditModal";
 import { ItemImageManagerModal } from "../modals/ItemImageManagerModal";
@@ -21,6 +25,7 @@ export function MenuListManagerView() {
   const { activeOutlet } = useOutletContext();
   const { data: menuItems = [], isLoading, refetch, isFetching } = useMenuItems(activeOutlet.id);
   const deleteMutation = useDeleteMenuItem();
+  const togglePlatformMutation = useToggleItemPlatform();
 
   // Modals state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -31,6 +36,23 @@ export function MenuListManagerView() {
 
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingItem, setViewingItem] = useState<MenuItem | null>(null);
+
+  const handleToggleDirectQr = (id: string, name: string, currentVal: boolean) => {
+    const nextVal = !currentVal;
+    togglePlatformMutation.mutate(
+      { id, platform: "direct" },
+      {
+        onSuccess: () => {
+          toast.success(
+            nextVal
+              ? `"${name}" is now Live on Direct QR Menu`
+              : `"${name}" turned OFF from Direct QR Menu`
+          );
+        },
+        onError: () => toast.error("Failed to update Direct QR availability"),
+      }
+    );
+  };
 
   const handleDeleteItem = (id: string, name: string) => {
     if (confirm(`Are you sure you want to delete "${name}" from the menu?`)) {
@@ -225,6 +247,36 @@ export function MenuListManagerView() {
       ),
     },
     {
+      id: "direct",
+      header: "Direct QR",
+      align: "center",
+      enableSorting: true,
+      enableFiltering: true,
+      filterValueAccessor: (row: MenuItem) => (row.direct ? "Live on Direct QR" : "Off"),
+      minWidth: 110,
+      cell: ({ row }) => (
+        <div className="inline-flex flex-col items-center gap-0.5 py-0.5">
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={row.direct}
+              onChange={() => handleToggleDirectQr(row.id, row.name, row.direct)}
+              disabled={togglePlatformMutation.isPending}
+              className="sr-only peer"
+            />
+            <div className="w-9 h-5 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600"></div>
+          </label>
+          <span
+            className={`text-[9.5px] font-bold ${
+              row.direct ? "text-teal-700" : "text-slate-400"
+            }`}
+          >
+            {row.direct ? "Direct Live" : "Off"}
+          </span>
+        </div>
+      ),
+    },
+    {
       id: "status",
       header: "Status",
       accessorKey: "status",
@@ -314,7 +366,7 @@ export function MenuListManagerView() {
               </span>
             </div>
             <p className="text-[12px] text-slate-500 font-medium">
-              Manage dishes, pricing, tax rates, dietary indicators, and search directly in the columns below.
+              Manage dishes, pricing, tax rates, Direct QR availability, dietary indicators, and search directly in the columns below.
             </p>
           </div>
         </div>

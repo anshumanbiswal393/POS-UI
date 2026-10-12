@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   X,
   UserCheck,
@@ -71,6 +72,8 @@ export function RoomOrderWizardModal({
   onConfirmOrder,
   onHoldOrder,
 }: RoomOrderWizardModalProps) {
+  const navigate = useNavigate();
+
   // Step: 1 = Waiter & Guest Setup, 2 = Menu Tabular Catalog & Live Bill
   const [step, setStep] = useState<1 | 2>(1);
 
@@ -187,7 +190,16 @@ export function RoomOrderWizardModal({
       return;
     }
     setStep1Error("");
-    setStep(2);
+    onClose();
+    navigate({
+      to: "/pos/billing",
+      search: {
+        orderType: "room_service",
+        room: roomNumber,
+        guests: pax,
+        guestName: guestName.trim() || "",
+      },
+    });
   };
 
   // Hold Order action

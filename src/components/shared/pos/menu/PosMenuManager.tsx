@@ -3,10 +3,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
   UtensilsCrossed,
-  Sliders,
   FileEdit,
   Coins,
-  Clock,
   BookOpen,
   RefreshCw,
   ChevronLeft,
@@ -15,10 +13,8 @@ import type { MenuTabKey } from "@/types/posMenu";
 import { useSyncPos } from "@/hooks/queries/usePosMenu";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { MenuListManagerView } from "./views/MenuListManagerView";
-import { MenuOnOffView } from "./views/MenuOnOffView";
 import { SpecialNoteView } from "./views/SpecialNoteView";
 import { SetItemCommissionView } from "./views/SetItemCommissionView";
-import { ScheduleChangesView } from "./views/ScheduleChangesView";
 import { PhysicalMenuView } from "./views/PhysicalMenuView";
 import { toast } from "sonner";
 
@@ -48,11 +44,6 @@ export function PosMenuManager() {
       icon: UtensilsCrossed,
     },
     {
-      id: "item_on_off" as MenuTabKey,
-      label: "Menu Availability",
-      icon: Sliders,
-    },
-    {
       id: "special_note_list" as MenuTabKey,
       label: "Special Notes",
       icon: FileEdit,
@@ -61,11 +52,6 @@ export function PosMenuManager() {
       id: "menucommission_list" as MenuTabKey,
       label: "Set Item Commission",
       icon: Coins,
-    },
-    {
-      id: "menu_scheduling" as MenuTabKey,
-      label: "Menu Schedule",
-      icon: Clock,
     },
     {
       id: "physical_menu" as MenuTabKey,
@@ -135,10 +121,8 @@ export function PosMenuManager() {
           <div className="flex items-center gap-2">
             <h1 className="text-[18px] font-bold text-slate-900">
               {activeTab === "menu_list" && "Menu List"}
-              {activeTab === "item_on_off" && "Menu Availability"}
               {activeTab === "special_note_list" && "Special Notes"}
               {activeTab === "menucommission_list" && "Set Item Commission"}
-              {activeTab === "menu_scheduling" && "Menu Schedule"}
               {activeTab === "physical_menu" && "Printed Menu"}
             </h1>
           </div>
@@ -187,15 +171,11 @@ export function PosMenuManager() {
 
         {/* Dynamic Sub-View Content */}
         {activeTab === "menu_list" && <MenuListManagerView />}
-        {activeTab === "item_on_off" && <MenuOnOffView onBack={() => setActiveTab("menu_list")} />}
         {activeTab === "special_note_list" && (
           <SpecialNoteView onBack={() => setActiveTab("menu_list")} />
         )}
         {activeTab === "menucommission_list" && (
           <SetItemCommissionView onBack={() => setActiveTab("menu_list")} />
-        )}
-        {activeTab === "menu_scheduling" && (
-          <ScheduleChangesView onBack={() => setActiveTab("menu_list")} />
         )}
         {activeTab === "physical_menu" && (
           <PhysicalMenuView onBack={() => setActiveTab("menu_list")} />

@@ -59,6 +59,7 @@ export function MenuItemEditModal({
   const [price, setPrice] = useState<number | string>(250);
   const [taxRate, setTaxRate] = useState<number>(5);
   const [status, setStatus] = useState<"Active" | "Inactive">("Active");
+  const [direct, setDirect] = useState<boolean>(true);
   const [description, setDescription] = useState("");
   const [images, setImages] = useState<MenuItemImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -79,6 +80,7 @@ export function MenuItemEditModal({
         setPrice(item.price);
         setTaxRate(item.taxRate ?? 5);
         setStatus(item.status || "Active");
+        setDirect(item.direct !== false);
         setDescription(item.description || "");
         setImages(item.images || []);
       } else {
@@ -90,6 +92,7 @@ export function MenuItemEditModal({
         setPrice(220);
         setTaxRate(5);
         setStatus("Active");
+        setDirect(true);
         setDescription("");
         setImages([]);
       }
@@ -227,9 +230,9 @@ export function MenuItemEditModal({
       images,
       outletId: item?.outletId || defaultOutletId,
       baseMenu: item ? item.baseMenu : true,
-      zomato: item ? item.zomato : true,
-      swiggy: item ? item.swiggy : true,
-      direct: item ? item.direct : true,
+      zomato: false,
+      swiggy: false,
+      direct,
     };
 
     if (item) {
@@ -317,11 +320,11 @@ export function MenuItemEditModal({
             {/* Online Display Name */}
             <div className="sm:col-span-2">
               <label className="block text-[12.5px] font-semibold text-slate-700 mb-1">
-                Online Display Name (Zomato / Swiggy / QR)
+                Online Display Name (Direct QR Menu)
               </label>
               <input
                 type="text"
-                placeholder="Name shown on online delivery apps..."
+                placeholder="Name shown on Direct QR digital menu..."
                 value={onlineDisplayName}
                 onChange={(e) => setOnlineDisplayName(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-hidden"
@@ -347,8 +350,8 @@ export function MenuItemEditModal({
             </div>
           </div>
 
-          {/* 2. Type, Price, Tax, Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50/80 border border-slate-200">
+          {/* 2. Type, Price, Tax, Direct QR, Status */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 p-4 rounded-xl bg-slate-50/80 border border-slate-200">
             {/* Item Type (Veg / Non-Veg / Egg) */}
             <div>
               <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
@@ -422,6 +425,31 @@ export function MenuItemEditModal({
                 <option value={18}>18% GST (Liquor & Beverage)</option>
                 <option value={28}>28% GST</option>
               </select>
+            </div>
+
+            {/* Direct QR Toggle */}
+            <div>
+              <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
+                Direct QR Menu
+              </label>
+              <div className="flex items-center gap-2 h-[34px] px-2.5 bg-white rounded-lg border border-slate-300">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={direct}
+                    onChange={(e) => setDirect(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-8 h-4.5 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-teal-600"></div>
+                </label>
+                <span
+                  className={`text-[11.5px] font-bold ${
+                    direct ? "text-teal-700" : "text-slate-400"
+                  }`}
+                >
+                  {direct ? "Direct Live" : "Off"}
+                </span>
+              </div>
             </div>
 
             {/* Status */}

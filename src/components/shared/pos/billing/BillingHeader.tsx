@@ -187,8 +187,19 @@ export function BillingHeader({
             <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1 text-xs text-amber-900 font-medium">
               <span>Room:</span>
               <span className="font-bold text-amber-950 bg-white px-2 py-0.5 rounded border border-amber-300">
-                {roomNumber || "Room 312 (Dr. Anish)"}
+                {roomNumber || "Room 104"}
               </span>
+              <div className="flex items-center gap-1 border-l border-amber-200 pl-2">
+                <span className="text-amber-800">Guests:</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={guestCount}
+                  onChange={(e) => setGuestCount(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-10 text-center font-bold text-amber-900 bg-white border border-amber-300 rounded px-1 py-0.5 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                />
+              </div>
             </div>
           )}
 

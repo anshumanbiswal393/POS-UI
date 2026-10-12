@@ -11,6 +11,8 @@ import type {
   ScheduleVariantItem,
   ScheduleTableItem,
 } from "@/types/posMenu";
+import httpClient from "@/utils/httpClient";
+import { API_ENDPOINTS } from "@/config/apiEndpoints";
 
 const SAMPLE_IMAGES: Record<string, MenuItemImage[]> = {
   butter_chicken: [
@@ -100,12 +102,587 @@ const SAMPLE_IMAGES: Record<string, MenuItemImage[]> = {
 };
 
 const initialMenuItems: MenuItem[] = [
-  // Primary Outlet (Highway Inn Main)
+  // Primary Outlet (Highway Inn Main) - Core Billing & POS Menu
+  {
+    id: "itm-101",
+    outletId: "outlet-primary",
+    code: "#101",
+    name: "Paneer Tikka Angara",
+    onlineDisplayName: "Paneer Tikka Angara Charcoal Smoked",
+    category: "Starters",
+    itemType: "Veg",
+    price: 340,
+    taxRate: 5,
+    status: "Active",
+    description: "Charcoal smoked cottage cheese marinated in fiery spices & hung curd",
+    variants: [
+      { id: "v1-half", name: "Half", price: 220 },
+      { id: "v1-full", name: "Full", price: 340 },
+    ],
+    images: [
+      {
+        id: "img-pt-101",
+        url: "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=500&auto=format&fit=crop&q=80",
+        name: "paneer_tikka_angara.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-102",
+    outletId: "outlet-primary",
+    code: "#102",
+    name: "Murgh Malai Tikka",
+    onlineDisplayName: "Murgh Malai Tikka Tender Cream",
+    category: "Starters",
+    itemType: "Non-Veg",
+    price: 420,
+    taxRate: 5,
+    status: "Active",
+    description: "Tender chicken chunks marinated in cream, cardamom, cashew paste & grilled",
+    variants: [
+      { id: "v2-half", name: "Half", price: 260 },
+      { id: "v2-full", name: "Full", price: 420 },
+    ],
+    images: [
+      {
+        id: "img-mm-102",
+        url: "https://images.unsplash.com/photo-1599488615731-7e5c2823ff28?w=500&auto=format&fit=crop&q=80",
+        name: "murgh_malai_tikka.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-103",
+    outletId: "outlet-primary",
+    code: "#103",
+    name: "Crispy Corn & Water Chestnut",
+    onlineDisplayName: "Golden Crispy Corn & Water Chestnut",
+    category: "Starters",
+    itemType: "Veg",
+    price: 290,
+    taxRate: 5,
+    status: "Active",
+    description: "Golden fried sweet corn kernels tossed with crushed pepper, scallions and lime",
+    images: [
+      {
+        id: "img-cc-103",
+        url: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&auto=format&fit=crop&q=80",
+        name: "crispy_corn.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-104",
+    outletId: "outlet-primary",
+    code: "#104",
+    name: "Galouti Kebab Sliders",
+    onlineDisplayName: "Awadhi Galouti Kebab Sliders",
+    category: "Starters",
+    itemType: "Non-Veg",
+    price: 460,
+    taxRate: 5,
+    status: "Active",
+    description: "Melt in mouth minced mutton kebabs served over mini saffron sheermal buns",
+    images: [
+      {
+        id: "img-gk-104",
+        url: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop&q=80",
+        name: "galouti_kebab.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-105",
+    outletId: "outlet-primary",
+    code: "#105",
+    name: "Butter Chicken (Grandma Recipe)",
+    onlineDisplayName: "Smoked Butter Chicken (Grandma Recipe)",
+    category: "Main Course",
+    itemType: "Non-Veg",
+    price: 520,
+    taxRate: 5,
+    status: "Active",
+    description: "Smoked tandoori chicken cooked in velvety tomato, makhani gravy and cashew paste",
+    variants: [
+      { id: "v3-boneless", name: "Boneless", price: 560 },
+      { id: "v3-classic", name: "Classic", price: 520 },
+    ],
+    images: [
+      {
+        id: "img-bc-105",
+        url: "https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=500&auto=format&fit=crop&q=80",
+        name: "butter_chicken.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-106",
+    outletId: "outlet-primary",
+    code: "#106",
+    name: "Dal Makhani 24-Hour Slow Cooked",
+    onlineDisplayName: "Dal Makhani 24-Hour Slow Cooked Handi",
+    category: "Main Course",
+    itemType: "Veg",
+    price: 360,
+    taxRate: 5,
+    status: "Active",
+    description: "Black lentils simmered overnight with cream, butter and sun-dried fenugreek",
+    images: [
+      {
+        id: "img-dm-106",
+        url: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&auto=format&fit=crop&q=80",
+        name: "dal_makhani.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-107",
+    outletId: "outlet-primary",
+    code: "#107",
+    name: "Paneer Lababdar",
+    onlineDisplayName: "Shahi Paneer Lababdar Gravy",
+    category: "Main Course",
+    itemType: "Veg",
+    price: 410,
+    taxRate: 5,
+    status: "Active",
+    description: "Cottage cheese cubes bathed in rich onion tomato gravy with grated paneer",
+    images: [
+      {
+        id: "img-pl-107",
+        url: "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=500&auto=format&fit=crop&q=80",
+        name: "paneer_lababdar.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-108",
+    outletId: "outlet-primary",
+    code: "#108",
+    name: "Mutton Rogan Josh Kashmiri",
+    onlineDisplayName: "Mutton Rogan Josh Kashmiri Handi",
+    category: "Main Course",
+    itemType: "Non-Veg",
+    price: 640,
+    taxRate: 5,
+    status: "Active",
+    description: "Slow-braised spring lamb shanks flavored with aromatic Kashmiri chillies and ratan jot",
+    images: [
+      {
+        id: "img-rj-108",
+        url: "https://images.unsplash.com/photo-1545247181-516773cae754?w=500&auto=format&fit=crop&q=80",
+        name: "rogan_josh.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-109",
+    outletId: "outlet-primary",
+    code: "#109",
+    name: "Garlic Butter Naan",
+    onlineDisplayName: "Garlic Butter Naan Clay Oven",
+    category: "Breads & Rice",
+    itemType: "Veg",
+    price: 95,
+    taxRate: 5,
+    status: "Active",
+    description: "Refined flour flatbread brushed with garlic butter and fresh coriander",
+    images: [
+      {
+        id: "img-gn-109",
+        url: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=500&auto=format&fit=crop&q=80",
+        name: "garlic_naan.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-110",
+    outletId: "outlet-primary",
+    code: "#110",
+    name: "Laccha Paratha",
+    onlineDisplayName: "Crispy Layered Laccha Paratha",
+    category: "Breads & Rice",
+    itemType: "Veg",
+    price: 85,
+    taxRate: 5,
+    status: "Active",
+    images: [
+      {
+        id: "img-lp-110",
+        url: "https://images.unsplash.com/photo-1626074353765-517a681e40be?w=500&auto=format&fit=crop&q=80",
+        name: "laccha_paratha.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-111",
+    outletId: "outlet-primary",
+    code: "#111",
+    name: "Dum Awadhi Gosht Biryani",
+    onlineDisplayName: "Dum Awadhi Gosht Biryani Handi",
+    category: "Breads & Rice",
+    itemType: "Non-Veg",
+    price: 580,
+    taxRate: 5,
+    status: "Active",
+    description: "Long grain basmati sealed in dough pot with tender lamb cuts, saffron & spices",
+    images: [
+      {
+        id: "img-gb-111",
+        url: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80",
+        name: "gosht_biryani.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-112",
+    outletId: "outlet-primary",
+    code: "#112",
+    name: "Subz Dum Biryani Handi",
+    onlineDisplayName: "Garden Subz Dum Biryani Handi",
+    category: "Breads & Rice",
+    itemType: "Veg",
+    price: 390,
+    taxRate: 5,
+    status: "Active",
+    images: [
+      {
+        id: "img-sb-112",
+        url: "https://images.unsplash.com/photo-1633945274405-b6c8069047b0?w=500&auto=format&fit=crop&q=80",
+        name: "subz_biryani.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-113",
+    outletId: "outlet-primary",
+    code: "#113",
+    name: "Truffle Mushroom Risotto",
+    onlineDisplayName: "Wild Truffle Mushroom Risotto",
+    category: "Continental & Pasta",
+    itemType: "Veg",
+    price: 490,
+    taxRate: 5,
+    status: "Active",
+    description: "Arborio rice with wild forest mushrooms, parmesan crisp and white truffle oil",
+    images: [
+      {
+        id: "img-tr-113",
+        url: "https://images.unsplash.com/photo-1633964913295-ceb43826e7c9?w=500&auto=format&fit=crop&q=80",
+        name: "truffle_risotto.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-114",
+    outletId: "outlet-primary",
+    code: "#114",
+    name: "Penne Alfredo with Smoked Chicken",
+    onlineDisplayName: "Creamy Penne Alfredo with Smoked Chicken",
+    category: "Continental & Pasta",
+    itemType: "Non-Veg",
+    price: 470,
+    taxRate: 5,
+    status: "Active",
+    images: [
+      {
+        id: "img-pa-114",
+        url: "https://images.unsplash.com/photo-1621996346565-e3d5d6281691?w=500&auto=format&fit=crop&q=80",
+        name: "penne_alfredo.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-115",
+    outletId: "outlet-primary",
+    code: "#115",
+    name: "Shahi Tukda with Saffron Rabri",
+    onlineDisplayName: "Royal Shahi Tukda Saffron Rabri",
+    category: "Desserts",
+    itemType: "Veg",
+    price: 210,
+    taxRate: 5,
+    status: "Active",
+    images: [
+      {
+        id: "img-st-115",
+        url: "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=500&auto=format&fit=crop&q=80",
+        name: "shahi_tukda.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-116",
+    outletId: "outlet-primary",
+    code: "#116",
+    name: "Sizzling Chocolate Walnut Brownie",
+    onlineDisplayName: "Sizzling Chocolate Walnut Brownie with Ice Cream",
+    category: "Desserts",
+    itemType: "Veg",
+    price: 280,
+    taxRate: 5,
+    status: "Active",
+    images: [
+      {
+        id: "img-br-116",
+        url: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=500&auto=format&fit=crop&q=80",
+        name: "brownie.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-117",
+    outletId: "outlet-primary",
+    code: "#117",
+    name: "Fresh Lime Soda (Sweet & Salt)",
+    onlineDisplayName: "Chilled Fresh Lime Soda",
+    category: "Beverages & Shakes",
+    itemType: "Veg",
+    price: 140,
+    taxRate: 12,
+    status: "Active",
+    images: [
+      {
+        id: "img-ls-117",
+        url: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=500&auto=format&fit=crop&q=80",
+        name: "lime_soda.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-118",
+    outletId: "outlet-primary",
+    code: "#118",
+    name: "Signature Berry Mojito",
+    onlineDisplayName: "Signature Berry Mojito Sparkler",
+    category: "Beverages & Shakes",
+    itemType: "Veg",
+    price: 220,
+    taxRate: 12,
+    status: "Active",
+    images: [
+      {
+        id: "img-bm-118",
+        url: "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=500&auto=format&fit=crop&q=80",
+        name: "berry_mojito.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-119",
+    outletId: "outlet-primary",
+    code: "#119",
+    name: "Cold Brew Iced Coffee Shake",
+    onlineDisplayName: "Cold Brew Iced Coffee Shake",
+    category: "Beverages & Shakes",
+    itemType: "Veg",
+    price: 240,
+    taxRate: 12,
+    status: "Active",
+    images: [
+      {
+        id: "img-cb-119",
+        url: "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=500&auto=format&fit=crop&q=80",
+        name: "cold_brew.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-120",
+    outletId: "outlet-primary",
+    code: "#120",
+    name: "Smoked Old Fashioned Cocktail",
+    onlineDisplayName: "Craft Smoked Old Fashioned",
+    category: "Bar & Cocktails",
+    itemType: "Veg",
+    price: 540,
+    taxRate: 18,
+    status: "Active",
+    images: [
+      {
+        id: "img-of-120",
+        url: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=500&auto=format&fit=crop&q=80",
+        name: "old_fashioned.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: false,
+    swiggy: false,
+    direct: false,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-121",
+    outletId: "outlet-primary",
+    code: "#121",
+    name: "Bira 91 White Draught Pint",
+    onlineDisplayName: "Bira 91 White Wheat Beer Pint (330ml)",
+    category: "Bar & Cocktails",
+    itemType: "Veg",
+    price: 290,
+    taxRate: 18,
+    status: "Active",
+    images: [
+      {
+        id: "img-bw-121",
+        url: "https://images.unsplash.com/photo-1608270119853-90d510667e6c?w=500&auto=format&fit=crop&q=80",
+        name: "bira_pint.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: false,
+    swiggy: false,
+    direct: false,
+    updatedAt: "Just now",
+  },
+  {
+    id: "itm-122",
+    outletId: "outlet-primary",
+    code: "#122",
+    name: "Royal Non-Veg Platter Combo",
+    onlineDisplayName: "Royal Non-Veg Tandoori Kebab Platter Combo",
+    category: "Combos",
+    itemType: "Non-Veg",
+    price: 790,
+    taxRate: 5,
+    status: "Active",
+    description: "Assorted tandoori murgh, mutton seekh, fish tikka and butter naan",
+    images: [
+      {
+        id: "img-pl-122",
+        url: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500&auto=format&fit=crop&q=80",
+        name: "royal_platter.jpg",
+        isPrimary: true,
+      },
+    ],
+    baseMenu: true,
+    zomato: true,
+    swiggy: true,
+    direct: true,
+    updatedAt: "Just now",
+  },
+  // Legacy Outlet items
   {
     id: "itm-1",
     outletId: "outlet-primary",
     code: "FD-104",
-    name: "Butter Chicken Boneless",
+    name: "Butter Chicken Boneless Gravy",
     onlineDisplayName: "Rich Butter Chicken Boneless Gravy (500g)",
     category: "Non-Veg Main Course",
     itemType: "Non-Veg",
@@ -935,13 +1512,30 @@ let scheduleVariantsStore: ScheduleVariantItem[] = [...initialScheduleVariants];
 let scheduleTablesStore: ScheduleTableItem[] = [...initialScheduleTables];
 
 export const posMenuService = {
-  // 1. Menu Items CRUD & Filtering by Outlet
+  // 1. Menu Items CRUD & Filtering by Outlet (calling defined API endpoints with local fallback)
   getMenuItems: async (outletId?: string) => {
+    try {
+      const res = await httpClient.get<MenuItem[]>(API_ENDPOINTS.MENU.ITEMS, {
+        params: outletId ? { outletId } : undefined,
+      });
+      if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+        menuItemsStore = res.data;
+        return res.data;
+      }
+    } catch {
+      // Graceful fallback to runtime store
+    }
     if (!outletId) return [...menuItemsStore];
     return menuItemsStore.filter((item) => item.outletId === outletId);
   },
 
   getMenuItemById: async (id: string) => {
+    try {
+      const res = await httpClient.get<MenuItem>(API_ENDPOINTS.MENU.ITEM_BY_ID(id));
+      if (res.data) return res.data;
+    } catch {
+      // Fallback
+    }
     return menuItemsStore.find((i) => i.id === id) || null;
   },
 
@@ -952,11 +1546,25 @@ export const posMenuService = {
       updatedAt: "Just now",
       images: item.images || [],
     };
+    try {
+      const res = await httpClient.post<MenuItem>(API_ENDPOINTS.MENU.CREATE_ITEM, newItem);
+      if (res.data) {
+        menuItemsStore = [res.data, ...menuItemsStore];
+        return res.data;
+      }
+    } catch {
+      // Fallback
+    }
     menuItemsStore = [newItem, ...menuItemsStore];
     return newItem;
   },
 
   updateMenuItem: async (id: string, data: Partial<MenuItem>) => {
+    try {
+      await httpClient.put(API_ENDPOINTS.MENU.UPDATE_ITEM(id), data);
+    } catch {
+      // Fallback
+    }
     menuItemsStore = menuItemsStore.map((item) =>
       item.id === id ? { ...item, ...data, updatedAt: "Just now" } : item,
     );
@@ -964,12 +1572,22 @@ export const posMenuService = {
   },
 
   deleteMenuItem: async (id: string) => {
+    try {
+      await httpClient.delete(API_ENDPOINTS.MENU.DELETE_ITEM(id));
+    } catch {
+      // Fallback
+    }
     menuItemsStore = menuItemsStore.filter((i) => i.id !== id);
     return true;
   },
 
   // 2. Channel & Platform Availability
   toggleItemPlatform: async (id: string, platform: "zomato" | "swiggy" | "direct" | "baseMenu") => {
+    try {
+      await httpClient.patch(API_ENDPOINTS.MENU.TOGGLE_PLATFORM(id, platform));
+    } catch {
+      // Fallback
+    }
     menuItemsStore = menuItemsStore.map((item) => {
       if (item.id === id) {
         const nextVal = !item[platform];
@@ -993,6 +1611,11 @@ export const posMenuService = {
       baseMenu?: boolean;
     },
   ) => {
+    try {
+      await httpClient.post(API_ENDPOINTS.MENU.BULK_PLATFORMS, { ids, updates });
+    } catch {
+      // Fallback
+    }
     const idSet = new Set(ids);
     menuItemsStore = menuItemsStore.map((item) => {
       if (idSet.has(item.id)) {
@@ -1014,6 +1637,11 @@ export const posMenuService = {
   },
 
   toggleStockStatus: async (id: string) => {
+    try {
+      await httpClient.patch(API_ENDPOINTS.MENU.TOGGLE_STATUS(id));
+    } catch {
+      // Fallback
+    }
     menuItemsStore = menuItemsStore.map((item) => {
       if (item.id === id) {
         const nextStatus = item.status === "Active" ? "Inactive" : "Active";
