@@ -9,6 +9,7 @@ import {
   RotateCcw,
   Store,
   Layers,
+  FileText,
   Crown,
   Coffee,
   Moon,
@@ -105,6 +106,119 @@ const TEMPLATES: TemplateConfig[] = [
   },
 ];
 
+interface PageCategory {
+  category: string;
+  items: MenuItem[];
+  isContinuation?: boolean;
+}
+
+interface MenuPage {
+  pageNumber: number;
+  categories: PageCategory[];
+}
+
+function paginateCategorizedItems(
+  categorized: Record<string, MenuItem[]>,
+  options: {
+    isTwoColumn: boolean;
+    showDescriptions: boolean;
+  },
+): MenuPage[] {
+  const entries = Object.entries(categorized);
+  if (entries.length === 0) return [];
+
+  // Capacity weights:
+  // Each item costs:
+  // - in 2-col mode: 0.55 if descriptions else 0.45
+  // - in 1-col mode: 1.15 if descriptions else 0.85
+  // Category header costs 1.5 units
+  const itemCost = options.isTwoColumn
+    ? (options.showDescriptions ? 0.6 : 0.45)
+    : (options.showDescriptions ? 1.15 : 0.85);
+  const headerCost = 1.6;
+
+  // Page 1 includes restaurant brand header, so body space is calibrated for A4 height (1075px)
+  const page1Max = options.isTwoColumn ? 16 : 12;
+  const subsequentMax = options.isTwoColumn ? 22 : 16;
+
+  const pages: MenuPage[] = [];
+  let currentPageCategories: PageCategory[] = [];
+  let currentPageCost = 0;
+  let pageIndex = 1;
+
+  for (const [catName, items] of entries) {
+    if (!items || items.length === 0) continue;
+
+    let itemIdx = 0;
+    while (itemIdx < items.length) {
+      const maxForCurrentPage = pageIndex === 1 ? page1Max : subsequentMax;
+      const isContinuation = itemIdx > 0;
+      const effectiveHeaderCost = headerCost;
+
+      // If page already has items and adding this category header + at least 1 item exceeds capacity:
+      if (
+        currentPageCost > 2 &&
+        currentPageCost + effectiveHeaderCost + itemCost > maxForCurrentPage
+      ) {
+        pages.push({
+          pageNumber: pageIndex,
+          categories: currentPageCategories,
+        });
+        pageIndex++;
+        currentPageCategories = [];
+        currentPageCost = 0;
+        continue;
+      }
+
+      // Add category header cost
+      currentPageCost += effectiveHeaderCost;
+      const currentChunkItems: MenuItem[] = [];
+
+      while (itemIdx < items.length) {
+        const item = items[itemIdx];
+        if (
+          currentPageCost + itemCost > maxForCurrentPage &&
+          currentChunkItems.length > 0
+        ) {
+          break;
+        }
+
+        currentChunkItems.push(item);
+        currentPageCost += itemCost;
+        itemIdx++;
+      }
+
+      if (currentChunkItems.length > 0) {
+        currentPageCategories.push({
+          category: catName,
+          items: currentChunkItems,
+          isContinuation,
+        });
+      }
+
+      // If page is full and there are still items remaining in this category:
+      if (itemIdx < items.length) {
+        pages.push({
+          pageNumber: pageIndex,
+          categories: currentPageCategories,
+        });
+        pageIndex++;
+        currentPageCategories = [];
+        currentPageCost = 0;
+      }
+    }
+  }
+
+  if (currentPageCategories.length > 0) {
+    pages.push({
+      pageNumber: pageIndex,
+      categories: currentPageCategories,
+    });
+  }
+
+  return pages;
+}
+
 export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
   const { activeOutlet } = useOutletContext();
   const { data: menuItems, isLoading } = useMenuItems(activeOutlet.id);
@@ -176,6 +290,16 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
     });
     return groups;
   }, [menuItems, onlyActiveItems, selectedCategories]);
+
+  const isTwoColumnLayout = selectedTemplate === "diner" || selectedTemplate === "visual";
+
+  // Multi-Page A4 Pagination: splits categories and items so each page adheres strictly to A4 length
+  const menuPages = useMemo(() => {
+    return paginateCategorizedItems(categorizedItems, {
+      isTwoColumn: isTwoColumnLayout,
+      showDescriptions,
+    });
+  }, [categorizedItems, isTwoColumnLayout, showDescriptions]);
 
   const toggleCategorySelection = (cat: string) => {
     setSelectedCategories((prev) =>
@@ -301,7 +425,6 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                 type="button"
                 onClick={() => {
                   setSelectedTemplate(tmpl.id);
-                  toast.success(`Switched to "${tmpl.name}" layout`);
                 }}
                 className={`relative rounded-xl border p-2 text-left transition-all cursor-pointer flex items-center gap-2.5 h-[56px] select-none ${
                   isSelected
@@ -554,246 +677,332 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
               </div>
             </div>
 
-            {/* Right Column: Live A4 Print Sheet Preview (8 Cols) */}
+            {/* Right Column: Multi-Page A4 Print Sheet Preview (8 Cols) */}
             <div className="lg:col-span-8 flex flex-col items-center">
-              {/* Paper Sheet Preview Frame */}
+              {/* Preview Toolbar with Page Count and Zoom */}
+              <div className="w-full max-w-[760px] flex items-center justify-between pb-3 no-print">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
+                    <FileText className="h-3.5 w-3.5 text-primary" />
+                    A4 Print Sheets ({menuPages.length} {menuPages.length === 1 ? "Page" : "Pages"})
+                  </span>
+                  <span className="text-[11px] text-slate-400 hidden sm:inline">
+                    Standard A4 Dimensions (210mm × 297mm)
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="font-semibold text-slate-500 text-[11px]">Zoom:</span>
+                  <button
+                    type="button"
+                    onClick={() => setZoomLevel((z) => Math.max(60, z - 10))}
+                    className="rounded p-1 text-slate-500 hover:bg-slate-100 cursor-pointer"
+                    title="Zoom Out"
+                  >
+                    <ZoomOut className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="font-mono font-bold text-slate-800 w-9 text-center text-xs">
+                    {zoomLevel}%
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setZoomLevel((z) => Math.min(120, z + 10))}
+                    className="rounded p-1 text-slate-500 hover:bg-slate-100 cursor-pointer"
+                    title="Zoom In"
+                  >
+                    <ZoomIn className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Printable Menu Pages Stack */}
               <div
                 id="printable-menu-area"
                 style={{
                   transform: `scale(${zoomLevel / 100})`,
                   transformOrigin: "top center",
                 }}
-                className={`w-full max-w-[780px] min-h-[860px] rounded-2xl shadow-xl transition-all p-5 sm:p-7 relative ${
-                  selectedTemplate === "royal"
-                    ? "bg-[#fffdf7] text-[#2c1d11] border-6 border-double border-[#b45309]/50"
-                    : selectedTemplate === "modern"
-                      ? "bg-white text-slate-900 border border-slate-300"
-                      : selectedTemplate === "visual"
-                        ? "bg-[#fffaf5] text-stone-900 border-2 border-orange-200/90 shadow-xl"
-                        : selectedTemplate === "rustic"
-                          ? "bg-[#fbf6ee] text-[#3d2410] border-4 border-dashed border-[#854d0e]/40"
-                          : selectedTemplate === "lounge"
-                            ? "bg-[#090d16] text-[#fef3c7] border-2 border-[#d97706]/60 shadow-2xl"
-                            : "bg-white text-slate-900 border border-slate-300"
-                }`}
+                className="w-full flex flex-col items-center gap-7 transition-all print:gap-0 print:transform-none"
               >
-                {/* 1. Menu Header */}
-                <div className="text-center pb-3.5 border-b border-current/20 space-y-0.5">
-                  {selectedTemplate === "royal" && (
-                    <div className="flex justify-center text-[#b45309] mb-0.5">
-                      <Crown className="h-5 w-5" />
-                    </div>
-                  )}
-                  {selectedTemplate === "visual" && (
-                    <div className="flex justify-center text-orange-600 mb-0.5">
-                      <Sparkles className="h-4.5 w-4.5" />
-                    </div>
-                  )}
-
-                  <h1
-                    className={`text-[22px] sm:text-[26px] font-extrabold tracking-tight uppercase ${
-                      selectedTemplate === "royal"
-                        ? "font-serif text-[#78350f]"
-                        : selectedTemplate === "lounge"
-                          ? "text-[#fbbf24] tracking-widest font-serif"
-                          : selectedTemplate === "rustic"
-                            ? "font-serif text-[#78350f]"
-                            : selectedTemplate === "visual"
-                              ? "text-orange-950 tracking-tight"
-                              : "font-sans text-slate-900"
-                    }`}
-                  >
-                    {restaurantName}
-                  </h1>
-
-                  {tagline && (
-                    <p
-                      className={`text-[12px] sm:text-[12.5px] italic opacity-85 ${
-                        selectedTemplate === "lounge"
-                          ? "text-amber-200/90"
-                          : selectedTemplate === "visual"
-                            ? "text-orange-900/80"
-                            : ""
-                      }`}
-                    >
-                      ~ {tagline} ~
+                {menuPages.length === 0 ? (
+                  <div className="w-full max-w-[760px] h-[600px] rounded-2xl border border-slate-200 bg-white flex flex-col items-center justify-center text-slate-400 p-8 shadow-sm">
+                    <Utensils className="h-10 w-10 mb-2 stroke-1 text-slate-300" />
+                    <h4 className="text-sm font-bold text-slate-700">No dishes selected for menu print</h4>
+                    <p className="text-xs text-slate-400 mt-1 max-w-xs text-center">
+                      Enable active dishes or adjust category filters in the customizer panel.
                     </p>
-                  )}
-
-                  <div className="flex flex-wrap items-center justify-center gap-2.5 text-[10.5px] opacity-70 pt-0.5">
-                    {addressLine && <span>{addressLine}</span>}
-                    {addressLine && phoneContact && <span>•</span>}
-                    {phoneContact && <span>Reservations: {phoneContact}</span>}
                   </div>
-                </div>
+                ) : (
+                  menuPages.map((page) => {
+                    const isFirstPage = page.pageNumber === 1;
+                    const isLastPage = page.pageNumber === menuPages.length;
 
-                {/* 2. Categorized Menu Items Layout */}
-                <div
-                  className={`mt-3.5 gap-x-6 gap-y-3.5 ${
-                    selectedTemplate === "diner" || selectedTemplate === "visual"
-                      ? "grid grid-cols-1 md:grid-cols-2"
-                      : "grid grid-cols-1"
-                  }`}
-                >
-                  {Object.keys(categorizedItems).length === 0 ? (
-                    <div className="py-16 text-center opacity-60 col-span-full">
-                      <Utensils className="h-7 w-7 mx-auto mb-1.5" />
-                      <p className="text-[13px]">No menu items selected for printing.</p>
-                    </div>
-                  ) : (
-                    Object.entries(categorizedItems).map(([category, items]) => (
+                    return (
                       <div
-                        key={category}
-                        className={`space-y-1.5 ${
-                          selectedTemplate === "diner"
-                            ? "p-2.5 sm:p-3 rounded-lg border border-slate-200 bg-slate-50/50"
-                            : selectedTemplate === "visual"
-                              ? "p-2.5 sm:p-3 rounded-xl border border-orange-200/70 bg-white/80 shadow-2xs"
-                              : ""
-                        }`}
+                        key={page.pageNumber}
+                        className="w-full max-w-[760px] flex flex-col items-center gap-1.5 print:w-full print:max-w-none"
                       >
-                        {/* Category Banner / Heading */}
-                        <div
-                          className={`flex items-center gap-2 pb-1 ${
-                            selectedTemplate === "royal"
-                              ? "border-b border-[#b45309]/30 text-center justify-center"
-                              : selectedTemplate === "modern"
-                                ? "border-b-2 border-teal-600"
-                                : selectedTemplate === "visual"
-                                  ? "border-b-2 border-orange-500 text-orange-950"
-                                  : selectedTemplate === "lounge"
-                                    ? "border-b border-amber-500/40 text-[#f59e0b]"
-                                    : selectedTemplate === "rustic"
-                                      ? "border-b-2 border-dashed border-[#854d0e]/40"
-                                      : "border-b border-slate-300"
-                          }`}
-                        >
-                          <h2
-                            className={`text-[14px] sm:text-[15px] font-bold uppercase tracking-wider ${
-                              selectedTemplate === "royal"
-                                ? "font-serif text-[#92400e]"
-                                : selectedTemplate === "modern"
-                                  ? "text-teal-800"
-                                  : selectedTemplate === "visual"
-                                    ? "text-orange-900 font-extrabold"
-                                    : selectedTemplate === "lounge"
-                                      ? "font-serif text-[#fbbf24]"
-                                      : selectedTemplate === "rustic"
-                                        ? "font-serif text-[#78350f]"
-                                        : "text-slate-800"
-                            }`}
-                          >
-                            {category}
-                          </h2>
-                          <span className="text-[10px] opacity-60">({items.length})</span>
+                        {/* Page Boundary Header (Screen preview only) */}
+                        <div className="no-print flex items-center justify-between w-full px-2 text-[11px] font-semibold text-slate-400">
+                          <span className="uppercase tracking-wider">A4 Page {page.pageNumber}</span>
+                          <span>Sheet {page.pageNumber} of {menuPages.length}</span>
                         </div>
 
-                        {/* Items in Category */}
-                        <div className="space-y-1.5 pt-0.5">
-                          {items.map((item) => (
-                            <div
-                              key={item.id}
-                              className={`transition ${
-                                selectedTemplate === "visual"
-                                  ? "flex items-start gap-2.5 p-1.5 rounded-lg bg-orange-50/40 border border-orange-100/80"
-                                  : "space-y-0"
-                              }`}
-                            >
-                              {/* If Visual Showcase Template: Display Dish Thumbnail */}
+                        {/* Individual A4 Page Sheet (Strict A4 Length & Ratio) */}
+                        <div
+                          className={`a4-page-sheet w-full max-w-[760px] h-[1075px] min-h-[1075px] max-h-[1075px] rounded-2xl shadow-xl transition-all p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden select-none print:m-0 print:p-8 print:w-full print:max-w-none print:h-[277mm] print:min-h-[277mm] print:max-h-[277mm] print:shadow-none print:rounded-none print:break-after-page ${
+                            selectedTemplate === "royal"
+                              ? "bg-[#fffdf7] text-[#2c1d11] border-6 border-double border-[#b45309]/50"
+                              : selectedTemplate === "modern"
+                                ? "bg-white text-slate-900 border border-slate-300"
+                                : selectedTemplate === "visual"
+                                  ? "bg-[#fffaf5] text-stone-900 border-2 border-orange-200/90"
+                                  : selectedTemplate === "rustic"
+                                    ? "bg-[#fbf6ee] text-[#3d2410] border-4 border-dashed border-[#854d0e]/40"
+                                    : selectedTemplate === "lounge"
+                                      ? "bg-[#090d16] text-[#fef3c7] border-2 border-[#d97706]/60 shadow-2xl"
+                                      : "bg-white text-slate-900 border border-slate-300"
+                          }`}
+                        >
+                          {/* 1. Header Area */}
+                          {isFirstPage ? (
+                            /* First Page: Full Header */
+                            <div className="text-center pb-3 border-b border-current/20 space-y-0.5 shrink-0">
+                              {selectedTemplate === "royal" && (
+                                <div className="flex justify-center text-[#b45309] mb-0.5">
+                                  <Crown className="h-5 w-5" />
+                                </div>
+                              )}
                               {selectedTemplate === "visual" && (
-                                <div className="h-13 w-13 sm:h-14 sm:w-14 rounded-lg overflow-hidden shrink-0 border border-orange-200/80 bg-orange-50 flex items-center justify-center">
-                                  {item.images && item.images.length > 0 && item.images[0] ? (
-                                    <img
-                                      src={item.images[0].url}
-                                      alt={item.name}
-                                      className="h-full w-full object-cover"
-                                      loading="lazy"
-                                    />
-                                  ) : (
-                                    <div className="flex flex-col items-center justify-center text-orange-400">
-                                      <ImageIcon className="h-4 w-4" />
-                                      <span className="text-[8px] font-bold uppercase tracking-tighter mt-0.5">
-                                        Food
-                                      </span>
-                                    </div>
-                                  )}
+                                <div className="flex justify-center text-orange-600 mb-0.5">
+                                  <Sparkles className="h-4.5 w-4.5" />
                                 </div>
                               )}
 
-                              {/* Item Details */}
-                              <div className="flex-1 min-w-0">
-                                {/* Item Header Line: Name + Dotted Leader + Price */}
-                                <div className="flex items-baseline justify-between gap-1.5">
-                                  <div className="flex items-center gap-1 min-w-0">
-                                    <span
-                                      className={`text-[12.5px] sm:text-[13px] font-bold truncate ${
-                                        selectedTemplate === "royal"
-                                          ? "font-serif"
-                                          : selectedTemplate === "lounge"
-                                            ? "text-amber-100"
-                                            : selectedTemplate === "visual"
-                                              ? "text-stone-900"
-                                              : "text-slate-900"
-                                      }`}
-                                    >
-                                      {item.name}
-                                    </span>
+                              <h1
+                                className={`text-[20px] sm:text-[23px] font-extrabold tracking-tight uppercase leading-tight ${
+                                  selectedTemplate === "royal"
+                                    ? "font-serif text-[#78350f]"
+                                    : selectedTemplate === "lounge"
+                                      ? "text-[#fbbf24] tracking-widest font-serif"
+                                      : selectedTemplate === "rustic"
+                                        ? "font-serif text-[#78350f]"
+                                        : selectedTemplate === "visual"
+                                          ? "text-orange-950 tracking-tight"
+                                          : "font-sans text-slate-900"
+                                }`}
+                              >
+                                {restaurantName}
+                              </h1>
 
-                                    {renderDietaryIcon(item.itemType)}
+                              {tagline && (
+                                <p
+                                  className={`text-[11px] sm:text-[11.5px] italic opacity-85 ${
+                                    selectedTemplate === "lounge"
+                                      ? "text-amber-200/90"
+                                      : selectedTemplate === "visual"
+                                        ? "text-orange-900/80"
+                                        : ""
+                                  }`}
+                                >
+                                  ~ {tagline} ~
+                                </p>
+                              )}
 
-                                    {showItemCodes && (
-                                      <span className="font-mono text-[9px] opacity-60 ml-0.5 shrink-0">
-                                        [{item.code}]
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {showPrices && (
-                                    <div className="flex items-baseline gap-1 shrink-0 font-bold text-[12.5px] sm:text-[13px]">
-                                      {selectedTemplate === "royal" && (
-                                        <span className="hidden sm:inline-block border-b border-dotted border-current/30 flex-1 w-6" />
-                                      )}
-                                      <span
-                                        className={
-                                          selectedTemplate === "visual"
-                                            ? "text-orange-700 font-extrabold"
-                                            : ""
-                                        }
-                                      >
-                                        {showPricesWithCurrency ? "₹" : ""}
-                                        {item.price}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Description Line */}
-                                {showDescriptions && item.description && (
-                                  <p
-                                    className={`text-[10.5px] sm:text-[11px] leading-tight opacity-75 mt-0.5 ${
-                                      selectedTemplate === "royal" ? "italic" : ""
-                                    } ${selectedTemplate === "visual" ? "line-clamp-2 text-stone-600" : ""}`}
-                                  >
-                                    {item.description}
-                                  </p>
-                                )}
+                              <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] opacity-70 pt-0.5">
+                                {addressLine && <span>{addressLine}</span>}
+                                {addressLine && phoneContact && <span>•</span>}
+                                {phoneContact && <span>Reservations: {phoneContact}</span>}
                               </div>
                             </div>
-                          ))}
+                          ) : (
+                            /* Subsequent Pages: Slim Running Header */
+                            <div className="flex items-center justify-between pb-2 border-b border-current/20 shrink-0 text-xs">
+                              <span
+                                className={`font-bold tracking-wider uppercase text-[11px] ${
+                                  selectedTemplate === "royal" || selectedTemplate === "rustic"
+                                    ? "font-serif text-[#92400e]"
+                                    : selectedTemplate === "lounge"
+                                      ? "text-[#fbbf24] font-serif"
+                                      : "text-slate-800"
+                                }`}
+                              >
+                                {restaurantName}
+                              </span>
+                              <span className="text-[10px] opacity-70 uppercase tracking-widest font-semibold">
+                                Menu • Page {page.pageNumber} of {menuPages.length}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* 2. Categorized Menu Items on this page */}
+                          <div
+                            className={`flex-1 min-h-0 py-2.5 gap-x-5 gap-y-2.5 overflow-hidden ${
+                              selectedTemplate === "diner" || selectedTemplate === "visual"
+                                ? "grid grid-cols-1 md:grid-cols-2 content-start"
+                                : "flex flex-col justify-start space-y-2"
+                            }`}
+                          >
+                            {page.categories.map((catGroup) => (
+                              <div
+                                key={`${catGroup.category}-${catGroup.isContinuation ? "cont" : "main"}`}
+                                className={`space-y-1 ${
+                                  selectedTemplate === "diner"
+                                    ? "p-2 rounded-lg border border-slate-200 bg-slate-50/50"
+                                    : selectedTemplate === "visual"
+                                      ? "p-2 rounded-xl border border-orange-200/70 bg-white/80 shadow-2xs"
+                                      : ""
+                                }`}
+                              >
+                                {/* Category Heading */}
+                                <div
+                                  className={`flex items-center gap-2 pb-0.5 ${
+                                    selectedTemplate === "royal"
+                                      ? "border-b border-[#b45309]/30 text-center justify-center"
+                                      : selectedTemplate === "modern"
+                                        ? "border-b-2 border-primary"
+                                        : selectedTemplate === "visual"
+                                          ? "border-b-2 border-orange-500 text-orange-950"
+                                          : selectedTemplate === "lounge"
+                                            ? "border-b border-amber-500/40 text-[#f59e0b]"
+                                            : selectedTemplate === "rustic"
+                                              ? "border-b-2 border-dashed border-[#854d0e]/40"
+                                              : "border-b border-slate-300"
+                                  }`}
+                                >
+                                  <h3
+                                    className={`text-[12.5px] sm:text-[13px] font-bold uppercase tracking-wider ${
+                                      selectedTemplate === "royal"
+                                        ? "font-serif text-[#92400e]"
+                                        : selectedTemplate === "modern"
+                                          ? "text-primary"
+                                          : selectedTemplate === "visual"
+                                            ? "text-orange-900 font-extrabold"
+                                            : selectedTemplate === "lounge"
+                                              ? "font-serif text-[#fbbf24]"
+                                              : selectedTemplate === "rustic"
+                                                ? "font-serif text-[#78350f]"
+                                                : "text-slate-800"
+                                    }`}
+                                  >
+                                    {catGroup.category} {catGroup.isContinuation ? "(Cont.)" : ""}
+                                  </h3>
+                                  <span className="text-[9.5px] opacity-60">({catGroup.items.length})</span>
+                                </div>
+
+                                {/* Items in this category chunk */}
+                                <div className="space-y-1 pt-0.5">
+                                  {catGroup.items.map((item) => (
+                                    <div
+                                      key={item.id}
+                                      className={`transition ${
+                                        selectedTemplate === "visual"
+                                          ? "flex items-start gap-2 p-1 rounded-lg bg-orange-50/40 border border-orange-100/80"
+                                          : "space-y-0"
+                                      }`}
+                                    >
+                                      {selectedTemplate === "visual" && (
+                                        <div className="h-11 w-11 rounded-lg overflow-hidden shrink-0 border border-orange-200/80 bg-orange-50 flex items-center justify-center">
+                                          {item.images && item.images.length > 0 && item.images[0] ? (
+                                            <img
+                                              src={item.images[0].url}
+                                              alt={item.name}
+                                              className="h-full w-full object-cover"
+                                              loading="lazy"
+                                            />
+                                          ) : (
+                                            <div className="flex flex-col items-center justify-center text-orange-400">
+                                              <ImageIcon className="h-3.5 w-3.5" />
+                                              <span className="text-[7px] font-bold uppercase tracking-tighter mt-0.5">
+                                                Food
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      <div className="flex-1 min-w-0">
+                                        {/* Name + Price Line */}
+                                        <div className="flex items-baseline justify-between gap-1.5">
+                                          <div className="flex items-center gap-1 min-w-0">
+                                            <span
+                                              className={`text-[12px] font-bold truncate ${
+                                                selectedTemplate === "royal"
+                                                  ? "font-serif"
+                                                  : selectedTemplate === "lounge"
+                                                    ? "text-amber-100"
+                                                    : selectedTemplate === "visual"
+                                                      ? "text-stone-900"
+                                                      : "text-slate-900"
+                                              }`}
+                                            >
+                                              {item.name}
+                                            </span>
+
+                                            {renderDietaryIcon(item.itemType)}
+
+                                            {showItemCodes && (
+                                              <span className="font-mono text-[8.5px] opacity-60 ml-0.5 shrink-0">
+                                                [{item.code}]
+                                              </span>
+                                            )}
+                                          </div>
+
+                                          {showPrices && (
+                                            <div className="flex items-baseline gap-1 shrink-0 font-bold text-[12px]">
+                                              {selectedTemplate === "royal" && (
+                                                <span className="hidden sm:inline-block border-b border-dotted border-current/30 flex-1 w-5" />
+                                              )}
+                                              <span
+                                                className={
+                                                  selectedTemplate === "visual"
+                                                    ? "text-orange-700 font-extrabold"
+                                                    : ""
+                                                }
+                                              >
+                                                {showPricesWithCurrency ? "₹" : ""}
+                                                {item.price}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {/* Description Line */}
+                                        {showDescriptions && item.description && (
+                                          <p
+                                            className={`text-[9.5px] sm:text-[10px] leading-tight opacity-75 mt-0.5 ${
+                                              selectedTemplate === "royal" ? "italic" : ""
+                                            } ${selectedTemplate === "visual" ? "line-clamp-2 text-stone-600" : ""}`}
+                                          >
+                                            {item.description}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* 3. Page Footer Area */}
+                          <div className="pt-2 border-t border-current/20 shrink-0 text-center space-y-0.5">
+                            {isLastPage && footerNote && (
+                              <p className="text-[9.5px] sm:text-[10px] opacity-75 leading-tight">
+                                {footerNote}
+                              </p>
+                            )}
+                            <div className="flex items-center justify-between text-[9.5px] opacity-60 pt-0.5">
+                              <span>Retrod POS • {activeOutlet.name}</span>
+                              <span className="font-semibold tracking-wider uppercase">
+                                Page {page.pageNumber} of {menuPages.length}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-
-                {/* 3. Menu Footer Disclaimer */}
-                {footerNote && (
-                  <div className="mt-4 pt-2.5 border-t border-current/20 text-center text-[10.5px] opacity-70 leading-tight">
-                    <p>{footerNote}</p>
-                    <p className="mt-0.5 text-[9.5px] opacity-60">
-                      Retrod POS Live Menu • Printed for {activeOutlet.name}
-                    </p>
-                  </div>
+                    );
+                  })
                 )}
               </div>
             </div>
