@@ -529,8 +529,22 @@ export const posTablesService = {
   addReservation: async (
     data: Omit<ReservationItem, "id" | "createdAt" | "status">,
   ): Promise<ReservationItem> => {
+    const mergedIds =
+      data.mergedTableIds && data.mergedTableIds.length > 0
+        ? Array.from(new Set([data.tableId, ...data.mergedTableIds]))
+        : [data.tableId];
+    const mergedNumbers = mergedIds.map(
+      (id) => tablesStore.find((t) => t.id === id)?.tableNumber || id,
+    );
+    const isMerged = mergedIds.length > 1;
+
     const newReservation: ReservationItem = {
       ...data,
+      tableId: mergedIds[0],
+      tableNumber: mergedNumbers[0],
+      mergedTableIds: isMerged ? mergedIds : undefined,
+      mergedTableNumbers: isMerged ? mergedNumbers : undefined,
+      isMerged,
       id: `res-${Date.now()}`,
       status: "reserved",
       createdAt: new Date().toISOString(),
@@ -538,12 +552,12 @@ export const posTablesService = {
 
     reservationsStore = [newReservation, ...reservationsStore];
 
-    // Update table status to reserved
+    // Book every linked table under the same guest reservation
     tablesStore = tablesStore.map((tbl) => {
-      if (tbl.id === data.tableId) {
+      if (mergedIds.includes(tbl.id)) {
         return {
           ...tbl,
-          status: "reserved",
+          status: "reserved" as const,
           currentGuests: data.guests,
           activeReservation: newReservation,
         };
@@ -567,27 +581,37 @@ export const posTablesService = {
       });
     }
 
+    const linkedIds =
+      reservation?.mergedTableIds && reservation.mergedTableIds.length > 0
+        ? reservation.mergedTableIds
+        : [tableId];
+
+    const activeOrder = {
+      orderId: `ord-${Date.now()}`,
+      orderNumber: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+      serverName: "Captain Jack",
+      seatedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      elapsedMinutes: 1,
+      itemsCount: 0,
+      subtotal: 0,
+      totalAmount: 0,
+      status: "in_prep" as const,
+      guestName: reservation?.customerName,
+      guestPhone: reservation?.customerPhone,
+    };
+
     let updatedTable!: RestaurantTable;
     tablesStore = tablesStore.map((tbl) => {
-      if (tbl.id === tableId) {
-        updatedTable = {
+      if (linkedIds.includes(tbl.id)) {
+        const next = {
           ...tbl,
-          status: "occupied",
+          status: "occupied" as const,
           currentGuests: reservation ? reservation.guests : tbl.capacity,
           activeReservation: reservation,
-          activeOrder: {
-            orderId: `ord-${Date.now()}`,
-            orderNumber: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
-            serverName: "Captain Jack",
-            seatedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            elapsedMinutes: 1,
-            itemsCount: 0,
-            subtotal: 0,
-            totalAmount: 0,
-            status: "in_prep",
-          },
+          activeOrder,
         };
-        return updatedTable;
+        if (tbl.id === tableId || tbl.id === linkedIds[0]) updatedTable = next;
+        return next;
       }
       return tbl;
     });
@@ -596,19 +620,24 @@ export const posTablesService = {
   },
 
   cancelReservation: async (reservationId: string): Promise<void> => {
-    let targetTableId: string | undefined;
+    let linkedTableIds: string[] = [];
 
     reservationsStore = reservationsStore.map((r) => {
       if (r.id === reservationId) {
-        targetTableId = r.tableId;
+        linkedTableIds =
+          r.mergedTableIds && r.mergedTableIds.length > 0
+            ? r.mergedTableIds
+            : r.tableId
+              ? [r.tableId]
+              : [];
         return { ...r, status: "cancelled" };
       }
       return r;
     });
 
-    if (targetTableId) {
+    if (linkedTableIds.length > 0) {
       tablesStore = tablesStore.map((tbl) => {
-        if (tbl.id === targetTableId) {
+        if (linkedTableIds.includes(tbl.id)) {
           return {
             ...tbl,
             status: "vacant",

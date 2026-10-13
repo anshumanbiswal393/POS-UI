@@ -360,7 +360,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           );
         }
       },
-      roleLabel: (r) => ROLE_LABEL[r],
+      roleLabel: (r) => ROLE_LABEL[r] ?? String(r ?? "Staff").replace(/_/g, " "),
       logAuditEvent: (action, target, detail) => addAuditEvent(action, target, detail),
     }),
     [auditEvents, entitlements, user, users],

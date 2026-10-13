@@ -6,7 +6,8 @@ import { Search, PauseCircle, Trash2, ArrowRight } from "lucide-react";
 interface RoomOrderCategoryGridViewProps {
   rooms: HotelRoom[];
   heldOrders?: HeldRoomOrder[];
-  onSelectOccupiedRoom: (room: HotelRoom) => void;
+  /** Open take-order flow for occupied or vacant rooms */
+  onSelectRoom: (room: HotelRoom) => void;
   onResumeHeldOrder?: (heldOrder: HeldRoomOrder) => void;
   onCancelHeldOrder?: (heldOrderId: string) => void;
 }
@@ -16,7 +17,7 @@ const CATEGORY_ORDER = ["Standard Rooms", "Deluxe Rooms", "Superior Rooms", "Sui
 export function RoomOrderCategoryGridView({
   rooms,
   heldOrders = [],
-  onSelectOccupiedRoom,
+  onSelectRoom,
   onResumeHeldOrder,
   onCancelHeldOrder,
 }: RoomOrderCategoryGridViewProps) {
@@ -161,11 +162,12 @@ export function RoomOrderCategoryGridView({
                   // ==========================================
                   if (isOccupied) {
                     return (
-                      <div
+                      <button
                         key={room.id}
-                        onClick={() => onSelectOccupiedRoom(room)}
+                        type="button"
+                        onClick={() => onSelectRoom(room)}
                         title={`Room ${room.roomNumber} - Guest: ${room.guest?.name || "Occupied"} (Click to take order)`}
-                        className="group relative flex flex-col items-center cursor-pointer transition-transform duration-150 hover:-translate-y-1"
+                        className="group relative flex flex-col items-center cursor-pointer transition-transform duration-150 hover:-translate-y-1 bg-transparent border-0 p-0"
                       >
                         {/* Outer Door Frame Arch */}
                         <div className="relative w-[50px] sm:w-[58px] md:w-[64px] h-[70px] sm:h-[80px] md:h-[88px] rounded-t-[22px] sm:rounded-t-[26px] rounded-b-none p-[3.5px] sm:p-[4px] bg-primary shadow-2xs group-hover:shadow-md transition-all">
@@ -200,19 +202,21 @@ export function RoomOrderCategoryGridView({
 
                         {/* Soft Floor Shadow at Door Base */}
                         <div className="w-[85%] h-1 bg-slate-400/25 rounded-full blur-[1px] -mt-0.5 group-hover:bg-slate-500/35 transition-all" />
-                      </div>
+                      </button>
                     );
                   }
 
                   // ==========================================
-                  // 2. VACANT / AVAILABLE ROOM DOOR (Dynamic Theme Tint, Clickable to take order)
+                  // 2. VACANT / AVAILABLE ROOM DOOR — clickable to start a room order
                   // ==========================================
                   return (
-                    <div
+                    <button
                       key={room.id}
-                      onClick={() => onSelectOccupiedRoom(room)}
+                      type="button"
+                      onClick={() => onSelectRoom(room)}
                       title={`Room ${room.roomNumber} - Available (Click to take order)`}
-                      className="group relative flex flex-col items-center cursor-pointer transition-transform duration-150 hover:-translate-y-1 select-none"
+                      aria-label={`Take order for available room ${room.roomNumber}`}
+                      className="group relative flex flex-col items-center cursor-pointer transition-transform duration-150 hover:-translate-y-1 select-none bg-transparent border-0 p-0"
                     >
                       {/* Outer Door Frame Arch */}
                       <div className="relative w-[50px] sm:w-[58px] md:w-[64px] h-[70px] sm:h-[80px] md:h-[88px] rounded-t-[22px] sm:rounded-t-[26px] rounded-b-none p-[3.5px] sm:p-[4px] bg-primary/40 border border-primary/30 shadow-2xs group-hover:bg-primary/60 transition-all">
@@ -247,7 +251,7 @@ export function RoomOrderCategoryGridView({
 
                       {/* Soft Floor Shadow at Door Base */}
                       <div className="w-[85%] h-1 bg-slate-300/35 rounded-full blur-[1px] -mt-0.5 group-hover:bg-slate-400/40 transition-all" />
-                    </div>
+                    </button>
                   );
                 })}
               </div>

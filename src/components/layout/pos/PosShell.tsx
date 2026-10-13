@@ -18,8 +18,8 @@ export function PosShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        "min-h-screen w-full bg-background text-foreground",
-        mobileOpen && isMobile ? "h-screen overflow-hidden" : "",
+        "h-dvh w-full overflow-hidden bg-background text-foreground",
+        mobileOpen && isMobile ? "h-screen" : "",
       )}
     >
       {isMobile && mobileOpen && (
@@ -47,7 +47,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
 
       {/* Content column offset by sidebar width on desktop */}
       <div
-        className="flex min-h-dvh min-w-0 flex-col bg-background text-text-primary transition-all duration-200 print:!m-0 print:!p-0 print:!w-full print:!min-h-0 print:!bg-white"
+        className="flex h-dvh min-w-0 flex-col overflow-hidden bg-background text-text-primary transition-all duration-200 print:!m-0 print:!h-auto print:!overflow-visible print:!p-0 print:!w-full print:!min-h-0 print:!bg-white"
         style={{ marginLeft: sidebarWidth }}
       >
         <div className="print:hidden">
@@ -57,7 +57,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
             sidebarCollapsed={desktopCollapsed}
           />
         </div>
-        <main className="flex-1 min-w-0 p-2.5 sm:p-3.5 lg:p-4 overflow-x-auto pb-[env(safe-area-inset-bottom)] print:!m-0 print:!p-0 print:!w-full print:!overflow-visible">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto p-2.5 sm:p-3 lg:p-3 pb-[env(safe-area-inset-bottom)] print:!m-0 print:!p-0 print:!w-full print:!overflow-visible">
           {children}
         </main>
       </div>

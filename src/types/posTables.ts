@@ -13,8 +13,13 @@ export interface AddTableInput {
 
 export interface ReservationItem {
   id: string;
+  /** Primary / lead table for this booking */
   tableId: string;
   tableNumber: string;
+  /** When party size needs more than one table, all linked table ids */
+  mergedTableIds?: string[];
+  mergedTableNumbers?: string[];
+  isMerged?: boolean;
   customerName: string;
   customerPhone: string;
   customerEmail?: string;

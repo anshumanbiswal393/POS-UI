@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import type { OrderTypeMixItem } from "@/types/posDashboard";
 
@@ -7,12 +7,22 @@ interface OrderTypesDonutChartProps {
   totalCount: number;
 }
 
-export function OrderTypesDonutChart({ orderTypes, totalCount }: OrderTypesDonutChartProps) {
+export function OrderTypesDonutChart({ orderTypes }: OrderTypesDonutChartProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const { slices, totalCount } = useMemo(() => {
+    const withoutDelivery = orderTypes.filter((item) => item.type !== "delivery");
+    const total = withoutDelivery.reduce((sum, item) => sum + item.count, 0);
+    const slices = withoutDelivery.map((item) => ({
+      ...item,
+      percentage: total ? Math.round((item.count / total) * 1000) / 10 : 0,
+    }));
+    return { slices, totalCount: total };
+  }, [orderTypes]);
 
   const resolveSliceColor = (entry: OrderTypeMixItem) => {
     if (entry.type === "dine_in") return "var(--primary)";
@@ -21,20 +31,20 @@ export function OrderTypesDonutChart({ orderTypes, totalCount }: OrderTypesDonut
   };
 
   return (
-    <div className="flex h-full flex-col justify-between rounded-xl border border-slate-300 bg-white p-3.5 shadow-2xs">
-      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
+      <div className="flex shrink-0 items-center justify-between border-b border-slate-200 pb-1.5">
         <h2 className="text-[13.5px] font-bold text-slate-900">Order Types</h2>
         <span className="text-[11px] font-semibold text-slate-500">{totalCount} Orders</span>
       </div>
 
-      <div className="flex flex-1 items-center justify-between gap-3 pt-1.5">
+      <div className="flex min-h-0 flex-1 items-center justify-between gap-3 pt-1.5">
         {/* Donut Chart with Center Text */}
-        <div className="relative h-[135px] w-[135px] shrink-0">
+        <div className="relative aspect-square h-full max-h-[132px] w-auto shrink-0">
           {mounted ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={orderTypes}
+                  data={slices}
                   cx="50%"
                   cy="50%"
                   innerRadius={42}
@@ -42,7 +52,7 @@ export function OrderTypesDonutChart({ orderTypes, totalCount }: OrderTypesDonut
                   paddingAngle={2}
                   dataKey="count"
                 >
-                  {orderTypes.map((entry) => (
+                  {slices.map((entry) => (
                     <Cell key={entry.id} fill={resolveSliceColor(entry)} stroke="#fff" strokeWidth={2} />
                   ))}
                 </Pie>
@@ -63,7 +73,7 @@ export function OrderTypesDonutChart({ orderTypes, totalCount }: OrderTypesDonut
 
         {/* Legend List */}
         <div className="flex flex-1 flex-col justify-center space-y-2 pl-1">
-          {orderTypes.map((item) => (
+          {slices.map((item) => (
             <div key={item.id} className="flex items-center justify-between text-[11.5px]">
               <div className="flex items-center gap-1.5">
                 <span

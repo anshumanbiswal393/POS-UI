@@ -11,6 +11,7 @@ export interface AppUser {
   active: boolean;
   property: string;
   lastActive?: string;
+  phone?: string;
 }
 
 export interface TenantEntitlements {

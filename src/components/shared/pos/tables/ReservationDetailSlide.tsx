@@ -143,6 +143,11 @@ export function ReservationDetailSlide({
                         <span>allocated to</span>
                         <span className="font-semibold text-teal-700">{res.tableNumber}</span>
                       </div>
+                      {res.isMerged && res.mergedTableNumbers && res.mergedTableNumbers.length > 1 && (
+                        <div className="mt-1.5 text-[11px] font-medium text-primary">
+                          Merged tables: {res.mergedTableNumbers.join(" + ")}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -8,8 +8,8 @@ interface TopSellingItemsCardProps {
 
 export function TopSellingItemsCard({ items }: TopSellingItemsCardProps) {
   return (
-    <div className="flex h-full flex-col justify-between rounded-xl border border-slate-300 bg-white p-3.5 sm:p-4 shadow-2xs">
-      <div className="flex items-center justify-between">
+    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
+      <div className="flex shrink-0 items-center justify-between">
         <h2 className="text-[14px] font-bold text-slate-900">Top selling items</h2>
         <Link
           to="/pos/menu"
@@ -19,9 +19,9 @@ export function TopSellingItemsCard({ items }: TopSellingItemsCardProps) {
         </Link>
       </div>
 
-      <div className="mt-4 divide-y divide-slate-100 flex-1">
+      <div className="mt-1 flex min-h-0 flex-1 flex-col justify-around divide-y divide-slate-100">
         {items.map((item, idx) => (
-          <div key={item.id} className="flex items-center justify-between py-2.5">
+          <div key={item.id} className="flex items-center justify-between py-1.5">
             <div className="flex items-center gap-3">
               {/* Dish Icon / Thumbnail */}
               <div

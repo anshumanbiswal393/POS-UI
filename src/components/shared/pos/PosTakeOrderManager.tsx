@@ -171,8 +171,8 @@ export function PosTakeOrderManager() {
   };
 
   // ===================== HANDLERS: ROOM =====================
-  const handleSelectOccupiedRoom = (room: HotelRoom) => {
-    // Open room order setup wizard asking for waiter and guest details (all optional)
+  const handleSelectRoom = (room: HotelRoom) => {
+    // Occupied and vacant rooms can both start a take-order flow
     setSelectedRoomForWizard(room);
     setActiveHeldOrder(null);
     setIsRoomWizardOpen(true);
@@ -325,7 +325,7 @@ export function PosTakeOrderManager() {
           <RoomOrderCategoryGridView
             rooms={hotelRooms}
             heldOrders={heldRoomOrders}
-            onSelectOccupiedRoom={handleSelectOccupiedRoom}
+            onSelectRoom={handleSelectRoom}
             onResumeHeldOrder={handleResumeHeldOrder}
             onCancelHeldOrder={handleCancelHeldOrder}
           />

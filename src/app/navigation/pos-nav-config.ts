@@ -9,8 +9,6 @@ import {
   Package,
   PieChart,
   Settings2,
-  Users,
-  Truck,
   HelpCircle,
   Settings,
 } from "lucide-react";
@@ -370,8 +368,6 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
       },
     ],
   },
-  { id: "crm", label: "CRM", to: "/pos/crm", icon: Users },
-  { id: "aggregators", label: "Aggregators", to: "/pos/aggregators", icon: Truck },
 ];
 
 export const POS_FOOTER_NAV_ITEMS: PosNavItem[] = [

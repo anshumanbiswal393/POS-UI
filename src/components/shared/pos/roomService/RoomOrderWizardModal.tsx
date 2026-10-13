@@ -81,12 +81,15 @@ export function RoomOrderWizardModal({
   const [waiterName, setWaiterName] = useState<string>("");
   const [customWaiter, setCustomWaiter] = useState<string>("");
   const [isCustomWaiter, setIsCustomWaiter] = useState(false);
+  const [guestNameInput, setGuestNameInput] = useState<string>("");
   const [pax, setPax] = useState<number>(2);
   const [notes, setNotes] = useState<string>("");
   const [step1Error, setStep1Error] = useState<string>("");
 
   // Step 2 State
   const [cart, setCart] = useState<Record<string, PosOrderCartItem>>({});
+
+  const isVacantRoom = Boolean(room && !room.isOccupied && !heldOrder);
 
   // Initialize form when opened
   useEffect(() => {
@@ -96,15 +99,17 @@ export function RoomOrderWizardModal({
         setStep(2);
         setPax(heldOrder.pax || 2);
         setWaiterName(heldOrder.waiterName || "");
+        setGuestNameInput(heldOrder.guestName || "");
         setNotes(heldOrder.notes || "");
         setCart(heldOrder.cart || {});
       } else {
-        // Fresh order for this occupied room
+        // Fresh order for occupied or vacant room
         setStep(1);
         setPax(2);
         setWaiterName("");
         setCustomWaiter("");
         setIsCustomWaiter(false);
+        setGuestNameInput(room?.guest?.name || "");
         setNotes("");
         setCart({});
       }
@@ -113,7 +118,11 @@ export function RoomOrderWizardModal({
   }, [isOpen, room, heldOrder]);
 
   const effectiveWaiter = isCustomWaiter ? customWaiter.trim() : waiterName;
-  const guestName = room?.guest?.name || heldOrder?.guestName || "In-House Guest";
+  const guestName =
+    guestNameInput.trim() ||
+    room?.guest?.name ||
+    heldOrder?.guestName ||
+    (isVacantRoom ? "Walk-in Guest" : "In-House Guest");
   const roomNumber = room?.roomNumber || heldOrder?.roomNumber || "101";
   const roomType = room?.roomType || heldOrder?.roomType || "Standard Rooms";
   const floor = room?.floor || "Floor 1";
@@ -279,7 +288,9 @@ export function RoomOrderWizardModal({
               </h2>
               <p className="text-[11px] text-slate-500 font-medium">
                 {step === 1
-                  ? "Guest name pre-filled from room folio. Select pax and optional waiter."
+                  ? isVacantRoom
+                    ? "Vacant room — enter guest details, then continue to the menu."
+                    : "Guest name pre-filled from room folio. Select pax and optional waiter."
                   : `Guest: ${guestName} • ${pax} Pax • Waiter: ${effectiveWaiter || "Unassigned"}`}
               </p>
             </div>
@@ -297,24 +308,41 @@ export function RoomOrderWizardModal({
         {/* ===================== STEP 1: COMPACT SINGLE PAGE SETUP ===================== */}
         {step === 1 && (
           <form onSubmit={handleProceedToMenu} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5">
-            {/* Pre-filled Room & Guest Card */}
+            {/* Room status card */}
             <div className="p-3 rounded-xl border border-primary/20 bg-primary/10 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">
-                  Occupied Room Folio
+                  {isVacantRoom ? "Available Room" : "Occupied Room Folio"}
                 </span>
                 <div className="text-sm font-extrabold text-slate-900 mt-0.5">
                   Room {roomNumber} — {roomType}
                 </div>
-                <div className="text-xs text-slate-600 font-medium mt-0.5 flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-primary" />
-                  <span>Guest: {guestName}</span>
-                </div>
+                {!isVacantRoom && (
+                  <div className="text-xs text-slate-600 font-medium mt-0.5 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-primary" />
+                    <span>Guest: {guestName}</span>
+                  </div>
+                )}
               </div>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary text-primary-foreground">
-                In-House
+                {isVacantRoom ? "Available" : "In-House"}
               </span>
             </div>
+
+            {isVacantRoom && (
+              <div>
+                <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
+                  Guest Name <span className="text-slate-400 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter guest name for this room order"
+                  value={guestNameInput}
+                  onChange={(e) => setGuestNameInput(e.target.value)}
+                  className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium placeholder:text-slate-400"
+                />
+              </div>
+            )}
 
             {/* 1. Pax / Party Size */}
             <div>

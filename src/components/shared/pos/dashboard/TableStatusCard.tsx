@@ -20,8 +20,8 @@ export function TableStatusCard({ tables }: TableStatusCardProps) {
   };
 
   return (
-    <div className="flex h-full flex-col justify-between rounded-xl border border-slate-300 bg-white p-3.5 sm:p-4 shadow-2xs">
-      <div className="flex items-center justify-between">
+    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
+      <div className="flex shrink-0 items-center justify-between">
         <h2 className="text-[14px] font-bold text-slate-900">Table status</h2>
         <Link
           to="/pos/tables"
@@ -32,11 +32,11 @@ export function TableStatusCard({ tables }: TableStatusCardProps) {
       </div>
 
       {/* Grid of 18 Tables (6 columns x 3 rows) */}
-      <div className="mt-4 grid grid-cols-6 gap-2 flex-1 items-center">
+      <div className="mt-2 grid min-h-0 flex-1 grid-cols-6 grid-rows-3 gap-1.5">
         {tables.slice(0, 18).map((t) => (
           <div
             key={t.tableNumber}
-            className={`flex h-9 items-center justify-center rounded-lg border text-[13px] font-semibold transition-all cursor-pointer shadow-xs ${getTableStyle(
+            className={`flex min-h-0 items-center justify-center rounded-lg border text-[12px] font-semibold transition-all cursor-pointer shadow-xs ${getTableStyle(
               t.status,
             )}`}
             title={`Table ${t.tableNumber} - ${t.status}`}
@@ -47,7 +47,7 @@ export function TableStatusCard({ tables }: TableStatusCardProps) {
       </div>
 
       {/* Legend */}
-      <div className="mt-5 flex items-center justify-center gap-5 border-t border-slate-100 pt-3 text-[11.5px]">
+      <div className="mt-2 flex shrink-0 items-center justify-center gap-4 border-t border-slate-100 pt-2 text-[11px]">
         <div className="flex items-center gap-1.5 font-medium text-slate-600">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
           <span>Available</span>

@@ -33,12 +33,12 @@ export function PaymentSummaryCard({ paymentSummary }: PaymentSummaryCardProps) 
   ];
 
   return (
-    <div className="flex h-full flex-col justify-between rounded-xl border border-slate-300 bg-white p-3.5 sm:p-4 shadow-2xs">
-      <h2 className="text-[14px] font-bold text-slate-900">Payment summary</h2>
+    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
+      <h2 className="shrink-0 text-[14px] font-bold text-slate-900">Payment summary</h2>
 
-      <div className="mt-4 space-y-4 flex-1">
+      <div className="mt-2 flex min-h-0 flex-1 flex-col justify-between gap-1.5">
         {items.map((item) => (
-          <div key={item.label} className="space-y-1.5">
+          <div key={item.label} className="space-y-1">
             <div className="flex items-center justify-between text-[13px]">
               <span className="font-medium text-slate-700">{item.label}</span>
               <div className="space-x-2">
@@ -57,7 +57,7 @@ export function PaymentSummaryCard({ paymentSummary }: PaymentSummaryCardProps) 
         ))}
       </div>
 
-      <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-3.5">
+      <div className="mt-2 flex shrink-0 items-center justify-between border-t border-slate-100 pt-2">
         <span className="text-[13px] font-bold text-slate-900">Total</span>
         <span className="text-[17px] font-bold text-slate-900">
           {paymentSummary.totalFormatted}

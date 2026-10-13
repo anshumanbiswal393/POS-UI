@@ -24,9 +24,7 @@ import { Route as PosManagementRouteImport } from './routes/pos.management'
 import { Route as PosKotRouteImport } from './routes/pos.kot'
 import { Route as PosInventoryRouteImport } from './routes/pos.inventory'
 import { Route as PosHelpRouteImport } from './routes/pos.help'
-import { Route as PosCrmRouteImport } from './routes/pos.crm'
 import { Route as PosBillingRouteImport } from './routes/pos.billing'
-import { Route as PosAggregatorsRouteImport } from './routes/pos.aggregators'
 import { Route as PosReportsOtherRouteImport } from './routes/pos.reports.other'
 import { Route as PosReportsNotificationsRouteImport } from './routes/pos.reports.notifications'
 import { Route as PosReportsDeliveryRouteImport } from './routes/pos.reports.delivery'
@@ -178,19 +176,9 @@ const PosHelpRoute = PosHelpRouteImport.update({
   path: '/help',
   getParentRoute: () => PosRoute,
 } as any)
-const PosCrmRoute = PosCrmRouteImport.update({
-  id: '/crm',
-  path: '/crm',
-  getParentRoute: () => PosRoute,
-} as any)
 const PosBillingRoute = PosBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
-  getParentRoute: () => PosRoute,
-} as any)
-const PosAggregatorsRoute = PosAggregatorsRouteImport.update({
-  id: '/aggregators',
-  path: '/aggregators',
   getParentRoute: () => PosRoute,
 } as any)
 const PosReportsOtherRoute = PosReportsOtherRouteImport.update({
@@ -623,9 +611,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/pos': typeof PosRouteWithChildren
-  '/pos/aggregators': typeof PosAggregatorsRoute
   '/pos/billing': typeof PosBillingRoute
-  '/pos/crm': typeof PosCrmRoute
   '/pos/help': typeof PosHelpRoute
   '/pos/inventory': typeof PosInventoryRouteWithChildren
   '/pos/kot': typeof PosKotRoute
@@ -718,9 +704,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/pos': typeof PosRouteWithChildren
-  '/pos/aggregators': typeof PosAggregatorsRoute
   '/pos/billing': typeof PosBillingRoute
-  '/pos/crm': typeof PosCrmRoute
   '/pos/help': typeof PosHelpRoute
   '/pos/inventory': typeof PosInventoryRouteWithChildren
   '/pos/kot': typeof PosKotRoute
@@ -814,9 +798,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/pos': typeof PosRouteWithChildren
-  '/pos/aggregators': typeof PosAggregatorsRoute
   '/pos/billing': typeof PosBillingRoute
-  '/pos/crm': typeof PosCrmRoute
   '/pos/help': typeof PosHelpRoute
   '/pos/inventory': typeof PosInventoryRouteWithChildren
   '/pos/kot': typeof PosKotRoute
@@ -911,9 +893,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/pos'
-    | '/pos/aggregators'
     | '/pos/billing'
-    | '/pos/crm'
     | '/pos/help'
     | '/pos/inventory'
     | '/pos/kot'
@@ -1006,9 +986,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/pos'
-    | '/pos/aggregators'
     | '/pos/billing'
-    | '/pos/crm'
     | '/pos/help'
     | '/pos/inventory'
     | '/pos/kot'
@@ -1101,9 +1079,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/pos'
-    | '/pos/aggregators'
     | '/pos/billing'
-    | '/pos/crm'
     | '/pos/help'
     | '/pos/inventory'
     | '/pos/kot'
@@ -1306,25 +1282,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PosHelpRouteImport
       parentRoute: typeof PosRoute
     }
-    '/pos/crm': {
-      id: '/pos/crm'
-      path: '/crm'
-      fullPath: '/pos/crm'
-      preLoaderRoute: typeof PosCrmRouteImport
-      parentRoute: typeof PosRoute
-    }
     '/pos/billing': {
       id: '/pos/billing'
       path: '/billing'
       fullPath: '/pos/billing'
       preLoaderRoute: typeof PosBillingRouteImport
-      parentRoute: typeof PosRoute
-    }
-    '/pos/aggregators': {
-      id: '/pos/aggregators'
-      path: '/aggregators'
-      fullPath: '/pos/aggregators'
-      preLoaderRoute: typeof PosAggregatorsRouteImport
       parentRoute: typeof PosRoute
     }
     '/pos/reports/other': {
@@ -2101,9 +2063,7 @@ const PosReportsRouteWithChildren = PosReportsRoute._addFileChildren(
 )
 
 interface PosRouteChildren {
-  PosAggregatorsRoute: typeof PosAggregatorsRoute
   PosBillingRoute: typeof PosBillingRoute
-  PosCrmRoute: typeof PosCrmRoute
   PosHelpRoute: typeof PosHelpRoute
   PosInventoryRoute: typeof PosInventoryRouteWithChildren
   PosKotRoute: typeof PosKotRoute
@@ -2119,9 +2079,7 @@ interface PosRouteChildren {
 }
 
 const PosRouteChildren: PosRouteChildren = {
-  PosAggregatorsRoute: PosAggregatorsRoute,
   PosBillingRoute: PosBillingRoute,
-  PosCrmRoute: PosCrmRoute,
   PosHelpRoute: PosHelpRoute,
   PosInventoryRoute: PosInventoryRouteWithChildren,
   PosKotRoute: PosKotRoute,

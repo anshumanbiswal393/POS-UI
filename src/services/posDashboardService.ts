@@ -32,7 +32,7 @@ const MOCK_DASHBOARD_API_RESPONSE: PosDashboardApiResponse = {
   currency: "INR",
   stats: {
     totalCollections: 184260,
-    totalOrders: 161,
+    totalOrders: 120,
     activeTablesCount: 18,
     totalTablesCount: 32,
     unpaidBillsAmount: 12400,
@@ -50,10 +50,9 @@ const MOCK_DASHBOARD_API_RESPONSE: PosDashboardApiResponse = {
     { hour: "12 AM", todaySales: 18426, yesterdaySales: 13200 },
   ],
   orderTypes: [
-    { type: "dine_in", label: "Dine-in", count: 72, percentage: 44.7, color: "#0f766e" },
-    { type: "takeaway", label: "Takeaway", count: 28, percentage: 17.4, color: "#0d9488" },
-    { type: "delivery", label: "Delivery", count: 41, percentage: 25.5, color: "#64748b" },
-    { type: "room_service", label: "Room service", count: 20, percentage: 12.4, color: "#94a3b8" },
+    { type: "dine_in", label: "Dine-in", count: 72, percentage: 60, color: "#0f766e" },
+    { type: "takeaway", label: "Takeaway", count: 28, percentage: 23.3, color: "#0d9488" },
+    { type: "room_service", label: "Room service", count: 20, percentage: 16.7, color: "#94a3b8" },
   ],
   liveOrders: [
     {
@@ -198,10 +197,13 @@ export function mapDtoToDashboardModel(
   dto: PosDashboardApiResponse,
   isMock: boolean = false,
 ): PosDashboardData {
+  const visibleOrderTypes = dto.orderTypes.filter((ot) => ot.type !== "delivery");
+  const totalOrderTypesCount = visibleOrderTypes.reduce((acc, curr) => acc + curr.count, 0);
+
   const stats: PosDashboardStats = {
     totalCollections: dto.stats.totalCollections,
     totalCollectionsFormatted: formatINR(dto.stats.totalCollections),
-    totalOrders: dto.stats.totalOrders,
+    totalOrders: totalOrderTypesCount,
     activeTablesCount: dto.stats.activeTablesCount,
     totalTablesCount: dto.stats.totalTablesCount,
     occupancyPercentage: Math.round(
@@ -219,16 +221,16 @@ export function mapDtoToDashboardModel(
     yesterdaySales: pt.yesterdaySales,
   }));
 
-  const orderTypes: OrderTypeMixItem[] = dto.orderTypes.map((ot) => ({
+  const orderTypes: OrderTypeMixItem[] = visibleOrderTypes.map((ot) => ({
     id: ot.type,
     type: ot.type,
     label: ot.label,
     count: ot.count,
-    percentage: ot.percentage,
+    percentage: totalOrderTypesCount
+      ? Math.round((ot.count / totalOrderTypesCount) * 1000) / 10
+      : 0,
     color: ot.color,
   }));
-
-  const totalOrderTypesCount = orderTypes.reduce((acc, curr) => acc + curr.count, 0);
 
   const liveOrders: LiveOrderItem[] = dto.liveOrders.map((lo) => ({
     id: lo.id,

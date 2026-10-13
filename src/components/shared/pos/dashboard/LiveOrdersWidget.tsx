@@ -1,16 +1,19 @@
 import { Link } from "@tanstack/react-router";
-import { Clock, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Clock } from "lucide-react";
 import type { LiveOrderItem } from "@/types/posDashboard";
+
+const VISIBLE_ORDER_ROWS = 3;
 
 interface LiveOrdersWidgetProps {
   orders: LiveOrderItem[];
 }
 
 export function LiveOrdersWidget({ orders }: LiveOrdersWidgetProps) {
+  const visibleOrders = orders.slice(0, VISIBLE_ORDER_ROWS);
   return (
-    <div className="flex h-full flex-col justify-between rounded-xl border border-slate-300 bg-white p-3.5 shadow-2xs">
+    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+      <div className="flex shrink-0 items-center justify-between border-b border-slate-200 pb-1.5">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
           <h2 className="text-[13.5px] font-bold text-slate-900">Current Orders</h2>
@@ -22,13 +25,13 @@ export function LiveOrdersWidget({ orders }: LiveOrdersWidgetProps) {
           to="/pos/orders"
           className="text-[11.5px] font-bold text-primary hover:underline"
         >
-          View all
+          View
         </Link>
       </div>
 
-      {/* Orders List — Tight compact rows with status indicators */}
-      <div className="my-2 space-y-1.5 flex-1">
-        {orders.map((ord) => (
+      {/* Three rows only — View opens the full current-orders screen */}
+      <div className="my-1.5 flex min-h-0 flex-1 flex-col justify-center gap-1.5">
+        {visibleOrders.map((ord) => (
           <div
             key={ord.id}
             className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 py-1.5 hover:bg-slate-100 hover:border-slate-300 transition"
@@ -64,13 +67,12 @@ export function LiveOrdersWidget({ orders }: LiveOrdersWidgetProps) {
       </div>
 
       {/* Footer Link */}
-      <div className="border-t border-slate-200 pt-2 text-center">
+      <div className="shrink-0 border-t border-slate-200 pt-1.5 text-center">
         <Link
           to="/pos/orders"
-          className="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-primary hover:underline"
+          className="text-[11.5px] font-bold text-primary hover:underline"
         >
-          <span>Open Current Orders Command Center</span>
-          <ArrowRight className="h-3.5 w-3.5" />
+          Open current orders →
         </Link>
       </div>
     </div>

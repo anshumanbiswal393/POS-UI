@@ -21,10 +21,10 @@ export function AttentionNeededCard({ alerts }: AttentionNeededCardProps) {
   };
 
   return (
-    <div className="flex h-full flex-col justify-between rounded-xl border border-slate-300 bg-white p-3.5 sm:p-4 shadow-2xs">
-      <h2 className="text-[14px] font-bold text-slate-900">Attention needed</h2>
+    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
+      <h2 className="shrink-0 text-[14px] font-bold text-slate-900">Attention needed</h2>
 
-      <div className="mt-4 space-y-3.5 flex-1 justify-center flex flex-col">
+      <div className="mt-2 flex min-h-0 flex-1 flex-col justify-around">
         {alerts.map((alert) => (
           <div key={alert.id} className="flex items-center justify-between">
             <div className="flex items-center gap-3">

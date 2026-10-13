@@ -167,8 +167,13 @@ export function NewRoomOrderModal({
                 className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               >
                 {rooms.map((r) => (
-                  <option key={r.id} value={r.roomNumber} disabled={!r.isOccupied}>
-                    Room {r.roomNumber} ({r.roomType}) — {r.guest?.name ? `Guest: ${r.guest.name}` : "⛔ Vacant (Disabled)"}
+                  <option key={r.id} value={r.roomNumber}>
+                    Room {r.roomNumber} ({r.roomType}) —{" "}
+                    {r.guest?.name
+                      ? `Guest: ${r.guest.name}`
+                      : r.isOccupied
+                        ? "Occupied"
+                        : "Available"}
                   </option>
                 ))}
               </select>
