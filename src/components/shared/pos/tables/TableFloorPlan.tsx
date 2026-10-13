@@ -71,11 +71,10 @@ export function TableFloorPlan({
                     key={area}
                     type="button"
                     onClick={() => onSelectArea(area)}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      isActive
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${isActive
                         ? "bg-primary text-primary-foreground shadow-xs"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
-                    }`}
+                      }`}
                   >
                     {area}
                   </button>

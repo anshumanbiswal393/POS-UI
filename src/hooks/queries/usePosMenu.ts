@@ -112,14 +112,37 @@ export function useToggleMenuStock() {
   });
 }
 
+// Keep menu item lists in sync after local image mutations without refetching from API
+// (refetch would overwrite in-memory image changes when the backend has no image endpoints yet).
+function patchMenuItemInCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+  updated: MenuItem | null | undefined,
+) {
+  if (!updated) return;
+  queryClient.setQueriesData<MenuItem[]>(
+    { queryKey: ["pos", "menu", "items"] },
+    (old) => {
+      if (!old) return old;
+      return old.map((item) => (item.id === updated.id ? updated : item));
+    },
+  );
+  queryClient.setQueriesData<MenuItem[]>(
+    { queryKey: ["pos", "menu", "stock-items"] },
+    (old) => {
+      if (!old) return old;
+      return old.map((item) => (item.id === updated.id ? updated : item));
+    },
+  );
+}
+
 // 3. Multi-Image Management per Item
 export function useAddItemImages() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ itemId, images }: { itemId: string; images: MenuItemImage[] }) =>
       posMenuService.addItemImages(itemId, images),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pos", "menu", "items"] });
+    onSuccess: (updated) => {
+      patchMenuItemInCache(queryClient, updated);
     },
   });
 }
@@ -129,8 +152,8 @@ export function useRemoveItemImage() {
   return useMutation({
     mutationFn: ({ itemId, imageId }: { itemId: string; imageId: string }) =>
       posMenuService.removeItemImage(itemId, imageId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pos", "menu", "items"] });
+    onSuccess: (updated) => {
+      patchMenuItemInCache(queryClient, updated);
     },
   });
 }
@@ -140,8 +163,8 @@ export function useSetPrimaryImage() {
   return useMutation({
     mutationFn: ({ itemId, imageId }: { itemId: string; imageId: string }) =>
       posMenuService.setPrimaryImage(itemId, imageId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pos", "menu", "items"] });
+    onSuccess: (updated) => {
+      patchMenuItemInCache(queryClient, updated);
     },
   });
 }

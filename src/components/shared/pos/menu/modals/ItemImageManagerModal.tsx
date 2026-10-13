@@ -47,7 +47,7 @@ export function ItemImageManagerModal({
   const [activeTab, setActiveTab] = useState<"upload" | "url">("upload");
 
   const processFiles = useCallback(
-    (files: FileList | File[]) => {
+    async (files: FileList | File[]) => {
       if (!item) return;
       const validFiles: File[] = [];
       const fileArray = Array.from(files);
@@ -55,7 +55,7 @@ export function ItemImageManagerModal({
       for (const file of fileArray) {
         const isImage =
           ALLOWED_EXTENSIONS.includes(file.type) ||
-          file.name.match(/\.(jpg|jpeg|png|webp|gif|avif)$/i);
+          !!file.name.match(/\.(jpg|jpeg|png|webp|gif|avif)$/i);
 
         if (!isImage) {
           toast.error(`"${file.name}" is not a supported image format.`);
@@ -72,25 +72,35 @@ export function ItemImageManagerModal({
 
       setIsUploading(true);
 
-      setTimeout(() => {
-        const newImages: MenuItemImage[] = validFiles.map((file, idx) => {
-          const objectUrl = URL.createObjectURL(file);
-          const sizeKb = (file.size / 1024).toFixed(0);
-          const formattedSize =
-            file.size > 1024 * 1024
-              ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-              : `${sizeKb} KB`;
+      try {
+        const existingCount = item.images?.length ?? 0;
+        const newImages: MenuItemImage[] = await Promise.all(
+          validFiles.map(
+            (file, idx) =>
+              new Promise<MenuItemImage>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const sizeKb = (file.size / 1024).toFixed(0);
+                  const formattedSize =
+                    file.size > 1024 * 1024
+                      ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+                      : `${sizeKb} KB`;
 
-          return {
-            id: `img-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
-            url: objectUrl,
-            name: file.name,
-            isPrimary: item.images.length === 0 && idx === 0,
-            size: formattedSize,
-            type: file.type || "image/jpeg",
-            uploadedAt: "Just now",
-          };
-        });
+                  resolve({
+                    id: `img-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+                    url: String(reader.result || ""),
+                    name: file.name,
+                    isPrimary: existingCount === 0 && idx === 0,
+                    size: formattedSize,
+                    type: file.type || "image/jpeg",
+                    uploadedAt: "Just now",
+                  });
+                };
+                reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+                reader.readAsDataURL(file);
+              }),
+          ),
+        );
 
         addImagesMutation.mutate(
           { itemId: item.id, images: newImages },
@@ -105,7 +115,10 @@ export function ItemImageManagerModal({
             },
           },
         );
-      }, 400);
+      } catch {
+        toast.error("Failed to read image file(s)");
+        setIsUploading(false);
+      }
     },
     [item, addImagesMutation],
   );
@@ -149,7 +162,7 @@ export function ItemImageManagerModal({
       id: `url-img-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       url: rawUrl,
       name: derivedName,
-      isPrimary: item.images.length === 0,
+      isPrimary: (item.images?.length ?? 0) === 0,
       size: "Online Link",
       type: "image/url",
       uploadedAt: "Just now",
@@ -506,16 +519,16 @@ export function ItemImageManagerModal({
             <div className="flex items-center justify-between">
               <span className="text-[13px] font-bold text-slate-900 flex items-center gap-1.5">
                 <FileImage className="h-4 w-4 text-teal-600" />
-                Uploaded Dish Photos ({item.images.length})
+                Uploaded Dish Photos ({item.images?.length ?? 0})
               </span>
-              {item.images.length > 0 && (
+              {(item.images?.length ?? 0) > 0 && (
                 <span className="text-[11px] font-medium text-slate-500">
                   Select a photo to set as the primary cover.
                 </span>
               )}
             </div>
 
-            {item.images.length === 0 ? (
+            {(item.images?.length ?? 0) === 0 ? (
               <div className="border border-slate-200 rounded-xl p-8 text-center bg-slate-50/50">
                 <ImageIcon className="h-10 w-10 text-slate-300 mx-auto mb-2" />
                 <div className="text-[13px] font-bold text-slate-600">No images attached yet</div>
@@ -525,7 +538,7 @@ export function ItemImageManagerModal({
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {item.images.map((img) => (
+                {(item.images ?? []).map((img) => (
                   <div
                     key={img.id}
                     className={`rounded-xl border p-3 flex items-start gap-3 transition-all ${

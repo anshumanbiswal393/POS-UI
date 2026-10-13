@@ -1697,30 +1697,42 @@ export const posMenuService = {
   addItemImages: async (itemId: string, newImages: MenuItemImage[]) => {
     menuItemsStore = menuItemsStore.map((item) => {
       if (item.id === itemId) {
-        const hasExistingPrimary = item.images.some((img) => img.isPrimary);
+        const existing = item.images || [];
+        const hasExistingPrimary = existing.some((img) => img.isPrimary);
         const processed = newImages.map((img, idx) => ({
           ...img,
-          isPrimary: !hasExistingPrimary && idx === 0 ? true : img.isPrimary,
+          isPrimary: !hasExistingPrimary && idx === 0 ? true : !!img.isPrimary,
         }));
         return {
           ...item,
-          images: [...item.images, ...processed],
+          images: [...existing, ...processed],
           updatedAt: "Just now",
         };
       }
       return item;
     });
-    return menuItemsStore.find((i) => i.id === itemId);
+    const updated = menuItemsStore.find((i) => i.id === itemId) || null;
+    try {
+      if (updated) {
+        await httpClient.put(API_ENDPOINTS.MENU.ITEM_IMAGES(itemId), {
+          images: updated.images,
+        });
+      }
+    } catch {
+      // Fallback to local store
+    }
+    saveMenuItemsToStorage(menuItemsStore);
+    return updated;
   },
 
   removeItemImage: async (itemId: string, imageId: string) => {
     menuItemsStore = menuItemsStore.map((item) => {
       if (item.id === itemId) {
-        const filtered = item.images.filter((img) => img.id !== imageId);
+        const filtered = (item.images || []).filter((img) => img.id !== imageId);
         // If we removed the primary image and there are remaining images, set the first as primary
         const hasPrimary = filtered.some((img) => img.isPrimary);
         if (!hasPrimary && filtered.length > 0) {
-          filtered[0].isPrimary = true;
+          filtered[0] = { ...filtered[0], isPrimary: true };
         }
         return {
           ...item,
@@ -1730,7 +1742,18 @@ export const posMenuService = {
       }
       return item;
     });
-    return menuItemsStore.find((i) => i.id === itemId);
+    const updated = menuItemsStore.find((i) => i.id === itemId) || null;
+    try {
+      if (updated) {
+        await httpClient.put(API_ENDPOINTS.MENU.ITEM_IMAGES(itemId), {
+          images: updated.images,
+        });
+      }
+    } catch {
+      // Fallback to local store
+    }
+    saveMenuItemsToStorage(menuItemsStore);
+    return updated;
   },
 
   setPrimaryImage: async (itemId: string, imageId: string) => {
@@ -1738,7 +1761,7 @@ export const posMenuService = {
       if (item.id === itemId) {
         return {
           ...item,
-          images: item.images.map((img) => ({
+          images: (item.images || []).map((img) => ({
             ...img,
             isPrimary: img.id === imageId,
           })),
@@ -1747,7 +1770,18 @@ export const posMenuService = {
       }
       return item;
     });
-    return menuItemsStore.find((i) => i.id === itemId);
+    const updated = menuItemsStore.find((i) => i.id === itemId) || null;
+    try {
+      if (updated) {
+        await httpClient.put(API_ENDPOINTS.MENU.ITEM_IMAGES(itemId), {
+          images: updated.images,
+        });
+      }
+    } catch {
+      // Fallback to local store
+    }
+    saveMenuItemsToStorage(menuItemsStore);
+    return updated;
   },
 
   // 4. Special Notes

@@ -441,11 +441,18 @@ export function MenuListManagerView() {
         defaultOutletId={activeOutlet.id}
       />
 
-      {/* Image Manager Quick Modal */}
+      {/* Image Manager Quick Modal — always use live item from query so add/remove updates show */}
       <ItemImageManagerModal
         isOpen={isImageModalOpen}
-        onClose={() => setIsImageModalOpen(false)}
-        item={imageItem}
+        onClose={() => {
+          setIsImageModalOpen(false);
+          setImageItem(null);
+        }}
+        item={
+          imageItem
+            ? (menuItems.find((i) => i.id === imageItem.id) ?? imageItem)
+            : null
+        }
       />
 
       {/* View Item Modal */}

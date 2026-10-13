@@ -35,6 +35,47 @@ import { toast } from "sonner";
 
 export type MenuTemplateId = "diner" | "showcase" | "royal" | "modern" | "lounge";
 
+type ShowcasePhotoKey = "photo1" | "photo2" | "photo3";
+
+type ShowcasePhotoSlot = {
+  dishId: string;
+  customUrl: string;
+};
+
+const EMPTY_SHOWCASE_PHOTOS: Record<ShowcasePhotoKey, ShowcasePhotoSlot> = {
+  photo1: { dishId: "", customUrl: "" },
+  photo2: { dishId: "", customUrl: "" },
+  photo3: { dishId: "", customUrl: "" },
+};
+
+const SHOWCASE_PHOTO_LABELS: Record<ShowcasePhotoKey, string> = {
+  photo1: "Image 1",
+  photo2: "Image 2",
+  photo3: "Image 3",
+};
+
+const SHOWCASE_CATEGORY_COLORS = ["#6b7c3a", "#c45c3e", "#6b7c3a", "#8b5e3c", "#5c7a6e"];
+
+function getPrimaryImageUrl(item?: MenuItem | null): string | null {
+  if (!item?.images?.length) return null;
+  const primary = item.images.find((img) => img.isPrimary);
+  return primary?.url || item.images[0]?.url || null;
+}
+
+function resolveShowcaseImageUrl(
+  slot: ShowcasePhotoSlot,
+  itemsById: Map<string, MenuItem>,
+): string | null {
+  const custom = slot.customUrl.trim();
+  if (custom && (/^https?:\/\//i.test(custom) || custom.startsWith("data:image/"))) {
+    return custom;
+  }
+  if (slot.dishId) {
+    return getPrimaryImageUrl(itemsById.get(slot.dishId) || null);
+  }
+  return null;
+}
+
 interface TemplateConfig {
   id: MenuTemplateId;
   name: string;
@@ -60,12 +101,12 @@ const TEMPLATES: TemplateConfig[] = [
   {
     id: "showcase",
     name: "Curated Photo Showcase",
-    subtitle: "Hero arched food photo & featured dish highlights",
+    subtitle: "Large zigzag circle photos · editorial menu card",
     badge: "Editorial / Bistro",
     icon: ImageIcon,
     previewBg: "bg-orange-50 border-orange-300",
     textColor: "text-stone-900",
-    accentColor: "#ea580c",
+    accentColor: "#c45c3e",
   },
   {
     id: "royal",
@@ -121,23 +162,28 @@ function paginateCategorizedItems(
   const entries = Object.entries(categorized);
   if (entries.length === 0) return [];
 
-  // Calibrated Pixel Heights for standard A4 page (1075px total height):
-  // For showcase, Page 1 has an arched hero image so available height is ~680px
+  // Calibrated Pixel Heights for standard A4 page (1075px total height).
+  // Showcase: pack more dishes so pages aren't sparse under the thank-you footer.
   const isShowcase = options.templateId === "showcase";
-  const page1MaxPixels = isShowcase ? 680 : 840;
-  const subsequentMaxPixels = 920;
+  const page1MaxPixels = isShowcase ? 720 : 840;
+  const subsequentMaxPixels = isShowcase ? 780 : 920;
 
   // Category Header pixel height (with line & padding): ~30px
-  const headerHeight = 30;
+  const headerHeight = isShowcase ? 34 : 30;
 
   // Item pixel height:
-  // In 2-column mode, 2 items share a single row!
-  // Row height is ~36px with description, ~22px without description.
-  // Effective cost per item in 2 columns: ~18px with desc, ~11px without desc.
-  // In 1-column mode: ~36px with desc, ~22px without desc.
-  const itemHeight = options.isTwoColumn
-    ? (options.showDescriptions ? 18 : 11)
-    : (options.showDescriptions ? 36 : 22);
+  // Showcase uses a single-column editorial layout with circle photos beside sections.
+  const itemHeight = isShowcase
+    ? options.showDescriptions
+      ? 34
+      : 24
+    : options.isTwoColumn
+      ? options.showDescriptions
+        ? 18
+        : 11
+      : options.showDescriptions
+        ? 36
+        : 22;
 
   const pages: MenuPage[] = [];
   let currentPageCategories: PageCategory[] = [];
@@ -252,6 +298,11 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Showcase template: 2–3 large zigzag circle photos (reference card layout)
+  const [showcasePhotos, setShowcasePhotos] =
+    useState<Record<ShowcasePhotoKey, ShowcasePhotoSlot>>(EMPTY_SHOWCASE_PHOTOS);
+  const [showcaseSeeded, setShowcaseSeeded] = useState(false);
+
   // Sync outlet name when active outlet switches
   useMemo(() => {
     setRestaurantName(activeOutlet.name);
@@ -270,6 +321,52 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
     menuItems?.forEach((i) => i.category && set.add(i.category));
     return Array.from(set);
   }, [menuItems]);
+
+  const dishesWithImages = useMemo(() => {
+    return (menuItems || []).filter((item) => getPrimaryImageUrl(item));
+  }, [menuItems]);
+
+  const menuItemsById = useMemo(() => {
+    const map = new Map<string, MenuItem>();
+    (menuItems || []).forEach((item) => map.set(item.id, item));
+    return map;
+  }, [menuItems]);
+
+  // Auto-pick up to 3 circle dishes once images are available
+  useEffect(() => {
+    if (showcaseSeeded || dishesWithImages.length === 0) return;
+
+    setShowcasePhotos((prev) => {
+      const keys: ShowcasePhotoKey[] = ["photo1", "photo2", "photo3"];
+      const next = { ...prev };
+      keys.forEach((key, idx) => {
+        if (next[key].dishId || next[key].customUrl.trim()) return;
+        const dish = dishesWithImages[idx % dishesWithImages.length];
+        if (dish) next[key] = { dishId: dish.id, customUrl: "" };
+      });
+      return next;
+    });
+
+    setShowcaseSeeded(true);
+  }, [dishesWithImages, showcaseSeeded]);
+
+  const resolvedShowcasePhotos = useMemo(() => {
+    return {
+      photo1: resolveShowcaseImageUrl(showcasePhotos.photo1, menuItemsById),
+      photo2: resolveShowcaseImageUrl(showcasePhotos.photo2, menuItemsById),
+      photo3: resolveShowcaseImageUrl(showcasePhotos.photo3, menuItemsById),
+    };
+  }, [showcasePhotos, menuItemsById]);
+
+  const updateShowcasePhoto = (
+    key: ShowcasePhotoKey,
+    patch: Partial<ShowcasePhotoSlot>,
+  ) => {
+    setShowcasePhotos((prev) => ({
+      ...prev,
+      [key]: { ...prev[key], ...patch },
+    }));
+  };
 
   // Grouped Menu Items by Category
   const categorizedItems = useMemo(() => {
@@ -478,6 +575,8 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                       setShowItemCodes(false);
                       setShowPrices(true);
                       setZoomLevel(100);
+                      setShowcasePhotos(EMPTY_SHOWCASE_PHOTOS);
+                      setShowcaseSeeded(false);
                       toast.info("Reset customization settings");
                     }}
                     className="text-[11.5px] font-semibold text-slate-400 hover:text-slate-600 cursor-pointer"
@@ -630,6 +729,63 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                     />
                   </label>
                 </div>
+
+                {/* Showcase-only: compact Image 1 / 2 / 3 dropdowns */}
+                {selectedTemplate === "showcase" && (
+                  <div className="space-y-1.5 pt-2 border-t border-orange-100">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-orange-600/90 flex items-center gap-1.5">
+                      <ImageIcon className="h-3.5 w-3.5" />
+                      Circle Photos
+                    </div>
+
+                    {(Object.keys(SHOWCASE_PHOTO_LABELS) as ShowcasePhotoKey[]).map((key) => {
+                      const slot = showcasePhotos[key];
+                      const previewUrl = resolveShowcaseImageUrl(slot, menuItemsById);
+                      return (
+                        <div
+                          key={key}
+                          className="flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50/60 px-2 py-1.5"
+                        >
+                          {previewUrl ? (
+                            <div className="h-8 w-8 shrink-0 rounded-full overflow-hidden border border-stone-300 bg-stone-100">
+                              <img
+                                src={previewUrl}
+                                alt=""
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-8 w-8 shrink-0 rounded-full border border-dashed border-stone-300 bg-white flex items-center justify-center">
+                              <ImageIcon className="h-3 w-3 text-stone-300" />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[10px] font-bold text-stone-500 mb-0.5">
+                              {SHOWCASE_PHOTO_LABELS[key]}
+                            </div>
+                            <select
+                              value={slot.dishId}
+                              onChange={(e) =>
+                                updateShowcasePhoto(key, {
+                                  dishId: e.target.value,
+                                  customUrl: "",
+                                })
+                              }
+                              className="w-full rounded-md border border-stone-300 bg-white px-1.5 py-1 text-[11px] text-stone-800 focus:outline-hidden focus:border-orange-500"
+                            >
+                              <option value="">Choose dish…</option>
+                              {dishesWithImages.map((item) => (
+                                <option key={item.id} value={item.id}>
+                                  {item.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Filter Categories for Print */}
                 <div className="space-y-2 pt-2 border-t border-slate-100">
@@ -815,11 +971,15 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
 
                         {/* Individual A4 Page Sheet (Strict A4 Length & Ratio) */}
                         <div
-                          className={`a4-page-sheet w-full max-w-[760px] h-[1075px] min-h-[1075px] max-h-[1075px] rounded-2xl shadow-xl transition-all p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden select-none print:m-0 print:w-full print:max-w-none print:shadow-none print:rounded-none ${
+                          className={`a4-page-sheet w-full max-w-[760px] h-[1075px] min-h-[1075px] max-h-[1075px] rounded-2xl shadow-xl transition-all flex flex-col relative overflow-hidden select-none print:m-0 print:w-full print:max-w-none print:shadow-none print:rounded-none ${
+                            selectedTemplate === "showcase"
+                              ? "justify-start p-6 sm:p-7"
+                              : "justify-between p-6 sm:p-8"
+                          } ${
                             selectedTemplate === "diner"
                               ? "bg-[#fcfbf7] text-slate-900 border-4 border-[#0f766e]"
                               : selectedTemplate === "showcase"
-                                ? "bg-[#fcfaf7] text-stone-900 border-2 border-stone-300"
+                                ? "bg-[#f7f1e8] text-stone-900 border border-stone-300/80"
                                 : selectedTemplate === "royal"
                                   ? "bg-[#fffdf7] text-[#2c1d11] border-6 border-double border-[#b45309]/50"
                                   : selectedTemplate === "modern"
@@ -829,6 +989,134 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                       : "bg-white text-slate-900 border border-slate-300"
                           }`}
                         >
+
+                          {selectedTemplate === "showcase" ? (
+                            <div className="flex w-full flex-col">
+                              {/* Editorial header — reference card style */}
+                              <div className="shrink-0 text-center pt-0.5 pb-2.5">
+                                {isFirstPage ? (
+                                  <>
+                                    <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-stone-500">
+                                      {restaurantName}
+                                    </div>
+                                    <h1 className="mt-1 font-serif text-[38px] font-bold leading-none tracking-wide text-stone-900">
+                                      MENU
+                                    </h1>
+                                    <p className="mt-1 font-serif text-[12px] italic text-stone-500">
+                                      {tagline ? `Made with love · ${tagline}` : "Made with love"}
+                                    </p>
+                                  </>
+                                ) : (
+                                  <div className="flex items-center justify-between border-b border-stone-300/70 pb-2">
+                                    <span className="font-serif text-[14px] font-bold uppercase tracking-[0.18em] text-stone-800">
+                                      {restaurantName}
+                                    </span>
+                                    <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-400">
+                                      Menu · Page {page.pageNumber}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Zigzag menu sections — natural height, no forced empty flex gap */}
+                              <div className="flex flex-col gap-4 px-1">
+                                {page.categories.map((catGroup, catIdx) => {
+                                  const photoKeys: ShowcasePhotoKey[] = ["photo1", "photo2", "photo3"];
+                                  const photoKey = photoKeys[catIdx] as ShowcasePhotoKey | undefined;
+                                  const photoUrl = photoKey ? resolvedShowcasePhotos[photoKey] : null;
+                                  const circleOnRight = catIdx % 2 === 0;
+                                  const pillColor =
+                                    SHOWCASE_CATEGORY_COLORS[catIdx % SHOWCASE_CATEGORY_COLORS.length];
+
+                                  const itemsBlock = (
+                                    <div className="min-w-0 flex-1 space-y-1.5">
+                                      <div className="flex justify-start">
+                                        <span
+                                          className="rounded-full px-3 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-white shadow-sm"
+                                          style={{ backgroundColor: pillColor }}
+                                        >
+                                          {catGroup.category}
+                                          {catGroup.isContinuation ? " (Cont.)" : ""}
+                                        </span>
+                                      </div>
+                                      <div className="space-y-2 pt-0.5">
+                                        {catGroup.items.map((item) => (
+                                          <div key={item.id} className="space-y-0.5">
+                                            <div className="flex items-baseline gap-1.5">
+                                              <span className="text-[12px] font-bold text-stone-900">
+                                                {item.name}
+                                              </span>
+                                              {renderDietaryIcon(item.itemType)}
+                                              {showItemCodes && (
+                                                <span className="font-mono text-[8.5px] text-stone-400">
+                                                  [{item.code}]
+                                                </span>
+                                              )}
+                                              <span className="mx-1 min-w-4 flex-1 self-center border-b border-dotted border-stone-400/70" />
+                                              {showPrices && (
+                                                <span className="shrink-0 text-[12px] font-bold text-stone-900">
+                                                  {showPricesWithCurrency ? "₹" : ""}
+                                                  {item.price}
+                                                </span>
+                                              )}
+                                            </div>
+                                            {showDescriptions && item.description && (
+                                              <p className="max-w-[95%] pr-2 text-[9.5px] leading-snug text-stone-500 line-clamp-2">
+                                                {item.description}
+                                              </p>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+
+                                  const circleBlock = photoUrl ? (
+                                    <div className={`shrink-0 ${circleOnRight ? "ml-1" : "mr-1"}`}>
+                                      <div className="h-[160px] w-[160px] overflow-hidden rounded-full border-[5px] border-white bg-stone-100 shadow-[0_8px_22px_rgba(0,0,0,0.12)] ring-1 ring-stone-300/60">
+                                        <img
+                                          src={photoUrl}
+                                          alt="Featured dish"
+                                          className="h-full w-full object-cover"
+                                        />
+                                      </div>
+                                    </div>
+                                  ) : null;
+
+                                  return (
+                                    <div
+                                      key={`${catGroup.category}-${catGroup.isContinuation ? "cont" : "main"}`}
+                                      className={`flex items-start gap-3 ${
+                                        circleOnRight ? "flex-row" : "flex-row-reverse"
+                                      }`}
+                                    >
+                                      {itemsBlock}
+                                      {circleBlock}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Compact footer directly under menu — no large empty band */}
+                              <div className="mt-3 shrink-0 space-y-1 border-t border-stone-300/80 pt-2.5 text-center">
+                                <p className="font-serif text-[11.5px] font-semibold uppercase tracking-[0.14em] text-stone-700">
+                                  Thank you for dining with us!
+                                </p>
+                                {isLastPage && footerNote && (
+                                  <p className="mx-auto max-w-md text-[9px] leading-relaxed text-stone-500">
+                                    {footerNote}
+                                  </p>
+                                )}
+                                <div className="flex items-center justify-between pt-0.5 text-[9px] text-stone-400">
+                                  <span>{restaurantName}</span>
+                                  <span className="font-semibold uppercase tracking-wider">
+                                    Page {page.pageNumber} of {menuPages.length}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
                           {/* Art Deco Corner Accents for Diner Template (Screenshot 3) */}
                           {selectedTemplate === "diner" && (
                             <>
@@ -847,7 +1135,6 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                               </div>
                             </>
                           )}
-
                           {/* 1. Header Area */}
                           {isFirstPage ? (
                             /* First Page: Full Header */
@@ -867,39 +1154,6 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                   {addressLine && <span>{addressLine}</span>}
                                   {addressLine && phoneContact && <span>•</span>}
                                   {phoneContact && <span>Reservations: {phoneContact}</span>}
-                                </div>
-                              </div>
-                            ) : selectedTemplate === "showcase" ? (
-                              <div className="text-center pb-2 shrink-0 space-y-1 relative z-10">
-                                <div className="flex items-center justify-center gap-2 text-[10px] uppercase font-bold tracking-[0.2em] text-stone-500">
-                                  <span className="h-px w-8 bg-stone-300" />
-                                  <span>{restaurantName}</span>
-                                  <span className="h-px w-8 bg-stone-300" />
-                                </div>
-                                <div className="text-[10px] italic text-stone-500">
-                                  {tagline ? `― ${tagline} ―` : "― ESTABLISHED DINING ―"}
-                                </div>
-                                <h1 className="text-[22px] sm:text-[24px] font-serif font-bold uppercase tracking-wider text-stone-900 leading-tight">
-                                  RESTAURANT MENU
-                                </h1>
-                                <div className="flex flex-wrap items-center justify-center gap-2 text-[9.5px] text-stone-500 font-medium">
-                                  {addressLine && <span>{addressLine}</span>}
-                                  {addressLine && phoneContact && <span>•</span>}
-                                  {phoneContact && <span>Reservations: {phoneContact}</span>}
-                                </div>
-
-                                {/* Arched Hero Food Photo (Page 1 Only - Following Screenshot 2) */}
-                                <div className="relative w-full h-36 rounded-t-full rounded-b-xl overflow-hidden border border-stone-300/80 shadow-xs my-1 bg-stone-100">
-                                  <img
-                                    src="https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=900&auto=format&fit=crop&q=80"
-                                    alt="Chef's Specialty Dish"
-                                    className="w-full h-full object-cover"
-                                  />
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent flex items-end justify-center pb-1.5">
-                                    <span className="text-[10px] font-serif italic text-amber-100 drop-shadow-sm tracking-wide">
-                                      Chef's Handcrafted Signature Selection
-                                    </span>
-                                  </div>
                                 </div>
                               </div>
                             ) : (
@@ -950,9 +1204,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                       ? "font-serif text-[#92400e]"
                                       : selectedTemplate === "lounge"
                                         ? "text-[#fbbf24] font-serif"
-                                        : selectedTemplate === "showcase"
-                                          ? "font-serif text-stone-800"
-                                          : "text-slate-800"
+                                        : "text-slate-800"
                                 }`}
                               >
                                 {restaurantName}
@@ -964,8 +1216,8 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                           )}
 
                           {/* 2. Categorized Menu Items on this page */}
-                          <div className="flex-1 min-h-0 py-2 overflow-hidden flex flex-col justify-start gap-y-2.5">
-                            {page.categories.map((catGroup, catIdx) => (
+                          <div className="flex-1 min-h-0 py-2 overflow-hidden flex flex-col justify-start gap-y-2.5 relative z-10">
+                            {page.categories.map((catGroup) => (
                               <div
                                 key={`${catGroup.category}-${catGroup.isContinuation ? "cont" : "main"}`}
                                 className="space-y-1"
@@ -995,11 +1247,9 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                         ? "border-b border-[#b45309]/30 text-center justify-center"
                                         : selectedTemplate === "modern"
                                           ? "border-b-2 border-primary"
-                                          : selectedTemplate === "showcase"
-                                            ? "border-b border-stone-300 text-stone-900 justify-between"
-                                            : selectedTemplate === "lounge"
-                                              ? "border-b border-amber-500/40 text-[#f59e0b]"
-                                              : "border-b border-slate-300"
+                                          : selectedTemplate === "lounge"
+                                            ? "border-b border-amber-500/40 text-[#f59e0b]"
+                                            : "border-b border-slate-300"
                                     }`}
                                   >
                                     <h3
@@ -1008,11 +1258,9 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                           ? "font-serif text-[#92400e]"
                                           : selectedTemplate === "modern"
                                             ? "text-primary"
-                                            : selectedTemplate === "showcase"
-                                              ? "font-serif font-bold text-stone-900"
-                                              : selectedTemplate === "lounge"
-                                                ? "font-serif text-[#fbbf24]"
-                                                : "text-slate-800"
+                                            : selectedTemplate === "lounge"
+                                              ? "font-serif text-[#fbbf24]"
+                                              : "text-slate-800"
                                       }`}
                                     >
                                       {catGroup.category} {catGroup.isContinuation ? "(Cont.)" : ""}
@@ -1029,36 +1277,9 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                       : "space-y-1 pt-0.5"
                                   }
                                 >
-                                  {catGroup.items.map((item, itemIdx) => {
-                                    // In Showcase mode: show a featured food picture ONLY on the first item with an image on each page (Screenshot 2)
-                                    const isFeaturedPhotoItem =
-                                      selectedTemplate === "showcase" &&
-                                      catIdx === 0 &&
-                                      itemIdx === 0 &&
-                                      item.images &&
-                                      item.images.length > 0 &&
-                                      item.images[0]?.url;
-
+                                  {catGroup.items.map((item) => {
                                     return (
-                                      <div
-                                        key={item.id}
-                                        className={
-                                          isFeaturedPhotoItem
-                                            ? "col-span-2 sm:col-span-1 flex items-center gap-2.5 p-1.5 rounded-xl border border-stone-200/90 bg-stone-50/80 shadow-2xs"
-                                            : "space-y-0"
-                                        }
-                                      >
-                                        {isFeaturedPhotoItem && (
-                                          <div className="h-12 w-12 rounded-lg overflow-hidden shrink-0 border border-stone-200 bg-stone-100">
-                                            <img
-                                              src={item.images[0].url}
-                                              alt={item.name}
-                                              className="h-full w-full object-cover"
-                                              loading="lazy"
-                                            />
-                                          </div>
-                                        )}
-
+                                      <div key={item.id} className="space-y-0">
                                         <div className="flex-1 min-w-0">
                                           {/* Name + Price Line */}
                                           <div className="flex items-baseline justify-between gap-1.5">
@@ -1071,9 +1292,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                                       ? "font-serif text-[#2c1d11]"
                                                       : selectedTemplate === "lounge"
                                                         ? "text-amber-100"
-                                                        : selectedTemplate === "showcase"
-                                                          ? "font-serif text-stone-900"
-                                                          : "text-slate-900"
+                                                        : "text-slate-900"
                                                 }`}
                                               >
                                                 {item.name}
@@ -1098,11 +1317,9 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                               <div className="flex items-baseline gap-1 shrink-0 font-bold text-[12px]">
                                                 <span
                                                   className={
-                                                    selectedTemplate === "showcase"
-                                                      ? "text-stone-900 font-extrabold"
-                                                      : selectedTemplate === "diner"
-                                                        ? "text-slate-900 font-black font-mono"
-                                                        : ""
+                                                    selectedTemplate === "diner"
+                                                      ? "text-slate-900 font-black font-mono"
+                                                      : ""
                                                   }
                                                 >
                                                   {showPricesWithCurrency ? "₹" : ""}
@@ -1120,9 +1337,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                                   ? "italic text-slate-600 font-serif"
                                                   : selectedTemplate === "royal"
                                                     ? "italic"
-                                                    : selectedTemplate === "showcase"
-                                                      ? "line-clamp-2 text-stone-600"
-                                                      : ""
+                                                    : ""
                                               }`}
                                             >
                                               {item.description}
@@ -1151,6 +1366,8 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                               </span>
                             </div>
                           </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     );

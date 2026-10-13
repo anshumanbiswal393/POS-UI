@@ -12,8 +12,9 @@ function InventoryLayoutRoute() {
   const isRootInventory = pathname === "/pos/inventory" || pathname === "/pos/inventory/";
 
   return (
-    <div className="space-y-4">
-      <PosInventoryHeader />
+    <div className="space-y-3">
+      {/* Stock Overview uses its own toolbar; child pages keep the slim utility header (no hotel title — that's in top nav). */}
+      {!isRootInventory && <PosInventoryHeader />}
       {isRootInventory ? <InventoryDashboardView /> : <Outlet />}
     </div>
   );
