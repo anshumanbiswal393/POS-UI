@@ -15,6 +15,12 @@ import {
   type ThemeGroup,
 } from "@/app/theme/theme";
 import type { TenantEntitlements } from "@/types/auth";
+import {
+  DEFAULT_POS_TAX_SETTINGS,
+  getPosTaxSettings,
+  savePosTaxSettings,
+  type PosTaxSettings,
+} from "@/lib/posTaxSettings";
 
 type SettingsTab = "account" | "security" | "outlets" | "terminal" | "receipts" | "printers";
 
@@ -64,11 +70,18 @@ export function PosSettingsScreen() {
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [taxSettings, setTaxSettings] = useState<PosTaxSettings>(() => getPosTaxSettings());
 
   useEffect(() => {
     setProfileName(user?.name ?? "");
     setProfilePhone(user?.phone ?? "");
   }, [user?.id, user?.name, user?.phone]);
+
+  useEffect(() => {
+    if (activeTab === "receipts") {
+      setTaxSettings(getPosTaxSettings());
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     const handleThemeChange = (event: Event) => {
@@ -457,10 +470,87 @@ export function PosSettingsScreen() {
       )}
 
       {activeTab === "receipts" && (
-        <PosPanel title="Receipt & invoice" hint="GST, FSSAI, footer message, and payment QR on the bill.">
-          <p className="text-[13px] text-text-secondary">
-            Configure the thermal receipt header, tax breakup, and round-off for {activeOutlet.name}.
+        <PosPanel title="Receipt & invoice" hint="GST, service charge, and tax breakup applied on billing.">
+          <p className="mb-4 text-[13px] text-text-secondary">
+            Configure CGST, SGST, and service charge for {activeOutlet.name}. Billing uses these rates
+            automatically (no per-check toggle).
           </p>
+          <form
+            className="grid max-w-lg gap-3 sm:grid-cols-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const next: PosTaxSettings = {
+                cgstPercent: Math.max(0, Number(taxSettings.cgstPercent) || 0),
+                sgstPercent: Math.max(0, Number(taxSettings.sgstPercent) || 0),
+                serviceChargePercent: Math.max(0, Number(taxSettings.serviceChargePercent) || 0),
+              };
+              savePosTaxSettings(next);
+              setTaxSettings(next);
+              toast.success("Tax & service charge settings saved.");
+            }}
+          >
+            <label className="block text-[12px] font-semibold text-text-secondary">
+              CGST %
+              <input
+                type="number"
+                min={0}
+                step={0.1}
+                value={taxSettings.cgstPercent}
+                onChange={(e) =>
+                  setTaxSettings((prev) => ({ ...prev, cgstPercent: Number(e.target.value) }))
+                }
+                className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-[13px] font-bold text-text-primary"
+              />
+            </label>
+            <label className="block text-[12px] font-semibold text-text-secondary">
+              SGST %
+              <input
+                type="number"
+                min={0}
+                step={0.1}
+                value={taxSettings.sgstPercent}
+                onChange={(e) =>
+                  setTaxSettings((prev) => ({ ...prev, sgstPercent: Number(e.target.value) }))
+                }
+                className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-[13px] font-bold text-text-primary"
+              />
+            </label>
+            <label className="block text-[12px] font-semibold text-text-secondary">
+              Service Charge %
+              <input
+                type="number"
+                min={0}
+                step={0.1}
+                value={taxSettings.serviceChargePercent}
+                onChange={(e) =>
+                  setTaxSettings((prev) => ({
+                    ...prev,
+                    serviceChargePercent: Number(e.target.value),
+                  }))
+                }
+                className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-[13px] font-bold text-text-primary"
+              />
+            </label>
+            <div className="sm:col-span-3 flex items-center gap-2 pt-1">
+              <button
+                type="submit"
+                className="rounded-lg bg-primary px-3.5 py-2 text-[12.5px] font-bold text-primary-foreground"
+              >
+                Save tax settings
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTaxSettings(DEFAULT_POS_TAX_SETTINGS);
+                  savePosTaxSettings(DEFAULT_POS_TAX_SETTINGS);
+                  toast.info("Reset to default GST / service charge rates.");
+                }}
+                className="rounded-lg border border-border px-3 py-2 text-[12.5px] font-semibold text-text-secondary"
+              >
+                Reset defaults
+              </button>
+            </div>
+          </form>
         </PosPanel>
       )}
 

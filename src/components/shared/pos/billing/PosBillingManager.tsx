@@ -11,30 +11,93 @@ import type {
   HeldBill,
   BillSettlementRecord,
 } from "@/types/posBilling";
-import { MOCK_MENU_ITEMS, MOCK_HELD_BILLS, MOCK_CUSTOMERS } from "./mockBillingData";
+import { MOCK_HELD_BILLS, MOCK_CUSTOMERS } from "./mockBillingData";
 import { BillingHeader } from "./BillingHeader";
 import { BillingMenuCatalog } from "./BillingMenuCatalog";
 import { BillingCartRegister } from "./BillingCartRegister";
 import { BillingModifierModal } from "./BillingModifierModal";
 import { BillingReceiptModal } from "./BillingReceiptModal";
-import { BillingSplitModal } from "./BillingSplitModal";
 import { BillingHeldDrawer } from "./BillingHeldDrawer";
 import { BillingTableModal } from "./BillingTableModal";
 import { useMenuItems } from "@/hooks/queries/usePosMenu";
 import { useOutletContext } from "@/context/PosOutletContext";
+import { useAuth } from "@/hooks/useAuth";
+import { createDineInOrder } from "@/services/posOrdersService";
+import { getPosTaxSettings } from "@/lib/posTaxSettings";
+import { useHotelRooms } from "@/hooks/queries/usePosRoomService";
+import { usePosTables } from "@/hooks/queries/usePosTables";
 
 export function PosBillingManager() {
   const { activeOutlet } = useOutletContext();
+  const { user } = useAuth();
   const { data: menuList = [] } = useMenuItems(activeOutlet?.id || "outlet-primary");
+  const { data: hotelRooms = [] } = useHotelRooms();
+  const { data: restaurantTables = [] } = usePosTables();
+
+  const occupiedRooms = useMemo(
+    () =>
+      hotelRooms
+        .filter((room) => room.isOccupied)
+        .map((room) => ({
+          roomNumber: room.roomNumber,
+          guestName: room.guest?.name,
+          guestPhone: room.guest?.phoneExtension,
+        })),
+    [hotelRooms],
+  );
+
+  const selectableTables = useMemo(
+    () => restaurantTables.filter((t) => t.status === "vacant" || t.status === "reserved"),
+    [restaurantTables],
+  );
+
+  const resolveTableMatch = useCallback(
+    (label: string) => {
+      if (!label) return undefined;
+      return restaurantTables.find(
+        (t) =>
+          t.tableNumber === label ||
+          `Table #${t.tableNumberRaw}` === label ||
+          `T-${t.tableNumberRaw}` === label ||
+          String(t.tableNumberRaw) === label,
+      );
+    },
+    [restaurantTables],
+  );
 
   // 1. Order & Header State
   const [orderType, setOrderType] = useState<BillingOrderType>("dine_in");
-  const [activeTable, setActiveTable] = useState("T-12");
-  const [roomNumber, setRoomNumber] = useState("Room 312");
+  const [activeTable, setActiveTable] = useState("");
+  const [roomNumber, setRoomNumber] = useState("");
   const [guestCount, setGuestCount] = useState(4);
   const [billNumber, setBillNumber] = useState("RET-2026-9024");
-  const [captainName, setCaptainName] = useState("Rahul V.");
   const [searchQuery, setSearchQuery] = useState("");
+  const captainName = user?.name?.trim() || "Steward";
+
+  // Default dine-in table to first available/reserved (canonical Take Order tableNumber)
+  useEffect(() => {
+    if (selectableTables.length === 0) return;
+    const match = resolveTableMatch(activeTable);
+    if (match) {
+      if (activeTable !== match.tableNumber) {
+        setActiveTable(match.tableNumber);
+      }
+      return;
+    }
+    const first = selectableTables[0];
+    setActiveTable(first.tableNumber);
+    setGuestCount(first.activeReservation?.guests || first.capacity || 4);
+  }, [selectableTables, activeTable, resolveTableMatch]);
+
+  // Default room service selection to first occupied room (same Room Service store)
+  useEffect(() => {
+    if (occupiedRooms.length === 0) return;
+    const stillValid = occupiedRooms.some((r) => `Room ${r.roomNumber}` === roomNumber);
+    if (!roomNumber || !stillValid) {
+      const first = occupiedRooms[0];
+      setRoomNumber(`Room ${first.roomNumber}`);
+    }
+  }, [occupiedRooms, roomNumber]);
 
   // Map dynamic menu items from Food Menu service
   // Real-time synchronization: disabled/inactive items and deleted items are NOT shown; newly added active items are shown!
@@ -86,7 +149,6 @@ export function PosBillingManager() {
     const qRoom = params.get("room");
     const qGuests = params.get("guests") || params.get("pax");
     const qGuestName = params.get("guestName");
-    const qWaiterName = params.get("waiterName") || params.get("captainName");
 
     if (qOrderType) {
       setOrderType(qOrderType);
@@ -103,9 +165,6 @@ export function PosBillingManager() {
       if (!isNaN(parsed) && parsed > 0) {
         setGuestCount(parsed);
       }
-    }
-    if (qWaiterName) {
-      setCaptainName(decodeURIComponent(qWaiterName));
     }
     if (qGuestName) {
       setSelectedCustomer({
@@ -139,7 +198,6 @@ export function PosBillingManager() {
   const [modifierItem, setModifierItem] = useState<BillingMenuItem | null>(null);
   const [isModifierModalOpen, setIsModifierModalOpen] = useState(false);
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
-  const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [settlementRecord, setSettlementRecord] = useState<BillSettlementRecord | null>(null);
 
@@ -334,64 +392,114 @@ export function PosBillingManager() {
     toast.info(`Kitchen Ticket (KOT) sent to Chef Printer for ${activeTable || "Takeaway"}`);
   }, [cartItems.length, activeTable]);
 
-  // Settle Bill
-  const handleSettleBill = (paymentMethod: BillingPaymentMethod, tenderedAmount: number) => {
-    if (cartItems.length === 0) return;
+  // Submit order → Current Orders + KOT
+  const handleSettleBill = useCallback(
+    (paymentMethod: BillingPaymentMethod, tenderedAmount: number) => {
+      if (cartItems.length === 0) return;
 
-    const subtotal = cartItems.reduce((sum, item) => {
-      if (item.isComplimentary) return sum;
-      const bp = item.selectedVariant ? item.selectedVariant.price : item.item.price;
-      const mp = item.selectedModifiers.reduce((mSum, m) => mSum + m.price, 0);
-      return sum + (bp + mp) * item.quantity;
-    }, 0);
+      const taxSettings = getPosTaxSettings();
+      const orderItems = cartItems.map((item) => {
+        const bp = item.selectedVariant ? item.selectedVariant.price : item.item.price;
+        const mp = item.selectedModifiers.reduce((mSum, m) => mSum + m.price, 0);
+        return {
+          id: item.item.id,
+          name: item.item.name,
+          quantity: item.quantity,
+          price: item.isComplimentary ? 0 : bp + mp,
+          selectedVariantName: item.selectedVariant?.name,
+          notes: item.specialInstructions,
+        };
+      });
 
-    const discountAmount = 0;
-    const taxableAmount = subtotal - discountAmount;
-    const cgst = Math.round(taxableAmount * 0.025);
-    const sgst = Math.round(taxableAmount * 0.025);
-    const serviceCharge = Math.round(taxableAmount * 0.05);
-    const rawTotal = taxableAmount + cgst + sgst + serviceCharge;
-    const grandTotal = Math.round(rawTotal);
-    const roundOff = Number((grandTotal - rawTotal).toFixed(2));
-    const effectiveTender = tenderedAmount || grandTotal;
-    const changeDue = Math.max(0, effectiveTender - grandTotal);
+      const subtotal = cartItems.reduce((sum, item) => {
+        if (item.isComplimentary) return sum;
+        const bp = item.selectedVariant ? item.selectedVariant.price : item.item.price;
+        const mp = item.selectedModifiers.reduce((mSum, m) => mSum + m.price, 0);
+        return sum + (bp + mp) * item.quantity;
+      }, 0);
 
-    const now = new Date();
-    const dateStr = now.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-    const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const discountAmount = 0;
+      const taxableAmount = subtotal - discountAmount;
+      const cgst = Math.round((taxableAmount * taxSettings.cgstPercent) / 100);
+      const sgst = Math.round((taxableAmount * taxSettings.sgstPercent) / 100);
+      const serviceCharge = Math.round((taxableAmount * taxSettings.serviceChargePercent) / 100);
+      const rawTotal = taxableAmount + cgst + sgst + serviceCharge;
+      const grandTotal = Math.round(rawTotal);
+      const roundOff = Number((grandTotal - rawTotal).toFixed(2));
+      const effectiveTender = tenderedAmount || grandTotal;
+      const changeDue = Math.max(0, effectiveTender - grandTotal);
 
-    const record: BillSettlementRecord = {
-      billNumber,
+      const tableLabel =
+        orderType === "dine_in"
+          ? activeTable
+          : orderType === "room_service"
+            ? roomNumber
+            : orderType === "delivery"
+              ? "Delivery"
+              : "Takeaway";
+
+      const { orderNumber, kotId } = createDineInOrder({
+        tableId: `tbl-${tableLabel.toLowerCase().replace(/\s+/g, "-")}`,
+        tableNumber: tableLabel,
+        section: activeOutlet?.name || "Main Dining",
+        waiterName: captainName,
+        pax: guestCount,
+        guestName: selectedCustomer?.name,
+        guestPhone: selectedCustomer?.phone,
+        items: orderItems,
+        subtotal,
+        grandTotal,
+      });
+
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+      const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+      const record: BillSettlementRecord = {
+        billNumber: orderNumber,
+        orderType,
+        tableNumber: orderType === "dine_in" ? activeTable : undefined,
+        roomNumber: orderType === "room_service" ? roomNumber : undefined,
+        customerName: selectedCustomer?.name,
+        customerPhone: selectedCustomer?.phone,
+        guestCount,
+        captainName,
+        terminal: "Counter POS 01",
+        shift: "Shift 01",
+        items: [...cartItems],
+        subtotal,
+        discountAmount,
+        cgst,
+        sgst,
+        serviceCharge,
+        roundOff,
+        grandTotal,
+        paymentMethod,
+        tenderedAmount: effectiveTender,
+        changeDue,
+        settledAt: `${dateStr} ${timeStr}`,
+      };
+
+      setSettlementRecord(record);
+      toast.success(`${orderNumber} saved · KOT #${kotId} sent · ${paymentMethod.toUpperCase()}`);
+      handleNewBill();
+    },
+    [
+      cartItems,
       orderType,
-      tableNumber: orderType === "dine_in" ? activeTable : undefined,
-      roomNumber: orderType === "room_service" ? roomNumber : undefined,
-      customerName: selectedCustomer?.name,
-      customerPhone: selectedCustomer?.phone,
-      guestCount,
+      activeTable,
+      roomNumber,
+      activeOutlet?.name,
       captainName,
-      terminal: "Counter POS 01",
-      shift: "Shift 01",
-      items: [...cartItems],
-      subtotal,
-      discountAmount,
-      cgst,
-      sgst,
-      serviceCharge,
-      roundOff,
-      grandTotal,
-      paymentMethod,
-      tenderedAmount: effectiveTender,
-      changeDue,
-      settledAt: `${dateStr} ${timeStr}`,
-    };
-
-    setSettlementRecord(record);
-    setIsReceiptModalOpen(true);
-  };
+      guestCount,
+      selectedCustomer,
+      handleNewBill,
+    ],
+  );
 
   // Keyboard Shortcuts (F2, F4, F8, F10)
   useEffect(() => {
@@ -415,10 +523,10 @@ export function PosBillingManager() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleNewBill, handleHoldBill, handlePrintKot, cartItems.length]);
+  }, [handleNewBill, handleHoldBill, handlePrintKot, cartItems.length, handleSettleBill]);
 
   return (
-    <div className="flex flex-col gap-2.5 lg:h-[calc(100dvh-5.5rem)] lg:max-h-[calc(100dvh-5.5rem)] lg:overflow-hidden min-h-[calc(100vh-5.5rem)]">
+    <div className="flex flex-col gap-2 lg:h-[calc(100dvh-5.5rem)] lg:max-h-[calc(100dvh-5.5rem)] lg:overflow-hidden min-h-[calc(100vh-5.5rem)]">
       {/* 1. Top Order Mode & Action Header */}
       <div className="shrink-0">
         <BillingHeader
@@ -428,14 +536,27 @@ export function PosBillingManager() {
           onOpenTableSelector={() => setIsTableModalOpen(true)}
           guestCount={guestCount}
           setGuestCount={setGuestCount}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
           heldCount={heldBills.length}
           onOpenHeldDrawer={() => setIsHeldDrawerOpen(true)}
           onNewBill={handleNewBill}
-          billNumber={billNumber}
-          captainName={captainName}
           roomNumber={roomNumber}
+          occupiedRooms={occupiedRooms}
+          onSelectRoom={(nextRoom) => {
+            setRoomNumber(nextRoom);
+            const match = occupiedRooms.find((r) => `Room ${r.roomNumber}` === nextRoom);
+            if (match?.guestName) {
+              setSelectedCustomer({
+                id: `room-${match.roomNumber}`,
+                name: match.guestName,
+                phone: match.guestPhone || "",
+                tier: "Silver",
+                loyaltyPoints: 0,
+                visitCount: 1,
+                lastVisit: "Today",
+                roomNumber: match.roomNumber,
+              });
+            }
+          }}
         />
       </div>
 
@@ -473,7 +594,6 @@ export function PosBillingManager() {
             onClearCart={handleClearCart}
             onHoldBill={handleHoldBill}
             onPrintKot={handlePrintKot}
-            onOpenSplitModal={() => setIsSplitModalOpen(true)}
             onSettleBill={handleSettleBill}
             selectedCustomer={selectedCustomer}
             onSelectCustomer={setSelectedCustomer}
@@ -493,7 +613,21 @@ export function PosBillingManager() {
         isOpen={isTableModalOpen}
         onClose={() => setIsTableModalOpen(false)}
         selectedTable={activeTable}
-        onSelectTable={setActiveTable}
+        onSelectTable={(table) => {
+          setActiveTable(table.tableNumber);
+          setGuestCount(table.activeReservation?.guests || table.capacity || 4);
+          if (table.activeReservation?.customerName) {
+            setSelectedCustomer({
+              id: `res-${table.id}`,
+              name: table.activeReservation.customerName,
+              phone: table.activeReservation.customerPhone || "",
+              tier: table.activeReservation.isVip ? "Gold" : "Silver",
+              loyaltyPoints: 0,
+              visitCount: 1,
+              lastVisit: "Today",
+            });
+          }
+        }}
       />
 
       <BillingHeldDrawer
@@ -502,22 +636,6 @@ export function PosBillingManager() {
         heldBills={heldBills}
         onResumeHeldBill={handleResumeHeldBill}
         onDeleteHeldBill={handleDeleteHeldBill}
-      />
-
-      <BillingSplitModal
-        isOpen={isSplitModalOpen}
-        onClose={() => setIsSplitModalOpen(false)}
-        grandTotal={
-          settlementRecord
-            ? settlementRecord.grandTotal
-            : cartItems.reduce((s, i) => s + i.item.price * i.quantity, 0)
-        }
-        guestCount={guestCount}
-        cartItems={cartItems}
-        onConfirmSplitPayment={(count, perPerson) => {
-          toast.success(`Split into ${count} bills of ₹${perPerson.toLocaleString()} each`);
-          handleSettleBill("split", 0);
-        }}
       />
 
       <BillingReceiptModal

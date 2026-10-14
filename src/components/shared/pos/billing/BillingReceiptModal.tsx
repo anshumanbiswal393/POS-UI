@@ -65,7 +65,7 @@ export function BillingReceiptModal({
               <div className="flex justify-between">
                 <span>
                   {record.orderType === "dine_in"
-                    ? `Table: ${record.tableNumber || "T-12"}`
+                    ? `Table: ${record.tableNumber || "—"}`
                     : record.orderType === "room_service"
                       ? `Room: ${record.roomNumber}`
                       : "Takeaway / Delivery"}

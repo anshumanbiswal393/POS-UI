@@ -1,23 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Trash2,
   Plus,
   Minus,
-  CreditCard,
   QrCode,
   Banknote,
-  BedDouble,
-  Split,
   FileText,
   Printer,
   PauseCircle,
-  UserCheck,
-  Search,
-  Tag,
   Gift,
   CheckCircle2,
-  X,
-  Percent,
+  ChevronDown,
 } from "lucide-react";
 import type {
   BillingCartItem,
@@ -25,7 +18,7 @@ import type {
   BillingPaymentMethod,
   CustomerProfile,
 } from "@/types/posBilling";
-import { MOCK_CUSTOMERS } from "./mockBillingData";
+import { getPosTaxSettings } from "@/lib/posTaxSettings";
 
 type BillingCartRegisterProps = {
   cartItems: BillingCartItem[];
@@ -41,7 +34,6 @@ type BillingCartRegisterProps = {
   onClearCart: () => void;
   onHoldBill: () => void;
   onPrintKot: () => void;
-  onOpenSplitModal: () => void;
   onSettleBill: (paymentMethod: BillingPaymentMethod, tenderedAmount: number) => void;
   selectedCustomer: CustomerProfile | null;
   onSelectCustomer: (customer: CustomerProfile | null) => void;
@@ -61,7 +53,6 @@ export function BillingCartRegister({
   onClearCart,
   onHoldBill,
   onPrintKot,
-  onOpenSplitModal,
   onSettleBill,
   selectedCustomer,
   onSelectCustomer,
@@ -71,17 +62,42 @@ export function BillingCartRegister({
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountRate: number } | null>(
     null,
   );
-  const [serviceChargeEnabled, setServiceChargeEnabled] = useState(true);
-  const [customerSearch, setCustomerSearch] = useState("");
-  const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
+  const [promoOpen, setPromoOpen] = useState(false);
+  const [taxSettings, setTaxSettings] = useState(() => getPosTaxSettings());
+  const [customerName, setCustomerName] = useState(selectedCustomer?.name ?? "");
+  const [customerNumber, setCustomerNumber] = useState(selectedCustomer?.phone ?? "");
   const [cashTendered, setCashTendered] = useState<number | null>(null);
 
-  // Filter customer search
-  const matchingCustomers = useMemo(() => {
-    if (!customerSearch.trim()) return [];
-    const q = customerSearch.toLowerCase();
-    return MOCK_CUSTOMERS.filter((c) => c.name.toLowerCase().includes(q) || c.phone.includes(q));
-  }, [customerSearch]);
+  useEffect(() => {
+    const refresh = () => setTaxSettings(getPosTaxSettings());
+    refresh();
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, []);
+
+  useEffect(() => {
+    setCustomerName(selectedCustomer?.name ?? "");
+    setCustomerNumber(selectedCustomer?.phone ?? "");
+  }, [selectedCustomer?.id, selectedCustomer?.name, selectedCustomer?.phone]);
+
+  const syncCustomer = (name: string, phone: string) => {
+    const trimmedName = name.trim();
+    const trimmedPhone = phone.trim();
+    if (!trimmedName && !trimmedPhone) {
+      onSelectCustomer(null);
+      return;
+    }
+    onSelectCustomer({
+      id: selectedCustomer?.id || `walkin-${Date.now()}`,
+      name: trimmedName,
+      phone: trimmedPhone,
+      tier: selectedCustomer?.tier || "Silver",
+      loyaltyPoints: selectedCustomer?.loyaltyPoints ?? 0,
+      visitCount: selectedCustomer?.visitCount ?? 1,
+      lastVisit: selectedCustomer?.lastVisit || "Today",
+      roomNumber: selectedCustomer?.roomNumber,
+    });
+  };
 
   // Calculations
   const subtotal = useMemo(() => {
@@ -99,9 +115,9 @@ export function BillingCartRegister({
   }, [subtotal, appliedCoupon]);
 
   const taxableAmount = Math.max(0, subtotal - discountAmount);
-  const cgst = Math.round(taxableAmount * 0.025); // 2.5%
-  const sgst = Math.round(taxableAmount * 0.025); // 2.5%
-  const serviceCharge = serviceChargeEnabled ? Math.round(taxableAmount * 0.05) : 0; // 5%
+  const cgst = Math.round((taxableAmount * taxSettings.cgstPercent) / 100);
+  const sgst = Math.round((taxableAmount * taxSettings.sgstPercent) / 100);
+  const serviceCharge = Math.round((taxableAmount * taxSettings.serviceChargePercent) / 100);
   const rawTotal = taxableAmount + cgst + sgst + serviceCharge;
   const grandTotal = Math.round(rawTotal);
   const roundOff = Number((grandTotal - rawTotal).toFixed(2));
@@ -144,10 +160,7 @@ export function BillingCartRegister({
     icon: React.ElementType;
   }[] = [
     { id: "cash", label: "Cash", icon: Banknote },
-    { id: "upi", label: "UPI / QR", icon: QrCode },
-    { id: "card", label: "Card / EDC", icon: CreditCard },
-    { id: "room_post", label: "Room", icon: BedDouble },
-    { id: "split", label: "Split", icon: Split },
+    { id: "upi", label: "UPI", icon: QrCode },
   ];
 
   return (
@@ -157,9 +170,9 @@ export function BillingCartRegister({
         <div className="flex items-center gap-2">
           <span className="font-bold text-xs text-primary">
             {orderType === "dine_in"
-              ? tableNumber || "Table T-12"
+              ? tableNumber || "Select Table"
               : orderType === "room_service"
-                ? roomNumber || "Room 312"
+                ? roomNumber || "Select Room"
                 : orderType === "delivery"
                   ? "Delivery"
                   : "Takeaway"}
@@ -191,78 +204,32 @@ export function BillingCartRegister({
         </div>
       </div>
 
-      {/* 2. Customer Loyalty Lookup Bar (Slim) */}
+      {/* 2. Optional customer name + number */}
       <div className="px-2.5 py-1.5 bg-slate-50 border-b border-slate-200 text-xs shrink-0">
-        {selectedCustomer ? (
-          <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-md px-2 py-1 text-foreground">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <UserCheck className="h-3.5 w-3.5 text-primary shrink-0" />
-              <div className="truncate flex items-center gap-1.5">
-                <span className="font-bold text-[11.5px]">{selectedCustomer.name}</span>
-                <span className="text-[9.5px] font-semibold bg-primary/20 text-primary px-1 rounded">
-                  {selectedCustomer.tier}
-                </span>
-                <span className="text-[10px] text-primary font-medium">
-                  ({selectedCustomer.loyaltyPoints} Pts)
-                </span>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => onSelectCustomer(null)}
-              className="text-slate-400 hover:text-slate-700 p-0.5 cursor-pointer ml-1"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        ) : (
-          <div className="relative">
-            <div className="flex items-center gap-1">
-              <div className="relative flex-1">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Attach customer phone or name..."
-                  value={customerSearch}
-                  onFocus={() => setIsSearchingCustomer(true)}
-                  onChange={(e) => {
-                    setCustomerSearch(e.target.value);
-                    setIsSearchingCustomer(true);
-                  }}
-                  className="w-full pl-7 pr-2 py-1 text-[11.5px] bg-white border border-slate-200 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-            </div>
-
-            {/* Customer Dropdown Results */}
-            {isSearchingCustomer && matchingCustomers.length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white rounded-lg shadow-lg border border-slate-200 max-h-40 overflow-y-auto">
-                {matchingCustomers.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => {
-                      onSelectCustomer(c);
-                      setCustomerSearch("");
-                      setIsSearchingCustomer(false);
-                    }}
-                    className="w-full text-left p-1.5 hover:bg-primary/10 border-b border-slate-100 flex items-center justify-between text-xs cursor-pointer"
-                  >
-                    <div>
-                      <div className="font-bold text-slate-900 text-[11.5px]">{c.name}</div>
-                      <div className="text-[10px] text-slate-500">{c.phone}</div>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[9.5px] font-bold bg-amber-100 text-amber-800 px-1 py-0.2 rounded">
-                        {c.tier}
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        <div className="grid grid-cols-2 gap-1.5">
+          <input
+            type="text"
+            value={customerName}
+            onChange={(e) => {
+              const next = e.target.value;
+              setCustomerName(next);
+              syncCustomer(next, customerNumber);
+            }}
+            placeholder="Customer name (optional)"
+            className="w-full px-2 py-1 text-[11.5px] bg-white border border-slate-200 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          <input
+            type="tel"
+            value={customerNumber}
+            onChange={(e) => {
+              const next = e.target.value;
+              setCustomerNumber(next);
+              syncCustomer(customerName, next);
+            }}
+            placeholder="Number (optional)"
+            className="w-full px-2 py-1 text-[11.5px] bg-white border border-slate-200 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
       </div>
 
       {/* 3. Cart Line Items List (Compact, Tight, Stretchable without extra gaps) */}
@@ -395,42 +362,58 @@ export function BillingCartRegister({
 
       {/* 4. Totals, Taxes & Discount Breakdown (Tight) */}
       <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 space-y-1.5 text-xs shrink-0">
-        {/* Coupon Code Input */}
-        <div className="flex items-center gap-1.5">
-          <div className="relative flex-1">
-            <Tag className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Promo coupon (e.g. RETROD10)..."
-              value={couponCode}
-              onChange={(e) => setCouponCode(e.target.value)}
-              className="w-full pl-6 pr-2 py-0.5 text-xs uppercase bg-white border border-slate-200 rounded-md text-slate-800 placeholder:normal-case placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={handleApplyCoupon}
-            disabled={!couponCode.trim()}
-            className="px-2 py-0.5 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] font-bold transition disabled:opacity-40 cursor-pointer"
-          >
-            Apply
-          </button>
-        </div>
-
-        {appliedCoupon && (
-          <div className="flex items-center justify-between bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-[10.5px] font-semibold">
-            <span>
-              Coupon <strong>{appliedCoupon.code}</strong> ({appliedCoupon.discountRate}% OFF)
-            </span>
+        {/* Narrow promo toggle — chevron only */}
+        <div className="flex items-start gap-1.5">
+          <div className="w-8 shrink-0 rounded-md border border-slate-200 bg-white overflow-hidden">
             <button
               type="button"
-              onClick={() => setAppliedCoupon(null)}
-              className="text-emerald-700 hover:text-emerald-950 cursor-pointer"
+              onClick={() => setPromoOpen((open) => !open)}
+              aria-label="Toggle promo"
+              title={appliedCoupon ? appliedCoupon.code : "Promo"}
+              className={`flex w-full items-center justify-center py-1.5 cursor-pointer hover:bg-slate-50 ${
+                appliedCoupon ? "bg-emerald-50 border-emerald-200" : ""
+              }`}
             >
-              Remove
+              <ChevronDown
+                className={`h-3.5 w-3.5 text-slate-500 transition ${promoOpen ? "rotate-180" : ""}`}
+              />
             </button>
           </div>
-        )}
+          {promoOpen && (
+            <div className="flex-1 min-w-0 space-y-1.5 rounded-md border border-slate-200 bg-white px-2 py-1.5">
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  className="w-full px-2 py-0.5 text-xs uppercase bg-white border border-slate-200 rounded-md text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  disabled={!couponCode.trim()}
+                  className="px-2 py-0.5 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] font-bold transition disabled:opacity-40 cursor-pointer"
+                >
+                  Apply
+                </button>
+              </div>
+              {appliedCoupon && (
+                <div className="flex items-center justify-between bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-[10.5px] font-semibold">
+                  <span>
+                    <strong>{appliedCoupon.code}</strong> ({appliedCoupon.discountRate}% OFF)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setAppliedCoupon(null)}
+                    className="text-emerald-700 hover:text-emerald-950 cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Calculation Table */}
         <div className="space-y-0.5 text-slate-600 text-[11px]">
@@ -447,27 +430,21 @@ export function BillingCartRegister({
           )}
 
           <div className="flex items-center justify-between">
-            <span>CGST (2.5%)</span>
+            <span>CGST ({taxSettings.cgstPercent}%)</span>
             <span>₹{cgst.toLocaleString()}</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span>SGST (2.5%)</span>
+            <span>SGST ({taxSettings.sgstPercent}%)</span>
             <span>₹{sgst.toLocaleString()}</span>
           </div>
 
-          <div className="flex items-center justify-between">
-            <label className="flex items-center gap-1 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={serviceChargeEnabled}
-                onChange={(e) => setServiceChargeEnabled(e.target.checked)}
-                className="h-3 w-3 accent-primary rounded"
-              />
-              <span>Service Charge (5%)</span>
-            </label>
-            <span>₹{serviceCharge.toLocaleString()}</span>
-          </div>
+          {taxSettings.serviceChargePercent > 0 && (
+            <div className="flex items-center justify-between">
+              <span>Service Charge ({taxSettings.serviceChargePercent}%)</span>
+              <span>₹{serviceCharge.toLocaleString()}</span>
+            </div>
+          )}
 
           {roundOff !== 0 && (
             <div className="flex items-center justify-between text-slate-400 text-[10px]">
@@ -488,7 +465,7 @@ export function BillingCartRegister({
 
       {/* 5. Payment Tender Mode Selector (Slim) */}
       <div className="px-3 py-2 bg-white border-t border-slate-200 space-y-1.5 shrink-0">
-        <div className="grid grid-cols-5 gap-1">
+        <div className="grid grid-cols-2 gap-1.5">
           {paymentOptions.map((opt) => {
             const Icon = opt.icon;
             const isSelected = paymentMethod === opt.id;
@@ -496,20 +473,15 @@ export function BillingCartRegister({
               <button
                 key={opt.id}
                 type="button"
-                onClick={() => {
-                  setPaymentMethod(opt.id);
-                  if (opt.id === "split") {
-                    onOpenSplitModal();
-                  }
-                }}
-                className={`flex flex-col items-center justify-center py-1 px-0.5 rounded-lg border text-[10px] font-bold transition cursor-pointer ${
+                onClick={() => setPaymentMethod(opt.id)}
+                className={`flex flex-row items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border text-[11px] font-bold transition cursor-pointer ${
                   isSelected
                     ? "bg-primary text-primary-foreground border-primary shadow-2xs"
                     : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                 }`}
               >
                 <Icon
-                  className={`h-3 w-3 mb-0.5 ${isSelected ? "text-primary-foreground" : "text-slate-600"}`}
+                  className={`h-3.5 w-3.5 ${isSelected ? "text-primary-foreground" : "text-slate-600"}`}
                 />
                 <span>{opt.label}</span>
               </button>
@@ -575,7 +547,7 @@ export function BillingCartRegister({
           className="col-span-2 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold transition disabled:opacity-40 cursor-pointer shadow-xs active:scale-[0.99]"
         >
           <CheckCircle2 className="h-4 w-4" />
-          <span>Settle & Bill [F10]</span>
+          <span>Submit [F10]</span>
         </button>
       </div>
     </div>

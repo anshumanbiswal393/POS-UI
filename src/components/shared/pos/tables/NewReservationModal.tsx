@@ -21,25 +21,6 @@ interface NewReservationModalProps {
 
 const PAX_PRESETS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16] as const;
 
-const TIME_SLOTS = [
-  "11:00",
-  "11:30",
-  "12:00",
-  "12:30",
-  "13:00",
-  "13:30",
-  "14:00",
-  "18:00",
-  "18:30",
-  "19:00",
-  "19:30",
-  "20:00",
-  "20:30",
-  "21:00",
-  "21:30",
-  "22:00",
-];
-
 function todayInputValue() {
   const d = new Date();
   const yyyy = d.getFullYear();
@@ -281,30 +262,30 @@ export function NewReservationModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-2xl bg-white border border-border shadow-xl rounded-2xl p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-5 pb-3.5 border-b border-border">
-          <DialogTitle className="text-[18px] font-bold text-text-primary">Book Reservation</DialogTitle>
-          <DialogDescription className="text-[12.5px] text-text-secondary">
+        <DialogHeader className="px-5 pt-4 pb-2.5 border-b border-border">
+          <DialogTitle className="text-[16px] font-bold text-text-primary">Book Reservation</DialogTitle>
+          <DialogDescription className="text-[12px] text-text-secondary">
             Set pax first. If one vacant table is too small, merge tables under the same guest.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5 max-h-[80vh] overflow-y-auto">
-          {/* Pax first */}
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-            <div className="flex items-center justify-between gap-2 mb-2.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-text-primary flex items-center gap-1.5">
+        <form onSubmit={handleSubmit} className="space-y-2.5 px-5 py-3.5 max-h-[80vh] overflow-y-auto">
+          {/* Pax first — single compact row */}
+          <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <label className="text-[10.5px] font-bold uppercase tracking-wider text-text-primary flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5 text-primary" />
                 Party size (Pax) *
               </label>
-              <span className="text-[12px] font-semibold text-primary">{guests} guests</span>
+              <span className="text-[11px] font-semibold text-primary">{guests} guests</span>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-nowrap items-center gap-1 overflow-x-auto pb-0.5">
               {PAX_PRESETS.map((num) => (
                 <button
                   key={num}
                   type="button"
                   onClick={() => selectPresetPax(num)}
-                  className={`min-w-10 px-3 py-2 rounded-lg text-[12.5px] font-bold border transition cursor-pointer ${
+                  className={`shrink-0 min-w-7 px-2 py-1 rounded-md text-[11.5px] font-bold border transition cursor-pointer ${
                     !isCustomPax && guests === num
                       ? "bg-primary text-primary-foreground border-primary"
                       : "bg-surface text-text-primary border-border hover:bg-surface-2"
@@ -316,7 +297,7 @@ export function NewReservationModal({
               <button
                 type="button"
                 onClick={enableCustomPax}
-                className={`min-w-16 px-3 py-2 rounded-lg text-[12.5px] font-bold border transition cursor-pointer ${
+                className={`shrink-0 px-2 py-1 rounded-md text-[11.5px] font-bold border transition cursor-pointer ${
                   isCustomPax
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-surface text-text-primary border-border hover:bg-surface-2"
@@ -324,10 +305,7 @@ export function NewReservationModal({
               >
                 Custom
               </button>
-            </div>
-
-            {isCustomPax && (
-              <div className="mt-3 flex items-center gap-2">
+              {isCustomPax && (
                 <input
                   type="text"
                   inputMode="numeric"
@@ -335,14 +313,13 @@ export function NewReservationModal({
                   placeholder="e.g. 20"
                   value={customPaxText}
                   onChange={(e) => handleCustomPaxChange(e.target.value)}
-                  className="w-28 rounded-lg border border-border bg-surface px-3 py-2 text-[13px] font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="shrink-0 w-16 rounded-md border border-border bg-surface px-2 py-1 text-[11.5px] font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   aria-label="Custom party size"
                 />
-                <span className="text-[12px] text-text-secondary">Enter custom pax (no counter)</span>
-              </div>
-            )}
+              )}
+            </div>
 
-            <div className="mt-3 text-[12px] text-text-secondary">
+            <div className="mt-1.5 text-[11px] text-text-secondary">
               {fittingSingleTables.length > 0 ? (
                 <span>
                   {fittingSingleTables.length} vacant table
@@ -364,7 +341,7 @@ export function NewReservationModal({
 
           {/* Customer */}
           <div>
-            <label className="block text-[12.5px] font-semibold text-text-primary mb-1.5">
+            <label className="block text-[12px] font-semibold text-text-primary mb-1">
               Customer Name *
             </label>
             <div className="relative">
@@ -375,14 +352,14 @@ export function NewReservationModal({
                 placeholder="e.g. Usman ibn Hunaif"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-[13px] bg-surface-2 border border-border rounded-xl focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="w-full pl-9 pr-3 py-2 text-[13px] bg-surface-2 border border-border rounded-xl focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div>
-              <label className="block text-[12.5px] font-semibold text-text-primary mb-1.5">Phone *</label>
+              <label className="block text-[12px] font-semibold text-text-primary mb-1">Phone *</label>
               <div className="relative">
                 <Phone className="w-4 h-4 text-text-disabled absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
@@ -391,13 +368,13 @@ export function NewReservationModal({
                   placeholder="+91 98765 43210"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 text-[13px] bg-surface-2 border border-border rounded-xl focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
+                  className="w-full pl-9 pr-3 py-2 text-[13px] bg-surface-2 border border-border rounded-xl focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[12.5px] font-semibold text-text-primary mb-1.5">Date *</label>
+              <label className="block text-[12px] font-semibold text-text-primary mb-1">Date *</label>
               <div className="relative">
                 <Calendar className="w-4 h-4 text-text-disabled absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
@@ -406,46 +383,32 @@ export function NewReservationModal({
                   min={todayInputValue()}
                   value={reservationDate}
                   onChange={(e) => setReservationDate(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 text-[13px] bg-surface-2 border border-border rounded-xl focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
+                  className="w-full pl-9 pr-3 py-2 text-[13px] bg-surface-2 border border-border rounded-xl focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[12.5px] font-semibold text-text-primary mb-1.5">Time *</label>
+              <label className="block text-[12px] font-semibold text-text-primary mb-1">Time *</label>
               <div className="relative">
                 <Clock className="w-4 h-4 text-text-disabled absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <select
+                <input
+                  type="time"
                   required
                   value={reservationTime}
                   onChange={(e) => setReservationTime(e.target.value)}
-                  className="w-full appearance-none pl-9 pr-3 py-2.5 text-[13px] bg-surface-2 border border-border rounded-xl focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
-                >
-                  {TIME_SLOTS.map((slot) => (
-                    <option key={slot} value={slot}>
-                      {formatDisplayTime(slot)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="mt-1.5">
-                <input
-                  type="time"
-                  value={reservationTime}
-                  onChange={(e) => setReservationTime(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-[12px] text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
-                  aria-label="Custom time picker"
+                  className="w-full pl-9 pr-3 py-2 text-[13px] bg-surface-2 border border-border rounded-xl focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
                 />
               </div>
             </div>
           </div>
 
           {/* Table assign / merge */}
-          <div className="rounded-xl border border-border p-4 space-y-3">
+          <div className="rounded-xl border border-border p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <div className="text-[13px] font-bold text-text-primary">Assign table(s)</div>
-                <div className="text-[12px] text-text-secondary">
+                <div className="text-[12.5px] font-bold text-text-primary">Assign table(s)</div>
+                <div className="text-[11px] text-text-secondary">
                   Selected seats:{" "}
                   <span className={capacityOk ? "text-primary font-bold" : "text-rose-600 font-bold"}>
                     {selectedCapacity}
@@ -471,7 +434,7 @@ export function NewReservationModal({
                     setSelectedTableIds(picks);
                   }
                 }}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-bold border transition cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-bold border transition cursor-pointer ${
                   mergeMode || needsMerge
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-surface text-text-primary border-border hover:bg-surface-2"
@@ -486,7 +449,7 @@ export function NewReservationModal({
               <select
                 value={selectedTableIds[0] || ""}
                 onChange={(e) => setSelectedTableIds(e.target.value ? [e.target.value] : [])}
-                className="w-full py-2.5 px-3 text-[13px] bg-surface-2 border border-border rounded-xl focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="w-full py-2 px-3 text-[13px] bg-surface-2 border border-border rounded-xl focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               >
                 <option value="">Select a vacant table</option>
                 {fittingSingleTables.map((t) => (
@@ -503,11 +466,11 @@ export function NewReservationModal({
                   ))}
               </select>
             ) : (
-              <div className="space-y-2.5">
-                <p className="text-[12px] text-text-secondary">
+              <div className="space-y-1.5">
+                <p className="text-[11px] text-text-secondary">
                   Tap vacant tables to merge under this guest until seats cover {guests} pax.
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-0.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto pr-0.5">
                   {vacantTables.map((t) => {
                     const selected = selectedTableIds.includes(t.id);
                     return (
@@ -515,31 +478,31 @@ export function NewReservationModal({
                         key={t.id}
                         type="button"
                         onClick={() => toggleMergedTable(t.id)}
-                        className={`rounded-xl border px-3.5 py-3 text-left transition cursor-pointer min-h-[76px] ${
+                        className={`rounded-xl border px-3 py-2 text-left transition cursor-pointer ${
                           selected
                             ? "border-primary bg-primary/10 shadow-xs"
                             : "border-border bg-surface hover:bg-surface-2"
                         }`}
                       >
-                        <div className="text-[13.5px] font-bold text-text-primary">{t.tableNumber}</div>
-                        <div className="text-[12px] text-text-secondary mt-0.5">
+                        <div className="text-[13px] font-bold text-text-primary">{t.tableNumber}</div>
+                        <div className="text-[11px] text-text-secondary">
                           {t.capacity} seats · {t.area}
                         </div>
                         {selected && (
-                          <div className="mt-1.5 text-[11px] font-bold text-primary">Selected</div>
+                          <div className="mt-0.5 text-[10.5px] font-bold text-primary">Selected</div>
                         )}
                       </button>
                     );
                   })}
                 </div>
                 {vacantTables.length === 0 && (
-                  <p className="text-[12px] text-rose-600 font-medium">No vacant tables right now.</p>
+                  <p className="text-[11px] text-rose-600 font-medium">No vacant tables right now.</p>
                 )}
               </div>
             )}
 
             {selectedTableIds.length > 1 && (
-              <div className="rounded-lg bg-surface-2 border border-border px-3.5 py-2.5 text-[12px] text-text-secondary">
+              <div className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-[11px] text-text-secondary">
                 Merged under{" "}
                 <span className="font-bold text-text-primary">{customerName.trim() || "this guest"}</span>
                 :{" "}
@@ -554,7 +517,7 @@ export function NewReservationModal({
           </div>
 
           <div>
-            <label className="block text-[12.5px] font-semibold text-text-primary mb-1.5">
+            <label className="block text-[12px] font-semibold text-text-primary mb-1">
               Special notes / requests
             </label>
             <textarea
@@ -562,7 +525,7 @@ export function NewReservationModal({
               placeholder="e.g. Window side, high chair, celebration cake"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full p-3 text-[13px] bg-surface-2 border border-border rounded-xl focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="w-full p-2.5 text-[13px] bg-surface-2 border border-border rounded-xl focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
           </div>
 
@@ -574,23 +537,23 @@ export function NewReservationModal({
               onChange={(e) => setIsVip(e.target.checked)}
               className="rounded text-primary focus:ring-primary"
             />
-            <label htmlFor="vipGuestCheck" className="text-[12.5px] text-text-primary font-medium cursor-pointer">
+            <label htmlFor="vipGuestCheck" className="text-[12px] text-text-primary font-medium cursor-pointer">
               Mark as VIP guest
             </label>
           </div>
 
-          <DialogFooter className="pt-3 gap-2 sm:gap-0 border-t border-border">
+          <DialogFooter className="pt-2 gap-2 sm:gap-0 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 text-[12.5px] font-semibold text-text-secondary hover:bg-surface-2 rounded-xl transition cursor-pointer"
+              className="px-4 py-2 text-[12px] font-semibold text-text-secondary hover:bg-surface-2 rounded-xl transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!capacityOk}
-              className="px-5 py-2.5 text-[12.5px] font-bold text-primary-foreground bg-primary hover:bg-primary/90 disabled:opacity-50 rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
+              className="px-5 py-2 text-[12px] font-bold text-primary-foreground bg-primary hover:bg-primary/90 disabled:opacity-50 rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
             >
               <Check className="w-3.5 h-3.5" />
               {selectedTableIds.length > 1 ? "Confirm merged reservation" : "Confirm reservation"}
