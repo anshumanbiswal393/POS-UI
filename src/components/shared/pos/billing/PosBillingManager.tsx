@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type {
   BillingMenuItem,
@@ -28,6 +29,7 @@ import { useHotelRooms } from "@/hooks/queries/usePosRoomService";
 import { usePosTables } from "@/hooks/queries/usePosTables";
 
 export function PosBillingManager() {
+  const queryClient = useQueryClient();
   const { activeOutlet } = useOutletContext();
   const { user } = useAuth();
   const { data: menuList = [] } = useMenuItems(activeOutlet?.id || "outlet-primary");
@@ -187,6 +189,8 @@ export function PosBillingManager() {
 
   // 2. Cart Items State (empty for fresh and redirected billing sessions)
   const [cartItems, setCartItems] = useState<BillingCartItem[]>([]);
+  /** Prevents double KOT when user clicks KOT then settles the same cart */
+  const [kotSentForCart, setKotSentForCart] = useState(false);
 
   // 3. Customer Loyalty State
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerProfile | null>(null);
@@ -297,6 +301,7 @@ export function PosBillingManager() {
   // Clear Cart
   const handleClearCart = () => {
     setCartItems([]);
+    setKotSentForCart(false);
     toast.info("Cleared order cart");
   };
 
@@ -307,8 +312,62 @@ export function PosBillingManager() {
     setCartItems([]);
     setSelectedCustomer(null);
     setSpecialNote("");
+    setKotSentForCart(false);
     toast.success(`New check ${nextNum} started`);
   }, []);
+
+  const buildOrderPayload = useCallback(() => {
+    const taxSettings = getPosTaxSettings();
+    const orderItems = cartItems.map((item) => {
+      const bp = item.selectedVariant ? item.selectedVariant.price : item.item.price;
+      const mp = item.selectedModifiers.reduce((mSum, m) => mSum + m.price, 0);
+      return {
+        id: item.item.id,
+        name: item.item.name,
+        quantity: item.quantity,
+        price: item.isComplimentary ? 0 : bp + mp,
+        selectedVariantName: item.selectedVariant?.name,
+        notes: item.specialInstructions,
+      };
+    });
+
+    const subtotal = cartItems.reduce((sum, item) => {
+      if (item.isComplimentary) return sum;
+      const bp = item.selectedVariant ? item.selectedVariant.price : item.item.price;
+      const mp = item.selectedModifiers.reduce((mSum, m) => mSum + m.price, 0);
+      return sum + (bp + mp) * item.quantity;
+    }, 0);
+
+    const discountAmount = 0;
+    const taxableAmount = subtotal - discountAmount;
+    const cgst = Math.round((taxableAmount * taxSettings.cgstPercent) / 100);
+    const sgst = Math.round((taxableAmount * taxSettings.sgstPercent) / 100);
+    const serviceCharge = Math.round((taxableAmount * taxSettings.serviceChargePercent) / 100);
+    const rawTotal = taxableAmount + cgst + sgst + serviceCharge;
+    const grandTotal = Math.round(rawTotal);
+    const roundOff = Number((grandTotal - rawTotal).toFixed(2));
+
+    const tableLabel =
+      orderType === "dine_in"
+        ? activeTable
+        : orderType === "room_service"
+          ? roomNumber
+          : orderType === "delivery"
+            ? "Delivery"
+            : "Takeaway";
+
+    return {
+      orderItems,
+      subtotal,
+      discountAmount,
+      cgst,
+      sgst,
+      serviceCharge,
+      grandTotal,
+      roundOff,
+      tableLabel,
+    };
+  }, [cartItems, orderType, activeTable, roomNumber]);
 
   // Hold Check
   const handleHoldBill = useCallback(() => {
@@ -391,74 +450,96 @@ export function PosBillingManager() {
     toast.error("Discarded held check");
   };
 
-  // Print KOT
+  // Print KOT → send ticket to KDS Preparing (FCFS)
   const handlePrintKot = useCallback(() => {
     if (cartItems.length === 0) return;
-    const noteHint = specialNote.trim() ? ` · Note: ${specialNote.trim()}` : "";
-    toast.info(
-      `Kitchen Ticket (KOT) sent to Chef Printer for ${activeTable || "Takeaway"}${noteHint}`,
-    );
-  }, [cartItems.length, activeTable, specialNote]);
+    if (kotSentForCart) {
+      toast.info("KOT already sent for this check — open Kitchen Display");
+      return;
+    }
 
-  // Submit order → Current Orders + KOT
+    const { orderItems, subtotal, grandTotal, tableLabel } = buildOrderPayload();
+    if (!tableLabel && orderType === "dine_in") {
+      toast.error("Select a table before sending KOT");
+      return;
+    }
+
+    const { orderNumber, kotId } = createDineInOrder({
+      tableId: `tbl-${(tableLabel || "takeaway").toLowerCase().replace(/\s+/g, "-")}`,
+      tableNumber: tableLabel || "Takeaway",
+      section: activeOutlet?.name || "Main Dining",
+      waiterName: captainName,
+      pax: guestCount,
+      guestName: selectedCustomer?.name,
+      guestPhone: selectedCustomer?.phone,
+      orderNote: specialNote.trim() || undefined,
+      items: orderItems,
+      subtotal,
+      grandTotal,
+    });
+
+    setKotSentForCart(true);
+    queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
+    queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
+    const noteHint = specialNote.trim() ? ` · Note: ${specialNote.trim()}` : "";
+    toast.success(`KOT #${kotId} → Preparing (${tableLabel || "Takeaway"})${noteHint}`, {
+      description: `${orderNumber} · open Kitchen Display`,
+    });
+  }, [
+    cartItems.length,
+    kotSentForCart,
+    buildOrderPayload,
+    orderType,
+    activeOutlet?.name,
+    captainName,
+    guestCount,
+    selectedCustomer,
+    specialNote,
+    queryClient,
+  ]);
+
+  // Submit order → Current Orders (+ KOT if not already sent)
   const handleSettleBill = useCallback(
     (paymentMethod: BillingPaymentMethod, tenderedAmount: number) => {
       if (cartItems.length === 0) return;
 
-      const taxSettings = getPosTaxSettings();
-      const orderItems = cartItems.map((item) => {
-        const bp = item.selectedVariant ? item.selectedVariant.price : item.item.price;
-        const mp = item.selectedModifiers.reduce((mSum, m) => mSum + m.price, 0);
-        return {
-          id: item.item.id,
-          name: item.item.name,
-          quantity: item.quantity,
-          price: item.isComplimentary ? 0 : bp + mp,
-          selectedVariantName: item.selectedVariant?.name,
-          notes: item.specialInstructions,
-        };
-      });
+      const {
+        orderItems,
+        subtotal,
+        discountAmount,
+        cgst,
+        sgst,
+        serviceCharge,
+        grandTotal,
+        roundOff,
+        tableLabel,
+      } = buildOrderPayload();
 
-      const subtotal = cartItems.reduce((sum, item) => {
-        if (item.isComplimentary) return sum;
-        const bp = item.selectedVariant ? item.selectedVariant.price : item.item.price;
-        const mp = item.selectedModifiers.reduce((mSum, m) => mSum + m.price, 0);
-        return sum + (bp + mp) * item.quantity;
-      }, 0);
-
-      const discountAmount = 0;
-      const taxableAmount = subtotal - discountAmount;
-      const cgst = Math.round((taxableAmount * taxSettings.cgstPercent) / 100);
-      const sgst = Math.round((taxableAmount * taxSettings.sgstPercent) / 100);
-      const serviceCharge = Math.round((taxableAmount * taxSettings.serviceChargePercent) / 100);
-      const rawTotal = taxableAmount + cgst + sgst + serviceCharge;
-      const grandTotal = Math.round(rawTotal);
-      const roundOff = Number((grandTotal - rawTotal).toFixed(2));
       const effectiveTender = tenderedAmount || grandTotal;
       const changeDue = Math.max(0, effectiveTender - grandTotal);
 
-      const tableLabel =
-        orderType === "dine_in"
-          ? activeTable
-          : orderType === "room_service"
-            ? roomNumber
-            : orderType === "delivery"
-              ? "Delivery"
-              : "Takeaway";
+      let orderNumber = billNumber;
+      let kotId: number | null = null;
 
-      const { orderNumber, kotId } = createDineInOrder({
-        tableId: `tbl-${tableLabel.toLowerCase().replace(/\s+/g, "-")}`,
-        tableNumber: tableLabel,
-        section: activeOutlet?.name || "Main Dining",
-        waiterName: captainName,
-        pax: guestCount,
-        guestName: selectedCustomer?.name,
-        guestPhone: selectedCustomer?.phone,
-        orderNote: specialNote.trim() || undefined,
-        items: orderItems,
-        subtotal,
-        grandTotal,
-      });
+      if (!kotSentForCart) {
+        const created = createDineInOrder({
+          tableId: `tbl-${(tableLabel || "takeaway").toLowerCase().replace(/\s+/g, "-")}`,
+          tableNumber: tableLabel || "Takeaway",
+          section: activeOutlet?.name || "Main Dining",
+          waiterName: captainName,
+          pax: guestCount,
+          guestName: selectedCustomer?.name,
+          guestPhone: selectedCustomer?.phone,
+          orderNote: specialNote.trim() || undefined,
+          items: orderItems,
+          subtotal,
+          grandTotal,
+        });
+        orderNumber = created.orderNumber;
+        kotId = created.kotId;
+        queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
+        queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
+      }
 
       const now = new Date();
       const dateStr = now.toLocaleDateString("en-GB", {
@@ -495,11 +576,18 @@ export function PosBillingManager() {
       };
 
       setSettlementRecord(record);
-      toast.success(`${orderNumber} saved · KOT #${kotId} sent · ${paymentMethod.toUpperCase()}`);
+      toast.success(
+        kotId
+          ? `${orderNumber} saved · KOT #${kotId} → Preparing · ${paymentMethod.toUpperCase()}`
+          : `${orderNumber} saved · ${paymentMethod.toUpperCase()}`,
+      );
       handleNewBill();
     },
     [
       cartItems,
+      kotSentForCart,
+      buildOrderPayload,
+      billNumber,
       orderType,
       activeTable,
       roomNumber,
@@ -507,6 +595,7 @@ export function PosBillingManager() {
       captainName,
       guestCount,
       specialNote,
+      queryClient,
       selectedCustomer,
       handleNewBill,
     ],

@@ -99,10 +99,14 @@ export interface KotItem {
   customerPhone: string;
   itemCount: number;
   itemsText: string;
+  items?: Array<{ name: string; quantity: number; notes?: string }>;
   status: "Not Prepared" | "In Kitchen" | "Prepared" | "Served";
   billPrintDate: string;
   completeDuration: string;
   createdAt: string;
+  createdTimestamp?: number;
+  /** Epoch ms when marked Ready — freezes the KDS timer */
+  readyTimestamp?: number;
   isModified?: boolean;
 }
 

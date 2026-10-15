@@ -484,7 +484,7 @@ export function acceptOnlineOrderToKitchen(orderId: string): { kotId: number; or
         .join(", ")
     : "Dishes";
 
-  // Push new KOT ticket to kitchen
+  // Push new KOT ticket to kitchen (Preparing)
   const newKotRecord = {
     id: `kot-${kotId}`,
     kotId,
@@ -495,10 +495,17 @@ export function acceptOnlineOrderToKitchen(orderId: string): { kotId: number; or
     customerPhone: targetOrder?.customerPhone || "--",
     itemCount: totalItemsCount,
     itemsText,
+    items: targetOrder
+      ? (targetOrder as OnlineOrderRecordApiDto).items.map((it) => ({
+          name: it.name,
+          quantity: it.quantity,
+        }))
+      : undefined,
     status: "Not Prepared" as const,
     billPrintDate: null,
     completeDuration: null,
     createdAt: fullDateTime,
+    createdTimestamp: now.getTime(),
   };
 
   kotOrdersStore = {
@@ -579,6 +586,7 @@ export function dispatchNewOnlineOrder(customOrder?: Partial<OnlineOrderRecordAp
 // ==========================================
 // 4. KOT (KITCHEN ORDER TICKETS) MOCK & SERVICE
 // ==========================================
+const _seedNow = Date.now();
 let kotOrdersStore: KotApiResponse = {
   success: true,
   totalCount: 6,
@@ -590,11 +598,13 @@ let kotOrdersStore: KotApiResponse = {
       customerName: "--",
       customerPhone: "--",
       itemCount: 1,
-      itemsText: "Chicken Biryani",
+      itemsText: "Chicken Biryani × 1",
+      items: [{ name: "Chicken Biryani", quantity: 1 }],
       status: "Not Prepared",
       billPrintDate: null,
       completeDuration: null,
       createdAt: "1 Sep 2026 13:18:49",
+      createdTimestamp: _seedNow - 3 * 60_000,
       isModified: false,
     },
     {
@@ -604,11 +614,13 @@ let kotOrdersStore: KotApiResponse = {
       customerName: "--",
       customerPhone: "--",
       itemCount: 1,
-      itemsText: "Carlsberg Elephant 650 Ml",
+      itemsText: "Carlsberg Elephant 650 Ml × 1",
+      items: [{ name: "Carlsberg Elephant 650 Ml", quantity: 1 }],
       status: "Not Prepared",
       billPrintDate: null,
       completeDuration: null,
       createdAt: "1 Sep 2026 13:14:11",
+      createdTimestamp: _seedNow - 8 * 60_000,
       isModified: false,
     },
     {
@@ -618,11 +630,16 @@ let kotOrdersStore: KotApiResponse = {
       customerName: "--",
       customerPhone: "--",
       itemCount: 2,
-      itemsText: "Fried Fish (Rohu), Kingfisher Strong",
+      itemsText: "Fried Fish (Rohu) × 1, Kingfisher Strong × 1",
+      items: [
+        { name: "Fried Fish (Rohu)", quantity: 1 },
+        { name: "Kingfisher Strong", quantity: 1 },
+      ],
       status: "Not Prepared",
       billPrintDate: null,
       completeDuration: null,
       createdAt: "1 Sep 2026 13:12:21",
+      createdTimestamp: _seedNow - 12 * 60_000,
       isModified: false,
     },
     {
@@ -632,11 +649,14 @@ let kotOrdersStore: KotApiResponse = {
       customerName: "--",
       customerPhone: "--",
       itemCount: 1,
-      itemsText: "Green Salad",
-      status: "Not Prepared",
+      itemsText: "Green Salad × 1",
+      items: [{ name: "Green Salad", quantity: 1 }],
+      status: "Prepared",
       billPrintDate: null,
-      completeDuration: null,
+      completeDuration: "0 hr : 08 min",
       createdAt: "1 Sep 2026 12:59:47",
+      createdTimestamp: _seedNow - 18 * 60_000,
+      readyTimestamp: _seedNow - 10 * 60_000,
       isModified: false,
     },
     {
@@ -646,11 +666,14 @@ let kotOrdersStore: KotApiResponse = {
       customerName: "--",
       customerPhone: "--",
       itemCount: 1,
-      itemsText: "Fry Papad",
-      status: "Not Prepared",
+      itemsText: "Fry Papad × 1",
+      items: [{ name: "Fry Papad", quantity: 1 }],
+      status: "Prepared",
       billPrintDate: null,
-      completeDuration: null,
+      completeDuration: "0 hr : 10 min",
       createdAt: "1 Sep 2026 12:48:33",
+      createdTimestamp: _seedNow - 22 * 60_000,
+      readyTimestamp: _seedNow - 12 * 60_000,
       isModified: false,
     },
     {
@@ -660,11 +683,16 @@ let kotOrdersStore: KotApiResponse = {
       customerName: "--",
       customerPhone: "--",
       itemCount: 2,
-      itemsText: "Carlsberg Elephant 650 Ml, Tandoori Chicken (Half)",
+      itemsText: "Carlsberg Elephant 650 Ml × 1, Tandoori Chicken (Half) × 1",
+      items: [
+        { name: "Carlsberg Elephant 650 Ml", quantity: 1 },
+        { name: "Tandoori Chicken (Half)", quantity: 1, notes: "Extra spicy" },
+      ],
       status: "Not Prepared",
       billPrintDate: null,
       completeDuration: null,
       createdAt: "1 Sep 2026 12:42:22",
+      createdTimestamp: _seedNow - 16 * 60_000,
       isModified: true,
     },
   ],
@@ -673,7 +701,7 @@ let kotOrdersStore: KotApiResponse = {
 export function mapKotDto(dto: KotApiResponse): KotData {
   return {
     totalCount: dto.totalCount,
-    records: dto.records.map((r) => ({
+    records: dto.records.map((r, index) => ({
       id: r.id,
       kotId: r.kotId,
       orderType: r.orderType,
@@ -681,10 +709,14 @@ export function mapKotDto(dto: KotApiResponse): KotData {
       customerPhone: r.customerPhone || "--",
       itemCount: r.itemCount,
       itemsText: r.itemsText,
+      items: r.items,
       status: r.status,
       billPrintDate: r.billPrintDate || "--",
       completeDuration: r.completeDuration || "--",
       createdAt: r.createdAt,
+      // Prefer real timestamp; fall back so seeded tickets still show live timers
+      createdTimestamp: r.createdTimestamp ?? Date.now() - (index + 1) * 3 * 60_000,
+      readyTimestamp: r.readyTimestamp,
       isModified: r.isModified,
     })),
   };
@@ -791,7 +823,7 @@ export function createDineInOrder(input: CreateDineInOrderInput): {
     ],
   };
 
-  // 2. Add to KOT Store
+  // 2. Add to KOT Store → Preparing (FCFS by createdTimestamp)
   const newKotRecord = {
     id: `kot-${kotId}`,
     kotId,
@@ -800,10 +832,16 @@ export function createDineInOrder(input: CreateDineInOrderInput): {
     customerPhone: input.guestPhone || "--",
     itemCount: totalItemCount,
     itemsText: itemsSummaryText,
+    items: input.items.map((i) => ({
+      name: i.name + (i.selectedVariantName ? ` (${i.selectedVariantName})` : ""),
+      quantity: i.quantity,
+      notes: i.notes,
+    })),
     status: "Not Prepared" as const,
     billPrintDate: null,
     completeDuration: null,
     createdAt: fullDateTime,
+    createdTimestamp: now.getTime(),
     isModified: false,
   };
 
@@ -953,10 +991,16 @@ export function markKotPrepared(kotId: number): { kot: any; bill: DueBill | null
     ...kotOrdersStore,
     records: kotOrdersStore.records.map((r) => {
       if (r.kotId === kotId) {
+        const readyAt = Date.now();
+        const started = r.createdTimestamp ?? readyAt;
+        const elapsedMs = Math.max(0, readyAt - started);
+        const elapsedMin = Math.floor(elapsedMs / 60_000);
+        const elapsedSec = Math.floor((elapsedMs % 60_000) / 1000);
         targetKot = {
           ...r,
           status: "Prepared" as const,
-          completeDuration: "0 hr : 12 min",
+          readyTimestamp: readyAt,
+          completeDuration: `${Math.floor(elapsedMin / 60)} hr : ${elapsedMin % 60} min${elapsedSec ? ` : ${elapsedSec}s` : ""}`,
         };
         return targetKot;
       }
@@ -1173,7 +1217,7 @@ export function updateDineInOrder(input: {
     .join(", ");
   const totalItemCount = input.items.reduce((s, i) => s + i.quantity, 0);
 
-  // 1. Add Modification KOT ticket to kitchen
+  // 1. Add Modification KOT ticket to kitchen (Preparing)
   const updateKotRecord = {
     id: `kot-${kotId}`,
     kotId,
@@ -1182,10 +1226,16 @@ export function updateDineInOrder(input: {
     customerPhone: input.guestPhone || "--",
     itemCount: totalItemCount,
     itemsText: `[MODIFIED]: ${input.modifiedSummaryText || allItemsSummaryText}`,
+    items: input.items.map((i) => ({
+      name: i.name + (i.selectedVariantName ? ` (${i.selectedVariantName})` : ""),
+      quantity: i.quantity,
+      notes: i.notes,
+    })),
     status: "Not Prepared" as const,
     billPrintDate: null,
     completeDuration: null,
     createdAt: fullDateTime,
+    createdTimestamp: now.getTime(),
     isModified: true,
   };
 

@@ -99,10 +99,15 @@ export interface KotRecordApiDto {
   customerPhone: string;
   itemCount: number;
   itemsText: string;
+  items?: Array<{ name: string; quantity: number; notes?: string }>;
   status: "Not Prepared" | "In Kitchen" | "Prepared" | "Served";
   billPrintDate: string | null;
   completeDuration: string | null;
   createdAt: string; // e.g. "1 Sep 2026 13:18:49"
+  /** Epoch ms when ticket entered kitchen — used for KDS elapsed timer */
+  createdTimestamp?: number;
+  /** Epoch ms when marked Ready — freezes the KDS timer */
+  readyTimestamp?: number;
   isModified?: boolean;
 }
 
