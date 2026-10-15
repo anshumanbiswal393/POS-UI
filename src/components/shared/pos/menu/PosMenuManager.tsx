@@ -115,9 +115,19 @@ export function PosMenuManager() {
       </aside>
 
       {/* 2. Main Content Area */}
-      <div className="flex-1 min-w-0 p-4 sm:p-6 lg:p-7 space-y-5 overflow-y-auto">
+      <div
+        className={`flex-1 min-w-0 overflow-y-auto ${
+          activeTab === "special_note_list"
+            ? "space-y-2 p-3 sm:p-4 lg:p-5"
+            : "space-y-5 p-4 sm:p-5 lg:p-6"
+        }`}
+      >
         {/* Top Header Bar with Outlet Title, Last Menu Sync, and Sync POS */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
+        <div
+          className={`flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 ${
+            activeTab === "special_note_list" ? "pb-2" : "pb-4 gap-4"
+          }`}
+        >
           <div className="flex items-center gap-2">
             <h1 className="text-[18px] font-bold text-slate-900">
               {activeTab === "menu_list" && "Menu List"}

@@ -727,6 +727,8 @@ export interface CreateDineInOrderInput {
     selectedVariantName?: string;
     notes?: string;
   }>;
+  /** Kitchen / check-level special note (from billing) */
+  orderNote?: string;
   subtotal: number;
   grandTotal: number;
 }
@@ -742,8 +744,13 @@ export function createDineInOrder(input: CreateDineInOrderInput): {
   const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const fullDateTime = `${dateStr} ${now.toLocaleTimeString()}`;
 
-  const itemsSummaryText = input.items
-    .map((i) => `${i.name}${i.selectedVariantName ? ` (${i.selectedVariantName})` : ""} × ${i.quantity}`)
+  const itemsSummaryText = [
+    ...input.items.map(
+      (i) => `${i.name}${i.selectedVariantName ? ` (${i.selectedVariantName})` : ""} × ${i.quantity}`,
+    ),
+    input.orderNote?.trim() ? `Note: ${input.orderNote.trim()}` : null,
+  ]
+    .filter(Boolean)
     .join(", ");
   const totalItemCount = input.items.reduce((s, i) => s + i.quantity, 0);
 

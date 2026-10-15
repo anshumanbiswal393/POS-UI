@@ -11,6 +11,7 @@ import {
   Gift,
   CheckCircle2,
   ChevronDown,
+  StickyNote,
 } from "lucide-react";
 import type {
   BillingCartItem,
@@ -19,6 +20,7 @@ import type {
   CustomerProfile,
 } from "@/types/posBilling";
 import { getPosTaxSettings } from "@/lib/posTaxSettings";
+import { useSpecialNotes } from "@/hooks/queries/usePosMenu";
 
 type BillingCartRegisterProps = {
   cartItems: BillingCartItem[];
@@ -28,6 +30,8 @@ type BillingCartRegisterProps = {
   guestCount: number;
   billNumber: string;
   captainName: string;
+  specialNote: string;
+  onSpecialNoteChange: (note: string) => void;
   onUpdateCartQty: (cartId: string, newQty: number) => void;
   onRemoveCartItem: (cartId: string) => void;
   onToggleComplimentary: (cartId: string) => void;
@@ -47,6 +51,8 @@ export function BillingCartRegister({
   guestCount,
   billNumber,
   captainName,
+  specialNote,
+  onSpecialNoteChange,
   onUpdateCartQty,
   onRemoveCartItem,
   onToggleComplimentary,
@@ -57,6 +63,12 @@ export function BillingCartRegister({
   selectedCustomer,
   onSelectCustomer,
 }: BillingCartRegisterProps) {
+  const { data: specialNotes = [] } = useSpecialNotes();
+  const availableNotes = useMemo(
+    () => specialNotes.filter((n) => n.available),
+    [specialNotes],
+  );
+
   const [paymentMethod, setPaymentMethod] = useState<BillingPaymentMethod>("cash");
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountRate: number } | null>(
@@ -67,6 +79,7 @@ export function BillingCartRegister({
   const [customerName, setCustomerName] = useState(selectedCustomer?.name ?? "");
   const [customerNumber, setCustomerNumber] = useState(selectedCustomer?.phone ?? "");
   const [cashTendered, setCashTendered] = useState<number | null>(null);
+  const [presetNoteId, setPresetNoteId] = useState("");
 
   useEffect(() => {
     const refresh = () => setTaxSettings(getPosTaxSettings());
@@ -362,58 +375,97 @@ export function BillingCartRegister({
 
       {/* 4. Totals, Taxes & Discount Breakdown (Tight) */}
       <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 space-y-1.5 text-xs shrink-0">
-        {/* Narrow promo toggle — chevron only */}
-        <div className="flex items-start gap-1.5">
-          <div className="w-8 shrink-0 rounded-md border border-slate-200 bg-white overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setPromoOpen((open) => !open)}
-              aria-label="Toggle promo"
-              title={appliedCoupon ? appliedCoupon.code : "Promo"}
-              className={`flex w-full items-center justify-center py-1.5 cursor-pointer hover:bg-slate-50 ${
-                appliedCoupon ? "bg-emerald-50 border-emerald-200" : ""
-              }`}
-            >
-              <ChevronDown
-                className={`h-3.5 w-3.5 text-slate-500 transition ${promoOpen ? "rotate-180" : ""}`}
+        {/* Note + promo arrow — one compact row */}
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-amber-200 bg-amber-50 text-amber-700"
+            title="Special note"
+          >
+            <StickyNote className="h-3.5 w-3.5" />
+          </span>
+          <select
+            value={presetNoteId}
+            onChange={(e) => {
+              const id = e.target.value;
+              setPresetNoteId(id);
+              if (!id) return;
+              const match = availableNotes.find((n) => n.id === id);
+              if (match) onSpecialNoteChange(match.name);
+            }}
+            className="w-[5.5rem] shrink-0 rounded-md border border-slate-200 bg-white px-1.5 py-1 text-[11px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+            title="Choose note"
+          >
+            <option value="">Note</option>
+            {availableNotes.map((note) => (
+              <option key={note.id} value={note.id}>
+                {note.name}
+              </option>
+            ))}
+          </select>
+          <input
+            type="text"
+            value={specialNote}
+            onChange={(e) => {
+              const next = e.target.value;
+              onSpecialNoteChange(next);
+              const match = availableNotes.find((n) => n.name === next.trim());
+              setPresetNoteId(match?.id ?? "");
+            }}
+            placeholder="Custom note…"
+            className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          <button
+            type="button"
+            onClick={() => setPromoOpen((open) => !open)}
+            aria-label="Toggle promo"
+            title={appliedCoupon ? appliedCoupon.code : "Promo"}
+            className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition cursor-pointer ${
+              appliedCoupon || promoOpen
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+            }`}
+          >
+            <ChevronDown
+              className={`h-3.5 w-3.5 transition ${promoOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+        </div>
+
+        {promoOpen && (
+          <div className="space-y-1.5 rounded-md border border-slate-200 bg-white px-2 py-1.5">
+            <div className="flex items-center gap-1.5">
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                placeholder="Promo code (e.g. RETROD10)"
+                className="w-full px-2 py-0.5 text-xs uppercase bg-white border border-slate-200 rounded-md text-slate-800 placeholder:normal-case placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
               />
-            </button>
-          </div>
-          {promoOpen && (
-            <div className="flex-1 min-w-0 space-y-1.5 rounded-md border border-slate-200 bg-white px-2 py-1.5">
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="text"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  className="w-full px-2 py-0.5 text-xs uppercase bg-white border border-slate-200 rounded-md text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary"
-                />
+              <button
+                type="button"
+                onClick={handleApplyCoupon}
+                disabled={!couponCode.trim()}
+                className="px-2 py-0.5 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] font-bold transition disabled:opacity-40 cursor-pointer"
+              >
+                Apply
+              </button>
+            </div>
+            {appliedCoupon && (
+              <div className="flex items-center justify-between bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-[10.5px] font-semibold">
+                <span>
+                  <strong>{appliedCoupon.code}</strong> ({appliedCoupon.discountRate}% OFF)
+                </span>
                 <button
                   type="button"
-                  onClick={handleApplyCoupon}
-                  disabled={!couponCode.trim()}
-                  className="px-2 py-0.5 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] font-bold transition disabled:opacity-40 cursor-pointer"
+                  onClick={() => setAppliedCoupon(null)}
+                  className="text-emerald-700 hover:text-emerald-950 cursor-pointer"
                 >
-                  Apply
+                  Remove
                 </button>
               </div>
-              {appliedCoupon && (
-                <div className="flex items-center justify-between bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-[10.5px] font-semibold">
-                  <span>
-                    <strong>{appliedCoupon.code}</strong> ({appliedCoupon.discountRate}% OFF)
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setAppliedCoupon(null)}
-                    className="text-emerald-700 hover:text-emerald-950 cursor-pointer"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Calculation Table */}
         <div className="space-y-0.5 text-slate-600 text-[11px]">

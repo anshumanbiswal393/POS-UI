@@ -126,4 +126,5 @@ export type BillSettlementRecord = {
   tenderedAmount: number;
   changeDue: number;
   settledAt: string;
+  specialNote?: string;
 };

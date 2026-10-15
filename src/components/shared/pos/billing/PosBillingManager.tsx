@@ -72,6 +72,7 @@ export function PosBillingManager() {
   const [guestCount, setGuestCount] = useState(4);
   const [billNumber, setBillNumber] = useState("RET-2026-9024");
   const [searchQuery, setSearchQuery] = useState("");
+  const [specialNote, setSpecialNote] = useState("");
   const captainName = user?.name?.trim() || "Steward";
 
   // Default dine-in table to first available/reserved (canonical Take Order tableNumber)
@@ -305,6 +306,7 @@ export function PosBillingManager() {
     setBillNumber(nextNum);
     setCartItems([]);
     setSelectedCustomer(null);
+    setSpecialNote("");
     toast.success(`New check ${nextNum} started`);
   }, []);
 
@@ -335,6 +337,7 @@ export function PosBillingManager() {
       captainName,
       customerName: selectedCustomer?.name,
       customerPhone: selectedCustomer?.phone,
+      notes: specialNote.trim() || undefined,
     };
 
     setHeldBills((prev) => [newHeld, ...prev]);
@@ -349,6 +352,7 @@ export function PosBillingManager() {
     guestCount,
     captainName,
     selectedCustomer,
+    specialNote,
     handleNewBill,
   ]);
 
@@ -360,6 +364,7 @@ export function PosBillingManager() {
     if (held.roomNumber) setRoomNumber(held.roomNumber);
     setGuestCount(held.guestCount);
     setCartItems(held.items);
+    setSpecialNote(held.notes || "");
 
     if (held.customerName) {
       const match = MOCK_CUSTOMERS.find((c) => c.phone === held.customerPhone);
@@ -389,8 +394,11 @@ export function PosBillingManager() {
   // Print KOT
   const handlePrintKot = useCallback(() => {
     if (cartItems.length === 0) return;
-    toast.info(`Kitchen Ticket (KOT) sent to Chef Printer for ${activeTable || "Takeaway"}`);
-  }, [cartItems.length, activeTable]);
+    const noteHint = specialNote.trim() ? ` · Note: ${specialNote.trim()}` : "";
+    toast.info(
+      `Kitchen Ticket (KOT) sent to Chef Printer for ${activeTable || "Takeaway"}${noteHint}`,
+    );
+  }, [cartItems.length, activeTable, specialNote]);
 
   // Submit order → Current Orders + KOT
   const handleSettleBill = useCallback(
@@ -446,6 +454,7 @@ export function PosBillingManager() {
         pax: guestCount,
         guestName: selectedCustomer?.name,
         guestPhone: selectedCustomer?.phone,
+        orderNote: specialNote.trim() || undefined,
         items: orderItems,
         subtotal,
         grandTotal,
@@ -482,6 +491,7 @@ export function PosBillingManager() {
         tenderedAmount: effectiveTender,
         changeDue,
         settledAt: `${dateStr} ${timeStr}`,
+        specialNote: specialNote.trim() || undefined,
       };
 
       setSettlementRecord(record);
@@ -496,6 +506,7 @@ export function PosBillingManager() {
       activeOutlet?.name,
       captainName,
       guestCount,
+      specialNote,
       selectedCustomer,
       handleNewBill,
     ],
@@ -588,6 +599,8 @@ export function PosBillingManager() {
             guestCount={guestCount}
             billNumber={billNumber}
             captainName={captainName}
+            specialNote={specialNote}
+            onSpecialNoteChange={setSpecialNote}
             onUpdateCartQty={handleUpdateCartQty}
             onRemoveCartItem={handleRemoveCartItem}
             onToggleComplimentary={handleToggleComplimentary}

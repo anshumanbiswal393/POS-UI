@@ -30,6 +30,8 @@ export interface ExtendedPosDataGridProps<T = any> extends PosDataGridProps<T> {
   subtitle?: React.ReactNode;
   searchPlaceholder?: string;
   showToolbar?: boolean;
+  /** Extra controls rendered in the toolbar row (e.g. Add button beside Choose Columns / Export) */
+  toolbarActions?: React.ReactNode;
 }
 
 export function PosDataGrid<T>({
@@ -61,6 +63,7 @@ export function PosDataGrid<T>({
   subtitle,
   searchPlaceholder = "Search records...",
   showToolbar = false,
+  toolbarActions,
 }: ExtendedPosDataGridProps<T>) {
   const isGridLoading = loading || isLoading;
   const isSelectable = selectable || enableSelection;
@@ -478,10 +481,13 @@ export function PosDataGrid<T>({
           onVisibleColumnsChange={handleVisibleColumnsChange}
           columnOrder={columnOrder}
           onColumnOrderChange={handleColumnOrderChange}
-          totalCount={data.length}
-          filteredCount={sortedData.length}
+          // Meta row only when title/subtitle set — keeps search/actions on one compact line
+          totalCount={title || subtitle ? data.length : undefined}
+          filteredCount={title || subtitle ? sortedData.length : undefined}
           onExport={handleExport}
           storageKey={effectiveStorageKey}
+          actions={toolbarActions}
+          className="rounded-none border-0 border-b border-border shadow-none !p-2.5"
         />
       )}
 
