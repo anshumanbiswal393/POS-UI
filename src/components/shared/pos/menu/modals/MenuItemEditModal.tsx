@@ -59,7 +59,6 @@ export function MenuItemEditModal({
   const [price, setPrice] = useState<number | string>(250);
   const [taxRate, setTaxRate] = useState<number>(5);
   const [status, setStatus] = useState<"Active" | "Inactive">("Active");
-  const [direct, setDirect] = useState<boolean>(true);
   const [description, setDescription] = useState("");
   const [images, setImages] = useState<MenuItemImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -80,7 +79,6 @@ export function MenuItemEditModal({
         setPrice(item.price);
         setTaxRate(item.taxRate ?? 5);
         setStatus(item.status || "Active");
-        setDirect(item.direct !== false);
         setDescription(item.description || "");
         setImages(item.images || []);
       } else {
@@ -92,7 +90,6 @@ export function MenuItemEditModal({
         setPrice(220);
         setTaxRate(5);
         setStatus("Active");
-        setDirect(true);
         setDescription("");
         setImages([]);
       }
@@ -232,7 +229,8 @@ export function MenuItemEditModal({
       baseMenu: item ? item.baseMenu : true,
       zomato: false,
       swiggy: false,
-      direct,
+      // Single Status drives visibility on billing, printed menu, and Direct QR
+      direct: status === "Active",
     };
 
     if (item) {
@@ -350,31 +348,31 @@ export function MenuItemEditModal({
             </div>
           </div>
 
-          {/* 2. Type, Price, Tax, Direct QR, Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 p-4 rounded-xl bg-slate-50/80 border border-slate-200">
+          {/* 2. Type, Price, Tax, Status */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3 p-4 rounded-xl bg-slate-50/80 border border-slate-200">
             {/* Item Type (Veg / Non-Veg / Egg) */}
-            <div>
+            <div className="md:col-span-4">
               <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
                 Food Type
               </label>
-              <div className="flex rounded-lg border border-slate-300 bg-white p-0.5">
+              <div className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white p-1">
                 {(["Veg", "Non-Veg", "Egg"] as const).map((type) => (
                   <button
                     key={type}
                     type="button"
                     onClick={() => setItemType(type)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-1 text-[11.5px] font-bold rounded-md transition cursor-pointer ${
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-1.5 py-1.5 text-[11.5px] font-bold rounded-md transition cursor-pointer whitespace-nowrap ${
                       itemType === type
                         ? type === "Veg"
                           ? "bg-emerald-500 text-white shadow-2xs"
                           : type === "Non-Veg"
                             ? "bg-red-500 text-white shadow-2xs"
                             : "bg-amber-500 text-white shadow-2xs"
-                        : "text-slate-600 hover:text-slate-900"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                     }`}
                   >
                     <span
-                      className={`h-2 w-2 rounded-full ${
+                      className={`h-2 w-2 shrink-0 rounded-full ${
                         type === "Veg"
                           ? "bg-emerald-300"
                           : type === "Non-Veg"
@@ -389,7 +387,7 @@ export function MenuItemEditModal({
             </div>
 
             {/* Base Price */}
-            <div>
+            <div className="md:col-span-3">
               <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
                 Base Price (₹) <span className="text-red-500">*</span>
               </label>
@@ -410,7 +408,7 @@ export function MenuItemEditModal({
             </div>
 
             {/* Tax Rate */}
-            <div>
+            <div className="md:col-span-3">
               <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
                 Tax Rate (%)
               </label>
@@ -427,44 +425,29 @@ export function MenuItemEditModal({
               </select>
             </div>
 
-            {/* Direct QR Toggle */}
-            <div>
+            {/* Single Status toggle — Active = Billing + printed menu; Inactive stays in list only */}
+            <div className="md:col-span-2">
               <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
-                Direct QR Menu
+                Status
               </label>
-              <div className="flex items-center gap-2 h-[34px] px-2.5 bg-white rounded-lg border border-slate-300">
-                <label className="relative inline-flex items-center cursor-pointer">
+              <div className="flex items-center gap-1.5 h-[34px] px-2 bg-white rounded-lg border border-slate-300">
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
                   <input
                     type="checkbox"
-                    checked={direct}
-                    onChange={(e) => setDirect(e.target.checked)}
+                    checked={status === "Active"}
+                    onChange={(e) => setStatus(e.target.checked ? "Active" : "Inactive")}
                     className="sr-only peer"
                   />
                   <div className="w-8 h-4.5 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-teal-600"></div>
                 </label>
                 <span
-                  className={`text-[11.5px] font-bold ${
-                    direct ? "text-teal-700" : "text-slate-400"
+                  className={`text-[11px] font-bold whitespace-nowrap ${
+                    status === "Active" ? "text-teal-700" : "text-slate-400"
                   }`}
                 >
-                  {direct ? "Direct Live" : "Off"}
+                  {status === "Active" ? "Active" : "Inactive"}
                 </span>
               </div>
-            </div>
-
-            {/* Status */}
-            <div>
-              <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
-                Catalog Status
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as "Active" | "Inactive")}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[13px] text-slate-900 focus:border-teal-500 focus:outline-hidden cursor-pointer font-semibold"
-              >
-                <option value="Active">🟢 Active (In Catalog)</option>
-                <option value="Inactive">🔴 Inactive (Archived)</option>
-              </select>
             </div>
           </div>
 

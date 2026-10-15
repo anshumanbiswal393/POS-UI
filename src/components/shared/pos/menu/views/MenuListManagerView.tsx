@@ -11,10 +11,8 @@ import {
 import type { MenuItem, MenuItemType } from "@/types/posMenu";
 import {
   useMenuItems,
-  useAddMenuItem,
   useUpdateMenuItem,
   useDeleteMenuItem,
-  useToggleItemPlatform,
 } from "@/hooks/queries/usePosMenu";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { MenuItemEditModal } from "../modals/MenuItemEditModal";
@@ -28,7 +26,6 @@ export function MenuListManagerView() {
   const { data: menuItems = [], isLoading, refetch, isFetching } = useMenuItems(activeOutlet.id);
   const deleteMutation = useDeleteMenuItem();
   const updateMutation = useUpdateMenuItem();
-  const togglePlatformMutation = useToggleItemPlatform();
 
   // Modals state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -40,37 +37,27 @@ export function MenuListManagerView() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingItem, setViewingItem] = useState<MenuItem | null>(null);
 
-  const handleToggleDirectQr = (id: string, name: string, currentVal: boolean) => {
-    const nextVal = !currentVal;
-    togglePlatformMutation.mutate(
-      { id, platform: "direct" },
-      {
-        onSuccess: () => {
-          toast.success(
-            nextVal
-              ? `"${name}" is now Live on Direct QR Menu`
-              : `"${name}" turned OFF from Direct QR Menu`
-          );
-        },
-        onError: () => toast.error("Failed to update Direct QR availability"),
-      }
-    );
-  };
-
   const handleToggleStatus = (item: MenuItem) => {
     const nextStatus = item.status === "Active" ? "Inactive" : "Active";
     updateMutation.mutate(
-      { id: item.id, data: { status: nextStatus } },
+      {
+        id: item.id,
+        data: {
+          status: nextStatus,
+          // Keep Direct QR / channels in sync with the single Status control
+          direct: nextStatus === "Active",
+        },
+      },
       {
         onSuccess: () => {
           toast.success(
             nextStatus === "Active"
-              ? `"${item.name}" enabled (now visible in Billing)`
-              : `"${item.name}" disabled (hidden from Billing)`
+              ? `"${item.name}" is Active — shown in Billing & printed menu`
+              : `"${item.name}" is Inactive — hidden from Billing & printed menu (kept in list)`,
           );
         },
         onError: () => toast.error("Failed to update dish status"),
-      }
+      },
     );
   };
 
@@ -179,34 +166,46 @@ export function MenuListManagerView() {
       enableSorting: true,
       enableFiltering: true,
       minWidth: 240,
-      cell: ({ row }) => (
-        <div className="min-w-0 py-0.5">
-          <div className="flex items-center gap-2">
-            <span
-              onClick={() => handleOpenView(row)}
-              className="font-bold text-slate-900 hover:text-teal-700 cursor-pointer transition text-xs sm:text-[13px] truncate"
-            >
-              {row.name}
-            </span>
+      cell: ({ row }) => {
+        const inactive = row.status !== "Active";
+        return (
+          <div className={`min-w-0 py-0.5 ${inactive ? "opacity-55" : ""}`}>
+            <div className="flex items-center gap-2">
+              <span
+                onClick={() => handleOpenView(row)}
+                className={`font-bold cursor-pointer transition text-xs sm:text-[13px] truncate ${
+                  inactive
+                    ? "text-slate-500 line-through decoration-slate-300 hover:text-slate-700"
+                    : "text-slate-900 hover:text-teal-700"
+                }`}
+              >
+                {row.name}
+              </span>
+              {inactive && (
+                <span className="shrink-0 rounded bg-slate-200 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-slate-600">
+                  Inactive
+                </span>
+              )}
+            </div>
+            {row.onlineDisplayName && row.onlineDisplayName !== row.name && (
+              <div
+                className="text-[11px] text-slate-500 truncate max-w-xs mt-0.5"
+                title={row.onlineDisplayName}
+              >
+                Online: {row.onlineDisplayName}
+              </div>
+            )}
+            {row.description && (
+              <div
+                className="text-[11px] text-slate-400 truncate max-w-sm mt-0.5"
+                title={row.description}
+              >
+                {row.description}
+              </div>
+            )}
           </div>
-          {row.onlineDisplayName && row.onlineDisplayName !== row.name && (
-            <div
-              className="text-[11px] text-slate-500 truncate max-w-xs mt-0.5"
-              title={row.onlineDisplayName}
-            >
-              Online: {row.onlineDisplayName}
-            </div>
-          )}
-          {row.description && (
-            <div
-              className="text-[11px] text-slate-400 truncate max-w-sm mt-0.5"
-              title={row.description}
-            >
-              {row.description}
-            </div>
-          )}
-        </div>
-      ),
+        );
+      },
     },
     {
       id: "code",
@@ -267,63 +266,45 @@ export function MenuListManagerView() {
       ),
     },
     {
-      id: "direct",
-      header: "Direct QR",
-      align: "center",
-      enableSorting: true,
-      enableFiltering: true,
-      filterValueAccessor: (row: MenuItem) => (row.direct ? "Live on Direct QR" : "Off"),
-      minWidth: 110,
-      cell: ({ row }) => (
-        <div className="inline-flex flex-col items-center gap-0.5 py-0.5">
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={row.direct}
-              onChange={() => handleToggleDirectQr(row.id, row.name, row.direct)}
-              disabled={togglePlatformMutation.isPending}
-              className="sr-only peer"
-            />
-            <div className="w-9 h-5 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600"></div>
-          </label>
-          <span
-            className={`text-[9.5px] font-bold ${
-              row.direct ? "text-teal-700" : "text-slate-400"
-            }`}
-          >
-            {row.direct ? "Direct Live" : "Off"}
-          </span>
-        </div>
-      ),
-    },
-    {
       id: "status",
       header: "Status",
       accessorKey: "status",
       enableSorting: true,
       enableFiltering: true,
       align: "center",
-      minWidth: 120,
-      cell: ({ row }) => (
-        <button
-          type="button"
-          onClick={() => handleToggleStatus(row)}
-          disabled={updateMutation.isPending}
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer ${
-            row.status === "Active"
-              ? "bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100"
-              : "bg-slate-100 text-slate-600 border border-slate-300 hover:bg-slate-200"
-          }`}
-          title={`Click to ${row.status === "Active" ? "Disable" : "Enable"} "${row.name}"`}
-        >
-          <span
-            className={`h-2 w-2 rounded-full ${
-              row.status === "Active" ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
-            }`}
-          />
-          <span>{row.status}</span>
-        </button>
-      ),
+      minWidth: 110,
+      filterValueAccessor: (row: MenuItem) => row.status,
+      cell: ({ row }) => {
+        const isActive = row.status === "Active";
+        return (
+          <div className="inline-flex flex-col items-center gap-0.5 py-0.5">
+            <label
+              className="relative inline-flex items-center cursor-pointer"
+              title={
+                isActive
+                  ? `Turn off "${row.name}" (hide from Billing & printed menu)`
+                  : `Turn on "${row.name}" (show in Billing & printed menu)`
+              }
+            >
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={() => handleToggleStatus(row)}
+                disabled={updateMutation.isPending}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600"></div>
+            </label>
+            <span
+              className={`text-[9.5px] font-bold ${
+                isActive ? "text-teal-700" : "text-slate-400"
+              }`}
+            >
+              {isActive ? "Active" : "Inactive"}
+            </span>
+          </div>
+        );
+      },
     },
     {
       id: "actions",
@@ -390,7 +371,7 @@ export function MenuListManagerView() {
               </span>
             </div>
             <p className="text-[12px] text-slate-500 font-medium">
-              Manage dishes, pricing, tax rates, Direct QR availability, dietary indicators, and search directly in the columns below.
+              Inactive items stay in this list but are hidden from Billing and the printed hotel menu.
             </p>
           </div>
         </div>

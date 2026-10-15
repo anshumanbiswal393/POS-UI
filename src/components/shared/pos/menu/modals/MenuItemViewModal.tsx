@@ -144,22 +144,22 @@ export function MenuItemViewModal({
             </div>
           )}
 
-          {/* Menu & QR Availability Status */}
+          {/* Single Status */}
           <div className="rounded-xl border border-slate-200 p-4 space-y-3">
-            <div className="text-[12.5px] font-bold text-slate-800">
-              Menu Availability Status
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[12px]">
-              <div className="flex items-center justify-between rounded-lg bg-slate-50 p-2.5 border border-slate-200">
-                <span className="font-semibold text-slate-700">POS Counter Menu</span>
-                <span className="text-emerald-600 font-bold">Active on Counter</span>
-              </div>
-              <div className="flex items-center justify-between rounded-lg bg-slate-50 p-2.5 border border-slate-200">
-                <span className="font-semibold text-slate-700">Direct QR Menu</span>
-                <span className={item.direct ? "text-teal-700 font-bold" : "text-slate-400 font-semibold"}>
-                  {item.direct ? "Direct Live" : "Off"}
-                </span>
-              </div>
+            <div className="text-[12.5px] font-bold text-slate-800">Status</div>
+            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-2.5 border border-slate-200 text-[12px]">
+              <span className="font-semibold text-slate-700">
+                Billing &amp; printed hotel menu
+              </span>
+              <span
+                className={
+                  item.status === "Active"
+                    ? "text-teal-700 font-bold"
+                    : "text-slate-400 font-semibold"
+                }
+              >
+                {item.status === "Active" ? "Active" : "Inactive"}
+              </span>
             </div>
           </div>
         </div>
