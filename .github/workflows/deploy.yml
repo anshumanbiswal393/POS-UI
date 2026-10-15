@@ -12,6 +12,8 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Docker vite build + SSR regularly exceeds 10m; keep the job alive
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,21 +31,27 @@ jobs:
           ssh-keyscan -p ${{ secrets.VM_PORT }} ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
 
       - name: Sync files to VM
+        env:
+          SSH_OPTS: -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=120 -o TCPKeepAlive=yes
         run: |
           rsync -avz --delete \
             --exclude='.git' --exclude='node_modules' --exclude='dist' --exclude='.output' \
             --exclude='.env' --exclude='.env.local' --exclude='.wrangler' \
-            -e "ssh -p ${{ secrets.VM_PORT }}" \
+            -e "ssh -p ${{ secrets.VM_PORT }} $SSH_OPTS" \
             ./ ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:/opt/retrod/POS-UI/
 
+      # Long docker builds look idle to middleboxes; keepalive + plain progress
+      # prevents "client_loop: send disconnect: Broken pipe" (~10m SSH drop).
       - name: Build and restart pos-ui
+        env:
+          SSH_OPTS: -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=120 -o TCPKeepAlive=yes
         run: |
-          ssh -p ${{ secrets.VM_PORT }} ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "
-            cd /opt/retrod/POS-UI &&
-            docker compose build pos-ui &&
-            docker compose up -d --force-recreate pos-ui &&
-            docker image prune -f
-          "
+          ssh -p ${{ secrets.VM_PORT }} $SSH_OPTS ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            'set -euo pipefail
+             cd /opt/retrod/POS-UI
+             docker compose build --progress=plain pos-ui
+             docker compose up -d --force-recreate pos-ui
+             docker image prune -f'
 
       - name: Sync deploy branch to main
         if: github.ref == 'refs/heads/main'
