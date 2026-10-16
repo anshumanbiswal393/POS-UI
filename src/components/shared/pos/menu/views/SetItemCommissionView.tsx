@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
-import { Plus, Upload, Edit2 } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { Edit2 } from "lucide-react";
 import { useItemCommissions } from "@/hooks/queries/usePosMenu";
 import { SetCommissionModal } from "../modals/SetCommissionModal";
 import type { MenuItemCommission } from "@/types/posMenu";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { toast } from "sonner";
+import { registerAddMenuCommissionHandler } from "@/components/shared/pos/menu/menuCommissionActions";
 
 export function SetItemCommissionView({ onBack }: { onBack?: () => void } = {}) {
   const { data: commissions, isFetching, isLoading } = useItemCommissions();
@@ -41,7 +42,7 @@ export function SetItemCommissionView({ onBack }: { onBack?: () => void } = {}) 
     setIsModalOpen(true);
   };
 
-  const handleBulkAdd = () => {
+  const handleBulkAdd = useCallback(() => {
     if (selectedIds.length === 0) {
       if (filteredCommissions.length > 0) {
         openEditModal(filteredCommissions[0]);
@@ -52,7 +53,13 @@ export function SetItemCommissionView({ onBack }: { onBack?: () => void } = {}) 
       const first = filteredCommissions.find((i) => i.id === selectedIds[0]);
       if (first) openEditModal(first);
     }
-  };
+  }, [selectedIds, filteredCommissions]);
+
+  // Header Add button lives in PosMenuHeader (replaces Sync POS on this page)
+  useEffect(() => {
+    registerAddMenuCommissionHandler(handleBulkAdd);
+    return () => registerAddMenuCommissionHandler(null);
+  }, [handleBulkAdd]);
 
   const columns: DataGridColumn<MenuItemCommission>[] = useMemo(
     () => [
@@ -150,35 +157,7 @@ export function SetItemCommissionView({ onBack }: { onBack?: () => void } = {}) 
 
   return (
     <div className="space-y-4">
-      {/* 1. Top Header & Action Buttons */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[13px] text-slate-500">Menu</span>
-          <span className="text-[13px] text-slate-400">›</span>
-          <span className="text-[14px] font-bold text-slate-900">Set Menu Commission</span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleBulkAdd}
-            className="flex items-center gap-1.5 rounded-lg bg-teal-600 px-3.5 py-1.5 text-[12.5px] font-semibold text-white shadow-xs hover:bg-teal-700 transition cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            Add Menu Commission
-          </button>
-          <button
-            type="button"
-            onClick={() => toast.info("Import commission rules dialog opened")}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-          >
-            <Upload className="h-3.5 w-3.5 text-slate-500" />
-            Import
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Sub Tabs: Item Commission & Addon Item Commission */}
+      {/* Sub Tabs: Item Commission & Addon Item Commission */}
       <div className="flex border-b border-slate-200">
         <button
           type="button"
