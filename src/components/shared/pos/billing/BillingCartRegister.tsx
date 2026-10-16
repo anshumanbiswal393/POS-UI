@@ -21,6 +21,7 @@ import type {
 } from "@/types/posBilling";
 import { getPosTaxSettings } from "@/lib/posTaxSettings";
 import { useSpecialNotes } from "@/hooks/queries/usePosMenu";
+import { useOutletContext } from "@/context/PosOutletContext";
 
 type BillingCartRegisterProps = {
   cartItems: BillingCartItem[];
@@ -63,7 +64,8 @@ export function BillingCartRegister({
   selectedCustomer,
   onSelectCustomer,
 }: BillingCartRegisterProps) {
-  const { data: specialNotes = [] } = useSpecialNotes();
+  const { activeOutlet } = useOutletContext();
+  const { data: specialNotes = [] } = useSpecialNotes(activeOutlet?.id);
   const availableNotes = useMemo(
     () => specialNotes.filter((n) => n.available),
     [specialNotes],

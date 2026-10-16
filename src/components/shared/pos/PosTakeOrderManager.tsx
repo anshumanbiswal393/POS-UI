@@ -63,7 +63,7 @@ export function PosTakeOrderManager() {
   const [bookingTableId, setBookingTableId] = useState<string | undefined>(undefined);
 
   // Table queries & mutations
-  const { data: diningAreas = ["Main Dining", "Terrace", "Outdoor"] } = useDiningAreas();
+  const { data: diningAreas = [] } = useDiningAreas();
   const { data: tables = [], refetch: refetchTables } = usePosTables(activeArea);
   const { data: allTables = [] } = usePosTables();
   const { data: stats } = usePosTableStats(activeArea);

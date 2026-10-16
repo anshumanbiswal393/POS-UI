@@ -10,12 +10,15 @@ import { AddSpecialNoteModal } from "../modals/AddSpecialNoteModal";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import type { SpecialNote } from "@/types/posMenu";
 import { toast } from "sonner";
+import { useOutletContext } from "@/context/PosOutletContext";
 
 export function SpecialNoteView({ onBack }: { onBack?: () => void }) {
-  const { data: specialNotes = [], isLoading } = useSpecialNotes();
-  const toggleMutation = useToggleSpecialNote();
-  const deleteMutation = useDeleteSpecialNote();
-  const addMutation = useAddSpecialNote();
+  const { activeOutlet } = useOutletContext();
+  const outletId = activeOutlet?.id;
+  const { data: specialNotes = [], isLoading } = useSpecialNotes(outletId);
+  const toggleMutation = useToggleSpecialNote(outletId);
+  const deleteMutation = useDeleteSpecialNote(outletId);
+  const addMutation = useAddSpecialNote(outletId);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 

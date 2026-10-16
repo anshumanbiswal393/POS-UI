@@ -49,6 +49,17 @@ export type SpecialNote = {
   available: boolean;
 };
 
+/** Outlet-scoped menu category (Starters, Main Course, etc.) */
+export type MenuCategory = {
+  id: string;
+  outletId: string;
+  name: string;
+  code?: string | null;
+  sortOrder?: number;
+  isActive?: boolean;
+  itemCount?: number;
+};
+
 export type MenuItemCommission = {
   id: string;
   name: string;
@@ -91,6 +102,8 @@ export type PosOutlet = {
   orderTypes: string[];
   status: "Active" | "Inactive";
   menuCount: number;
+  /** Parent physical/HO outlet id for virtual / cloud brands */
+  parentOutletId?: string | null;
 };
 
 export type VirtualOutlet = PosOutlet;

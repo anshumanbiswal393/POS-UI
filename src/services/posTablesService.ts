@@ -5,6 +5,7 @@ import type {
   DiningArea,
 } from "@/types/posTables";
 import { createDineInOrder, updateDineInOrder, type CreateDineInOrderInput } from "./posOrdersService";
+import { isBackendOutletId } from "@/utils/outletId";
 
 // Initial mock reservations matching the provided design
 const INITIAL_RESERVATIONS: ReservationItem[] = [
@@ -439,22 +440,49 @@ const INITIAL_TABLES: RestaurantTable[] = [
   },
 ];
 
-// In-memory store
-let areasStore: string[] = ["Main Dining", "Terrace", "Outdoor"];
-let tablesStore: RestaurantTable[] = [...INITIAL_TABLES];
-let reservationsStore: ReservationItem[] = [...INITIAL_RESERVATIONS];
+// Legacy mock store (non-UUID demo ids only). Real DB outlets start empty per outlet.
+type TableBucket = {
+  areas: string[];
+  tables: RestaurantTable[];
+  reservations: ReservationItem[];
+};
+
+const legacyBucket: TableBucket = {
+  areas: ["Main Dining", "Terrace", "Outdoor"],
+  tables: [...INITIAL_TABLES],
+  reservations: [...INITIAL_RESERVATIONS],
+};
+const outletBuckets = new Map<string, TableBucket>();
+let scopedOutletId: string | undefined;
+
+/** Scope table/reservation mutations to the active outlet (empty for new UUID outlets). */
+export function setTablesOutletScope(outletId?: string | null) {
+  scopedOutletId = outletId || undefined;
+}
+
+function store(): TableBucket {
+  if (scopedOutletId && isBackendOutletId(scopedOutletId)) {
+    let b = outletBuckets.get(scopedOutletId);
+    if (!b) {
+      b = { areas: [], tables: [], reservations: [] };
+      outletBuckets.set(scopedOutletId, b);
+    }
+    return b;
+  }
+  return legacyBucket;
+}
 
 export const posTablesService = {
   getAreas: async (): Promise<string[]> => {
-    return [...areasStore];
+    return [...store().areas];
   },
 
   addArea: async (areaName: string): Promise<string[]> => {
     const trimmed = areaName.trim();
-    if (trimmed && !areasStore.includes(trimmed)) {
-      areasStore = [...areasStore, trimmed];
+    if (trimmed && !store().areas.includes(trimmed)) {
+      store().areas = [...store().areas, trimmed];
     }
-    return [...areasStore];
+    return [...store().areas];
   },
 
   addTable: async (input: {
@@ -463,7 +491,7 @@ export const posTablesService = {
     area: string;
     shape?: "rectangle" | "square" | "circle";
   }): Promise<RestaurantTable> => {
-    const rawNum = parseInt(input.tableNumber.replace(/\D/g, ""), 10) || tablesStore.length + 1;
+    const rawNum = parseInt(input.tableNumber.replace(/\D/g, ""), 10) || store().tables.length + 1;
     const defaultShape = input.capacity >= 6 ? "rectangle" : "square";
 
     const newTable: RestaurantTable = {
@@ -481,14 +509,14 @@ export const posTablesService = {
       status: "vacant",
     };
 
-    tablesStore = [...tablesStore, newTable];
+    store().tables = [...store().tables, newTable];
     return newTable;
   },
 
   getTables: async (area?: DiningArea): Promise<RestaurantTable[]> => {
     // Re-link reservations in case status changed
-    const current = tablesStore.map((tbl) => {
-      const activeRes = reservationsStore.find(
+    const current = store().tables.map((tbl) => {
+      const activeRes = store().reservations.find(
         (r) => r.tableId === tbl.id && (r.status === "reserved" || r.status === "seated"),
       );
       return {
@@ -504,11 +532,11 @@ export const posTablesService = {
   },
 
   getReservations: async (): Promise<ReservationItem[]> => {
-    return [...reservationsStore];
+    return [...store().reservations];
   },
 
   getStats: async (area?: DiningArea): Promise<TableManagementStats> => {
-    const list = area ? tablesStore.filter((t) => t.area === area) : tablesStore;
+    const list = area ? store().tables.filter((t) => t.area === area) : store().tables;
     const totalTables = list.length;
     const availableCount = list.filter((t) => t.status === "vacant").length;
     const reservedCount = list.filter((t) => t.status === "reserved").length;
@@ -534,7 +562,7 @@ export const posTablesService = {
         ? Array.from(new Set([data.tableId, ...data.mergedTableIds]))
         : [data.tableId];
     const mergedNumbers = mergedIds.map(
-      (id) => tablesStore.find((t) => t.id === id)?.tableNumber || id,
+      (id) => store().tables.find((t) => t.id === id)?.tableNumber || id,
     );
     const isMerged = mergedIds.length > 1;
 
@@ -550,10 +578,10 @@ export const posTablesService = {
       createdAt: new Date().toISOString(),
     };
 
-    reservationsStore = [newReservation, ...reservationsStore];
+    store().reservations = [newReservation, ...store().reservations];
 
     // Book every linked table under the same guest reservation
-    tablesStore = tablesStore.map((tbl) => {
+    store().tables = store().tables.map((tbl) => {
       if (mergedIds.includes(tbl.id)) {
         return {
           ...tbl,
@@ -572,7 +600,7 @@ export const posTablesService = {
     let reservation: ReservationItem | undefined;
 
     if (reservationId) {
-      reservationsStore = reservationsStore.map((r) => {
+      store().reservations = store().reservations.map((r) => {
         if (r.id === reservationId) {
           reservation = { ...r, status: "seated" };
           return reservation;
@@ -601,7 +629,7 @@ export const posTablesService = {
     };
 
     let updatedTable!: RestaurantTable;
-    tablesStore = tablesStore.map((tbl) => {
+    store().tables = store().tables.map((tbl) => {
       if (linkedIds.includes(tbl.id)) {
         const next = {
           ...tbl,
@@ -622,7 +650,7 @@ export const posTablesService = {
   cancelReservation: async (reservationId: string): Promise<void> => {
     let linkedTableIds: string[] = [];
 
-    reservationsStore = reservationsStore.map((r) => {
+    store().reservations = store().reservations.map((r) => {
       if (r.id === reservationId) {
         linkedTableIds =
           r.mergedTableIds && r.mergedTableIds.length > 0
@@ -636,7 +664,7 @@ export const posTablesService = {
     });
 
     if (linkedTableIds.length > 0) {
-      tablesStore = tablesStore.map((tbl) => {
+      store().tables = store().tables.map((tbl) => {
         if (linkedTableIds.includes(tbl.id)) {
           return {
             ...tbl,
@@ -653,7 +681,7 @@ export const posTablesService = {
   vacateTable: async (tableId: string): Promise<RestaurantTable> => {
     let updatedTable!: RestaurantTable;
 
-    tablesStore = tablesStore.map((tbl) => {
+    store().tables = store().tables.map((tbl) => {
       if (tbl.id === tableId) {
         updatedTable = {
           ...tbl,
@@ -668,7 +696,7 @@ export const posTablesService = {
     });
 
     // Mark any active reservation for this table as completed
-    reservationsStore = reservationsStore.map((r) => {
+    store().reservations = store().reservations.map((r) => {
       if (r.tableId === tableId && (r.status === "reserved" || r.status === "seated")) {
         return { ...r, status: "completed" };
       }
@@ -695,7 +723,7 @@ export const posTablesService = {
     subtotal: number;
     grandTotal: number;
   }): Promise<{ table: RestaurantTable; orderNumber: string; kotId: number }> => {
-    let targetTable = tablesStore.find((t) => t.id === input.tableId);
+    let targetTable = store().tables.find((t) => t.id === input.tableId);
     const tableNumber = targetTable?.tableNumber || `Table #${input.tableId}`;
     const section = targetTable?.area || "Main Dining";
 
@@ -715,7 +743,7 @@ export const posTablesService = {
 
     // 2. Update Table Store state
     let updatedTable!: RestaurantTable;
-    tablesStore = tablesStore.map((tbl) => {
+    store().tables = store().tables.map((tbl) => {
       if (tbl.id === input.tableId) {
         updatedTable = {
           ...tbl,
@@ -758,7 +786,7 @@ export const posTablesService = {
     grandTotal: number;
     modifiedSummaryText: string;
   }): Promise<{ table: RestaurantTable; kotId: number }> => {
-    let targetTable = tablesStore.find((t) => t.id === input.tableId);
+    let targetTable = store().tables.find((t) => t.id === input.tableId);
     const tableNumber = targetTable?.tableNumber || `Table #${input.tableId}`;
 
     const { kotId } = updateDineInOrder({
@@ -774,7 +802,7 @@ export const posTablesService = {
     });
 
     let updatedTable!: RestaurantTable;
-    tablesStore = tablesStore.map((tbl) => {
+    store().tables = store().tables.map((tbl) => {
       if (tbl.id === input.tableId && tbl.activeOrder) {
         updatedTable = {
           ...tbl,

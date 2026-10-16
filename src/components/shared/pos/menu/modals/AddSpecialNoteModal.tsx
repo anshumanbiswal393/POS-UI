@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { useAddSpecialNote } from "@/hooks/queries/usePosMenu";
 import { toast } from "sonner";
+import { useOutletContext } from "@/context/PosOutletContext";
 
 export function AddSpecialNoteModal({
   isOpen,
@@ -12,9 +13,10 @@ export function AddSpecialNoteModal({
   onClose: () => void;
   initialName?: string;
 }) {
+  const { activeOutlet } = useOutletContext();
   const [name, setName] = useState(initialName);
   const [available, setAvailable] = useState(true);
-  const addMutation = useAddSpecialNote();
+  const addMutation = useAddSpecialNote(activeOutlet?.id);
 
   if (!isOpen) return null;
 

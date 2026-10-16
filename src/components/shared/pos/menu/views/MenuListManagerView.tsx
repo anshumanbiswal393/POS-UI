@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Plus,
   Edit2,
@@ -7,6 +7,9 @@ import {
   Trash2,
   RefreshCw,
   UtensilsCrossed,
+  Layers,
+  ChevronDown,
+  List,
 } from "lucide-react";
 import type { MenuItem, MenuItemType } from "@/types/posMenu";
 import {
@@ -18,6 +21,7 @@ import { useOutletContext } from "@/context/PosOutletContext";
 import { MenuItemEditModal } from "../modals/MenuItemEditModal";
 import { ItemImageManagerModal } from "../modals/ItemImageManagerModal";
 import { MenuItemViewModal } from "../modals/MenuItemViewModal";
+import { MenuCategoryManagerModal } from "../modals/MenuCategoryManagerModal";
 import { toast } from "sonner";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 
@@ -36,6 +40,22 @@ export function MenuListManagerView() {
 
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingItem, setViewingItem] = useState<MenuItem | null>(null);
+
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [categoryModalMode, setCategoryModalMode] = useState<"menu" | "view" | "add">("menu");
+  const categoryMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!categoryMenuOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (categoryMenuRef.current && !categoryMenuRef.current.contains(e.target as Node)) {
+        setCategoryMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [categoryMenuOpen]);
 
   const handleToggleStatus = (item: MenuItem) => {
     const nextStatus = item.status === "Active" ? "Inactive" : "Active";
@@ -392,6 +412,46 @@ export function MenuListManagerView() {
             <span className="hidden sm:inline">Refresh</span>
           </button>
 
+          <div className="relative" ref={categoryMenuRef}>
+            <button
+              type="button"
+              onClick={() => setCategoryMenuOpen((v) => !v)}
+              className="flex items-center gap-1.5 rounded-xl border border-teal-300 bg-teal-50/80 hover:bg-teal-100 px-3.5 py-2 text-[12.5px] font-bold text-teal-800 shadow-2xs transition cursor-pointer"
+            >
+              <Layers className="h-4 w-4" />
+              <span>Category</span>
+              <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+            </button>
+            {categoryMenuOpen && (
+              <div className="absolute right-0 z-20 mt-1.5 w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg animate-in fade-in zoom-in-95">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryMenuOpen(false);
+                    setCategoryModalMode("view");
+                    setCategoryModalOpen(true);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[13px] font-semibold text-slate-800 hover:bg-slate-50 cursor-pointer"
+                >
+                  <List className="h-4 w-4 text-slate-500" />
+                  View Category
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryMenuOpen(false);
+                    setCategoryModalMode("add");
+                    setCategoryModalOpen(true);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[13px] font-semibold text-teal-800 hover:bg-teal-50 cursor-pointer"
+                >
+                  <Plus className="h-4 w-4 text-teal-600" />
+                  Add New Category
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={handleOpenAdd}
@@ -442,6 +502,14 @@ export function MenuListManagerView() {
         onClose={() => setIsViewModalOpen(false)}
         item={viewingItem}
         onEdit={(item) => handleOpenEdit(item)}
+      />
+
+      <MenuCategoryManagerModal
+        isOpen={categoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        outletId={activeOutlet.id}
+        outletName={activeOutlet.name}
+        initialMode={categoryModalMode}
       />
     </div>
   );

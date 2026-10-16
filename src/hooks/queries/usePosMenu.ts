@@ -4,7 +4,9 @@ import type { MenuItem, MenuItemImage } from "@/types/posMenu";
 
 export const MENU_QUERY_KEYS = {
   menuItems: (outletId?: string) => ["pos", "menu", "items", outletId || "all"] as const,
-  specialNotes: ["pos", "menu", "special-notes"] as const,
+  categories: (outletId?: string) => ["pos", "menu", "categories", outletId || "all"] as const,
+  specialNotes: (outletId?: string) =>
+    ["pos", "menu", "special-notes", outletId || "all"] as const,
   commissions: ["pos", "menu", "commissions"] as const,
   stockItems: (outletId?: string) => ["pos", "menu", "stock-items", outletId || "all"] as const,
   schedules: ["pos", "menu", "schedules"] as const,
@@ -169,41 +171,82 @@ export function useSetPrimaryImage() {
   });
 }
 
-// 4. Special Notes
-export function useSpecialNotes() {
+// 3b. Menu Categories
+export function useMenuCategories(outletId?: string) {
   return useQuery({
-    queryKey: MENU_QUERY_KEYS.specialNotes,
-    queryFn: posMenuService.getSpecialNotes,
+    queryKey: MENU_QUERY_KEYS.categories(outletId),
+    queryFn: () => posMenuService.getCategories(outletId || ""),
+    enabled: Boolean(outletId),
   });
 }
 
-export function useAddSpecialNote() {
+export function useAddMenuCategory(outletId?: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ name, available }: { name: string; available?: boolean }) =>
-      posMenuService.addSpecialNote(name, available),
+    mutationFn: (name: string) => posMenuService.addCategory(outletId || "", name),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.specialNotes });
+      queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.categories(outletId) });
     },
   });
 }
 
-export function useToggleSpecialNote() {
+export function useUpdateMenuCategory(outletId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) =>
+      posMenuService.updateCategory(outletId || "", id, { name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.categories(outletId) });
+      queryClient.invalidateQueries({ queryKey: ["pos", "menu", "items"] });
+    },
+  });
+}
+
+export function useDeleteMenuCategory(outletId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => posMenuService.deleteCategory(outletId || "", id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.categories(outletId) });
+    },
+  });
+}
+
+// 4. Special Notes
+export function useSpecialNotes(outletId?: string) {
+  return useQuery({
+    queryKey: MENU_QUERY_KEYS.specialNotes(outletId),
+    queryFn: () => posMenuService.getSpecialNotes(outletId),
+  });
+}
+
+export function useAddSpecialNote(outletId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ name, available }: { name: string; available?: boolean }) =>
+      posMenuService.addSpecialNote(name, available, outletId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.specialNotes(outletId) });
+    },
+  });
+}
+
+export function useToggleSpecialNote(outletId?: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => posMenuService.toggleSpecialNote(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.specialNotes });
+      queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.specialNotes(outletId) });
     },
   });
 }
 
-export function useDeleteSpecialNote() {
+export function useDeleteSpecialNote(outletId?: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => posMenuService.deleteSpecialNote(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.specialNotes });
+      queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.specialNotes(outletId) });
     },
   });
 }

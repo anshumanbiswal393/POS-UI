@@ -6,7 +6,6 @@ import type {
   BillingCartItem,
   BillingItemVariant,
 } from "@/types/posBilling";
-import { BILLING_CATEGORIES } from "./mockBillingData";
 import { FoodTypeIcon } from "@/components/ui/FoodTypeIcon";
 import { cn } from "@/lib/utils";
 
@@ -50,14 +49,19 @@ export function BillingMenuCatalog({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // Categories come only from this outlet's menu items (no hardcoded mock chips).
   const allCategories = useMemo(() => {
-    const customCats = Array.from(new Set(items.map((i) => i.category).filter(Boolean)));
-    const combined = ["All Items", ...BILLING_CATEGORIES.filter((c) => c !== "All Items")];
-    for (const cat of customCats) {
-      if (!combined.includes(cat)) combined.push(cat);
-    }
-    return combined;
+    const fromItems = Array.from(
+      new Set(items.map((i) => i.category).filter((c): c is string => Boolean(c?.trim()))),
+    ).sort((a, b) => a.localeCompare(b));
+    return ["All Items", ...fromItems];
   }, [items]);
+
+  useEffect(() => {
+    if (!allCategories.includes(selectedCategory)) {
+      setSelectedCategory("All Items");
+    }
+  }, [allCategories, selectedCategory]);
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {

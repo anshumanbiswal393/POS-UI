@@ -13,6 +13,7 @@ import type {
   AttentionItem,
   OperationsSummary,
 } from "@/types/posDashboard";
+import { isBackendOutletId } from "@/utils/outletId";
 
 /**
  * Format currency in Indian Rupees style (e.g. ₹1,84,260)
@@ -288,10 +289,10 @@ export function mapDtoToDashboardModel(
   }));
 
   const opDto = dto.operationalMetrics[0] || {
-    avgPrepTimeMinutes: 18,
-    successfulOrdersCount: 142,
-    complimentaryOrdersCount: 8,
-    cancelledOrdersCount: 11,
+    avgPrepTimeMinutes: 0,
+    successfulOrdersCount: 0,
+    complimentaryOrdersCount: 0,
+    cancelledOrdersCount: 0,
   };
 
   const operations: OperationsSummary = {
@@ -319,10 +320,66 @@ export function mapDtoToDashboardModel(
   };
 }
 
+/** Empty dashboard for new HO/Kitchen outlets (no demo numbers). */
+const EMPTY_DASHBOARD_API_RESPONSE: PosDashboardApiResponse = {
+  success: true,
+  outletId: "",
+  outletName: "",
+  date: "Today",
+  currency: "INR",
+  stats: {
+    totalCollections: 0,
+    totalOrders: 0,
+    activeTablesCount: 0,
+    totalTablesCount: 0,
+    unpaidBillsAmount: 0,
+    unpaidBillsCount: 0,
+    roomChargesAmount: 0,
+    roomChargesCount: 0,
+  },
+  salesGraph: [
+    { hour: "12 AM", todaySales: 0, yesterdaySales: 0 },
+    { hour: "4 AM", todaySales: 0, yesterdaySales: 0 },
+    { hour: "8 AM", todaySales: 0, yesterdaySales: 0 },
+    { hour: "12 PM", todaySales: 0, yesterdaySales: 0 },
+    { hour: "4 PM", todaySales: 0, yesterdaySales: 0 },
+    { hour: "8 PM", todaySales: 0, yesterdaySales: 0 },
+    { hour: "12 AM", todaySales: 0, yesterdaySales: 0 },
+  ],
+  orderTypes: [
+    { type: "dine_in", label: "Dine-in", count: 0, percentage: 0, color: "#0f766e" },
+    { type: "takeaway", label: "Takeaway", count: 0, percentage: 0, color: "#0d9488" },
+    { type: "room_service", label: "Room service", count: 0, percentage: 0, color: "#94a3b8" },
+  ],
+  liveOrders: [],
+  paymentSummary: {
+    cash: { amount: 0, percentage: 0 },
+    card: { amount: 0, percentage: 0 },
+    upiWallets: { amount: 0, percentage: 0 },
+    other: { amount: 0, percentage: 0 },
+    total: 0,
+  },
+  tables: [],
+  topSellingItems: [],
+  attentionAlerts: [],
+  operationalMetrics: [
+    {
+      avgPrepTimeMinutes: 0,
+      successfulOrdersCount: 0,
+      complimentaryOrdersCount: 0,
+      cancelledOrdersCount: 0,
+      exceptionsCount: 0,
+    },
+  ],
+};
+
 /**
  * Returns synchronous initial dashboard data for SSR and instant initial render
  */
-export function getInitialDashboardData(): PosDashboardData {
+export function getInitialDashboardData(outletId?: string): PosDashboardData {
+  if (isBackendOutletId(outletId)) {
+    return mapDtoToDashboardModel(EMPTY_DASHBOARD_API_RESPONSE, false);
+  }
   return mapDtoToDashboardModel(MOCK_DASHBOARD_API_RESPONSE, true);
 }
 
@@ -332,19 +389,26 @@ export function getInitialDashboardData(): PosDashboardData {
 export async function getPosDashboardData(
   filters?: DashboardFilterParams,
 ): Promise<PosDashboardData> {
+  const outletId = filters?.outletId;
   if (typeof window === "undefined") {
-    return getInitialDashboardData();
+    return getInitialDashboardData(outletId);
   }
 
   try {
     const response = await httpClient.get<PosDashboardApiResponse>("/api/pos/dashboard", {
       params: filters,
     });
-    if (response.data && response.data.success) {
+    // Stub / incomplete payloads must not surface Highway demo numbers for real outlets
+    if (
+      response.data &&
+      response.data.success &&
+      response.data.stats &&
+      Array.isArray(response.data.orderTypes)
+    ) {
       return mapDtoToDashboardModel(response.data, false);
     }
-    return getInitialDashboardData();
+    return getInitialDashboardData(outletId);
   } catch (_err) {
-    return getInitialDashboardData();
+    return getInitialDashboardData(outletId);
   }
 }

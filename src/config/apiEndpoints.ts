@@ -3,6 +3,11 @@
  * Defines all standard REST contracts for Menu, Billing, Operations, Tables, and Rooms.
  */
 export const API_ENDPOINTS = {
+  OUTLETS: {
+    LIST: "/api/pos/outlets/",
+    CREATE: "/api/pos/outlets/",
+    BY_ID: (id: string) => `/api/pos/outlets/${id}/`,
+  },
   MENU: {
     ITEMS: "/api/pos/menu/items",
     ITEM_BY_ID: (id: string) => `/api/pos/menu/items/${id}`,
@@ -12,7 +17,10 @@ export const API_ENDPOINTS = {
     TOGGLE_STATUS: (id: string) => `/api/pos/menu/items/${id}/status`,
     TOGGLE_PLATFORM: (id: string, platform: string) => `/api/pos/menu/items/${id}/platform/${platform}`,
     BULK_PLATFORMS: "/api/pos/menu/items/bulk-platforms",
-    SPECIAL_NOTES: "/api/pos/menu/special-notes",
+    CATEGORIES: "/api/pos/menu/categories/",
+    CATEGORY_BY_ID: (id: string) => `/api/pos/menu/categories/${id}/`,
+    SPECIAL_NOTES: "/api/pos/menu/special-notes/",
+    SPECIAL_NOTE_BY_ID: (id: string) => `/api/pos/menu/special-notes/${id}/`,
     COMMISSIONS: "/api/pos/menu/commissions",
     ITEM_IMAGES: (id: string) => `/api/pos/menu/items/${id}/images`,
     SYNC_POS: "/api/pos/menu/sync",

@@ -12,27 +12,12 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { MenuItem, MenuItemImage, MenuItemType } from "@/types/posMenu";
-import { useAddMenuItem, useUpdateMenuItem } from "@/hooks/queries/usePosMenu";
+import {
+  useAddMenuItem,
+  useUpdateMenuItem,
+  useMenuCategories,
+} from "@/hooks/queries/usePosMenu";
 import { toast } from "sonner";
-
-const CATEGORY_OPTIONS = [
-  "Veg Main Course",
-  "Non-Veg Main Course",
-  "Veg Starters",
-  "Non-Veg Starters",
-  "Bread",
-  "Egg Specialties",
-  "Biryani & Rice",
-  "Tandoori Kebabs",
-  "Burgers",
-  "Sides & Shakes",
-  "Veg Soup",
-  "Non-Veg Soup",
-  "Mocktails",
-  "Vodka",
-  "Indian Whisky",
-  "Desserts",
-];
 
 const MAX_FILE_SIZE_MB = 5;
 const ALLOWED_EXTENSIONS = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
@@ -50,13 +35,15 @@ export function MenuItemEditModal({
 }) {
   const addMutation = useAddMenuItem();
   const updateMutation = useUpdateMenuItem();
+  const { data: outletCategories = [] } = useMenuCategories(defaultOutletId);
+  const categoryOptions = outletCategories.map((c) => c.name);
 
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [onlineDisplayName, setOnlineDisplayName] = useState("");
-  const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
+  const [category, setCategory] = useState("");
   const [itemType, setItemType] = useState<MenuItemType>("Veg");
-  const [price, setPrice] = useState<number | string>(250);
+  const [price, setPrice] = useState<number | string>("");
   const [taxRate, setTaxRate] = useState<number>(5);
   const [status, setStatus] = useState<"Active" | "Inactive">("Active");
   const [description, setDescription] = useState("");
@@ -74,7 +61,7 @@ export function MenuItemEditModal({
         setName(item.name);
         setCode(item.code);
         setOnlineDisplayName(item.onlineDisplayName || item.name);
-        setCategory(item.category || CATEGORY_OPTIONS[0]);
+        setCategory(item.category || categoryOptions[0] || "");
         setItemType(item.itemType || "Veg");
         setPrice(item.price);
         setTaxRate(item.taxRate ?? 5);
@@ -83,11 +70,11 @@ export function MenuItemEditModal({
         setImages(item.images || []);
       } else {
         setName("");
-        setCode(`FD-${Math.floor(100 + Math.random() * 900)}`);
+        setCode("");
         setOnlineDisplayName("");
-        setCategory(CATEGORY_OPTIONS[0]);
+        setCategory(categoryOptions[0] || "");
         setItemType("Veg");
-        setPrice(220);
+        setPrice("");
         setTaxRate(5);
         setStatus("Active");
         setDescription("");
@@ -96,7 +83,15 @@ export function MenuItemEditModal({
       setIsUploading(false);
       setUploadProgress(0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset from item/open; categories hydrate separately
   }, [isOpen, item]);
+
+  // When categories load after modal open, default blank category for new items
+  useEffect(() => {
+    if (isOpen && !item && !category && categoryOptions.length > 0) {
+      setCategory(categoryOptions[0]);
+    }
+  }, [isOpen, item, category, categoryOptions]);
 
   if (!isOpen) return null;
 
@@ -208,6 +203,10 @@ export function MenuItemEditModal({
       toast.error("Please enter an item code / SKU");
       return;
     }
+    if (!category.trim()) {
+      toast.error("Please enter a category for this menu item");
+      return;
+    }
     const numPrice = Number(price);
     if (isNaN(numPrice) || numPrice < 0) {
       toast.error("Please enter a valid price");
@@ -218,7 +217,7 @@ export function MenuItemEditModal({
       name: name.trim(),
       code: code.trim().toUpperCase(),
       onlineDisplayName: (onlineDisplayName || name).trim(),
-      category,
+      category: category.trim(),
       itemType,
       price: numPrice,
       taxRate: Number(taxRate) || 5,
@@ -329,22 +328,39 @@ export function MenuItemEditModal({
               />
             </div>
 
-            {/* Category */}
+            {/* Category — from outlet Category manager; also free-type if needed */}
             <div>
               <label className="block text-[12.5px] font-semibold text-slate-700 mb-1">
                 Category <span className="text-red-500">*</span>
               </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-900 focus:border-teal-500 focus:outline-hidden cursor-pointer"
-              >
-                {CATEGORY_OPTIONS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+              {categoryOptions.length > 0 ? (
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-900 focus:border-teal-500 focus:outline-hidden"
+                >
+                  {!categoryOptions.includes(category) && category ? (
+                    <option value={category}>{category}</option>
+                  ) : null}
+                  {categoryOptions.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="Add a category first (Category button), or type one"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-hidden"
+                />
+              )}
+              <p className="mt-1 text-[11px] text-slate-500">
+                Manage categories via the Category button. Once items use a category, it shows on
+                Billing filters.
+              </p>
             </div>
           </div>
 

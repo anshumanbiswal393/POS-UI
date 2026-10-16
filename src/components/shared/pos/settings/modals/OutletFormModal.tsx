@@ -57,12 +57,12 @@ export function OutletFormModal({
         setStatus(outlet.status || "Active");
       } else {
         setName("");
-        setCode(`HI-VO${Math.floor(100 + Math.random() * 900)}`);
+        setCode(`VO-${Math.floor(100 + Math.random() * 900)}`);
         setOutletType(OUTLET_TYPES[0]);
-        setCuisine("Biryani, Mughlai & Fast Food");
-        setDescription("Specialized cloud kitchen brand operating out of main kitchen facility.");
-        setAddress("Kitchen Bay 4, Highway Inn Compound, Sector 4");
-        setContact("+91 98765 43219");
+        setCuisine("");
+        setDescription("");
+        setAddress("");
+        setContact("");
         setOrderTypes(["Online Delivery", "Takeaway"]);
         setStatus("Active");
       }
@@ -77,7 +77,9 @@ export function OutletFormModal({
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       toast.error("Please enter the outlet / brand name");
@@ -100,8 +102,12 @@ export function OutletFormModal({
         status,
       });
       onClose();
-    } else {
-      createVirtualOutlet({
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await createVirtualOutlet({
         name: name.trim(),
         code: code.trim().toUpperCase(),
         cuisine: cuisine.trim() || "Multi-Cuisine",
@@ -112,6 +118,14 @@ export function OutletFormModal({
         status,
       });
       onClose();
+    } catch (err: unknown) {
+      const message =
+        (err as { message?: string; data?: { detail?: string } })?.data?.detail ||
+        (err as { message?: string })?.message ||
+        "Failed to create outlet";
+      toast.error(String(message));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -149,7 +163,11 @@ export function OutletFormModal({
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+        <form
+          id="pos-outlet-form"
+          onSubmit={(e) => void handleSubmit(e)}
+          className="flex-1 overflow-y-auto p-6 space-y-4"
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Outlet Name */}
             <div className="sm:col-span-2">
@@ -325,11 +343,12 @@ export function OutletFormModal({
               Cancel
             </button>
             <button
-              type="button"
-              onClick={handleSubmit}
-              className="rounded-lg bg-teal-600 hover:bg-teal-700 px-6 py-2 text-[12.5px] font-bold text-white shadow-2xs transition cursor-pointer"
+              type="submit"
+              disabled={saving}
+              form="pos-outlet-form"
+              className="rounded-lg bg-teal-600 hover:bg-teal-700 px-6 py-2 text-[12.5px] font-bold text-white shadow-2xs transition cursor-pointer disabled:opacity-60"
             >
-              {outlet ? "Save Changes" : "Create Virtual Outlet"}
+              {saving ? "Saving…" : outlet ? "Save Changes" : "Create Virtual Outlet"}
             </button>
           </div>
         </div>

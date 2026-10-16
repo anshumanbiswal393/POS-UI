@@ -32,6 +32,7 @@ import {
 import { getPosTaxSettings } from "@/lib/posTaxSettings";
 import { useHotelRooms } from "@/hooks/queries/usePosRoomService";
 import { usePosTables } from "@/hooks/queries/usePosTables";
+import { isBackendOutletId } from "@/utils/outletId";
 
 export function PosBillingManager() {
   const queryClient = useQueryClient();
@@ -73,18 +74,28 @@ export function PosBillingManager() {
     [restaurantTables],
   );
 
-  // 1. Order & Header State
+  // 1. Order & Header State — blank until user picks table/pax for a new outlet
   const [orderType, setOrderType] = useState<BillingOrderType>("dine_in");
   const [activeTable, setActiveTable] = useState("");
   const [roomNumber, setRoomNumber] = useState("");
-  const [guestCount, setGuestCount] = useState(4);
+  const [guestCount, setGuestCount] = useState(0);
   const [billNumber, setBillNumber] = useState("RET-2026-9024");
   const [searchQuery, setSearchQuery] = useState("");
   const [specialNote, setSpecialNote] = useState("");
   const captainName = user?.name?.trim() || "Steward";
+  const isBackendOutlet = isBackendOutletId(activeOutlet?.id);
 
-  // Default dine-in table to first available/reserved (canonical Take Order tableNumber)
+  // Reset cart / held bills when switching to a real DB outlet (new HO/Kitchen starts empty)
   useEffect(() => {
+    if (!isBackendOutlet) return;
+    setActiveTable("");
+    setGuestCount(0);
+    setSpecialNote("");
+  }, [activeOutlet?.id, isBackendOutlet]);
+
+  // Legacy mock outlets only: auto-pick first vacant/reserved table
+  useEffect(() => {
+    if (isBackendOutlet) return;
     if (selectableTables.length === 0) return;
     const match = resolveTableMatch(activeTable);
     if (match) {
@@ -96,7 +107,7 @@ export function PosBillingManager() {
     const first = selectableTables[0];
     setActiveTable(first.tableNumber);
     setGuestCount(first.activeReservation?.guests || first.capacity || 4);
-  }, [selectableTables, activeTable, resolveTableMatch]);
+  }, [selectableTables, activeTable, resolveTableMatch, isBackendOutlet]);
 
   // When an occupied room is already set (e.g. from Take Order URL), fill pax from folio
   useEffect(() => {
@@ -284,9 +295,16 @@ export function PosBillingManager() {
   // 3. Customer Loyalty State
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerProfile | null>(null);
 
-  // 4. Parked/Held Bills State
-  const [heldBills, setHeldBills] = useState<HeldBill[]>(MOCK_HELD_BILLS);
+  // 4. Parked/Held Bills State — empty for real DB outlets
+  const [heldBills, setHeldBills] = useState<HeldBill[]>(() =>
+    isBackendOutletId(activeOutlet?.id) ? [] : MOCK_HELD_BILLS,
+  );
   const [isHeldDrawerOpen, setIsHeldDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isBackendOutlet) return;
+    setHeldBills([]);
+  }, [activeOutlet?.id, isBackendOutlet]);
 
   // 5. Modals State
   const [modifierItem, setModifierItem] = useState<BillingMenuItem | null>(null);

@@ -1,5 +1,6 @@
 import type {
   SpecialNote,
+  MenuCategory,
   MenuItemCommission,
   MenuItem,
   MenuItemImage,
@@ -13,6 +14,7 @@ import type {
 } from "@/types/posMenu";
 import httpClient from "@/utils/httpClient";
 import { API_ENDPOINTS } from "@/config/apiEndpoints";
+import { isBackendOutletId } from "@/utils/outletId";
 
 const SAMPLE_IMAGES: Record<string, MenuItemImage[]> = {
   butter_chicken: [
@@ -1509,7 +1511,7 @@ function loadMenuItemsFromStorage(): MenuItem[] {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          return mergeHighwayMenuSeed(parsed);
         }
       }
     } catch {
@@ -1517,6 +1519,31 @@ function loadMenuItemsFromStorage(): MenuItem[] {
     }
   }
   return [...initialMenuItems];
+}
+
+/** Always keep Highway demo menu items; never let a UUID outlet API wipe them. */
+function mergeHighwayMenuSeed(existing: MenuItem[]): MenuItem[] {
+  const byId = new Map<string, MenuItem>();
+  for (const seed of initialMenuItems) byId.set(seed.id, seed);
+  for (const item of existing) {
+    // Prefer newer local edits over seed for same id
+    byId.set(item.id, item);
+  }
+  // If storage was wiped of Highway rows, re-attach every seed that is missing
+  for (const seed of initialMenuItems) {
+    if (!byId.has(seed.id)) byId.set(seed.id, seed);
+  }
+  return [...byId.values()];
+}
+
+function ensureHighwayMenuInStore() {
+  const highwayCount = menuItemsStore.filter(
+    (i) => i.outletId === "outlet-primary" || i.outletId?.startsWith("vo-"),
+  ).length;
+  if (highwayCount === 0) {
+    menuItemsStore = mergeHighwayMenuSeed(menuItemsStore);
+    saveMenuItemsToStorage(menuItemsStore);
+  }
 }
 
 function saveMenuItemsToStorage(items: MenuItem[]) {
@@ -1531,7 +1558,104 @@ function saveMenuItemsToStorage(items: MenuItem[]) {
 
 // In-memory runtime store with localStorage persistence
 let menuItemsStore: MenuItem[] = loadMenuItemsFromStorage();
+// Highway demo notes; UUID outlets use API only (never overwrite this store).
 let specialNotesStore: SpecialNote[] = [...initialSpecialNotes];
+
+const STORAGE_KEY_CATEGORIES = "retrod_pos_menu_categories_store";
+
+type CategoryApiDto = {
+  id: string;
+  outlet?: string;
+  outlet_id?: string;
+  name: string;
+  code?: string | null;
+  sort_order?: number;
+  is_active?: boolean;
+  item_count?: number;
+};
+
+function mapCategoryDto(dto: CategoryApiDto, fallbackOutletId: string): MenuCategory {
+  return {
+    id: String(dto.id),
+    outletId: String(dto.outlet || dto.outlet_id || fallbackOutletId),
+    name: dto.name,
+    code: dto.code ?? null,
+    sortOrder: dto.sort_order ?? 0,
+    isActive: dto.is_active !== false,
+    itemCount: dto.item_count ?? 0,
+  };
+}
+
+function seedCategoriesForOutlet(outletId: string): MenuCategory[] {
+  const names = new Set<string>();
+  for (const item of initialMenuItems) {
+    if (item.outletId === outletId && item.category?.trim()) {
+      names.add(item.category.trim());
+    }
+  }
+  // Also pull any runtime menu items for this outlet
+  for (const item of menuItemsStore) {
+    if (item.outletId === outletId && item.category?.trim()) {
+      names.add(item.category.trim());
+    }
+  }
+  return [...names].sort((a, b) => a.localeCompare(b)).map((name, idx) => ({
+    id: `cat-${outletId}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${idx}`,
+    outletId,
+    name,
+    sortOrder: idx,
+    isActive: true,
+    itemCount: menuItemsStore.filter((i) => i.outletId === outletId && i.category === name)
+      .length,
+  }));
+}
+
+function loadLocalCategories(outletId: string): MenuCategory[] {
+  if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_CATEGORIES);
+      if (raw) {
+        const all = JSON.parse(raw) as MenuCategory[];
+        if (Array.isArray(all)) {
+          const forOutlet = all.filter((c) => c.outletId === outletId);
+          if (forOutlet.length > 0) return forOutlet;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return seedCategoriesForOutlet(outletId);
+}
+
+function saveLocalCategories(outletId: string, categories: MenuCategory[]) {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_CATEGORIES);
+    const all: MenuCategory[] = raw ? (JSON.parse(raw) as MenuCategory[]) : [];
+    const others = Array.isArray(all) ? all.filter((c) => c.outletId !== outletId) : [];
+    localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify([...others, ...categories]));
+  } catch {
+    // ignore
+  }
+}
+
+function renameItemsCategoryLocal(outletId: string, oldName: string, newName: string) {
+  menuItemsStore = menuItemsStore.map((item) =>
+    item.outletId === outletId && item.category === oldName
+      ? { ...item, category: newName }
+      : item,
+  );
+  saveMenuItemsToStorage(menuItemsStore);
+}
+
+function unwrapList<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (data && typeof data === "object" && Array.isArray((data as { results?: unknown }).results)) {
+    return (data as { results: T[] }).results;
+  }
+  return [];
+}
 let commissionsStore: MenuItemCommission[] = [...initialCommissions];
 let schedulesStore: MenuScheduleItem[] = [...initialSchedules];
 let physicalMenusStore: PhysicalMenuRecord[] = [...initialPhysicalMenus];
@@ -1543,18 +1667,20 @@ let scheduleTablesStore: ScheduleTableItem[] = [...initialScheduleTables];
 export const posMenuService = {
   // 1. Menu Items CRUD & Filtering by Outlet (calling defined API endpoints with local fallback)
   getMenuItems: async (outletId?: string) => {
-    try {
-      const res = await httpClient.get<MenuItem[]>(API_ENDPOINTS.MENU.ITEMS, {
-        params: outletId ? { outletId } : undefined,
-      });
-      if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-        menuItemsStore = res.data;
-        saveMenuItemsToStorage(menuItemsStore);
-        return res.data;
+    // Real HO/Kitchen (UUID): API only — blank until user feeds data. Never touch Highway store.
+    if (isBackendOutletId(outletId)) {
+      try {
+        const res = await httpClient.get(API_ENDPOINTS.MENU.ITEMS, {
+          params: { outletId, outlet_id: outletId, page_size: 500 },
+        });
+        return unwrapList<MenuItem>(res.data);
+      } catch {
+        return [];
       }
-    } catch {
-      // Graceful fallback to runtime store
     }
+
+    // Highway Inn + local mock outlets: restore demo catalog and filter by outlet
+    ensureHighwayMenuInStore();
     if (!outletId) return [...menuItemsStore];
     return menuItemsStore.filter((item) => item.outletId === outletId);
   },
@@ -1784,12 +1910,183 @@ export const posMenuService = {
     return updated;
   },
 
-  // 4. Special Notes
-  getSpecialNotes: async () => [...specialNotesStore],
-  addSpecialNote: async (name: string, available = true) => {
+  // 4. Special Notes (outlet-scoped via API when outlet is a real UUID)
+  // ---- Menu Categories (outlet-scoped) ----
+  getCategories: async (outletId: string): Promise<MenuCategory[]> => {
+    if (!outletId) return [];
+    if (isBackendOutletId(outletId)) {
+      try {
+        const res = await httpClient.get(API_ENDPOINTS.MENU.CATEGORIES, {
+          params: { outlet_id: outletId, outletId, page_size: 200 },
+        });
+        return unwrapList<CategoryApiDto>(res.data).map((d) => mapCategoryDto(d, outletId));
+      } catch {
+        return [];
+      }
+    }
+    ensureHighwayMenuInStore();
+    const local = loadLocalCategories(outletId);
+    // Keep item counts fresh
+    return local
+      .map((c) => ({
+        ...c,
+        itemCount: menuItemsStore.filter(
+          (i) => i.outletId === outletId && i.category === c.name,
+        ).length,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  },
+
+  addCategory: async (outletId: string, name: string): Promise<MenuCategory> => {
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error("Category name is required");
+    if (isBackendOutletId(outletId)) {
+      const res = await httpClient.post<CategoryApiDto>(API_ENDPOINTS.MENU.CATEGORIES, {
+        outlet: outletId,
+        name: trimmed,
+        is_active: true,
+      });
+      return mapCategoryDto(res.data, outletId);
+    }
+    const existing = loadLocalCategories(outletId);
+    if (existing.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) {
+      throw new Error(`Category "${trimmed}" already exists`);
+    }
+    const created: MenuCategory = {
+      id: `cat-${Date.now()}`,
+      outletId,
+      name: trimmed,
+      sortOrder: existing.length,
+      isActive: true,
+      itemCount: 0,
+    };
+    const next = [...existing, created].sort((a, b) => a.name.localeCompare(b.name));
+    saveLocalCategories(outletId, next);
+    return created;
+  },
+
+  updateCategory: async (
+    outletId: string,
+    categoryId: string,
+    data: { name: string },
+  ): Promise<MenuCategory> => {
+    const trimmed = data.name.trim();
+    if (!trimmed) throw new Error("Category name is required");
+    if (isBackendOutletId(outletId)) {
+      const res = await httpClient.patch<CategoryApiDto>(
+        API_ENDPOINTS.MENU.CATEGORY_BY_ID(categoryId),
+        { name: trimmed },
+      );
+      return mapCategoryDto(res.data, outletId);
+    }
+    const existing = loadLocalCategories(outletId);
+    const current = existing.find((c) => c.id === categoryId);
+    if (!current) throw new Error("Category not found");
+    if (
+      existing.some(
+        (c) => c.id !== categoryId && c.name.toLowerCase() === trimmed.toLowerCase(),
+      )
+    ) {
+      throw new Error(`Category "${trimmed}" already exists`);
+    }
+    const oldName = current.name;
+    const next = existing.map((c) =>
+      c.id === categoryId ? { ...c, name: trimmed } : c,
+    );
+    saveLocalCategories(outletId, next);
+    if (oldName !== trimmed) {
+      renameItemsCategoryLocal(outletId, oldName, trimmed);
+    }
+    return next.find((c) => c.id === categoryId)!;
+  },
+
+  deleteCategory: async (outletId: string, categoryId: string): Promise<void> => {
+    if (isBackendOutletId(outletId)) {
+      await httpClient.delete(API_ENDPOINTS.MENU.CATEGORY_BY_ID(categoryId));
+      return;
+    }
+    const existing = loadLocalCategories(outletId);
+    const current = existing.find((c) => c.id === categoryId);
+    if (!current) return;
+    const inUse = menuItemsStore.some(
+      (i) => i.outletId === outletId && i.category === current.name,
+    );
+    if (inUse) {
+      throw new Error(
+        `Cannot remove "${current.name}" — menu items still use this category. Reassign or delete those items first.`,
+      );
+    }
+    saveLocalCategories(
+      outletId,
+      existing.filter((c) => c.id !== categoryId),
+    );
+  },
+
+  getSpecialNotes: async (outletId?: string) => {
+    // UUID outlets: API only (empty until created). Do not wipe Highway notes store.
+    if (isBackendOutletId(outletId)) {
+      try {
+        const res = await httpClient.get(API_ENDPOINTS.MENU.SPECIAL_NOTES, {
+          params: { outletId, outlet_id: outletId, page_size: 200 },
+        });
+        return unwrapList<SpecialNote>(res.data).map((n) => ({
+          id: String(n.id),
+          name: n.name,
+          createdAt:
+            typeof n.createdAt === "string"
+              ? n.createdAt
+              : new Date().toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                }),
+          available: Boolean((n as SpecialNote).available ?? true),
+        }));
+      } catch {
+        return [];
+      }
+    }
+
+    if (specialNotesStore.length === 0) {
+      specialNotesStore = [...initialSpecialNotes];
+    }
+    return [...specialNotesStore];
+  },
+  addSpecialNote: async (name: string, available = true, outletId?: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error("Special note name is required");
+    try {
+      const res = await httpClient.post<SpecialNote>(API_ENDPOINTS.MENU.SPECIAL_NOTES, {
+        name: trimmed,
+        available,
+        outlet: outletId || null,
+      });
+      if (res.data?.id) {
+        const note: SpecialNote = {
+          id: String(res.data.id),
+          name: res.data.name || trimmed,
+          createdAt:
+            typeof res.data.createdAt === "string"
+              ? res.data.createdAt
+              : new Date().toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                }),
+          available: Boolean(res.data.available ?? available),
+        };
+        specialNotesStore = [note, ...specialNotesStore.filter((n) => n.id !== note.id)];
+        return note;
+      }
+    } catch {
+      // local fallback for mock outlets
+    }
+    if (isBackendOutletId(outletId)) {
+      throw new Error("Failed to save special note");
+    }
     const newNote: SpecialNote = {
       id: `sn-${Date.now()}`,
-      name,
+      name: trimmed,
       createdAt: new Date().toLocaleDateString("en-GB", {
         day: "numeric",
         month: "short",
@@ -1801,12 +2098,26 @@ export const posMenuService = {
     return newNote;
   },
   toggleSpecialNote: async (id: string) => {
+    const current = specialNotesStore.find((n) => n.id === id);
+    const nextAvailable = !(current?.available ?? true);
+    try {
+      await httpClient.patch(API_ENDPOINTS.MENU.SPECIAL_NOTE_BY_ID(id), {
+        available: nextAvailable,
+      });
+    } catch {
+      // local toggle
+    }
     specialNotesStore = specialNotesStore.map((note) =>
       note.id === id ? { ...note, available: !note.available } : note,
     );
     return specialNotesStore.find((n) => n.id === id);
   },
   deleteSpecialNote: async (id: string) => {
+    try {
+      await httpClient.delete(API_ENDPOINTS.MENU.SPECIAL_NOTE_BY_ID(id));
+    } catch {
+      // local delete
+    }
     specialNotesStore = specialNotesStore.filter((n) => n.id !== id);
     return true;
   },

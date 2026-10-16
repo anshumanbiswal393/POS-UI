@@ -1,65 +1,173 @@
-import { useState } from "react";
-import { ChevronDown, MapPin, ExternalLink, Upload } from "lucide-react";
+import { useState, useCallback } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { ChevronDown, MapPin, ExternalLink, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useOutletContext } from "@/context/PosOutletContext";
+import { fetchAddressFromPincode } from "@/utils/pincodeLookup";
 
 interface OutletFormProps {
   type: "HO" | "Kitchen";
 }
 
 export function OutletFormView({ type }: OutletFormProps) {
-  // Outlet Information
-  const [outletName, setOutletName] = useState(
-    type === "HO" ? "HIGHWAY INN HEAD OFFICE" : "HIGHWAY INN CENTRAL KITCHEN",
-  );
-  const [outletAlias, setOutletAlias] = useState(type === "HO" ? "HQ-01" : "CK-01");
-  const [email, setEmail] = useState("admin@highwayinn.com");
+  const navigate = useNavigate();
+  const { createOutletFromForm } = useOutletContext();
+  const [saving, setSaving] = useState(false);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [stateOptions, setStateOptions] = useState<string[]>([
+    "Odisha",
+    "Maharashtra",
+    "Karnataka",
+    "Delhi",
+    "Gujarat",
+  ]);
+  const [cityOptions, setCityOptions] = useState<string[]>([
+    "Angul",
+    "Bhubaneswar",
+    "Cuttack",
+  ]);
+
+  // Outlet Information — blank for new HO / Kitchen
+  const [outletName, setOutletName] = useState("");
+  const [outletAlias, setOutletAlias] = useState("");
+  const [email, setEmail] = useState("");
 
   // Address Information
   const [country, setCountry] = useState("India");
-  const [landmark, setLandmark] = useState("Near Karadagadia Chowk");
-  const [zipCode, setZipCode] = useState("759132");
+  const [landmark, setLandmark] = useState("");
+  const [zipCode, setZipCode] = useState("");
   const [fax, setFax] = useState("");
   const [tinNo, setTinNo] = useState("");
-  const [state, setState] = useState("Odisha");
-  const [city, setCity] = useState("Angul");
+  const [state, setState] = useState("");
+  const [city, setCity] = useState("");
   const [timezone, setTimezone] = useState("Asia/Calcutta");
-  const [address, setAddress] = useState("Plot No 1977 Khata No 304/102, Karadagadia, Angul");
-  const [area, setArea] = useState("Karadagadia");
-  const [latitude, setLatitude] = useState("20.8444");
-  const [longitude, setLongitude] = useState("85.1511");
+  const [address, setAddress] = useState("");
+  const [area, setArea] = useState("");
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
 
-  // Kitchen specific fields (Screenshots 1 & 2)
+  // Kitchen specific fields
   const [kitchenCode, setKitchenCode] = useState("");
   const [hsnMandatory, setHsnMandatory] = useState(true);
   const [servingType, setServingType] = useState<"Service" | "Goods" | "Both">("Service");
   const [enableKotOnline, setEnableKotOnline] = useState(false);
   const [managerPhone, setManagerPhone] = useState("");
 
-  // HO specific fields (Screenshots 3 & 4)
+  // HO specific fields
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [cuisines, setCuisines] = useState("");
   const [seatingCapacity, setSeatingCapacity] = useState("");
   const [decisionMaker, setDecisionMaker] = useState("");
 
-  // Communication Details (common & specific)
+  // Communication Details
   const [ownerMobile, setOwnerMobile] = useState("");
   const [directNumber, setDirectNumber] = useState("");
 
-  const handleSave = () => {
-    toast.success(
-      `${type === "HO" ? "Head Office" : "Central Kitchen"} details updated successfully!`,
-    );
+  const lookupFromZip = useCallback(
+    async (rawPin?: string) => {
+      const pin = (rawPin ?? zipCode).replace(/\D/g, "").slice(0, 6);
+      if (pin.length !== 6) {
+        if ((rawPin ?? zipCode).trim()) {
+          toast.error("Enter a valid 6-digit zip / PIN code");
+        }
+        return;
+      }
+      setLookupLoading(true);
+      try {
+        const details = await fetchAddressFromPincode(pin);
+        setCountry(details.country || "India");
+        setState(details.state);
+        setCity(details.city);
+        setTimezone(details.timezone);
+        setArea((prev) => prev.trim() || details.area);
+        setLandmark((prev) => prev.trim() || details.area);
+        setStateOptions((prev) =>
+          details.state && !prev.includes(details.state) ? [details.state, ...prev] : prev,
+        );
+        setCityOptions((prev) =>
+          details.city && !prev.includes(details.city) ? [details.city, ...prev] : prev,
+        );
+        toast.success(`Address filled from PIN ${pin} (${details.city}, ${details.state})`);
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "PIN lookup failed");
+      } finally {
+        setLookupLoading(false);
+      }
+    },
+    [zipCode],
+  );
+
+  const handleSave = async () => {
+    if (!outletName.trim()) {
+      toast.error("Outlet name is required");
+      return;
+    }
+    if (!zipCode.trim() || !country.trim() || !state.trim() || !city.trim()) {
+      toast.error("Zip code, country, state and city are required");
+      return;
+    }
+    if (!ownerMobile.trim() || !directNumber.trim()) {
+      toast.error("Owner mobile and direct number are required");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const created = await createOutletFromForm({
+        name: outletName.trim(),
+        code: outletAlias.trim() || undefined,
+        outlet_type: type === "HO" ? "HO" : "KITCHEN",
+        formType: type,
+        cuisine: cuisines.trim() || (type === "HO" ? "Head Office" : "Central Kitchen"),
+        email: email.trim() || undefined,
+        phone: ownerMobile.trim(),
+        alias: outletAlias.trim(),
+        landmark: landmark.trim(),
+        zipCode: zipCode.trim(),
+        fax: fax.trim(),
+        tinNo: tinNo.trim(),
+        country,
+        state,
+        city,
+        timezone,
+        address: address.trim(),
+        area: area.trim(),
+        latitude: latitude.trim(),
+        longitude: longitude.trim(),
+        ownerMobile: ownerMobile.trim(),
+        directNumber: directNumber.trim(),
+        decisionMaker: decisionMaker.trim(),
+        kitchenCode: kitchenCode.trim() || outletAlias.trim(),
+        seatingCapacity: seatingCapacity.trim(),
+        additionalInfo: additionalInfo.trim(),
+        is_active: true,
+      });
+      toast.success(
+        `${type === "HO" ? "Head Office" : "Central Kitchen"} "${created.name}" saved to database`,
+      );
+      void navigate({ to: "/pos/menu" });
+    } catch (err: unknown) {
+      const message =
+        (err as { message?: string; data?: { detail?: string; code?: string[] } })?.data
+          ?.detail ||
+        (err as { data?: { code?: string[] } })?.data?.code?.[0] ||
+        (err as { message?: string })?.message ||
+        "Failed to create outlet";
+      toast.error(String(message));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="space-y-4 max-w-5xl">
+    <div className="w-full max-w-none space-y-4">
       {/* 1. Header Instruction Bar */}
       <div className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-[13px] text-slate-700 font-medium shadow-2xs">
         Below are the configuration to manage your outlet information. Click on the Save button once
-        you change the information.
+        you change the information. Enter a 6-digit Zip Code to auto-fill state, city, and area.
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-8">
+      <div className="w-full rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-8">
         {/* =========================================================================
             SECTION 1: Outlet Information
         ========================================================================= */}
@@ -76,7 +184,8 @@ export function OutletFormView({ type }: OutletFormProps) {
               type="text"
               value={outletName}
               onChange={(e) => setOutletName(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none"
+              placeholder={type === "HO" ? "e.g. My Head Office" : "e.g. Central Kitchen"}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-800 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none"
             />
             <p className="text-[11.5px] text-slate-500">
               You can not change the name of created outlet. Contact Retrod support for help.
@@ -89,7 +198,8 @@ export function OutletFormView({ type }: OutletFormProps) {
               type="text"
               value={outletAlias}
               onChange={(e) => setOutletAlias(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none"
+              placeholder={type === "HO" ? "e.g. HQ-01" : "e.g. CK-01"}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-800 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none"
             />
           </div>
 
@@ -99,7 +209,8 @@ export function OutletFormView({ type }: OutletFormProps) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none"
+              placeholder="e.g. admin@yourhotel.com"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-800 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none"
             />
             <p className="text-[11.5px] text-slate-500">
               Enter Email ID through which you will receive all communications from Retrod.
@@ -134,12 +245,44 @@ export function OutletFormView({ type }: OutletFormProps) {
               <label className="text-[12.5px] font-semibold text-slate-800">
                 Zip Code<span className="text-rose-500 font-bold">*</span> :
               </label>
-              <input
-                type="text"
-                value={zipCode}
-                onChange={(e) => setZipCode(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] font-mono text-slate-800 focus:border-teal-500 focus:outline-none"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={zipCode}
+                  onChange={(e) => {
+                    const next = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    setZipCode(next);
+                    if (next.length === 6) {
+                      void lookupFromZip(next);
+                    }
+                  }}
+                  onBlur={() => {
+                    if (zipCode.replace(/\D/g, "").length === 6) {
+                      void lookupFromZip(zipCode);
+                    }
+                  }}
+                  placeholder="6-digit PIN"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] font-mono text-slate-800 focus:border-teal-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  disabled={lookupLoading || zipCode.replace(/\D/g, "").length !== 6}
+                  onClick={() => void lookupFromZip()}
+                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-teal-300 bg-teal-50 px-3 py-2 text-[12px] font-semibold text-teal-800 hover:bg-teal-100 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {lookupLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <MapPin className="h-3.5 w-3.5" />
+                  )}
+                  Fetch
+                </button>
+              </div>
+              <p className="text-[11.5px] text-slate-500">
+                Auto-fills Country, State, City, Area, and Timezone from the PIN code.
+              </p>
             </div>
           </div>
 
@@ -196,11 +339,12 @@ export function OutletFormView({ type }: OutletFormProps) {
                   onChange={(e) => setState(e.target.value)}
                   className="w-full appearance-none rounded-lg border border-slate-300 bg-white pl-3 pr-8 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none cursor-pointer"
                 >
-                  <option value="Odisha">Odisha</option>
-                  <option value="Maharashtra">Maharashtra</option>
-                  <option value="Karnataka">Karnataka</option>
-                  <option value="Delhi">Delhi</option>
-                  <option value="Gujarat">Gujarat</option>
+                  <option value="">Select state</option>
+                  {stateOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown className="absolute right-2.5 top-3 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
               </div>
@@ -216,9 +360,12 @@ export function OutletFormView({ type }: OutletFormProps) {
                   onChange={(e) => setCity(e.target.value)}
                   className="w-full appearance-none rounded-lg border border-slate-300 bg-white pl-3 pr-8 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none cursor-pointer"
                 >
-                  <option value="Angul">Angul</option>
-                  <option value="Bhubaneswar">Bhubaneswar</option>
-                  <option value="Cuttack">Cuttack</option>
+                  <option value="">Select city</option>
+                  {cityOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown className="absolute right-2.5 top-3 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
               </div>
@@ -608,10 +755,11 @@ export function OutletFormView({ type }: OutletFormProps) {
           </button>
           <button
             type="button"
-            onClick={handleSave}
-            className="rounded-lg bg-teal-600 px-6 py-2 text-[12.5px] font-bold text-white shadow-2xs hover:bg-teal-700 transition cursor-pointer"
+            disabled={saving}
+            onClick={() => void handleSave()}
+            className="rounded-lg bg-teal-600 px-6 py-2 text-[12.5px] font-bold text-white shadow-2xs hover:bg-teal-700 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Save Changes
+            {saving ? "Saving…" : "Save Changes"}
           </button>
         </div>
       </div>
