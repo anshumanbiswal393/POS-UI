@@ -10,6 +10,8 @@ import type { BillingOrderType } from "@/types/posBilling";
 export type OccupiedRoomOption = {
   roomNumber: string;
   guestName?: string;
+  guestPhone?: string;
+  pax?: number;
 };
 
 type BillingHeaderProps = {
@@ -109,10 +111,13 @@ export function BillingHeader({
               <select
                 value={roomNumber || ""}
                 onChange={(e) => onSelectRoom?.(e.target.value)}
-                className="font-bold text-amber-950 bg-white px-2 py-0.5 rounded border border-amber-300 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer max-w-[220px]"
+                className="font-bold text-amber-950 bg-white px-2 py-0.5 rounded border border-amber-300 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer max-w-[240px]"
               >
+                <option value="">Choose room</option>
                 {occupiedRooms.length === 0 ? (
-                  <option value="">No occupied rooms</option>
+                  <option value="" disabled>
+                    No in-house guests
+                  </option>
                 ) : (
                   occupiedRooms.map((room) => (
                     <option key={room.roomNumber} value={`Room ${room.roomNumber}`}>
@@ -126,10 +131,12 @@ export function BillingHeader({
                 <span className="text-amber-800">Pax:</span>
                 <input
                   type="number"
-                  min="1"
-                  max="10"
+                  min="0"
+                  max="20"
                   value={guestCount}
-                  onChange={(e) => setGuestCount(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={(e) =>
+                    setGuestCount(Math.max(0, parseInt(e.target.value, 10) || 0))
+                  }
                   className="w-10 text-center font-bold text-amber-900 bg-white border border-amber-300 rounded px-1 py-0.5 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
                 />
               </div>

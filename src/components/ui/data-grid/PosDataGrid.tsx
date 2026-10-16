@@ -30,8 +30,13 @@ export interface ExtendedPosDataGridProps<T = any> extends PosDataGridProps<T> {
   subtitle?: React.ReactNode;
   searchPlaceholder?: string;
   showToolbar?: boolean;
+  /** When false with showToolbar, hides the toolbar search input */
+  showToolbarSearch?: boolean;
   /** Extra controls rendered in the toolbar row (e.g. Add button beside Choose Columns / Export) */
   toolbarActions?: React.ReactNode;
+  /** Controlled column visibility (optional — when set, parent owns Choose Columns) */
+  columnVisibility?: Record<string, boolean>;
+  onColumnVisibilityChange?: (visible: Record<string, boolean>) => void;
 }
 
 export function PosDataGrid<T>({
@@ -63,7 +68,10 @@ export function PosDataGrid<T>({
   subtitle,
   searchPlaceholder = "Search records...",
   showToolbar = false,
+  showToolbarSearch = true,
   toolbarActions,
+  columnVisibility: controlledVisibility,
+  onColumnVisibilityChange,
 }: ExtendedPosDataGridProps<T>) {
   const isGridLoading = loading || isLoading;
   const isSelectable = selectable || enableSelection;
@@ -121,8 +129,8 @@ export function PosDataGrid<T>({
     return `grid-${colIds.slice(0, 50)}`;
   }, [storageKey, title, rawColumns]);
 
-  // 1. Column Visibility State
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+  // 1. Column Visibility State (controlled or internal)
+  const [internalVisibleColumns, setInternalVisibleColumns] = useState<Record<string, boolean>>(() => {
     try {
       if (effectiveStorageKey) {
         const saved = localStorage.getItem(`retrod:${effectiveStorageKey}:visible-columns`);
@@ -137,8 +145,14 @@ export function PosDataGrid<T>({
     return initial;
   });
 
+  const visibleColumns = controlledVisibility ?? internalVisibleColumns;
+
   const handleVisibleColumnsChange = (updated: Record<string, boolean>) => {
-    setVisibleColumns(updated);
+    if (onColumnVisibilityChange) {
+      onColumnVisibilityChange(updated);
+    } else {
+      setInternalVisibleColumns(updated);
+    }
     try {
       if (effectiveStorageKey) {
         localStorage.setItem(`retrod:${effectiveStorageKey}:visible-columns`, JSON.stringify(updated));
@@ -470,11 +484,15 @@ export function PosDataGrid<T>({
         <DataTableToolbar
           title={title}
           subtitle={subtitle}
-          searchValue={globalSearch}
-          onSearchChange={(v) => {
-            setGlobalSearch(v);
-            setCurrentPage(1);
-          }}
+          searchValue={showToolbarSearch ? globalSearch : undefined}
+          onSearchChange={
+            showToolbarSearch
+              ? (v) => {
+                  setGlobalSearch(v);
+                  setCurrentPage(1);
+                }
+              : undefined
+          }
           searchPlaceholder={searchPlaceholder}
           columns={columns}
           visibleColumns={visibleColumns}
@@ -530,7 +548,7 @@ export function PosDataGrid<T>({
 
       {/* Main Grid Table Container */}
       <div className="overflow-x-auto min-h-[160px]">
-        <table className="w-full border-collapse text-left text-[12.5px]">
+        <table className="min-w-full w-max border-collapse text-left text-[12.5px]">
           <DataTableHeader
             columns={columns}
             data={data}

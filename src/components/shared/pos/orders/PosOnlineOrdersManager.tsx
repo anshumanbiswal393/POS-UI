@@ -3,7 +3,6 @@ import {
   Search,
   ChevronDown,
   Headphones,
-  FileSpreadsheet,
   CheckCircle2,
   Clock,
   Eye,
@@ -31,6 +30,7 @@ import type { OnlineOrderItem } from "@/types/posOrders";
 import { exportToExcel } from "@/utils/exportUtils";
 import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 
 export function PosOnlineOrdersManager() {
   const [platformTab, setPlatformTab] = useState<"all" | "zomato" | "swiggy" | "direct_web">("all");
@@ -502,14 +502,7 @@ export function PosOnlineOrdersManager() {
             <span>Simulate Incoming Order</span>
           </button>
 
-          <button
-            type="button"
-            onClick={handleExportExcel}
-            className="flex h-8 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-[11.5px] font-medium text-text-primary hover:bg-surface-2 shadow-2xs transition cursor-pointer"
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5 text-primary" />
-            <span>Export to Excel</span>
-          </button>
+          <ExportToExcelButton onClick={handleExportExcel} />
 
           <button
             type="button"

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   RefreshCw,
   Utensils,
@@ -19,108 +20,20 @@ import {
   Check,
   ArrowRight,
   ChevronRight,
+  Pencil,
 } from "lucide-react";
-import { useLiveOrders } from "@/hooks/queries/usePosOrders";
+import {
+  useLiveOrders,
+  useCurrentOrdersTimeline,
+  useAdvanceCurrentOrderStageMutation,
+} from "@/hooks/queries/usePosOrders";
+import type { CurrentOrderRecord } from "@/services/posOrdersService";
+import { toast } from "sonner";
 
-interface LiveTimelineOrder {
-  id: string;
-  orderNumber: string;
-  type: "dine_in" | "pickup" | "delivery";
-  typeLabel: string;
-  source: string;
-  customerName: string;
-  tableOrRoom?: string;
-  itemsSummary: string;
-  amountFormatted: string;
-  startTime: string;
-  elapsedMinutes: number;
-  estDurationMinutes: number;
-  currentStage: "placed" | "prepared" | "settled";
-  stageLabel: string;
-}
-
-const MOCK_TIMELINE_ORDERS: LiveTimelineOrder[] = [
-  {
-    id: "live-ord-1",
-    orderNumber: "ORD-10521",
-    type: "dine_in",
-    typeLabel: "Dine In",
-    source: "Table T-04 (AC)",
-    customerName: "Rahul Sharma",
-    tableOrRoom: "T-04",
-    itemsSummary: "Paneer Butter Masala, Butter Naan (3), Dal Makhani",
-    amountFormatted: "₹ 1,120.00",
-    startTime: "16:10",
-    elapsedMinutes: 28,
-    estDurationMinutes: 40,
-    currentStage: "prepared",
-    stageLabel: "Prepared by Chef",
-  },
-  {
-    id: "live-ord-2",
-    orderNumber: "ORD-10522",
-    type: "dine_in",
-    typeLabel: "Dine In",
-    source: "Table T-12 (Garden)",
-    customerName: "Ananya Roy",
-    tableOrRoom: "T-12",
-    itemsSummary: "Carlsberg Elephant (2), Crispy Corn, Veg Hakka Noodles",
-    amountFormatted: "₹ 640.00",
-    startTime: "16:22",
-    elapsedMinutes: 16,
-    estDurationMinutes: 35,
-    currentStage: "placed",
-    stageLabel: "Placed (In Kitchen)",
-  },
-  {
-    id: "live-ord-3",
-    orderNumber: "ORD-10523",
-    type: "delivery",
-    typeLabel: "Zomato Delivery",
-    source: "Zomato #9201",
-    customerName: "Sameer Verma",
-    itemsSummary: "Chicken Tikka (6 pcs), Roomali Roti (4), Biryani",
-    amountFormatted: "₹ 890.00",
-    startTime: "16:02",
-    elapsedMinutes: 36,
-    estDurationMinutes: 45,
-    currentStage: "prepared",
-    stageLabel: "Prepared by Chef",
-  },
-  {
-    id: "live-ord-4",
-    orderNumber: "ORD-10524",
-    type: "pickup",
-    typeLabel: "Takeaway",
-    source: "Takeaway Counter",
-    customerName: "Karan Patel",
-    itemsSummary: "Cold Coffee (2), Club Sandwich",
-    amountFormatted: "₹ 380.00",
-    startTime: "16:30",
-    elapsedMinutes: 8,
-    estDurationMinutes: 20,
-    currentStage: "placed",
-    stageLabel: "Placed (In Kitchen)",
-  },
-  {
-    id: "live-ord-5",
-    orderNumber: "ORD-10525",
-    type: "dine_in",
-    typeLabel: "Dine In",
-    source: "Table T-08 (Family)",
-    customerName: "Dr. Alok Verma",
-    tableOrRoom: "T-08",
-    itemsSummary: "Tandoori Platter, Mojito (2), Gulab Jamun",
-    amountFormatted: "₹ 1,450.00",
-    startTime: "16:34",
-    elapsedMinutes: 4,
-    estDurationMinutes: 30,
-    currentStage: "placed",
-    stageLabel: "Placed (In Kitchen)",
-  },
-];
+type LiveTimelineOrder = CurrentOrderRecord;
 
 export function PosLiveOrdersManager() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<
     "gantt_timeline" | "running_orders" | "running_tables"
   >("gantt_timeline");
@@ -129,6 +42,8 @@ export function PosLiveOrdersManager() {
   );
   const [stageFilter, setStageFilter] = useState<string>("all");
   const { data, refetch, isFetching } = useLiveOrders();
+  const { data: timelineOrders = [], refetch: refetchTimeline } = useCurrentOrdersTimeline();
+  const advanceStageMutation = useAdvanceCurrentOrderStageMutation();
 
   const [selectedTable, setSelectedTable] = useState<any | null>(null);
   const [selectedBreakdownTitle, setSelectedBreakdownTitle] = useState<string | null>(null);
@@ -152,30 +67,42 @@ export function PosLiveOrdersManager() {
     outForDelivery: { count: 1, amountFormatted: "₹ 890.00" },
   };
 
-  const [timelineOrders, setTimelineOrders] = useState<LiveTimelineOrder[]>(MOCK_TIMELINE_ORDERS);
+  const openOrderInBilling = (ord: LiveTimelineOrder, settle = false) => {
+    navigate({
+      to: "/pos/billing",
+      search: {
+        orderType: ord.type === "pickup" || ord.type === "takeaway" ? "takeaway" : "dine_in",
+        table: ord.tableOrRoom
+          ? ord.tableOrRoom.startsWith("Table")
+            ? ord.tableOrRoom
+            : `Table ${ord.tableOrRoom}`
+          : ord.source,
+        guests: ord.pax || 2,
+        guestName: ord.customerName || "",
+        guestPhone: ord.customerPhone || "",
+        orderNumber: ord.orderNumber,
+        editOrder: "1",
+        ...(settle ? { settle: "1" } : {}),
+        ...(ord.orderNote ? { note: ord.orderNote } : {}),
+      },
+    });
+  };
 
-  const handleAdvanceStage = (id: string, e?: React.MouseEvent) => {
+  const handleAdvanceStage = (ord: LiveTimelineOrder, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setTimelineOrders((prev) =>
-      prev
-        .map((ord) => {
-          if (ord.id !== id) return ord;
-          if (ord.currentStage === "placed") {
-            return {
-              ...ord,
-              currentStage: "prepared" as const,
-              stageLabel: "Prepared by Chef",
-              elapsedMinutes: 1,
-            };
-          }
-          if (ord.currentStage === "prepared") {
-            // Stage 3 Settle & Done -> order completes and goes to Order History
-            return null;
-          }
-          return ord;
-        })
-        .filter(Boolean) as LiveTimelineOrder[],
-    );
+    if (ord.currentStage === "placed") {
+      advanceStageMutation.mutate(ord.orderNumber, {
+        onSuccess: () => {
+          toast.success(`${ord.orderNumber} → Prepared`);
+          refetchTimeline();
+        },
+      });
+      return;
+    }
+    if (ord.currentStage === "prepared") {
+      // Settle in billing — payment removes from Current Orders → Order History
+      openOrderInBilling(ord, true);
+    }
   };
 
   const STAGES_CONFIG = [
@@ -214,7 +141,9 @@ export function PosLiveOrdersManager() {
 
   const filteredTimelineOrders = useMemo(() => {
     return timelineOrders.filter((ord) => {
-      if (timelineFilter !== "all" && ord.type !== timelineFilter) return false;
+      const typeKey =
+        ord.type === "takeaway" ? "pickup" : ord.type === "room_service" ? "dine_in" : ord.type;
+      if (timelineFilter !== "all" && typeKey !== timelineFilter) return false;
       if (stageFilter !== "all" && ord.currentStage !== stageFilter) return false;
       return true;
     });
@@ -286,7 +215,10 @@ export function PosLiveOrdersManager() {
 
           <button
             type="button"
-            onClick={() => refetch()}
+            onClick={() => {
+              refetch();
+              refetchTimeline();
+            }}
             disabled={isFetching}
             className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-[12px] font-medium text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
           >
@@ -426,157 +358,139 @@ export function PosLiveOrdersManager() {
               </div>
             </div>
 
-            {/* Timeline Rows */}
+            {/* Compact Timeline Rows */}
             <div className="divide-y divide-slate-200">
-              {filteredTimelineOrders.map((ord) => {
-                const stageIdx = getStageIndex(ord.currentStage);
+              {filteredTimelineOrders.length === 0 ? (
+                <div className="px-4 py-10 text-center text-[13px] text-slate-500">
+                  No open orders — placed checks appear here in Preparation until payment.
+                </div>
+              ) : (
+                filteredTimelineOrders.map((ord) => {
+                  const stageIdx = getStageIndex(ord.currentStage);
 
-                return (
-                  <div
-                    key={ord.id}
-                    className="grid grid-cols-1 lg:grid-cols-12 items-center p-3.5 hover:bg-slate-50/70 transition gap-4"
-                  >
-                    {/* Left 4 Cols: Order Details */}
-                    <div className="lg:col-span-4 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[13px] font-extrabold text-slate-900">
-                          {ord.orderNumber}
-                        </span>
-                        <span className="rounded px-2 py-0.5 text-[10.5px] font-bold border border-slate-300 bg-slate-100 text-slate-700">
-                          {ord.typeLabel}
-                        </span>
-                        <span className="text-[11px] text-slate-400 font-medium">
-                          at {ord.startTime}
-                        </span>
+                  return (
+                    <div
+                      key={ord.id}
+                      className="grid grid-cols-1 items-center gap-2 px-3 py-2.5 hover:bg-slate-50/70 transition lg:grid-cols-12 lg:gap-3"
+                    >
+                      {/* Order meta */}
+                      <div className="lg:col-span-3 min-w-0 space-y-0.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-mono text-[12.5px] font-extrabold text-slate-900">
+                            {ord.orderNumber}
+                          </span>
+                          <span className="rounded px-1.5 py-0.5 text-[10px] font-bold border border-slate-300 bg-slate-100 text-slate-700">
+                            {ord.typeLabel}
+                          </span>
+                          <span className="text-[10.5px] text-slate-400">{ord.startTime}</span>
+                        </div>
+                        <div className="truncate text-[11.5px]">
+                          <span className="font-bold text-teal-900">{ord.source}</span>
+                          <span className="text-slate-300"> · </span>
+                          <span className="text-slate-600">{ord.customerName}</span>
+                        </div>
+                        <div className="truncate text-[10.5px] text-slate-500">{ord.itemsSummary}</div>
+                        <div className="flex items-center gap-1.5 text-[12px]">
+                          <span className="font-black text-slate-900">{ord.amountFormatted}</span>
+                          <span className="inline-flex items-center gap-0.5 text-[10.5px] font-semibold text-slate-500">
+                            <Clock className="h-3 w-3" />
+                            {ord.elapsedMinutes}m
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="text-[12px] font-semibold text-slate-800 flex items-center gap-1.5">
-                        <span className="text-teal-900 font-bold">{ord.source}</span>
-                        <span className="text-slate-300">|</span>
-                        <span className="text-slate-600 font-normal">{ord.customerName}</span>
-                      </div>
-
-                      <div className="text-[11px] text-slate-500 truncate max-w-sm">
-                        {ord.itemsSummary}
-                      </div>
-
-                      <div className="flex items-center gap-2 pt-0.5">
-                        <span className="text-[13px] font-black text-slate-900">
-                          {ord.amountFormatted}
-                        </span>
-                        <span className="text-slate-300">·</span>
-                        <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-600">
-                          <Clock className="h-3 w-3 text-slate-400" />
-                          <span>Total Elapsed: {ord.elapsedMinutes}m</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Right 8 Cols: 4-Stop Process Stepper & Action Bump */}
-                    <div className="lg:col-span-8 flex flex-col justify-center space-y-3">
-                      {/* Stepper with stops and connecting lines */}
-                      <div className="relative flex items-center justify-between">
-                        {STAGES_CONFIG.map((stage, idx) => {
-                          const isCompleted = idx < stageIdx;
-                          const isActive = idx === stageIdx;
-                          const isUpcoming = idx > stageIdx;
-
-                          return (
-                            <div
-                              key={stage.key}
-                              className="relative z-10 flex flex-1 flex-col items-center"
-                            >
-                              {/* Stop Node */}
-                              <div className="flex items-center justify-center">
-                                {isCompleted ? (
-                                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-700 text-white shadow-2xs">
-                                    <Check className="h-4 w-4 stroke-[3]" />
-                                  </div>
-                                ) : isActive ? (
-                                  <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-teal-700 bg-teal-50 text-teal-900 shadow-xs ring-4 ring-teal-500/20 animate-pulse">
-                                    <span className="h-2.5 w-2.5 rounded-full bg-teal-700" />
-                                  </div>
-                                ) : (
-                                  <div className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-400 text-[11px] font-bold">
-                                    {idx + 1}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Stop Label & Badge */}
-                              <div className="mt-1.5 text-center">
+                      {/* Compact stepper */}
+                      <div className="lg:col-span-5">
+                        <div className="relative flex items-center justify-between px-1">
+                          {STAGES_CONFIG.map((stage, idx) => {
+                            const isCompleted = idx < stageIdx;
+                            const isActive = idx === stageIdx;
+                            return (
+                              <div
+                                key={stage.key}
+                                className="relative z-10 flex flex-1 flex-col items-center"
+                              >
+                                <div className="flex items-center justify-center">
+                                  {isCompleted ? (
+                                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-700 text-white">
+                                      <Check className="h-3 w-3 stroke-[3]" />
+                                    </div>
+                                  ) : isActive ? (
+                                    <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-teal-700 bg-teal-50 ring-2 ring-teal-500/20">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-teal-700" />
+                                    </div>
+                                  ) : (
+                                    <div className="flex h-5 w-5 items-center justify-center rounded-full border border-slate-300 bg-white text-[9px] font-bold text-slate-400">
+                                      {idx + 1}
+                                    </div>
+                                  )}
+                                </div>
                                 <div
-                                  className={`text-[11.5px] font-bold leading-tight ${
+                                  className={`mt-1 text-[10px] font-bold leading-tight ${
                                     isActive
-                                      ? "text-teal-900 font-extrabold"
+                                      ? "text-teal-900"
                                       : isCompleted
-                                        ? "text-slate-800"
+                                        ? "text-slate-700"
                                         : "text-slate-400"
                                   }`}
                                 >
-                                  {stage.title}
+                                  {stage.short}
                                 </div>
-                                <div className="mt-0.5 text-[10px]">
-                                  {isCompleted ? (
-                                    <span className="font-semibold text-teal-700">✓ Done</span>
-                                  ) : isActive ? (
-                                    <span className="inline-flex items-center rounded-full bg-teal-50 px-1.5 py-0.2 font-bold text-teal-800 border border-teal-300">
-                                      Active · {ord.elapsedMinutes}m
-                                    </span>
-                                  ) : (
-                                    <span className="text-slate-400 font-medium">Pending</span>
-                                  )}
-                                </div>
+                                {idx < STAGES_CONFIG.length - 1 && (
+                                  <div
+                                    className={`absolute left-1/2 top-2.5 -z-10 h-0.5 w-full ${
+                                      idx < stageIdx ? "bg-teal-700" : "bg-slate-200"
+                                    }`}
+                                  />
+                                )}
                               </div>
-
-                              {/* Connecting Line to next stop */}
-                              {idx < STAGES_CONFIG.length - 1 && (
-                                <div
-                                  className={`absolute left-1/2 top-3.5 -z-10 h-1 w-full -translate-y-1/2 ${
-                                    idx < stageIdx
-                                      ? "bg-teal-700"
-                                      : idx === stageIdx
-                                        ? "bg-slate-200"
-                                        : "bg-slate-200"
-                                  }`}
-                                />
-                              )}
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
 
-                      {/* Action Bump & Modal trigger */}
-                      <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                      {/* Actions aligned with timeline */}
+                      <div className="lg:col-span-4 flex flex-wrap items-center justify-end gap-1.5">
                         <button
                           type="button"
                           onClick={() => setSelectedTimelineOrder(ord)}
-                          className="flex h-7.5 items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer shadow-2xs"
+                          className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
                         >
                           <Eye className="h-3 w-3 text-slate-500" />
-                          <span>View Details</span>
+                          View
                         </button>
-
-                        {ord.currentStage !== "settled" ? (
+                        <button
+                          type="button"
+                          onClick={() => openOrderInBilling(ord)}
+                          className="inline-flex h-7 items-center gap-1 rounded-lg border border-teal-300 bg-teal-50 px-2 text-[11px] font-semibold text-teal-800 hover:bg-teal-100 cursor-pointer"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Edit
+                        </button>
+                        {ord.currentStage === "placed" ? (
                           <button
                             type="button"
-                            onClick={(e) => handleAdvanceStage(ord.id, e)}
-                            className="flex h-7.5 items-center gap-1.5 rounded-lg bg-teal-700 px-3 text-[11.5px] font-bold text-white hover:bg-teal-800 active:scale-98 transition cursor-pointer shadow-2xs"
+                            onClick={(e) => handleAdvanceStage(ord, e)}
+                            className="inline-flex h-7 items-center gap-1 rounded-lg bg-teal-700 px-2.5 text-[11px] font-bold text-white hover:bg-teal-800 cursor-pointer"
                           >
-                            <span>Advance to {STAGES_CONFIG[stageIdx + 1]?.short ?? "Next"}</span>
-                            <ArrowRight className="h-3.5 w-3.5" />
+                            Prepared
+                            <ArrowRight className="h-3 w-3" />
                           </button>
                         ) : (
-                          <span className="inline-flex h-7.5 items-center gap-1 rounded-lg bg-slate-100 border border-slate-300 px-3 text-[11px] font-bold text-slate-700">
-                            <Check className="h-3.5 w-3.5 text-teal-700" />
-                            <span>Order Fulfilled</span>
-                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => handleAdvanceStage(ord, e)}
+                            className="inline-flex h-7 items-center gap-1 rounded-lg bg-teal-700 px-2.5 text-[11px] font-bold text-white hover:bg-teal-800 cursor-pointer"
+                          >
+                            Settle
+                            <ArrowRight className="h-3 w-3" />
+                          </button>
                         )}
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
@@ -884,17 +798,30 @@ export function PosLiveOrdersManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200">
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200">
               <button
                 type="button"
                 onClick={() => {
-                  handleAdvanceStage(selectedTimelineOrder.id);
+                  openOrderInBilling(selectedTimelineOrder);
+                  setSelectedTimelineOrder(null);
+                }}
+                className="flex items-center justify-center gap-1 rounded-lg border border-teal-300 bg-teal-50 py-2 text-[11.5px] font-bold text-teal-800 hover:bg-teal-100 cursor-pointer"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                <span>Edit</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleAdvanceStage(selectedTimelineOrder);
                   setSelectedTimelineOrder(null);
                 }}
                 className="flex items-center justify-center gap-1 rounded-lg bg-teal-700 py-2 text-[11.5px] font-bold text-white hover:bg-teal-800 cursor-pointer"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>Advance Stage</span>
+                <span>
+                  {selectedTimelineOrder.currentStage === "placed" ? "Prepared" : "Settle"}
+                </span>
               </button>
               <button
                 type="button"

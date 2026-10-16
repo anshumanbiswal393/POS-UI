@@ -172,10 +172,17 @@ export function PosTakeOrderManager() {
 
   // ===================== HANDLERS: ROOM =====================
   const handleSelectRoom = (room: HotelRoom) => {
-    // Occupied and vacant rooms can both start a take-order flow
-    setSelectedRoomForWizard(room);
-    setActiveHeldOrder(null);
-    setIsRoomWizardOpen(true);
+    // Only in-house guests — skip pax/waiter wizard; steward = device login on Billing
+    if (!room.isOccupied || !room.guest?.name) return;
+    navigate({
+      to: "/pos/billing",
+      search: {
+        orderType: "room_service",
+        room: room.roomNumber,
+        guestName: room.guest.name,
+        guestPhone: room.guest.phoneExtension || "",
+      },
+    });
   };
 
   const handleResumeHeldOrder = (held: HeldRoomOrder) => {
@@ -307,15 +314,9 @@ export function PosTakeOrderManager() {
             }}
             onOpenSeatGuest={() => setIsAssignGuestOpen(true)}
             onOpenTakeOrder={(tblId) => {
-              const selectedTbl = tblId ? allTables.find((t) => t.id === tblId) : null;
-              navigate({
-                to: "/pos/billing",
-                search: {
-                  orderType: "dine_in",
-                  table: selectedTbl?.tableNumber || "",
-                  guests: selectedTbl?.capacity || 4,
-                },
-              });
+              // Open table / merge chooser first — billing only after Continue
+              setWizardTableId(tblId);
+              setIsTakeOrderWizardOpen(true);
             }}
             stats={stats}
             onRefresh={() => refetchTables()}
@@ -338,7 +339,9 @@ export function PosTakeOrderManager() {
       <TableOrderWizardModal
         isOpen={isTakeOrderWizardOpen}
         onClose={() => setIsTakeOrderWizardOpen(false)}
-        availableTables={allTables}
+        availableTables={allTables.filter(
+          (t) => t.status === "vacant" || t.status === "reserved",
+        )}
         preselectedTableId={wizardTableId}
         onConfirmOrder={handleConfirmTableOrder}
       />

@@ -3,13 +3,13 @@ import {
   Star,
   FileText,
   ArrowRight,
-  Download,
   Eye,
   TrendingUp,
   BarChart2,
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 
 export function OtherReportsView() {
   const [activeTab, setActiveTab] = useState<
@@ -195,14 +195,10 @@ export function OtherReportsView() {
                   View Report <ArrowRight className="h-3 w-3" />
                 </button>
 
-                <button
-                  type="button"
+                <ExportToExcelButton
                   onClick={() => toast.success(`Downloading ${r.title} (Excel)...`)}
-                  className="rounded-lg p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-50 cursor-pointer"
-                  title="Export"
-                >
-                  <Download className="h-4 w-4" />
-                </button>
+                  className="h-7 px-2.5 text-[10.5px]"
+                />
               </div>
             </div>
           );

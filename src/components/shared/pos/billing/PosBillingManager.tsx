@@ -23,7 +23,12 @@ import { BillingTableModal } from "./BillingTableModal";
 import { useMenuItems } from "@/hooks/queries/usePosMenu";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { useAuth } from "@/hooks/useAuth";
-import { createDineInOrder } from "@/services/posOrdersService";
+import {
+  createDineInOrder,
+  markOrderSettledInHistory,
+  getCurrentOrderByNumber,
+  updateCurrentOrderFromBilling,
+} from "@/services/posOrdersService";
 import { getPosTaxSettings } from "@/lib/posTaxSettings";
 import { useHotelRooms } from "@/hooks/queries/usePosRoomService";
 import { usePosTables } from "@/hooks/queries/usePosTables";
@@ -44,6 +49,7 @@ export function PosBillingManager() {
           roomNumber: room.roomNumber,
           guestName: room.guest?.name,
           guestPhone: room.guest?.phoneExtension,
+          pax: room.guest?.pax ?? 0,
         })),
     [hotelRooms],
   );
@@ -92,15 +98,26 @@ export function PosBillingManager() {
     setGuestCount(first.activeReservation?.guests || first.capacity || 4);
   }, [selectableTables, activeTable, resolveTableMatch]);
 
-  // Default room service selection to first occupied room (same Room Service store)
+  // When an occupied room is already set (e.g. from Take Order URL), fill pax from folio
   useEffect(() => {
-    if (occupiedRooms.length === 0) return;
-    const stillValid = occupiedRooms.some((r) => `Room ${r.roomNumber}` === roomNumber);
-    if (!roomNumber || !stillValid) {
-      const first = occupiedRooms[0];
-      setRoomNumber(`Room ${first.roomNumber}`);
+    if (orderType !== "room_service" || !roomNumber || occupiedRooms.length === 0) return;
+    const match = occupiedRooms.find((r) => `Room ${r.roomNumber}` === roomNumber);
+    if (match && guestCount === 0 && (match.pax ?? 0) > 0) {
+      setGuestCount(match.pax ?? 0);
     }
-  }, [occupiedRooms, roomNumber]);
+  }, [orderType, roomNumber, occupiedRooms, guestCount]);
+
+  const handleOrderTypeChange = useCallback(
+    (type: BillingOrderType) => {
+      setOrderType(type);
+      if (type === "room_service") {
+        setRoomNumber("");
+        setGuestCount(0);
+        setSelectedCustomer(null);
+      }
+    },
+    [],
+  );
 
   // Map dynamic menu items from Food Menu service
   // Real-time synchronization: disabled/inactive items and deleted items are NOT shown; newly added active items are shown!
@@ -143,7 +160,7 @@ export function PosBillingManager() {
       });
   }, [menuList]);
 
-  // Read URL Query parameters on mount (when redirected from Take Order for a Table or Room)
+  // Read URL Query parameters on mount (Take Order redirect OR Edit from Current Orders)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -152,6 +169,10 @@ export function PosBillingManager() {
     const qRoom = params.get("room");
     const qGuests = params.get("guests") || params.get("pax");
     const qGuestName = params.get("guestName");
+    const qGuestPhone = params.get("guestPhone");
+    const qNote = params.get("note");
+    const qOrderNumber = params.get("orderNumber");
+    const qEditOrder = params.get("editOrder");
 
     if (qOrderType) {
       setOrderType(qOrderType);
@@ -159,21 +180,29 @@ export function PosBillingManager() {
     if (qTable) {
       setActiveTable(qTable);
     }
+    if (qNote?.trim()) {
+      setSpecialNote(decodeURIComponent(qNote.trim()));
+    }
     if (qRoom) {
       const formatted = qRoom.toLowerCase().startsWith("room") ? qRoom : `Room ${qRoom}`;
       setRoomNumber(formatted);
+      if (qOrderType === "room_service" || !qOrderType) {
+        setOrderType("room_service");
+        if (!qGuests) setGuestCount(0);
+      }
     }
     if (qGuests) {
       const parsed = parseInt(qGuests, 10);
-      if (!isNaN(parsed) && parsed > 0) {
+      if (!isNaN(parsed) && parsed >= 0) {
         setGuestCount(parsed);
       }
     }
     if (qGuestName) {
+      const phoneRaw = qGuestPhone?.trim() ? decodeURIComponent(qGuestPhone.trim()) : "";
       setSelectedCustomer({
         id: `guest-${Date.now()}`,
         name: decodeURIComponent(qGuestName),
-        phone: "+91 98765 00000",
+        phone: phoneRaw || "+91 98765 00000",
         tier: "Silver",
         loyaltyPoints: 0,
         visitCount: 1,
@@ -181,9 +210,68 @@ export function PosBillingManager() {
       });
     }
 
+    // Edit existing Current Order → hydrate cart + link check
+    if (qOrderNumber && qEditOrder) {
+      const open = getCurrentOrderByNumber(decodeURIComponent(qOrderNumber));
+      if (open) {
+        setLinkedOrderNumber(open.orderNumber);
+        setBillNumber(open.orderNumber);
+        setKotSentForCart(true);
+        if (open.tableOrRoom) {
+          const tbl = open.tableOrRoom.startsWith("Table")
+            ? open.tableOrRoom
+            : `Table ${open.tableOrRoom}`;
+          setActiveTable(tbl);
+        }
+        if (open.pax) setGuestCount(open.pax);
+        if (open.orderNote) setSpecialNote(open.orderNote);
+        if (open.customerName) {
+          setSelectedCustomer({
+            id: `guest-${open.orderNumber}`,
+            name: open.customerName,
+            phone: open.customerPhone && open.customerPhone !== "--" ? open.customerPhone : "+91 98765 00000",
+            tier: "Silver",
+            loyaltyPoints: 0,
+            visitCount: 1,
+            lastVisit: "Today",
+          });
+        }
+        setCartItems(
+          open.items.map((line, idx) => ({
+            cartId: `edit-${open.orderNumber}-${idx}`,
+            item: {
+              id: line.id,
+              code: line.code || `#${line.id}`,
+              name: line.name,
+              category: (line.category as BillingMenuItem["category"]) || "All Items",
+              diet: line.diet || "veg",
+              price: line.price,
+              inStock: true,
+              prepTimeMinutes: 15,
+            },
+            quantity: line.quantity,
+            selectedVariant: line.selectedVariantName
+              ? { id: `var-${line.id}`, name: line.selectedVariantName, price: line.price }
+              : undefined,
+            selectedModifiers: [],
+            specialInstructions: line.notes,
+            addedAt: open.startTime,
+          })),
+        );
+        toast.success(`Editing ${open.orderNumber}`, {
+          description: "Add or remove items, then Update KOT / Settle",
+        });
+        return;
+      }
+      toast.error(`Open order ${qOrderNumber} not found`);
+    }
+
     if (qTable || qRoom) {
-      const target = qOrderType === "room_service" ? `Room ${qRoom}` : `Table ${qTable}`;
-      toast.success(`Active billing session for ${target}`);
+      const target =
+        qOrderType === "room_service"
+          ? `Room ${qRoom}${qGuestName ? ` · ${decodeURIComponent(qGuestName)}` : ""}`
+          : `Table ${qTable}`;
+      toast.success(`Billing ready — ${target}`);
     }
   }, []);
 
@@ -191,6 +279,7 @@ export function PosBillingManager() {
   const [cartItems, setCartItems] = useState<BillingCartItem[]>([]);
   /** Prevents double KOT when user clicks KOT then settles the same cart */
   const [kotSentForCart, setKotSentForCart] = useState(false);
+  const [linkedOrderNumber, setLinkedOrderNumber] = useState<string | null>(null);
 
   // 3. Customer Loyalty State
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerProfile | null>(null);
@@ -302,6 +391,7 @@ export function PosBillingManager() {
   const handleClearCart = () => {
     setCartItems([]);
     setKotSentForCart(false);
+    setLinkedOrderNumber(null);
     toast.info("Cleared order cart");
   };
 
@@ -313,8 +403,13 @@ export function PosBillingManager() {
     setSelectedCustomer(null);
     setSpecialNote("");
     setKotSentForCart(false);
+    setLinkedOrderNumber(null);
+    if (orderType === "room_service") {
+      setRoomNumber("");
+      setGuestCount(0);
+    }
     toast.success(`New check ${nextNum} started`);
-  }, []);
+  }, [orderType]);
 
   const buildOrderPayload = useCallback(() => {
     const taxSettings = getPosTaxSettings();
@@ -328,6 +423,9 @@ export function PosBillingManager() {
         price: item.isComplimentary ? 0 : bp + mp,
         selectedVariantName: item.selectedVariant?.name,
         notes: item.specialInstructions,
+        code: item.item.code,
+        category: typeof item.item.category === "string" ? item.item.category : undefined,
+        diet: item.item.diet,
       };
     });
 
@@ -450,17 +548,71 @@ export function PosBillingManager() {
     toast.error("Discarded held check");
   };
 
-  // Print KOT → send ticket to KDS Preparing (FCFS)
+  // Print / Update KOT → Preparing (new check) or incremental KOT (edit existing)
   const handlePrintKot = useCallback(() => {
     if (cartItems.length === 0) return;
-    if (kotSentForCart) {
-      toast.info("KOT already sent for this check — open Kitchen Display");
-      return;
-    }
 
     const { orderItems, subtotal, grandTotal, tableLabel } = buildOrderPayload();
     if (!tableLabel && orderType === "dine_in") {
       toast.error("Select a table before sending KOT");
+      return;
+    }
+
+    // Editing an open Current Order → send modified KOT for new/changed items
+    if (kotSentForCart && linkedOrderNumber) {
+      const prev = getCurrentOrderByNumber(linkedOrderNumber);
+      const prevMap = new Map((prev?.items || []).map((i) => [`${i.id}|${i.selectedVariantName || ""}`, i.quantity]));
+      const deltas: string[] = [];
+      for (const line of orderItems) {
+        const key = `${line.id}|${line.selectedVariantName || ""}`;
+        const before = prevMap.get(key) || 0;
+        if (line.quantity > before) {
+          deltas.push(`+${line.quantity - before}× ${line.name}`);
+        } else if (line.quantity < before) {
+          deltas.push(`${line.quantity - before}× ${line.name}`);
+        }
+        prevMap.delete(key);
+      }
+      for (const [key, qty] of prevMap) {
+        const name =
+          prev?.items.find((i) => `${i.id}|${i.selectedVariantName || ""}` === key)?.name || key;
+        deltas.push(`-${qty}× ${name}`);
+      }
+
+      if (deltas.length === 0) {
+        toast.info("No item changes — nothing new for kitchen");
+        return;
+      }
+
+      const result = updateCurrentOrderFromBilling({
+        orderNumber: linkedOrderNumber,
+        items: orderItems,
+        subtotal,
+        grandTotal,
+        guestName: selectedCustomer?.name,
+        guestPhone: selectedCustomer?.phone,
+        waiterName: captainName,
+        orderNote: specialNote.trim() || undefined,
+        modifiedSummaryText: deltas.join(", "),
+      });
+
+      if (!result) {
+        toast.error("Could not update open order");
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "current-timeline"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "all"] });
+      toast.success(`KOT #${result.kotId} updated → Preparing`, {
+        description: `${linkedOrderNumber} · ${deltas.join(", ")}`,
+      });
+      return;
+    }
+
+    if (kotSentForCart) {
+      toast.info("KOT already sent for this check — open Kitchen Display");
       return;
     }
 
@@ -479,15 +631,19 @@ export function PosBillingManager() {
     });
 
     setKotSentForCart(true);
+    setLinkedOrderNumber(orderNumber);
+    setBillNumber(orderNumber);
     queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
     queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
+    queryClient.invalidateQueries({ queryKey: ["pos", "orders", "current-timeline"] });
     const noteHint = specialNote.trim() ? ` · Note: ${specialNote.trim()}` : "";
     toast.success(`KOT #${kotId} → Preparing (${tableLabel || "Takeaway"})${noteHint}`, {
-      description: `${orderNumber} · open Kitchen Display`,
+      description: `${orderNumber} · Current Orders`,
     });
   }, [
-    cartItems.length,
+    cartItems,
     kotSentForCart,
+    linkedOrderNumber,
     buildOrderPayload,
     orderType,
     activeOutlet?.name,
@@ -520,6 +676,8 @@ export function PosBillingManager() {
 
       let orderNumber = billNumber;
       let kotId: number | null = null;
+      const historyPayMode =
+        paymentMethod === "upi" ? ("UPI" as const) : ("Cash" as const);
 
       if (!kotSentForCart) {
         const created = createDineInOrder({
@@ -534,11 +692,39 @@ export function PosBillingManager() {
           items: orderItems,
           subtotal,
           grandTotal,
+          paymentMode: historyPayMode,
+          markSettled: true,
         });
         orderNumber = created.orderNumber;
         kotId = created.kotId;
         queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
         queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
+        queryClient.invalidateQueries({ queryKey: ["pos", "orders", "all"] });
+      } else {
+        // Persist latest cart amounts before settle if items changed
+        if (linkedOrderNumber) {
+          const open = getCurrentOrderByNumber(linkedOrderNumber);
+          if (open && Math.abs(open.amount - grandTotal) > 0.01) {
+            updateCurrentOrderFromBilling({
+              orderNumber: linkedOrderNumber,
+              items: orderItems,
+              subtotal,
+              grandTotal,
+              guestName: selectedCustomer?.name,
+              guestPhone: selectedCustomer?.phone,
+              waiterName: captainName,
+              modifiedSummaryText: "Settled with updated items",
+            });
+          }
+          markOrderSettledInHistory(linkedOrderNumber, historyPayMode);
+          orderNumber = linkedOrderNumber;
+        } else {
+          markOrderSettledInHistory(orderNumber, historyPayMode);
+        }
+        queryClient.invalidateQueries({ queryKey: ["pos", "orders", "all"] });
+        queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
+        queryClient.invalidateQueries({ queryKey: ["pos", "orders", "current-timeline"] });
+        queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
       }
 
       const now = new Date();
@@ -586,6 +772,7 @@ export function PosBillingManager() {
     [
       cartItems,
       kotSentForCart,
+      linkedOrderNumber,
       buildOrderPayload,
       billNumber,
       orderType,
@@ -631,7 +818,7 @@ export function PosBillingManager() {
       <div className="shrink-0">
         <BillingHeader
           orderType={orderType}
-          setOrderType={setOrderType}
+          setOrderType={handleOrderTypeChange}
           activeTable={activeTable}
           onOpenTableSelector={() => setIsTableModalOpen(true)}
           guestCount={guestCount}
@@ -642,8 +829,15 @@ export function PosBillingManager() {
           roomNumber={roomNumber}
           occupiedRooms={occupiedRooms}
           onSelectRoom={(nextRoom) => {
+            if (!nextRoom) {
+              setRoomNumber("");
+              setGuestCount(0);
+              setSelectedCustomer(null);
+              return;
+            }
             setRoomNumber(nextRoom);
             const match = occupiedRooms.find((r) => `Room ${r.roomNumber}` === nextRoom);
+            setGuestCount(match?.pax ?? 0);
             if (match?.guestName) {
               setSelectedCustomer({
                 id: `room-${match.roomNumber}`,
@@ -655,6 +849,8 @@ export function PosBillingManager() {
                 lastVisit: "Today",
                 roomNumber: match.roomNumber,
               });
+            } else {
+              setSelectedCustomer(null);
             }
           }}
         />

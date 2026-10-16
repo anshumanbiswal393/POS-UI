@@ -2,8 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import {
   Search,
   ChevronDown,
-  FileSpreadsheet,
-  FileText,
   Eye,
   Printer,
   Edit,
@@ -11,11 +9,19 @@ import {
   Split,
   Calendar,
   X,
+  LayoutGrid,
+  Table2,
 } from "lucide-react";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useAllOrders } from "@/hooks/queries/usePosOrders";
 import type { AllOrderItem } from "@/types/posOrders";
-import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid";
+import {
+  PosDataGrid,
+  ChooseColumnsMenu,
+  type PosDataGridColumn,
+  type DataTableColumn,
+} from "@/components/ui/data-grid";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { exportToExcel } from "@/utils/exportUtils";
 import { toast } from "sonner";
 
@@ -192,13 +198,16 @@ const EXTENDED_MOCK_RECORDS: (AllOrderItem & { tableNo?: string; customerPhone?:
   },
 ];
 
+function orderStatusClass(status: AllOrderItem["status"]) {
+  if (status === "Printed") return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (status === "Settled") return "bg-teal-50 text-teal-700 border-teal-200";
+  return "bg-slate-100 text-slate-700 border-slate-200";
+}
+
 export function PosAllOrdersManager() {
   const [activeTab, setActiveTab] = useState<"order" | "advance_order">("order");
+  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [mounted, setMounted] = useState(false);
-  const [selectedRange, setSelectedRange] = useState("Last 15 Days Orders");
-  const [showRangeDropdown, setShowRangeDropdown] = useState(false);
-  const [showActionDropdown, setShowActionDropdown] = useState(false);
-
   // Toggle state: collapsed (Picture 1) vs expanded (Picture 2)
   const [showMoreFilters, setShowMoreFilters] = useState(false);
 
@@ -211,8 +220,6 @@ export function PosAllOrdersManager() {
   const [customerPhoneInput, setCustomerPhoneInput] = useState("");
   const [tableNoInput, setTableNoInput] = useState("");
   const [statusInput, setStatusInput] = useState("All");
-  const [filterTagInput, setFilterTagInput] = useState("All");
-
   // Applied filter state triggered by "Search" button
   const [appliedFilters, setAppliedFilters] = useState({
     startDate: "2026-08-19",
@@ -223,7 +230,6 @@ export function PosAllOrdersManager() {
     customerPhone: "",
     tableNo: "",
     status: "All",
-    filterTag: "All",
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -250,34 +256,10 @@ export function PosAllOrdersManager() {
       customerPhone: customerPhoneInput.trim(),
       tableNo: tableNoInput.trim(),
       status: statusInput,
-      filterTag: filterTagInput,
     });
     setCurrentPage(1);
   };
 
-  const handleShowAll = () => {
-    setStartDate("2026-08-19");
-    setEndDate("2026-09-02");
-    setOrderType("All Order Type");
-    setOrderIdInput("");
-    setCustomerNameInput("");
-    setCustomerPhoneInput("");
-    setTableNoInput("");
-    setStatusInput("All");
-    setFilterTagInput("All");
-    setAppliedFilters({
-      startDate: "",
-      endDate: "",
-      orderType: "All Order Type",
-      orderId: "",
-      customerName: "",
-      customerPhone: "",
-      tableNo: "",
-      status: "All",
-      filterTag: "All",
-    });
-    setCurrentPage(1);
-  };
 
   const filteredRecords = useMemo(() => {
     return EXTENDED_MOCK_RECORDS.filter((r) => {
@@ -393,20 +375,12 @@ export function PosAllOrdersManager() {
     exportToExcel({
       filename: `All_Restaurant_Orders_${new Date().toISOString().slice(0, 10)}`,
       title: "All Restaurant Orders & Billing Register",
-      subtitle: `Type: ${appliedFilters.orderType} | Status: ${appliedFilters.status} | Range: ${selectedRange}`,
+      subtitle: `Type: ${appliedFilters.orderType} | Status: ${appliedFilters.status} | ${appliedFilters.startDate} → ${appliedFilters.endDate}`,
       columns: headers,
       rows,
     });
     toast.success(`Exported ${rows.length} order records to Excel`);
   };
-
-  const dateRanges = [
-    "Today",
-    "Yesterday",
-    "Last 7 Days Orders",
-    "Last 15 Days Orders",
-    "This Month",
-  ];
 
   type OrderRowType = AllOrderItem & { tableNo?: string; customerPhone?: string };
 
@@ -418,7 +392,8 @@ export function PosAllOrdersManager() {
         accessorKey: "orderNo",
         enableSorting: true,
         enableFiltering: true,
-        minWidth: 100,
+        minWidth: 120,
+        defaultWidth: 130,
         cell: ({ row }: { row: OrderRowType }) => (
           <span className="font-bold text-slate-900">{row.orderNo}</span>
         ),
@@ -430,6 +405,7 @@ export function PosAllOrdersManager() {
         enableSorting: true,
         enableFiltering: true,
         minWidth: 150,
+        defaultWidth: 170,
         cell: ({ row }: { row: OrderRowType }) => (
           <span className="font-semibold text-slate-800">{row.orderTypeDisplay}</span>
         ),
@@ -440,7 +416,8 @@ export function PosAllOrdersManager() {
         accessorKey: "customerName",
         enableSorting: true,
         enableFiltering: true,
-        minWidth: 140,
+        minWidth: 150,
+        defaultWidth: 160,
         cell: ({ row }: { row: OrderRowType }) => <span>{row.customerName}</span>,
       },
       {
@@ -449,7 +426,8 @@ export function PosAllOrdersManager() {
         accessorKey: "assignTo",
         enableSorting: true,
         enableFiltering: true,
-        minWidth: 120,
+        minWidth: 130,
+        defaultWidth: 140,
         cell: ({ row }: { row: OrderRowType }) => <span className="text-slate-600">{row.assignTo}</span>,
       },
       {
@@ -457,6 +435,7 @@ export function PosAllOrdersManager() {
         header: "Items",
         accessorKey: "itemsSummary",
         minWidth: 200,
+        defaultWidth: 220,
         cell: ({ row }: { row: OrderRowType }) => (
           <span className="text-slate-600 font-normal leading-relaxed text-[12px]">
             {row.itemsSummary}
@@ -469,6 +448,8 @@ export function PosAllOrdersManager() {
         accessorKey: "myAmountFormatted",
         align: "right",
         enableSorting: true,
+        minWidth: 140,
+        defaultWidth: 150,
         cell: ({ row }: { row: OrderRowType }) => (
           <span className="font-medium">{row.myAmountFormatted}</span>
         ),
@@ -479,6 +460,8 @@ export function PosAllOrdersManager() {
         accessorKey: "taxAmountFormatted",
         align: "right",
         enableSorting: true,
+        minWidth: 110,
+        defaultWidth: 120,
         cell: ({ row }: { row: OrderRowType }) => (
           <span className="text-slate-500">{row.taxAmountFormatted}</span>
         ),
@@ -489,6 +472,8 @@ export function PosAllOrdersManager() {
         accessorKey: "discountAmountFormatted",
         align: "right",
         enableSorting: true,
+        minWidth: 130,
+        defaultWidth: 140,
         cell: ({ row }: { row: OrderRowType }) => (
           <span className="text-slate-500">{row.discountAmountFormatted}</span>
         ),
@@ -499,6 +484,8 @@ export function PosAllOrdersManager() {
         accessorKey: "grandTotalFormatted",
         align: "right",
         enableSorting: true,
+        minWidth: 150,
+        defaultWidth: 160,
         cell: ({ row }: { row: OrderRowType }) => (
           <span className="font-bold text-slate-900">{row.grandTotalFormatted}</span>
         ),
@@ -509,6 +496,8 @@ export function PosAllOrdersManager() {
         accessorKey: "paymentMode",
         enableSorting: true,
         enableFiltering: true,
+        minWidth: 120,
+        defaultWidth: 130,
         cell: ({ row }: { row: OrderRowType }) => <span className="font-medium">{row.paymentMode}</span>,
       },
       {
@@ -517,15 +506,11 @@ export function PosAllOrdersManager() {
         accessorKey: "status",
         enableSorting: true,
         enableFiltering: true,
+        minWidth: 120,
+        defaultWidth: 130,
         cell: ({ row }: { row: OrderRowType }) => (
           <span
-            className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${
-              row.status === "Printed"
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                : row.status === "Settled"
-                  ? "bg-teal-50 text-teal-700 border-teal-200"
-                  : "bg-slate-100 text-slate-700 border-slate-200"
-            }`}
+            className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${orderStatusClass(row.status)}`}
           >
             {row.status}
           </span>
@@ -587,12 +572,53 @@ export function PosAllOrdersManager() {
     []
   );
 
+  const chooseColumnDefs: DataTableColumn[] = useMemo(
+    () =>
+      columns.map((col, idx) => {
+        const id =
+          col.id ||
+          col.key ||
+          (typeof col.accessorKey === "string" ? col.accessorKey : `col-${idx}`);
+        const label =
+          typeof col.header === "string"
+            ? col.header
+            : typeof col.label === "string"
+              ? col.label
+              : id;
+        return { id, key: id, label };
+      }),
+    [columns],
+  );
+
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem("retrod:pos-order-history:visible-columns");
+      if (saved) return JSON.parse(saved);
+    } catch {
+      /* ignore */
+    }
+    const initial: Record<string, boolean> = {};
+    for (const col of chooseColumnDefs) {
+      if (col.id) initial[col.id] = true;
+    }
+    return initial;
+  });
+
+  const handleColumnVisibilityChange = (updated: Record<string, boolean>) => {
+    setColumnVisibility(updated);
+    try {
+      localStorage.setItem("retrod:pos-order-history:visible-columns", JSON.stringify(updated));
+    } catch {
+      /* ignore */
+    }
+  };
+
   return (
     <div className="space-y-2.5 pb-8">
       {/* 1. Top Header Row */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
-        {/* Left: Title & Segmented Tabs */}
-        <div className="flex items-center gap-3">
+        {/* Left: Title, Order tabs, Table/Grid view */}
+        <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-[16px] font-bold text-slate-900 leading-tight">Order History</h1>
           <div className="flex items-center rounded-lg border border-slate-300 bg-slate-100 p-0.5 shadow-2xs">
             <button
@@ -624,109 +650,44 @@ export function PosAllOrdersManager() {
               Advance Order
             </button>
           </div>
+
+          <div className="flex items-center rounded-lg border border-slate-300 bg-slate-100 p-0.5 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              title="Table view"
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-bold transition cursor-pointer ${
+                viewMode === "table"
+                  ? "bg-white text-teal-800 shadow-2xs border border-slate-300"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <Table2 className="h-3.5 w-3.5" />
+              <span>Table</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              title="Grid view"
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-bold transition cursor-pointer ${
+                viewMode === "grid"
+                  ? "bg-white text-teal-800 shadow-2xs border border-slate-300"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              <span>Grid</span>
+            </button>
+          </div>
         </div>
 
-        {/* Right: Grand Total & Action Buttons */}
+        {/* Right: Grand Total + Export */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="text-[13px] font-bold text-slate-900 pr-1">
+          <div className="text-[13px] font-bold text-slate-900">
             Grand Total :{" "}
             <span className="text-teal-700">{data?.grandTotalFormatted ?? "₹ 643,388.00"}</span>
           </div>
-
-          {/* Date Filter Dropdown */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowRangeDropdown(!showRangeDropdown)}
-              className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[11.5px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
-            >
-              <Calendar className="h-3.5 w-3.5 text-slate-500" />
-              <span>{selectedRange}</span>
-              <ChevronDown className="h-3 w-3 text-slate-400" />
-            </button>
-
-            {showRangeDropdown && (
-              <div className="absolute right-0 mt-1.5 w-48 rounded-lg border border-slate-300 bg-white p-1 shadow-lg z-30 animate-in fade-in zoom-in-95">
-                {dateRanges.map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => {
-                      setSelectedRange(r);
-                      setShowRangeDropdown(false);
-                    }}
-                    className={`flex w-full items-center rounded-md px-3 py-2 text-left text-[12.5px] transition cursor-pointer ${
-                      selectedRange === r
-                        ? "bg-sky-50 text-sky-700 font-bold"
-                        : "text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Generate Invoice */}
-          <button
-            type="button"
-            onClick={() => {
-              if (paginatedRecords.length > 0) setPrintingOrder(paginatedRecords[0]);
-            }}
-            className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 shadow-xs transition cursor-pointer"
-          >
-            <FileText className="h-4 w-4 text-slate-500" />
-            <span>Generate Invoice</span>
-          </button>
-
-          {/* Action Menu */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowActionDropdown(!showActionDropdown)}
-              className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 shadow-xs transition cursor-pointer"
-            >
-              <span>Action</span>
-              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-            </button>
-
-            {showActionDropdown && (
-              <div className="absolute right-0 mt-1.5 w-44 rounded-lg border border-slate-300 bg-white p-1 shadow-lg z-30">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowActionDropdown(false);
-                    alert(`Selected ${selectedIds.length} orders.`);
-                  }}
-                  className="flex w-full items-center rounded-md px-3 py-2 text-left text-[12px] text-slate-700 hover:bg-slate-50 cursor-pointer"
-                >
-                  Mark as Settled
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowActionDropdown(false);
-                    handleExportExcel();
-                  }}
-                  className="flex w-full items-center rounded-md px-3 py-2 text-left text-[12px] text-slate-700 hover:bg-slate-50 cursor-pointer"
-                >
-                  Export Selected
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Export Excel */}
-          <button
-            type="button"
-            onClick={handleExportExcel}
-            className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 shadow-xs transition cursor-pointer"
-          >
-            <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
-            <span>Export to Excel</span>
-            <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-          </button>
+          <ExportToExcelButton onClick={handleExportExcel} />
         </div>
       </div>
 
@@ -802,12 +763,11 @@ export function PosAllOrdersManager() {
               />
             </div>
 
-            {/* Action Buttons: More Filters, Search, Show All */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setShowMoreFilters(true)}
-                className="h-10 rounded-lg border border-slate-300 bg-white px-4 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+                className="h-10 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-4 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
               >
                 More Filters
               </button>
@@ -815,19 +775,22 @@ export function PosAllOrdersManager() {
               <button
                 type="button"
                 onClick={handleSearch}
-                className="h-10 rounded-lg border border-sky-600 bg-white px-6 text-[12.5px] font-bold text-sky-600 hover:bg-sky-50 shadow-2xs transition cursor-pointer active:scale-98"
+                className="h-10 whitespace-nowrap rounded-lg border border-sky-600 bg-white px-6 text-[12.5px] font-bold text-sky-600 hover:bg-sky-50 shadow-2xs transition cursor-pointer active:scale-98"
               >
                 Search
               </button>
-
-              <button
-                type="button"
-                onClick={handleShowAll}
-                className="h-10 rounded-lg border border-slate-300 bg-white px-4 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
-              >
-                Show All
-              </button>
             </div>
+
+            {viewMode === "table" && (
+              <div className="ml-auto shrink-0">
+                <ChooseColumnsMenu
+                  columns={chooseColumnDefs}
+                  visibleColumns={columnVisibility}
+                  onVisibleColumnsChange={handleColumnVisibilityChange}
+                  className="h-10 whitespace-nowrap"
+                />
+              </div>
+            )}
           </div>
         ) : (
           /* PICTURE 2: EXPANDED MULTI-ROW FILTER GRID (MORE FILTERS) */
@@ -911,9 +874,9 @@ export function PosAllOrdersManager() {
               </div>
             </div>
 
-            {/* Row 2 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 pt-1">
-              <div>
+            {/* Row 2 — fields even; actions left; Choose Columns pinned right */}
+            <div className="flex flex-wrap items-end gap-3.5 pt-1">
+              <div className="min-w-[140px] flex-1">
                 <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
                   Customer Phone
                 </label>
@@ -926,7 +889,7 @@ export function PosAllOrdersManager() {
                 />
               </div>
 
-              <div>
+              <div className="min-w-[140px] flex-1">
                 <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
                   Table No.
                 </label>
@@ -939,7 +902,7 @@ export function PosAllOrdersManager() {
                 />
               </div>
 
-              <div>
+              <div className="min-w-[140px] flex-1">
                 <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
                   Status
                 </label>
@@ -958,28 +921,11 @@ export function PosAllOrdersManager() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
-                  Filter
-                </label>
-                <div className="relative">
-                  <select
-                    value={filterTagInput}
-                    onChange={(e) => setFilterTagInput(e.target.value)}
-                    className="h-10 w-full appearance-none rounded-lg border border-slate-300 bg-white pl-3 pr-8 text-[12.5px] font-medium text-slate-700 shadow-2xs hover:border-slate-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition cursor-pointer"
-                  >
-                    <option value="All">All</option>
-                    <option value="Online">Online Orders</option>
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
-
-              <div className="flex items-end gap-2">
+              <div className="flex items-end gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowMoreFilters(false)}
-                  className="h-10 flex-1 rounded-lg border border-slate-300 bg-white text-[12px] font-medium text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+                  className="h-10 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-4 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
                 >
                   Less Filters
                 </button>
@@ -987,36 +933,135 @@ export function PosAllOrdersManager() {
                 <button
                   type="button"
                   onClick={handleSearch}
-                  className="h-10 flex-1 rounded-lg border border-sky-600 bg-white px-3 text-[12.5px] font-bold text-sky-600 hover:bg-sky-50 shadow-2xs transition cursor-pointer active:scale-98"
+                  className="h-10 whitespace-nowrap rounded-lg border border-sky-600 bg-white px-6 text-[12.5px] font-bold text-sky-600 hover:bg-sky-50 shadow-2xs transition cursor-pointer active:scale-98"
                 >
                   Search
                 </button>
-
-                <button
-                  type="button"
-                  onClick={handleShowAll}
-                  className="h-10 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
-                >
-                  Show All
-                </button>
               </div>
+
+              {viewMode === "table" && (
+                <div className="ml-auto shrink-0 flex items-end">
+                  <ChooseColumnsMenu
+                    columns={chooseColumnDefs}
+                    visibleColumns={columnVisibility}
+                    onVisibleColumnsChange={handleColumnVisibilityChange}
+                    className="h-10 whitespace-nowrap"
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* 4. Main Data Table with PosDataGrid */}
-      <PosDataGrid<AllOrderItem & { tableNo?: string; customerPhone?: string }>
-        data={filteredRecords}
-        selectedRowIds={selectedIds}
-        onSelectionChange={setSelectedIds}
-        enableSelection={true}
-        enablePagination={true}
-        pageSize={10}
-        pageSizeOptions={[10, 25, 50, 100]}
-        emptyMessage="No matching orders found. Try adjusting your search or filters."
-        columns={columns}
-      />
+      {/* 4. Table or Grid view */}
+      {viewMode === "table" ? (
+        <PosDataGrid<AllOrderItem & { tableNo?: string; customerPhone?: string }>
+          data={filteredRecords}
+          selectedRowIds={selectedIds}
+          onSelectionChange={setSelectedIds}
+          enableSelection={true}
+          enablePagination={true}
+          pageSize={10}
+          pageSizeOptions={[10, 25, 50, 100]}
+          emptyMessage="No matching orders found. Try adjusting your search or filters."
+          columns={columns}
+          storageKey="pos-order-history"
+          themeVariant="primary"
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={handleColumnVisibilityChange}
+        />
+      ) : filteredRecords.length === 0 ? (
+        <div className="rounded-xl border border-slate-300 bg-white px-4 py-12 text-center text-[13px] text-slate-500 shadow-2xs">
+          No matching orders found. Try adjusting your search or filters.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {filteredRecords.map((order) => (
+            <article
+              key={order.id}
+              className="flex flex-col rounded-xl border border-slate-300 bg-white p-3.5 shadow-2xs transition hover:border-slate-400"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-[14px] font-bold text-slate-900">#{order.orderNo}</h3>
+                    <span
+                      className={`inline-flex shrink-0 rounded-md border px-2 py-0.5 text-[10.5px] font-semibold ${orderStatusClass(order.status)}`}
+                    >
+                      {order.status}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 truncate text-[12px] font-semibold text-slate-700">
+                    {order.orderTypeDisplay}
+                  </p>
+                </div>
+                <p className="shrink-0 text-[14px] font-bold text-teal-700">
+                  {order.grandTotalFormatted}
+                </p>
+              </div>
+
+              <div className="mt-2.5 space-y-1 text-[12px]">
+                <div className="flex justify-between gap-2">
+                  <span className="text-slate-500">Customer</span>
+                  <span className="truncate font-medium text-slate-800">{order.customerName}</span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-slate-500">Assign To</span>
+                  <span className="truncate text-slate-700">{order.assignTo}</span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-slate-500">Payment</span>
+                  <span className="font-medium text-slate-800">{order.paymentMode}</span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-slate-500">Created</span>
+                  <span className="text-slate-600">{order.createdAt}</span>
+                </div>
+              </div>
+
+              <p className="mt-2.5 line-clamp-2 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-2 text-[11.5px] leading-relaxed text-slate-600">
+                {order.itemsSummary}
+              </p>
+
+              <div className="mt-auto flex items-center justify-end gap-1.5 border-t border-slate-100 pt-2.5 mt-3 text-slate-500">
+                <button
+                  type="button"
+                  onClick={() => setViewingOrder(order)}
+                  title="View Details"
+                  className="rounded-lg border border-slate-200 bg-white p-1.5 hover:border-sky-300 hover:text-sky-600 transition cursor-pointer shadow-2xs"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPrintingOrder(order)}
+                  title="Print Invoice"
+                  className="rounded-lg border border-slate-200 bg-white p-1.5 hover:border-emerald-300 hover:text-emerald-600 transition cursor-pointer shadow-2xs"
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => alert(`Edit Order #${order.orderNo}`)}
+                  title="Edit Order"
+                  className="rounded-lg border border-slate-200 bg-white p-1.5 hover:border-amber-300 hover:text-amber-600 transition cursor-pointer shadow-2xs"
+                >
+                  <Edit className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => alert(`Reorder items from #${order.orderNo}`)}
+                  title="Reorder"
+                  className="rounded-lg border border-slate-200 bg-white p-1.5 hover:border-purple-300 hover:text-purple-600 transition cursor-pointer shadow-2xs"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
 
       {/* VIEW ORDER DETAILS MODAL */}
       {viewingOrder && (

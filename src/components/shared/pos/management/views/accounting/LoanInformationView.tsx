@@ -4,7 +4,6 @@ import {
   Plus,
   Search,
   ChevronDown,
-  Download,
   Edit2,
   Trash2,
   CheckCircle2,
@@ -23,6 +22,7 @@ import {
   type DataTableColumn,
 } from "@/components/common";
 import { PosDataGrid } from "@/components/ui/data-grid";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import {
   Dialog,
   DialogContent,
@@ -451,13 +451,9 @@ export function LoanInformationView() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => toast.success("Exporting loans and repayments ledger...")}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
-          >
-            <Download className="h-3.5 w-3.5 text-slate-500" /> Export Ledger
-          </button>
+          <ExportToExcelButton
+            onClick={() => toast.success("Exporting loans and repayments ledger to Excel...")}
+          />
 
           <button
             type="button"

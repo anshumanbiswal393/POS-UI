@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Download, Search, Trash2, Eye, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { Plus, Search, Trash2, Eye, SlidersHorizontal } from "lucide-react";
 import {
   usePurchaseOrders,
   useInventoryVendors,
@@ -11,6 +11,7 @@ import {
   DataTableFooter,
   type DataTableColumn,
 } from "@/components/common/DataTableHeader";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { toast } from "sonner";
 
 export function PurchaseOrderView() {
@@ -125,14 +126,9 @@ export function PurchaseOrderView() {
             Create New
           </button>
 
-          <button
-            type="button"
-            onClick={() => toast.success("Exporting purchase orders...")}
-            className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-          >
-            <Download className="h-4 w-4 text-slate-500" />
-            Export <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-          </button>
+          <ExportToExcelButton
+            onClick={() => toast.success("Exporting purchase orders to Excel...")}
+          />
 
           <button
             type="button"

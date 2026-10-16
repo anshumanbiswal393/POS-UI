@@ -2,13 +2,13 @@ import { useState, useMemo } from "react";
 import {
   Plus,
   ChevronDown,
-  Download,
   Upload,
   Edit2,
   Trash2,
   X,
 } from "lucide-react";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { toast } from "sonner";
 
 interface AddonGroupItem {
@@ -212,14 +212,9 @@ export function ScheduleAddonsTab() {
           >
             Action <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
           </button>
-          <button
-            type="button"
+          <ExportToExcelButton
             onClick={() => toast.success("Exporting addons Excel sheet...")}
-            className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-          >
-            <Download className="h-3.5 w-3.5 text-slate-500" />
-            Export Excel
-          </button>
+          />
           <button
             type="button"
             className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"

@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, Trash2, AlertTriangle, Download, Calendar } from "lucide-react";
+import { Plus, Search, Trash2, AlertTriangle, Calendar } from "lucide-react";
 import {
   DataTableHeader,
   type DataTableColumn,
 } from "@/components/common/DataTableHeader";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { toast } from "sonner";
 
 export function StockWastageView() {
@@ -135,14 +136,9 @@ export function StockWastageView() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => toast.success("Exporting wastage report...")}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-          >
-            <Download className="h-3.5 w-3.5 text-slate-500" />
-            Export Wastage
-          </button>
+          <ExportToExcelButton
+            onClick={() => toast.success("Exporting wastage report to Excel...")}
+          />
 
           <button
             type="button"

@@ -5,7 +5,6 @@ import {
   RotateCcw,
   Calendar,
   ChevronDown,
-  Download,
   FileText,
   Filter,
   CheckCircle2,
@@ -17,6 +16,7 @@ import {
   DataTableHeader,
   type DataTableColumn,
 } from "@/components/common/DataTableHeader";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { toast } from "sonner";
 
 interface SalesReturnRecord {
@@ -218,14 +218,9 @@ export function SalesReturnListView() {
             Create New
           </button>
 
-          <button
-            type="button"
+          <ExportToExcelButton
             onClick={() => toast.success("Exporting sales returns to Excel...")}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-          >
-            <Download className="h-3.5 w-3.5 text-slate-500" />
-            Export <ChevronDown className="h-3 w-3 text-slate-400" />
-          </button>
+          />
         </div>
       </div>
 

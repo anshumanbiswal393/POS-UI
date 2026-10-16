@@ -7,13 +7,13 @@ import {
   FileCheck,
   AlertCircle,
   ShieldCheck,
-  Download,
   Receipt,
   FileSpreadsheet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DataTableHeader, DataTableFooter, type DataTableColumn } from "@/components/common";
 import { PosDataGrid } from "@/components/ui/data-grid";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { exportToExcel } from "@/utils/exportUtils";
 
 interface TaxSlabRecord {
@@ -588,8 +588,7 @@ export function GstInformationView() {
                 </h3>
                 <p className="text-[11.5px] text-slate-500">Preset tax slabs mapped to POS menu items & billing.</p>
               </div>
-              <button
-                type="button"
+              <ExportToExcelButton
                 onClick={() => {
                   exportToExcel(
                     TAX_SLABS.map((s) => ({
@@ -607,11 +606,7 @@ export function GstInformationView() {
                   );
                   toast.success("Exported tax slab rates to Excel");
                 }}
-                className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1 text-[11.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
-              >
-                <Download className="h-3 w-3 text-slate-500" />
-                Export Slabs
-              </button>
+              />
             </div>
 
             <div className="overflow-hidden rounded-xl border border-slate-200">

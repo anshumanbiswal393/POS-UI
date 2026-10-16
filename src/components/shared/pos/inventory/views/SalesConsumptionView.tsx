@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
-import { Search, Calendar, Download, Filter, TrendingDown, ArrowUpRight } from "lucide-react";
+import { Search } from "lucide-react";
 import {
   DataTableHeader,
   type DataTableColumn,
 } from "@/components/common/DataTableHeader";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { toast } from "sonner";
 
 export function SalesConsumptionView() {
@@ -144,14 +145,9 @@ export function SalesConsumptionView() {
             className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
           />
 
-          <button
-            type="button"
+          <ExportToExcelButton
             onClick={() => toast.success("Exporting consumption summary to Excel...")}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-          >
-            <Download className="h-3.5 w-3.5 text-slate-500" />
-            Export Excel
-          </button>
+          />
         </div>
       </div>
 

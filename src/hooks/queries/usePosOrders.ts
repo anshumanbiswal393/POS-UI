@@ -9,12 +9,15 @@ import {
   getKotOrders,
   getInitialKotData,
   getDueBills,
+  getCurrentOrdersTimeline,
+  advanceCurrentOrderStage,
   markKotPrepared,
   settleDueBill,
   acceptOnlineOrderToKitchen,
   cancelOnlineOrder,
   dispatchNewOnlineOrder,
   type DueBill,
+  type CurrentOrderRecord,
 } from "@/services/posOrdersService";
 import { POS_TABLES_QUERY_KEY, POS_TABLE_STATS_QUERY_KEY } from "./usePosTables";
 
@@ -25,6 +28,27 @@ export function useLiveOrders() {
     initialData: () => getInitialLiveOrdersData(),
     staleTime: 1000 * 15,
     refetchInterval: 1000 * 30,
+  });
+}
+
+export function useCurrentOrdersTimeline() {
+  return useQuery({
+    queryKey: ["pos", "orders", "current-timeline"],
+    queryFn: async (): Promise<CurrentOrderRecord[]> => getCurrentOrdersTimeline(),
+    initialData: () => getCurrentOrdersTimeline(),
+    staleTime: 1000 * 5,
+    refetchInterval: 1000 * 15,
+  });
+}
+
+export function useAdvanceCurrentOrderStageMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderNumber: string) => advanceCurrentOrderStage(orderNumber),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "current-timeline"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
+    },
   });
 }
 
@@ -74,6 +98,7 @@ export function useMarkKotPreparedMutation() {
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "due-bills"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "current-timeline"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "all"] });
       queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
     },
@@ -96,6 +121,7 @@ export function useSettleDueBillMutation() {
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "due-bills"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "all"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "current-timeline"] });
       queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: POS_TABLE_STATS_QUERY_KEY });
     },

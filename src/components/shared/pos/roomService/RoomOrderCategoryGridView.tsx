@@ -6,7 +6,7 @@ import { Search, PauseCircle, Trash2, ArrowRight } from "lucide-react";
 interface RoomOrderCategoryGridViewProps {
   rooms: HotelRoom[];
   heldOrders?: HeldRoomOrder[];
-  /** Open take-order flow for occupied or vacant rooms */
+  /** Open take-order for in-house (guest) rooms only */
   onSelectRoom: (room: HotelRoom) => void;
   onResumeHeldOrder?: (heldOrder: HeldRoomOrder) => void;
   onCancelHeldOrder?: (heldOrderId: string) => void;
@@ -77,12 +77,12 @@ export function RoomOrderCategoryGridView({
           <div className="flex items-center gap-4 text-xs font-medium">
             <div className="flex items-center gap-2">
               <div className="w-3.5 h-3.5 rounded-[3px] bg-primary/15 border border-primary/40 shadow-2xs" />
-              <span className="text-slate-700 font-semibold text-[11.5px]">Available</span>
+              <span className="text-slate-700 font-semibold text-[11.5px]">Vacant</span>
             </div>
 
             <div className="flex items-center gap-2">
               <div className="w-3.5 h-3.5 rounded-[3px] bg-primary shadow-2xs" />
-              <span className="text-slate-700 font-semibold text-[11.5px]">Occupied</span>
+              <span className="text-slate-700 font-semibold text-[11.5px]">In-house guest</span>
             </div>
           </div>
         </div>
@@ -207,51 +207,42 @@ export function RoomOrderCategoryGridView({
                   }
 
                   // ==========================================
-                  // 2. VACANT / AVAILABLE ROOM DOOR — clickable to start a room order
+                  // 2. VACANT ROOM — not clickable (no guest assigned)
                   // ==========================================
                   return (
-                    <button
+                    <div
                       key={room.id}
-                      type="button"
-                      onClick={() => onSelectRoom(room)}
-                      title={`Room ${room.roomNumber} - Available (Click to take order)`}
-                      aria-label={`Take order for available room ${room.roomNumber}`}
-                      className="group relative flex flex-col items-center cursor-pointer transition-transform duration-150 hover:-translate-y-1 select-none bg-transparent border-0 p-0"
+                      title={`Room ${room.roomNumber} — Vacant (no guest)`}
+                      aria-label={`Room ${room.roomNumber} vacant`}
+                      className="relative flex flex-col items-center select-none opacity-80 cursor-not-allowed"
                     >
-                      {/* Outer Door Frame Arch */}
-                      <div className="relative w-[50px] sm:w-[58px] md:w-[64px] h-[70px] sm:h-[80px] md:h-[88px] rounded-t-[22px] sm:rounded-t-[26px] rounded-b-none p-[3.5px] sm:p-[4px] bg-primary/40 border border-primary/30 shadow-2xs group-hover:bg-primary/60 transition-all">
-                        {/* Inner Door Leaf (Theme Tint) */}
-                        <div className="w-full h-full rounded-t-[16px] sm:rounded-t-[20px] rounded-b-none bg-primary/10 group-hover:bg-primary/15 text-foreground relative flex flex-col items-center justify-between pt-2.5 sm:pt-3.5 pb-1 px-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] overflow-hidden">
-                          {/* Inner Recessed Moulding Groove Line */}
+                      <div className="relative w-[50px] sm:w-[58px] md:w-[64px] h-[70px] sm:h-[80px] md:h-[88px] rounded-t-[22px] sm:rounded-t-[26px] rounded-b-none p-[3.5px] sm:p-[4px] bg-primary/30 border border-primary/25 shadow-2xs">
+                        <div className="w-full h-full rounded-t-[16px] sm:rounded-t-[20px] rounded-b-none bg-primary/10 text-foreground relative flex flex-col items-center justify-between pt-2.5 sm:pt-3.5 pb-1 px-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] overflow-hidden">
                           <div className="absolute inset-x-1 top-1 bottom-0 rounded-t-[12px] sm:rounded-t-[15px] rounded-b-none border-t border-x border-primary/20 pointer-events-none" />
 
-                          {/* Room Number on Door (Dark Bold) */}
                           <div className="relative z-10 text-center">
                             <span className="text-[11px] sm:text-xs md:text-sm font-extrabold tracking-tight text-foreground">
                               {room.roomNumber}
                             </span>
                           </div>
 
-                          {/* Horizontal Lever Handle on Right Edge */}
-                          <div className="absolute right-1 sm:right-1.5 top-[56%] -translate-y-1/2 flex items-center z-20 pointer-events-none opacity-80">
+                          <div className="absolute right-1 sm:right-1.5 top-[56%] -translate-y-1/2 flex items-center z-20 pointer-events-none opacity-70">
                             <div className="w-1.5 h-1.5 rounded-full bg-slate-200 border border-slate-400 shadow-2xs flex items-center justify-center">
                               <div className="w-0.5 h-0.5 rounded-full bg-slate-500" />
                             </div>
                             <div className="w-2 sm:w-2.5 h-0.5 -ml-0.5 rounded-r-full bg-gradient-to-b from-white via-slate-200 to-slate-400 border border-slate-400/90 shadow-2xs" />
                           </div>
 
-                          {/* Available label */}
                           <div className="relative z-10 w-full mt-auto text-center">
                             <span className="text-[7.5px] sm:text-[8px] text-primary font-bold block leading-tight">
-                              Available
+                              Vacant
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Soft Floor Shadow at Door Base */}
-                      <div className="w-[85%] h-1 bg-slate-300/35 rounded-full blur-[1px] -mt-0.5 group-hover:bg-slate-400/40 transition-all" />
-                    </button>
+                      <div className="w-[85%] h-1 bg-slate-300/35 rounded-full blur-[1px] -mt-0.5" />
+                    </div>
                   );
                 })}
               </div>

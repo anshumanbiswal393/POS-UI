@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
-import { Search, Download, ChevronDown, Calendar, Eye } from "lucide-react";
+import { Search, Calendar, Eye } from "lucide-react";
 import {
   DataTableHeader,
   type DataTableColumn,
 } from "@/components/common/DataTableHeader";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { toast } from "sonner";
 
 export function OrderwiseConsumptionView() {
@@ -121,14 +122,9 @@ export function OrderwiseConsumptionView() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => toast.success("Exporting Orderwise Consumption...")}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-        >
-          <Download className="h-3.5 w-3.5 text-slate-500" />
-          Export
-        </button>
+        <ExportToExcelButton
+          onClick={() => toast.success("Exporting Orderwise Consumption to Excel...")}
+        />
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">

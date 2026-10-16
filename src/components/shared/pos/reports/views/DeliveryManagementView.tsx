@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
-import { Download, ChevronDown, Search, Truck, MapPin, CheckCircle2, Clock, Eye, Phone } from "lucide-react";
+import { ChevronDown, Search, Truck, MapPin, CheckCircle2, Clock, Eye, Phone } from "lucide-react";
 import { toast } from "sonner";
 import {
   DataTableHeader,
   DataTableFooter,
   type DataTableColumn,
 } from "@/components/common";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 
 interface DeliveryOrder {
   id: string;
@@ -213,14 +214,9 @@ export function DeliveryManagementView() {
             <span className="font-mono font-bold text-slate-900">₹ 0</span>
           </div>
 
-          <button
-            type="button"
+          <ExportToExcelButton
             onClick={() => toast.success("Exporting Delivery orders to Excel...")}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-          >
-            <Download className="h-3.5 w-3.5 text-slate-500" />
-            Export Excel <ChevronDown className="h-3 w-3 text-slate-400" />
-          </button>
+          />
         </div>
       </div>
 

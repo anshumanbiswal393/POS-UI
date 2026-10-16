@@ -1,19 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
-import {
-  ChefHat,
-  Clock,
-  CheckCircle2,
-  Flame,
-  Printer,
-  User,
-  FileSpreadsheet,
-} from "lucide-react";
+import { ChefHat, Clock, CheckCircle2, Flame, Printer } from "lucide-react";
 import { useKotOrders, useMarkKotPreparedMutation } from "@/hooks/queries/usePosOrders";
-import { exportToExcel } from "@/utils/exportUtils";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-type KdsStage = "Preparing" | "Ready";
+import { printKotTicket } from "@/utils/printKotTicket";
 
 type KdsTicket = {
   id: string;
@@ -23,12 +13,8 @@ type KdsTicket = {
   itemsText: string;
   items?: Array<{ name: string; quantity: number; notes?: string }>;
   itemCount: number;
-  status: string;
-  createdAt: string;
+  createdAt?: string;
   createdTimestamp: number;
-  /** Set when Ready — elapsed timer freezes at this moment */
-  readyTimestamp?: number;
-  stage: KdsStage;
   isModified?: boolean;
 };
 
@@ -57,8 +43,7 @@ function formatElapsed(ms: number) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function timerTone(elapsedMs: number, stage: KdsStage) {
-  if (stage === "Ready") return "ready" as const;
+function timerTone(elapsedMs: number) {
   const mins = elapsedMs / 60_000;
   if (mins >= 15) return "critical" as const;
   if (mins >= 10) return "warn" as const;
@@ -75,19 +60,16 @@ export function PosKotManager() {
   const { data: kotData, refetch } = useKotOrders();
   const markPreparedMutation = useMarkKotPreparedMutation();
 
-  // Poll a bit faster so billing → KOT appears quickly on KDS
   useEffect(() => {
-    const id = setInterval(() => {
-      refetch();
-    }, 4000);
+    const id = setInterval(() => refetch(), 4000);
     return () => clearInterval(id);
   }, [refetch]);
 
+  // Active kitchen queue only — Ready removes the card from KDS
   const tickets: KdsTicket[] = useMemo(() => {
-    return (kotData?.records || []).map((k) => {
-      const stage: KdsStage =
-        k.status === "Prepared" || k.status === "Served" ? "Ready" : "Preparing";
-      return {
+    return (kotData?.records || [])
+      .filter((k) => k.status !== "Prepared" && k.status !== "Served")
+      .map((k) => ({
         id: k.id,
         kotId: k.kotId,
         orderType: k.orderType,
@@ -95,166 +77,91 @@ export function PosKotManager() {
         itemsText: k.itemsText,
         items: k.items,
         itemCount: k.itemCount,
-        status: k.status,
         createdAt: k.createdAt,
         createdTimestamp: k.createdTimestamp ?? Date.now(),
-        readyTimestamp: k.readyTimestamp,
-        stage,
         isModified: k.isModified,
-      };
-    });
+      }))
+      .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
   }, [kotData]);
-
-  // FCFS: oldest preparing first
-  const preparingTickets = useMemo(
-    () =>
-      tickets
-        .filter((t) => t.stage === "Preparing")
-        .sort((a, b) => a.createdTimestamp - b.createdTimestamp),
-    [tickets],
-  );
-
-  const readyTickets = useMemo(
-    () =>
-      tickets
-        .filter((t) => t.stage === "Ready")
-        .sort((a, b) => b.createdTimestamp - a.createdTimestamp),
-    [tickets],
-  );
 
   const handleMarkReady = (kot: KdsTicket) => {
     markPreparedMutation.mutate(kot.kotId, {
       onSuccess: () => {
-        toast.success(`KOT #${kot.kotId} moved to Ready`, {
-          description: kot.orderType,
-        });
+        toast.success(`Order #${kot.kotId} cleared from KDS`);
         refetch();
       },
-      onError: () => toast.error("Failed to mark KOT ready"),
+      onError: () => toast.error("Failed to mark ready"),
     });
   };
 
-  const handleExportExcel = () => {
-    const headers = ["KOT ID", "Stage", "Order", "Items", "Elapsed", "Created"];
-    const rows = tickets.map((k) => {
-      const end = k.stage === "Ready" ? (k.readyTimestamp ?? now) : now;
-      return [
-        k.kotId,
-        k.stage,
-        k.orderType,
-        k.itemsText,
-        formatElapsed(Math.max(0, end - k.createdTimestamp)),
-        k.createdAt,
-      ];
-    });
-    exportToExcel({
-      filename: `KDS_${new Date().toISOString().slice(0, 10)}`,
-      title: "Kitchen Display System",
-      columns: headers,
-      rows,
-    });
-    toast.success(`Exported ${rows.length} KOT tickets`);
+  const handlePrintKot = (kot: KdsTicket) => {
+    try {
+      printKotTicket({
+        kotId: kot.kotId,
+        orderType: kot.orderType,
+        customerName: kot.customerName,
+        createdTimestamp: kot.createdTimestamp,
+        createdAt: kot.createdAt,
+        items: parseItemLines(kot),
+        isModified: kot.isModified,
+      });
+      toast.success(`Printing KOT #${kot.kotId}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not print KOT");
+    }
   };
 
   return (
-    <div className="flex flex-col gap-3 pb-6 lg:h-[calc(100dvh-5.5rem)] lg:max-h-[calc(100dvh-5.5rem)] lg:overflow-hidden">
-      {/* Compact header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 shadow-e1 shrink-0">
+    <div className="flex flex-col gap-3 pb-4 lg:h-[calc(100dvh-5.5rem)] lg:max-h-[calc(100dvh-5.5rem)] lg:overflow-hidden">
+      <header className="flex flex-wrap items-center justify-between gap-2 shrink-0 px-0.5">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-tint border border-primary/20 text-primary">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-e1">
             <ChefHat className="h-5 w-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-[15px] font-bold text-text-primary">Kitchen Display (KDS)</h2>
-              <span className="inline-flex items-center gap-1 rounded-full bg-primary-tint px-2 py-0.5 text-[10px] font-bold text-primary border border-primary/20">
-                <Flame className="h-3 w-3 animate-pulse" />
-                Live · FCFS
+              <h2 className="text-[17px] font-extrabold tracking-tight text-text-primary">
+                Kitchen Display
+              </h2>
+              <span className="inline-flex items-center gap-1 rounded-md bg-primary-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary border border-primary/20">
+                <Flame className="h-3 w-3" />
+                Live
               </span>
             </div>
-            <p className="text-[11px] text-text-secondary">
-              Billing KOT → Preparing → Ready · timer turns orange at 10m, red at 15m
+            <p className="text-[11.5px] text-text-secondary">
+              FCFS · timer orange at 10m · red at 15m · Ready clears the card
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="rounded-lg bg-indigo-50 border border-indigo-200 px-2.5 py-1 text-[11px] font-bold text-indigo-800">
-            Preparing {preparingTickets.length}
+        <div className="rounded-lg border border-border bg-surface px-3 py-1.5 text-[12px] font-bold text-text-primary shadow-e1">
+          Open orders{" "}
+          <span className="ml-1 inline-flex min-w-[1.4rem] justify-center rounded-md bg-primary px-1.5 py-0.5 text-white tabular-nums">
+            {tickets.length}
           </span>
-          <span className="rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-bold text-emerald-800">
-            Ready {readyTickets.length}
-          </span>
-          <button
-            type="button"
-            onClick={handleExportExcel}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-[11.5px] font-bold text-slate-700 hover:bg-surface-2 cursor-pointer"
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5 text-primary" />
-            Export
-          </button>
         </div>
-      </div>
+      </header>
 
-      {/* 2-stage board: Preparing 2/3 · Ready 1/3 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-1 min-h-0">
-        {/* PREPARING — 2/3 */}
-        <section className="lg:col-span-2 flex flex-col min-h-0 rounded-xl border border-indigo-200 bg-indigo-50/30 overflow-hidden">
-          <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-indigo-200 bg-indigo-50/80 shrink-0">
-            <div className="flex items-center gap-2">
-              <Flame className="h-4 w-4 text-indigo-600" />
-              <h3 className="text-[12px] font-extrabold uppercase tracking-wider text-indigo-900">
-                Preparing
-              </h3>
-              <span className="rounded-full bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5">
-                {preparingTickets.length}
-              </span>
-            </div>
-            <span className="text-[10.5px] font-semibold text-indigo-700">FCFS · oldest first</span>
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {tickets.length === 0 ? (
+          <div className="flex h-[min(50vh,22rem)] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-surface-2/50 text-center">
+            <ChefHat className="h-8 w-8 text-text-secondary/50" />
+            <p className="text-[14px] font-semibold text-text-secondary">No open kitchen tickets</p>
+            <p className="text-[12px] text-text-secondary/80">Send KOT from Billing to appear here</p>
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto p-2.5 space-y-2.5">
-            {preparingTickets.length === 0 ? (
-              <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-indigo-200 bg-white/60 text-[12px] text-slate-500">
-                Waiting for KOT from Billing…
-              </div>
-            ) : (
-              preparingTickets.map((kot) => (
-                <KdsOrderCard
-                  key={kot.id}
-                  kot={kot}
-                  now={now}
-                  onReady={() => handleMarkReady(kot)}
-                />
-              ))
-            )}
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 content-start">
+            {tickets.map((kot) => (
+              <KdsOrderCard
+                key={kot.id}
+                kot={kot}
+                now={now}
+                onReady={() => handleMarkReady(kot)}
+                onPrint={() => handlePrintKot(kot)}
+                isBusy={markPreparedMutation.isPending}
+              />
+            ))}
           </div>
-        </section>
-
-        {/* READY — 1/3 */}
-        <section className="lg:col-span-1 flex flex-col min-h-0 rounded-xl border border-emerald-200 bg-emerald-50/30 overflow-hidden">
-          <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-emerald-200 bg-emerald-50/80 shrink-0">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              <h3 className="text-[12px] font-extrabold uppercase tracking-wider text-emerald-900">
-                Ready
-              </h3>
-              <span className="rounded-full bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5">
-                {readyTickets.length}
-              </span>
-            </div>
-            <span className="text-[10.5px] font-semibold text-emerald-700">Pickup</span>
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto p-2.5 space-y-2.5">
-            {readyTickets.length === 0 ? (
-              <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-emerald-200 bg-white/60 text-[12px] text-slate-500">
-                No ready tickets yet
-              </div>
-            ) : (
-              readyTickets.map((kot) => (
-                <KdsOrderCard key={kot.id} kot={kot} now={now} />
-              ))
-            )}
-          </div>
-        </section>
+        )}
       </div>
     </div>
   );
@@ -264,122 +171,111 @@ function KdsOrderCard({
   kot,
   now,
   onReady,
+  onPrint,
+  isBusy,
 }: {
   kot: KdsTicket;
   now: number;
-  onReady?: () => void;
+  onReady: () => void;
+  onPrint: () => void;
+  isBusy?: boolean;
 }) {
-  // Live while Preparing; freeze at readyTimestamp once Ready
-  const elapsedMs =
-    kot.stage === "Ready"
-      ? Math.max(0, (kot.readyTimestamp ?? now) - kot.createdTimestamp)
-      : Math.max(0, now - kot.createdTimestamp);
-  const tone = timerTone(elapsedMs, kot.stage);
+  const elapsedMs = Math.max(0, now - kot.createdTimestamp);
+  const tone = timerTone(elapsedMs);
   const lines = parseItemLines(kot);
 
   return (
     <article
       className={cn(
-        "rounded-xl border bg-white p-3 shadow-e1 space-y-2.5",
-        tone === "critical" && kot.stage === "Preparing"
-          ? "border-rose-400 ring-1 ring-rose-300/60"
-          : tone === "warn" && kot.stage === "Preparing"
-            ? "border-amber-400 ring-1 ring-amber-300/50"
-            : kot.stage === "Ready"
-              ? "border-emerald-200"
-              : "border-slate-200",
+        "flex flex-col rounded-2xl border bg-surface shadow-e1 overflow-hidden transition-shadow hover:shadow-e2",
+        tone === "critical"
+          ? "border-rose-400 ring-1 ring-rose-300/50"
+          : tone === "warn"
+            ? "border-amber-400 ring-1 ring-amber-300/40"
+            : "border-border",
       )}
     >
-      <div className="flex items-start justify-between gap-2">
+      {/* Top: order id + table · timer + print */}
+      <div className="flex items-start justify-between gap-2 border-b border-border/80 bg-surface-2/60 px-3 py-2.5">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="font-mono text-[14px] font-extrabold text-slate-900">#{kot.kotId}</span>
-            <span className="truncate rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10.5px] font-bold text-slate-700">
-              {kot.orderType}
+            <span className="font-mono text-[18px] font-black leading-none text-text-primary">
+              #{kot.kotId}
             </span>
             {kot.isModified ? (
-              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9.5px] font-bold uppercase text-amber-800">
+              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-800">
                 Updated
               </span>
             ) : null}
           </div>
-          <div className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-500">
-            <User className="h-3 w-3" />
-            <span className="truncate">
-              {kot.customerName && kot.customerName !== "--" ? kot.customerName : "Walk-in"}
-            </span>
-            <span className="text-slate-300">·</span>
-            <span>{kot.itemCount} items</span>
-          </div>
+          <p className="mt-1 truncate text-[11.5px] font-semibold text-text-secondary">
+            {kot.orderType}
+            {kot.customerName && kot.customerName !== "--" ? ` · ${kot.customerName}` : ""}
+          </p>
         </div>
 
-        <div
-          className={cn(
-            "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 font-mono text-[12px] font-extrabold tabular-nums",
-            tone === "critical"
-              ? "bg-rose-100 text-rose-700 animate-pulse"
-              : tone === "warn"
-                ? "bg-amber-100 text-amber-800"
-                : tone === "ready"
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-slate-100 text-slate-800",
-          )}
-          title={
-            kot.stage === "Ready"
-              ? "Prep time (stopped when Ready)"
-              : "Elapsed since KOT sent"
-          }
-        >
-          <Clock className="h-3.5 w-3.5" />
-          {formatElapsed(elapsedMs)}
+        <div className="flex shrink-0 items-center gap-1.5">
+          <div
+            className={cn(
+              "inline-flex items-center gap-1 rounded-lg px-2 py-1 font-mono text-[13px] font-extrabold tabular-nums",
+              tone === "critical"
+                ? "bg-rose-100 text-rose-700 animate-pulse"
+                : tone === "warn"
+                  ? "bg-amber-100 text-amber-800"
+                  : "bg-slate-900 text-white",
+            )}
+            title="Elapsed since KOT"
+          >
+            <Clock className="h-3.5 w-3.5 opacity-80" />
+            {formatElapsed(elapsedMs)}
+          </div>
+          <button
+            type="button"
+            onClick={onPrint}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface text-text-secondary hover:bg-primary-tint hover:text-primary cursor-pointer"
+            title="Print kitchen ticket"
+          >
+            <Printer className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
 
-      <ul className="space-y-1 rounded-lg border border-slate-100 bg-slate-50/80 px-2.5 py-2">
+      {/* Items one by one under this order */}
+      <ul className="flex-1 space-y-0 divide-y divide-border/70 px-0 py-0 min-h-[5.5rem]">
         {lines.map((line, idx) => (
           <li
             key={`${line.name}-${idx}`}
-            className="flex items-start justify-between gap-2 text-[12px] text-slate-800"
+            className="flex items-start justify-between gap-3 px-3 py-2.5 text-[13px]"
           >
-            <span className="min-w-0 font-semibold leading-snug">
+            <span className="min-w-0 font-semibold leading-snug text-text-primary">
+              <span className="mr-1.5 text-[11px] font-bold text-text-secondary/70">
+                {idx + 1}.
+              </span>
               {line.name}
               {line.notes ? (
-                <span className="mt-0.5 block text-[10.5px] font-medium text-amber-700">
+                <span className="mt-0.5 block pl-5 text-[11px] font-medium text-amber-700">
                   ★ {line.notes}
                 </span>
               ) : null}
             </span>
-            <span className="shrink-0 font-mono font-bold text-slate-600">×{line.quantity}</span>
+            <span className="shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-[12px] font-bold text-text-primary">
+              ×{line.quantity}
+            </span>
           </li>
         ))}
       </ul>
 
-      <div className="flex items-center gap-1.5 pt-0.5">
+      {/* Small Ready — clears card from KDS */}
+      <div className="border-t border-border/80 px-3 py-2.5">
         <button
           type="button"
-          onClick={() =>
-            toast.success(`Reprint KOT #${kot.kotId}`, { description: kot.orderType })
-          }
-          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50 cursor-pointer"
-          title="Print duplicate"
+          disabled={isBusy}
+          onClick={onReady}
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-bold text-primary-foreground hover:bg-primary/90 active:scale-[0.99] disabled:opacity-60 cursor-pointer"
         >
-          <Printer className="h-4 w-4" />
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Ready
         </button>
-        {kot.stage === "Preparing" && onReady ? (
-          <button
-            type="button"
-            onClick={onReady}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 py-2 text-[12px] font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-[0.99] cursor-pointer"
-          >
-            <CheckCircle2 className="h-4 w-4" />
-            Ready
-          </button>
-        ) : (
-          <div className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 py-2 text-[12px] font-bold text-emerald-800">
-            <CheckCircle2 className="h-4 w-4" />
-            Ready for pickup
-          </div>
-        )}
       </div>
     </article>
   );

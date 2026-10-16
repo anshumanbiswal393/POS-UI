@@ -12,7 +12,6 @@ import {
   Search,
   RotateCcw,
   MoreVertical,
-  Download,
   Printer,
   ChevronLeft,
   ChevronRight,
@@ -20,6 +19,7 @@ import {
   ChevronsRight,
 } from "lucide-react";
 import { exportToExcel } from "@/utils/exportUtils";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -388,7 +388,7 @@ export function DataTableHeader<T = any>({
           row: "bg-primary text-primary-foreground border-b-2 border-primary-pressed shadow-xs",
           th: "bg-primary text-primary-foreground",
           border: "border-r border-primary-foreground/20",
-          text: "text-primary-foreground font-extrabold text-[11.5px] uppercase tracking-wider",
+          text: "text-primary-foreground font-extrabold text-[11.5px] uppercase tracking-wider whitespace-nowrap",
           iconBtn:
             "text-primary-foreground/75 hover:text-primary-foreground hover:bg-white/15",
           activeFilterBtn: "bg-white text-primary font-bold shadow-xs",
@@ -401,7 +401,7 @@ export function DataTableHeader<T = any>({
           row: "bg-slate-900 text-white dark:bg-slate-950 dark:text-slate-100 border-b-2 border-slate-800 shadow-xs",
           th: "bg-slate-900 text-white dark:bg-slate-950 dark:text-slate-100",
           border: "border-r border-slate-700/70 dark:border-border/80",
-          text: "text-white font-extrabold text-[11.5px] uppercase tracking-wider",
+          text: "text-white font-extrabold text-[11.5px] uppercase tracking-wider whitespace-nowrap",
           iconBtn: "text-slate-400 hover:text-white hover:bg-slate-800/80",
           activeFilterBtn:
             "bg-primary text-primary-foreground font-bold shadow-xs",
@@ -413,7 +413,7 @@ export function DataTableHeader<T = any>({
           row: "bg-slate-50/95 dark:bg-surface-2 text-slate-800 dark:text-foreground border-b-2 border-slate-200 dark:border-border",
           th: "bg-slate-50/95 dark:bg-surface-2 text-slate-800 dark:text-foreground",
           border: "border-r border-slate-200 dark:border-border/80",
-          text: "text-slate-800 dark:text-foreground font-extrabold text-[11px] uppercase tracking-wider",
+          text: "text-slate-800 dark:text-foreground font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap",
           iconBtn:
             "text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-surface-3",
           activeFilterBtn:
@@ -546,18 +546,32 @@ export function DataTableHeader<T = any>({
   const theme = getThemeClasses();
   const visibleCols = orderedColumns.filter((col) => visibleColumns[col.id || ""] !== false);
 
+  /** Default width so header label + filter/menu icons fit on one line */
+  const estimateHeaderWidth = (c: DataTableColumn<any>): number => {
+    const label = typeof c.label === "string" ? c.label : "";
+    // ~8.2px/char for uppercase tracking-wider + padding + filter/menu (~56px)
+    const fromLabel = Math.ceil(label.length * 8.2) + 56;
+    const min = typeof c.minWidth === "number" ? c.minWidth : 100;
+    return Math.max(min, fromLabel);
+  };
+
   // Helper to extract numeric width
   const getColNumericWidth = (c: DataTableColumn<any>): number => {
     const id = c.id || "";
     if (id === "actions") return 85;
     if (id && activeWidths[id]) return activeWidths[id];
-    if (typeof c.defaultWidth === "number") return c.defaultWidth;
+    if (typeof c.defaultWidth === "number") {
+      return Math.max(c.defaultWidth, typeof c.minWidth === "number" ? c.minWidth : 0);
+    }
     if (typeof c.defaultWidth === "string") {
       if (c.defaultWidth.includes("w-12")) return 48;
       const match = c.defaultWidth.match(/(\d+)px/);
-      if (match) return parseInt(match[1], 10);
+      if (match) {
+        const parsed = parseInt(match[1], 10);
+        return Math.max(parsed, typeof c.minWidth === "number" ? c.minWidth : 0);
+      }
     }
-    return 140;
+    return estimateHeaderWidth(c);
   };
 
   // Helper to compute horizontal pinned style for headers - preserves strict lockstep alignment with table data cells
@@ -664,6 +678,8 @@ export function DataTableHeader<T = any>({
           const isTarget = dragOverColId === colId;
           const pinned = getHeaderPinnedStyle(colId);
           const isPinned = columnPins[colId] === "left" || columnPins[colId] === "right";
+          const colWidth = getColNumericWidth(col);
+          const defaultMinWidth = estimateHeaderWidth(col);
 
           return (
             <th
@@ -675,12 +691,13 @@ export function DataTableHeader<T = any>({
               onDrop={(e) => handleDrop(e, colId)}
               onDragEnd={handleDragEnd}
               style={{
-                width: isPinned || activeWidths[colId] ? `${getColNumericWidth(col)}px` : undefined,
-                minWidth: isPinned || activeWidths[colId] ? `${getColNumericWidth(col)}px` : undefined,
+                width: isPinned || activeWidths[colId] ? `${colWidth}px` : undefined,
+                // Keep header label on one line by default; user resize still overrides via activeWidths
+                minWidth: `${activeWidths[colId] || isPinned ? colWidth : defaultMinWidth}px`,
                 ...pinned.style,
               }}
               className={cn(
-                "px-3.5 py-3 transition-colors font-sans select-none",
+                "px-3.5 py-3 transition-colors font-sans select-none whitespace-nowrap",
                 !isPinned ? "relative" : "",
                 theme.th,
                 !isLast && theme.border,
@@ -703,12 +720,12 @@ export function DataTableHeader<T = any>({
                   {col.label}
                 </span>
               ) : (
-                <div className="flex items-center justify-between gap-1.5 font-sans">
+                <div className="flex items-center justify-between gap-1.5 font-sans whitespace-nowrap">
                   {/* Column Title + Sort Trigger */}
                   <div
                     onClick={() => col.sortable && handleToggleSort(colId)}
                     className={cn(
-                      "flex items-center gap-1 transition-colors select-none",
+                      "flex items-center gap-1 transition-colors select-none whitespace-nowrap shrink-0",
                       col.sortable ? "cursor-pointer hover:opacity-80" : "",
                       enableColumnReorder && colId !== "actions" && "cursor-grab active:cursor-grabbing"
                     )}
@@ -1228,16 +1245,7 @@ export function DataTableSelectionBar({
             <span>Print Selected</span>
           </button>
         )}
-        {onExport && (
-          <button
-            type="button"
-            onClick={onExport}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold hover:opacity-95 transition cursor-pointer shadow-2xs"
-          >
-            <Download className="h-3.5 w-3.5" />
-            <span>Export Selected</span>
-          </button>
-        )}
+        {onExport && <ExportToExcelButton onClick={onExport} title="Export selected rows to Excel" />}
         {handleClear && (
           <button
             type="button"
@@ -1917,7 +1925,7 @@ export function DataTableToolbar<T = any>({
   onExport,
   onExportExcel,
   onExportCsv,
-  exportLabel = "Export to Excel",
+  exportLabel: _exportLabel = "Export to Excel",
   onPrint,
   printLabel = "Print",
   totalCount,
@@ -2027,17 +2035,7 @@ export function DataTableToolbar<T = any>({
             </button>
           )}
 
-          {exportHandler && (
-            <button
-              type="button"
-              onClick={exportHandler}
-              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-border bg-surface hover:bg-surface-2 text-xs font-semibold text-foreground transition-colors cursor-pointer shadow-xs"
-              title="Export formatted data to Excel (.xlsx)"
-            >
-              <Download className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>{exportLabel}</span>
-            </button>
-          )}
+          {exportHandler && <ExportToExcelButton onClick={exportHandler} />}
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Download, Search, ChevronDown, Calendar, FileText, Eye, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { DataTableHeader, DataTableFooter, type DataTableColumn } from "@/components/common";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 
 interface DayEndRecord {
   id: string;
@@ -106,14 +107,9 @@ export function DayEndSummaryView() {
         <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">Day End Summary</h2>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
+          <ExportToExcelButton
             onClick={() => toast.success("Exporting Day End Summary to Excel...")}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-          >
-            <Download className="h-3.5 w-3.5 text-slate-500" />
-            Export Excel <ChevronDown className="h-3 w-3 text-slate-400" />
-          </button>
+          />
 
           <button
             type="button"

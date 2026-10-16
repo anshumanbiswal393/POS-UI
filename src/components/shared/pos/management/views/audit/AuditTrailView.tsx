@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { History, Search, Download, ShieldCheck, ChevronDown } from "lucide-react";
+import { History, Search, ShieldCheck, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 
 interface AuditLogEntry {
   id: string;
@@ -204,14 +205,9 @@ export function AuditTrailView() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => toast.success("Exporting security audit logs...")}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
-        >
-          <Download className="h-3.5 w-3.5 text-slate-500" />
-          Export Audit Logs
-        </button>
+        <ExportToExcelButton
+          onClick={() => toast.success("Exporting security audit logs to Excel...")}
+        />
       </div>
 
       {/* Filter Toolbar */}

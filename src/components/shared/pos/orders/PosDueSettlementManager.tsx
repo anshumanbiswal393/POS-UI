@@ -2,80 +2,91 @@ import { useState, useMemo } from "react";
 import {
   CreditCard,
   Search,
-  ChevronDown,
-  FileSpreadsheet,
   CheckCircle2,
   AlertCircle,
-  Clock,
-  Eye,
-  Check,
   X,
   IndianRupee,
-  Filter,
-  DollarSign,
-  ArrowRight,
   Receipt,
-  Calendar,
   User,
   Phone,
-  Utensils,
+  Banknote,
+  QrCode,
+  Building2,
+  Wallet,
+  ArrowLeft,
 } from "lucide-react";
 import { useDueBills, useSettleDueBillMutation } from "@/hooks/queries/usePosOrders";
 import { type DueBill } from "@/services/posOrdersService";
-import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
+import {
+  PosDataGrid,
+  ChooseColumnsMenu,
+  type PosDataGridColumn,
+  type DataTableColumn,
+} from "@/components/ui/data-grid";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { exportToExcel } from "@/utils/exportUtils";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+const VISIBLE_COLUMNS_KEY = "retrod:pos-due-settlement:visible-columns";
+
+type PayMode = "Cash" | "UPI" | "Card" | "Room Charge" | "Wallet";
+
+const PAY_METHODS: Array<{
+  id: PayMode;
+  label: string;
+  hint: string;
+  icon: typeof Banknote;
+}> = [
+  { id: "Cash", label: "Cash", hint: "Cash drawer", icon: Banknote },
+  { id: "UPI", label: "UPI", hint: "QR / PhonePe / GPay", icon: QrCode },
+  { id: "Card", label: "Card", hint: "Debit / Credit", icon: CreditCard },
+  { id: "Room Charge", label: "Room charge", hint: "Post to guest folio", icon: Building2 },
+  { id: "Wallet", label: "Other", hint: "Wallet / voucher", icon: Wallet },
+];
 
 export function PosDueSettlementManager() {
-  const [agingFilter, setAgingFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedRange, setSelectedRange] = useState("This Month");
-  const [showRangeDropdown, setShowRangeDropdown] = useState(false);
 
-  // Settlement Modal State
   const [selectedBill, setSelectedBill] = useState<DueBill | null>(null);
-  const [settlementMode, setSettlementMode] = useState<"Cash" | "Card" | "UPI" | "Room Charge" | "Split">(
-    "UPI",
-  );
-  const [settlementAmount, setSettlementAmount] = useState<string>("");
+  const [settlementMode, setSettlementMode] = useState<PayMode>("Cash");
+  const [settlementAmount, setSettlementAmount] = useState("");
 
   const { data: dueBills = [] } = useDueBills();
   const settleMutation = useSettleDueBillMutation();
 
-  const totalOpenDues = useMemo(() => {
-    return dueBills.reduce((acc, curr) => acc + (curr.status !== "Settled" ? curr.dueAmount : 0), 0);
-  }, [dueBills]);
+  const totalOpenDues = useMemo(
+    () => dueBills.reduce((acc, curr) => acc + curr.dueAmount, 0),
+    [dueBills],
+  );
 
-  const totalSettledToday = useMemo(() => {
-    return dueBills.reduce(
-      (acc, curr) => acc + (curr.status === "Settled" ? curr.totalAmount : 0),
-      0,
-    );
-  }, [dueBills]);
-
+  // List follows top-nav business day — no month/aging timelines
   const filteredRecords = useMemo(() => {
     return dueBills.filter((r) => {
-      if (agingFilter !== "all" && r.agingBucket !== agingFilter) return false;
-      if (statusFilter !== "all" && r.status !== statusFilter) return false;
-
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const matchNo = r.billNo.toLowerCase().includes(q);
-        const matchCustomer = r.customerName.toLowerCase().includes(q);
-        const matchRoom = r.tableOrRoom.toLowerCase().includes(q);
-        const matchPhone = r.customerPhone.includes(q);
-        if (!matchNo && !matchCustomer && !matchRoom && !matchPhone) return false;
+        if (
+          !r.billNo.toLowerCase().includes(q) &&
+          !r.customerName.toLowerCase().includes(q) &&
+          !r.tableOrRoom.toLowerCase().includes(q) &&
+          !r.customerPhone.includes(q)
+        ) {
+          return false;
+        }
       }
-
       return true;
     });
-  }, [dueBills, agingFilter, statusFilter, searchQuery]);
+  }, [dueBills, searchQuery]);
 
-  const handleOpenSettleModal = (bill: DueBill) => {
+  const handleOpenSettle = (bill: DueBill) => {
     setSelectedBill(bill);
     setSettlementAmount(bill.dueAmount.toString());
-    setSettlementMode("UPI");
+    setSettlementMode("Cash");
+  };
+
+  const handleCloseSettle = () => {
+    setSelectedBill(null);
+    setSettlementAmount("");
   };
 
   const dueColumns: PosDataGridColumn<DueBill>[] = useMemo(
@@ -115,7 +126,8 @@ export function PosDueSettlementManager() {
               </div>
             )}
             <div className="text-[10.5px] text-slate-500 mt-0.5">
-              Waiter: <span className="font-semibold text-slate-700">{bill.waiterName || "Captain"}</span>
+              Waiter:{" "}
+              <span className="font-semibold text-slate-700">{bill.waiterName || "Captain"}</span>
             </div>
           </div>
         ),
@@ -161,15 +173,8 @@ export function PosDueSettlementManager() {
         align: "right",
         defaultWidth: 140,
         render: (_, bill) => (
-          <div>
-            <div className="font-black text-[14px] text-teal-800">
-              ₹ {bill.dueAmount.toLocaleString("en-IN")}.00
-            </div>
-            {bill.status === "Settled" && bill.settlementMode && (
-              <div className="text-[10.5px] text-teal-700 font-semibold">
-                Via {bill.settlementMode}
-              </div>
-            )}
+          <div className="font-black text-[14px] text-teal-800">
+            ₹ {bill.dueAmount.toLocaleString("en-IN")}.00
           </div>
         ),
       },
@@ -184,8 +189,8 @@ export function PosDueSettlementManager() {
         render: (_, bill) => (
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10.5px] font-bold border ${
-              bill.status === "Settled"
-                ? "bg-slate-100 text-slate-700 border-slate-300"
+              bill.status === "Partial"
+                ? "bg-amber-50 text-amber-800 border-amber-300"
                 : "bg-teal-50 text-teal-800 border-teal-300"
             }`}
           >
@@ -199,49 +204,92 @@ export function PosDueSettlementManager() {
         sortable: false,
         filterable: false,
         align: "right",
-        defaultWidth: 130,
-        render: (_, bill) =>
-          bill.status !== "Settled" ? (
-            <button
-              type="button"
-              onClick={() => handleOpenSettleModal(bill)}
-              className="flex h-8 items-center gap-1.5 rounded-lg bg-teal-700 px-3.5 text-[11.5px] font-black text-white hover:bg-teal-800 active:scale-98 transition cursor-pointer shadow-xs ml-auto"
-            >
-              <CreditCard className="h-3.5 w-3.5" />
-              <span>Settle & Done</span>
-            </button>
-          ) : (
-            <span className="inline-flex h-7.5 items-center gap-1 rounded-lg bg-slate-100 border border-slate-300 px-2.5 text-[11px] font-bold text-slate-600">
-              <Check className="h-3.5 w-3.5 text-teal-700" />
-              <span>Archived</span>
-            </span>
-          ),
+        defaultWidth: 100,
+        render: (_, bill) => (
+          <button
+            type="button"
+            onClick={() => handleOpenSettle(bill)}
+            className="flex h-8 items-center justify-center rounded-lg bg-teal-700 px-4 text-[12px] font-bold text-white hover:bg-teal-800 active:scale-98 transition cursor-pointer shadow-xs ml-auto"
+          >
+            Settle
+          </button>
+        ),
       },
     ],
     [],
   );
 
-  const handleConfirmSettlement = () => {
+  const chooseColumnDefs: DataTableColumn[] = useMemo(
+    () =>
+      dueColumns.map((col, idx) => {
+        const id =
+          col.id ||
+          col.key ||
+          (typeof col.accessorKey === "string" ? col.accessorKey : `col-${idx}`);
+        const label =
+          typeof col.header === "string"
+            ? col.header
+            : typeof col.label === "string"
+              ? col.label
+              : id;
+        return { id, key: id, label };
+      }),
+    [dueColumns],
+  );
+
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem(VISIBLE_COLUMNS_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {
+      /* ignore */
+    }
+    const initial: Record<string, boolean> = {};
+    for (const col of dueColumns) {
+      if (col.id) initial[col.id] = true;
+    }
+    return initial;
+  });
+
+  const handleColumnVisibilityChange = (updated: Record<string, boolean>) => {
+    setColumnVisibility(updated);
+    try {
+      localStorage.setItem(VISIBLE_COLUMNS_KEY, JSON.stringify(updated));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const handleConfirmPayment = () => {
     if (!selectedBill) return;
     const settleAmt = parseFloat(settlementAmount) || selectedBill.dueAmount;
+    // Map Wallet → Split for existing service type (stored as other)
+    const modeForApi =
+      settlementMode === "Wallet" ? ("Split" as const) : settlementMode;
 
     settleMutation.mutate(
       {
         billId: selectedBill.id,
-        paymentMode: settlementMode,
+        paymentMode: modeForApi,
         paidAmount: settleAmt,
       },
       {
         onSuccess: (data) => {
-          toast.success(`Payment Done: ₹${settleAmt} received!`, {
-            description: `Order ${selectedBill.billNo} saved to Order History and Table ${selectedBill.tableOrRoom} cleared.`,
-          });
-          setSelectedBill(null);
-          setSettlementAmount("");
+          const fullyPaid = data.settledBill.status === "Settled";
+          if (fullyPaid) {
+            toast.success(`Paid · ${selectedBill.billNo} → Order History`, {
+              description: `${settlementMode} · ₹${settleAmt.toLocaleString("en-IN")}`,
+            });
+            handleCloseSettle();
+          } else {
+            toast.success(`Partial payment recorded`, {
+              description: `Balance ₹${data.settledBill.dueAmount.toLocaleString("en-IN")} still due`,
+            });
+            setSelectedBill(data.settledBill);
+            setSettlementAmount(data.settledBill.dueAmount.toString());
+          }
         },
-        onError: () => {
-          toast.error("Failed to process settlement");
-        },
+        onError: () => toast.error("Payment failed"),
       },
     );
   };
@@ -252,12 +300,10 @@ export function PosDueSettlementManager() {
       "Order Type",
       "Table / Room",
       "Customer Name",
-      "Customer Phone",
       "Total Amount",
       "Paid Amount",
       "Due Amount",
       "Due Date",
-      "Days Overdue",
       "Status",
     ];
     const rows = filteredRecords.map((r) => [
@@ -265,339 +311,247 @@ export function PosDueSettlementManager() {
       r.orderType,
       r.tableOrRoom,
       r.customerName,
-      r.customerPhone,
       r.totalAmount,
       r.paidAmount,
       r.dueAmount,
       r.dueDate,
-      r.daysOverdue,
       r.status,
     ]);
 
     exportToExcel({
-      filename: `Due_Settlement_Ledger_${new Date().toISOString().slice(0, 10)}`,
-      title: "Due Settlements & Guest Ledger Report",
-      subtitle: `Range: ${selectedRange} | Status: ${statusFilter.toUpperCase()}`,
+      filename: `Pending_Payments_${new Date().toISOString().slice(0, 10)}`,
+      title: "Pending Payments",
+      subtitle: "Today (business day from top nav)",
       columns: headers,
       rows,
     });
-    toast.success(`Exported ${rows.length} due settlement records to Excel`);
+    toast.success(`Exported ${rows.length} bills`);
   };
 
-  const dateRanges = ["Today", "Yesterday", "This Week", "This Month", "Last 90 Days"];
+  // Full-screen payment UI with method sidebar
+  if (selectedBill) {
+    const amt = parseFloat(settlementAmount) || selectedBill.dueAmount;
+    return (
+      <div className="flex flex-col gap-3 pb-6 lg:h-[calc(100dvh-5.5rem)] lg:max-h-[calc(100dvh-5.5rem)] lg:overflow-hidden">
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleCloseSettle}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-[12px] font-bold text-text-primary hover:bg-surface-2 cursor-pointer"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back
+          </button>
+          <div className="min-w-0">
+            <h1 className="text-[16px] font-extrabold text-text-primary leading-tight">
+              Collect payment
+            </h1>
+            <p className="text-[11.5px] text-text-secondary truncate">
+              {selectedBill.billNo} · {selectedBill.tableOrRoom} · {selectedBill.customerName}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-1 min-h-0 gap-3 flex-col md:flex-row">
+          {/* Sidebar — payment methods */}
+          <aside className="md:w-56 shrink-0 rounded-xl border border-border bg-surface shadow-e1 overflow-hidden flex flex-col">
+            <div className="px-3 py-2.5 border-b border-border bg-surface-2/60">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">
+                Payment method
+              </p>
+            </div>
+            <nav className="flex md:flex-col gap-1 p-2 overflow-x-auto md:overflow-y-auto">
+              {PAY_METHODS.map((m) => {
+                const Icon = m.icon;
+                const active = settlementMode === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setSettlementMode(m.id)}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition cursor-pointer min-w-[9.5rem] md:min-w-0",
+                      active
+                        ? "bg-primary text-white shadow-e1"
+                        : "bg-transparent text-text-primary hover:bg-surface-2",
+                    )}
+                  >
+                    <Icon className={cn("h-4 w-4 shrink-0", active ? "text-white" : "text-primary")} />
+                    <span className="min-w-0">
+                      <span className="block text-[12.5px] font-bold leading-tight">{m.label}</span>
+                      <span
+                        className={cn(
+                          "block text-[10.5px] leading-tight mt-0.5",
+                          active ? "text-white/80" : "text-text-secondary",
+                        )}
+                      >
+                        {m.hint}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+
+          {/* Main — bill + amount + Done */}
+          <section className="flex-1 min-h-0 rounded-xl border border-border bg-surface shadow-e1 overflow-y-auto p-4 space-y-4">
+            <div className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-surface-2/50 p-3 text-center">
+              <div>
+                <div className="text-[10.5px] font-bold uppercase text-text-secondary">Total</div>
+                <div className="mt-0.5 text-[15px] font-black text-text-primary">
+                  ₹{selectedBill.totalAmount.toLocaleString("en-IN")}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10.5px] font-bold uppercase text-text-secondary">Paid</div>
+                <div className="mt-0.5 text-[15px] font-bold text-text-secondary">
+                  ₹{selectedBill.paidAmount.toLocaleString("en-IN")}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10.5px] font-bold uppercase text-primary">Due</div>
+                <div className="mt-0.5 text-[16px] font-black text-primary">
+                  ₹{selectedBill.dueAmount.toLocaleString("en-IN")}
+                </div>
+              </div>
+            </div>
+
+            {selectedBill.itemsSummary ? (
+              <div className="rounded-xl border border-border px-3 py-2.5">
+                <p className="text-[10.5px] font-bold uppercase text-text-secondary mb-1">Items</p>
+                <p className="text-[12.5px] font-semibold text-text-primary leading-relaxed">
+                  {selectedBill.itemsSummary}
+                </p>
+              </div>
+            ) : null}
+
+            <div className="space-y-1.5">
+              <label className="block text-[12px] font-bold text-text-primary">
+                Amount ({settlementMode})
+              </label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" />
+                <input
+                  type="number"
+                  value={settlementAmount}
+                  onChange={(e) => setSettlementAmount(e.target.value)}
+                  className="h-11 w-full rounded-xl border border-border bg-surface pl-9 pr-3 text-[16px] font-bold text-text-primary focus:border-primary focus:outline-hidden"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setSettlementAmount(selectedBill.dueAmount.toString())}
+                className="text-[11.5px] font-bold text-primary hover:underline cursor-pointer"
+              >
+                Use full due ₹{selectedBill.dueAmount.toLocaleString("en-IN")}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
+              <button
+                type="button"
+                onClick={handleConfirmPayment}
+                disabled={settleMutation.isPending || !amt || amt <= 0}
+                className="inline-flex h-10 min-w-[8rem] items-center justify-center gap-1.5 rounded-xl bg-primary px-5 text-[13px] font-bold text-white hover:opacity-95 disabled:opacity-50 cursor-pointer"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Done
+              </button>
+              <button
+                type="button"
+                onClick={handleCloseSettle}
+                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-4 text-[13px] font-bold text-text-primary hover:bg-surface-2 cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+                Cancel
+              </button>
+            </div>
+            <p className="text-[11px] text-text-secondary">
+              Full payment removes this bill from Pending Payments and saves it in Order History.
+            </p>
+          </section>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2.5 pb-8">
-      {/* 1. TOP HEADER */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8.5 w-8.5 items-center justify-center rounded-lg bg-teal-50 border border-teal-300 text-teal-700">
             <CreditCard className="h-4.5 w-4.5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-[16px] font-bold text-slate-900 leading-tight">
-                Pending & Due Payments
-              </h1>
-              <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2 py-0.2 text-[10.5px] font-bold text-teal-800 border border-teal-300">
-                Frontdesk Billing Desk
-              </span>
-            </div>
+            <h1 className="text-[16px] font-bold text-slate-900 leading-tight">Pending Payments</h1>
             <p className="text-[11px] text-slate-500">
-              Kitchen-prepared orders automatically routed here for collection · Settle & archive to Order History
+              Settle open bills · paid orders move to Order History
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Date Range Dropdown */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowRangeDropdown(!showRangeDropdown)}
-              className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[11.5px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
-            >
-              <Calendar className="h-3.5 w-3.5 text-slate-500" />
-              <span>{selectedRange}</span>
-              <ChevronDown className="h-3 w-3 text-slate-400" />
-            </button>
-
-            {showRangeDropdown && (
-              <div className="absolute right-0 mt-1.5 w-48 rounded-lg border border-slate-300 bg-white p-1 shadow-lg z-30 animate-in fade-in">
-                {dateRanges.map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => {
-                      setSelectedRange(r);
-                      setShowRangeDropdown(false);
-                    }}
-                    className={`flex w-full items-center rounded-md px-3 py-1.5 text-left text-[12px] transition cursor-pointer ${selectedRange === r
-                        ? "bg-teal-50 text-teal-800 font-bold"
-                        : "text-slate-600 hover:bg-slate-50"
-                      }`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={handleExportExcel}
-            className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-[11.5px] font-medium text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5 text-teal-700" />
-            <span>Export to Excel</span>
-          </button>
-        </div>
+        <ExportToExcelButton onClick={handleExportExcel} />
       </div>
 
-      {/* 2. KPI METRICS */}
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Total Open Dues</span>
-            <AlertCircle className="h-4 w-4 text-slate-500" />
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 shadow-2xs">
+          <div className="flex items-center justify-between gap-2 text-slate-500">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10.5px] font-bold uppercase tracking-wider">Open dues</span>
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-teal-700 px-1 text-[10px] font-bold leading-none text-white">
+                {dueBills.length}
+              </span>
+            </div>
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
           </div>
-          <div className="mt-0.5 text-[20px] font-black text-slate-900">
+          <div className="mt-0.5 text-[17px] font-black leading-tight text-slate-900">
             ₹ {totalOpenDues.toLocaleString("en-IN")}.00
           </div>
-          <div className="text-[10.5px] font-medium text-slate-500">
-            {dueBills.filter((r) => r.status !== "Settled").length} Outstanding Bills & Dues
-          </div>
         </div>
-
-        <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Collected / Settled</span>
-            <CheckCircle2 className="h-4 w-4 text-teal-700" />
+        <div className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 shadow-2xs">
+          <div className="flex items-center justify-between gap-2 text-slate-500">
+            <span className="text-[10.5px] font-bold uppercase tracking-wider">After payment</span>
+            <Receipt className="h-3.5 w-3.5 shrink-0" />
           </div>
-          <div className="mt-0.5 text-[20px] font-black text-teal-700">
-            ₹ {totalSettledToday.toLocaleString("en-IN")}.00
-          </div>
-          <div className="text-[10.5px] font-medium text-teal-700">
-            {dueBills.filter((r) => r.status === "Settled").length} Bills Fully Cleared & Archived
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[11px] font-bold uppercase tracking-wider">
-              Total Tracked Bills
-            </span>
-            <Receipt className="h-4 w-4 text-slate-500" />
-          </div>
-          <div className="mt-0.5 text-[20px] font-black text-slate-900">
-            {dueBills.length} Invoices
-          </div>
-          <div className="text-[10.5px] font-medium text-slate-500">
-            Across Dining Tables & Room Service
+          <div className="mt-0.5 text-[13px] font-bold leading-tight text-teal-800">
+            Moves to Order History
           </div>
         </div>
       </div>
 
-      {/* 3. AGING BUCKETS & FILTER BAR */}
-      <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-2xs space-y-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11.5px] font-bold text-slate-700 mr-1 flex items-center gap-1">
-              <Filter className="h-3 w-3 text-slate-500" /> Aging:
-            </span>
-            {[
-              { key: "all", label: "All Dues" },
-              { key: "0-15", label: "0-15 Days (Current)" },
-              { key: "16-30", label: "16-30 Days" },
-              { key: "30+", label: "30+ Days (Overdue)" },
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setAgingFilter(tab.key)}
-                className={`rounded-lg px-3 py-1 text-[11.5px] font-bold transition cursor-pointer border ${agingFilter === tab.key
-                    ? "bg-teal-700 text-white border-teal-700 shadow-2xs"
-                    : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50 shadow-2xs"
-                  }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="text-[12px] font-semibold text-slate-600">
-            Showing <span className="font-bold text-slate-900">{filteredRecords.length}</span> entries
-          </div>
-        </div>
-
-        {/* Filter Controls Row */}
-        <div className="flex flex-wrap items-center gap-2.5">
+      <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative min-w-[240px] flex-1">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search Bill #, Customer Name, Phone, or Table/Room..."
+              placeholder="Search Bill #, Customer, Phone, or Table/Room..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-8.5 w-full rounded-lg border border-slate-300 bg-white pl-8 pr-3 text-[12px] font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-hidden shadow-2xs"
+              className="h-8.5 w-full rounded-lg border border-slate-300 bg-white pl-8 pr-3 text-[12px] font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-hidden"
             />
           </div>
-
-          <div className="relative min-w-[150px]">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-8.5 w-full appearance-none rounded-lg border border-slate-300 bg-white pl-3 pr-8 text-[12px] font-medium text-slate-700 focus:border-teal-500 focus:outline-hidden cursor-pointer shadow-2xs"
-            >
-              <option value="all">All Status</option>
-              <option value="Pending">Pending / Unsettled</option>
-              <option value="Partial">Partial</option>
-              <option value="Settled">Settled</option>
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-          </div>
-
-          {(searchQuery || statusFilter !== "all" || agingFilter !== "all") && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchQuery("");
-                setStatusFilter("all");
-                setAgingFilter("all");
-              }}
-              className="h-8.5 rounded-lg border border-slate-300 bg-slate-50 px-3 text-[11.5px] font-bold text-slate-700 hover:bg-slate-100 cursor-pointer transition shadow-2xs"
-            >
-              Reset Filters
-            </button>
-          )}
+          <ChooseColumnsMenu
+            columns={chooseColumnDefs}
+            visibleColumns={columnVisibility}
+            onVisibleColumnsChange={handleColumnVisibilityChange}
+            className="h-8.5 whitespace-nowrap shrink-0"
+          />
         </div>
       </div>
 
-      {/* 4. STRUCTURED DUE SETTLEMENT TABLE */}
       <PosDataGrid
         data={filteredRecords}
         columns={dueColumns}
         storageKey="pos-due-settlement"
         itemName="bills"
         themeVariant="primary"
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={handleColumnVisibilityChange}
       />
-
-      {/* QUICK SETTLEMENT MODAL */}
-      {selectedBill && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-2xs p-4 animate-in fade-in">
-          <div className="w-full max-w-md rounded-xl bg-white p-4.5 shadow-2xl space-y-3 border border-slate-300">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-              <div>
-                <h3 className="text-[15px] font-black text-slate-900">
-                  Payment Collection & Settlement
-                </h3>
-                <p className="text-[11px] text-slate-500">
-                  {selectedBill.billNo} · {selectedBill.tableOrRoom} ({selectedBill.customerName})
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedBill(null)}
-                className="rounded p-1 text-slate-400 hover:bg-slate-100 cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Bill Summary Strip */}
-            <div className="grid grid-cols-3 gap-2 rounded-lg bg-slate-50 p-2.5 border border-slate-300 text-center">
-              <div>
-                <div className="text-[10.5px] font-bold text-slate-500 uppercase">Total Bill</div>
-                <div className="text-[13px] font-bold text-slate-800 mt-0.5">
-                  ₹{selectedBill.totalAmount.toLocaleString()}
-                </div>
-              </div>
-              <div>
-                <div className="text-[10.5px] font-bold text-slate-500 uppercase">Paid So Far</div>
-                <div className="text-[13px] font-bold text-slate-600 mt-0.5">
-                  ₹{selectedBill.paidAmount.toLocaleString()}
-                </div>
-              </div>
-              <div>
-                <div className="text-[10.5px] font-bold text-teal-800 uppercase">Balance Due</div>
-                <div className="text-[14px] font-black text-teal-800 mt-0.5">
-                  ₹{selectedBill.dueAmount.toLocaleString()}
-                </div>
-              </div>
-            </div>
-
-            {/* Dishes Ordered Preview */}
-            {selectedBill.itemsSummary && (
-              <div className="rounded-lg bg-slate-50 p-2 border border-slate-200 text-xs">
-                <span className="text-[10.5px] font-bold text-slate-500 block mb-0.5">Dishes Billed:</span>
-                <p className="text-slate-800 font-medium text-[11px] leading-snug">{selectedBill.itemsSummary}</p>
-              </div>
-            )}
-
-            {/* Settlement Mode Selection */}
-            <div className="space-y-1">
-              <label className="block text-[11.5px] font-bold text-slate-700">
-                Payment Collection Mode
-              </label>
-              <div className="grid grid-cols-5 gap-1">
-                {(["UPI", "Cash", "Card", "Room Charge", "Split"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setSettlementMode(mode)}
-                    className={`rounded-lg py-1.5 text-[11px] font-bold transition cursor-pointer border ${settlementMode === mode
-                        ? "bg-teal-700 text-white border-teal-700 shadow-2xs"
-                        : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
-                      }`}
-                  >
-                    {mode}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Amount Input */}
-            <div className="space-y-1">
-              <label className="block text-[11.5px] font-bold text-slate-700">
-                Collection Amount (₹)
-              </label>
-              <div className="relative">
-                <IndianRupee className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                <input
-                  type="number"
-                  value={settlementAmount}
-                  onChange={(e) => setSettlementAmount(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-8 pr-3 text-[13.5px] font-bold text-slate-900 focus:border-teal-500 focus:outline-hidden shadow-2xs"
-                />
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200">
-              <button
-                type="button"
-                onClick={handleConfirmSettlement}
-                disabled={settleMutation.isPending}
-                className="flex items-center justify-center gap-1.5 rounded-lg bg-teal-700 py-2 text-[12px] font-bold text-white hover:bg-teal-800 active:scale-98 transition cursor-pointer shadow-2xs"
-              >
-                <Check className="h-4 w-4" />
-                <span>Mark Done & Settle</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedBill(null)}
-                className="rounded-lg border border-slate-300 bg-white py-2 text-[12px] font-bold text-slate-700 hover:bg-slate-50 cursor-pointer shadow-2xs"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 export default PosDueSettlementManager;
-
