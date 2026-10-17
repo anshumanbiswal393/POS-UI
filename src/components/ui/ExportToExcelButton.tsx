@@ -2,7 +2,7 @@ import { FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ExportToExcelButtonProps = {
-  onClick: () => void;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   className?: string;
   title?: string;
 };
