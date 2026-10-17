@@ -27,6 +27,7 @@ import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import {
   DataTableHeader,
   DataTableFooter,
+  ChooseColumnsMenu,
   type DataTableColumn,
 } from "@/components/common/DataTableHeader";
 import { useNavigate } from "@tanstack/react-router";
@@ -41,10 +42,21 @@ export function ProductionMasterView() {
   const [recipes, setRecipes] = useState<ProductionRecipeDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
 
-  // Table sorting & pagination
+  // Table sorting, column filtering, column visibility & pagination
   const [sortConfig, setSortConfig] = useState<{ colId: string; direction: "asc" | "desc" } | null>(null);
+  const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
+    code: true,
+    name: true,
+    category: true,
+    expectedYield: true,
+    ingredientsSummary: true,
+    standardCost: true,
+    costPerUnit: true,
+    shelfLifeDays: true,
+    actions: true,
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -96,28 +108,6 @@ export function ProductionMasterView() {
   useEffect(() => {
     loadData();
   }, []);
-
-  const filteredRecords = useMemo(() => {
-    return recipes.filter((r) => {
-      if (selectedCategory !== "All" && r.category.toLowerCase() !== selectedCategory.toLowerCase()) {
-        return false;
-      }
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        return (
-          r.name.toLowerCase().includes(q) ||
-          r.code.toLowerCase().includes(q) ||
-          r.category.toLowerCase().includes(q) ||
-          r.ingredientsSummary.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
-  }, [recipes, selectedCategory, searchQuery]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, selectedCategory]);
 
   const recipeColumns = useMemo<DataTableColumn<ProductionRecipeDto>[]>(
     () => [
@@ -198,6 +188,46 @@ export function ProductionMasterView() {
     ],
     [],
   );
+
+  const filteredRecords = useMemo(() => {
+    return recipes.filter((r) => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matches = (
+          r.name.toLowerCase().includes(q) ||
+          r.code.toLowerCase().includes(q) ||
+          r.category.toLowerCase().includes(q) ||
+          r.ingredientsSummary.toLowerCase().includes(q)
+        );
+        if (!matches) return false;
+      }
+
+      // Filter by column popover filters (e.g. Category)
+      for (const [colId, allowedValues] of Object.entries(columnFilters)) {
+        if (!allowedValues) continue;
+        const col = recipeColumns.find((c) => c.id === colId);
+        let cellVal = "";
+        if (col?.getValue) {
+          cellVal = col.getValue(r);
+        } else if ((r as any)[colId] !== undefined && (r as any)[colId] !== null) {
+          cellVal = String((r as any)[colId]);
+        }
+        if (!allowedValues.includes(cellVal.trim())) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [recipes, searchQuery, columnFilters, recipeColumns]);
+
+  const activeVisibleColumnCount = useMemo(() => {
+    return recipeColumns.filter((c) => visibleColumns[c.id || ""] !== false).length;
+  }, [recipeColumns, visibleColumns]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, columnFilters]);
 
   const sortedRecords = useMemo(() => {
     if (!sortConfig) return filteredRecords;
@@ -513,8 +543,8 @@ export function ProductionMasterView() {
         </div>
       </div>
 
-      {/* 3. Search & Category Filters */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs space-y-3">
+      {/* 3. Search & Choose Columns Toolbar */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="relative flex-1 min-w-[260px] max-w-md">
             <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
@@ -529,31 +559,20 @@ export function ProductionMasterView() {
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-            {categories.map((cat) => {
-              const active = selectedCategory.toLowerCase() === cat.toLowerCase();
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`rounded-xl px-3 py-1.5 text-[12px] font-medium transition cursor-pointer whitespace-nowrap ${
-                    active
-                      ? "bg-teal-600 text-white shadow-2xs"
-                      : "bg-slate-100/80 text-slate-600 hover:bg-slate-200/70"
-                  }`}
-                >
-                  {cat}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-2">
+            <ChooseColumnsMenu
+              columns={recipeColumns}
+              visibleColumns={visibleColumns}
+              onVisibleColumnsChange={setVisibleColumns}
+              className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-[12.5px] font-medium text-slate-700 shadow-2xs"
+            />
           </div>
         </div>
       </div>
@@ -565,21 +584,27 @@ export function ProductionMasterView() {
             <DataTableHeader
               columns={recipeColumns}
               data={sortedRecords}
+              visibleColumns={visibleColumns}
+              onVisibleColumnsChange={setVisibleColumns}
               sortConfig={sortConfig}
               onSortChange={setSortConfig}
+              columnFilters={columnFilters}
+              onColumnFilterChange={setColumnFilters}
               themeVariant="primary"
             />
             <tbody className="divide-y divide-slate-100">
               {paginatedRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={recipeColumns.length} className="py-14 text-center">
+                  <td colSpan={activeVisibleColumnCount} className="py-14 text-center">
                     <div className="flex flex-col items-center justify-center max-w-sm mx-auto text-slate-400">
                       <Layers className="h-10 w-10 text-slate-300 mb-2 stroke-[1.5]" />
                       <p className="text-[14px] font-semibold text-slate-700">No preparation recipes found</p>
                       <p className="text-[12px] text-slate-400 mt-0.5">
-                        {searchQuery ? "Try refining your search terms or filters." : "Create your first food preparation recipe formula."}
+                        {searchQuery || Object.keys(columnFilters).length > 0
+                          ? "Try refining your search terms or column filters."
+                          : "Create your first food preparation recipe formula."}
                       </p>
-                      {!searchQuery && (
+                      {!searchQuery && Object.keys(columnFilters).length === 0 && (
                         <button
                           type="button"
                           onClick={handleOpenCreate}
@@ -595,72 +620,90 @@ export function ProductionMasterView() {
               ) : (
                 paginatedRecords.map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50/70 transition">
-                    <td className="px-4 py-3.5 font-mono text-[12px] font-bold text-teal-700 whitespace-nowrap">
-                      {r.code}
-                    </td>
-                    <td className="px-4 py-3.5 font-semibold text-slate-900">
-                      {r.name}
-                    </td>
-                    <td className="px-4 py-3.5 whitespace-nowrap">
-                      <span className="inline-flex rounded-lg bg-slate-100 px-2.5 py-0.5 text-[11.5px] font-medium text-slate-700">
-                        {r.category}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-medium text-slate-800 whitespace-nowrap">
-                      {r.expectedYield} {r.outputUnit}
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-600 text-[12px] max-w-xs truncate" title={r.ingredientsSummary}>
-                      {r.ingredientsSummary}
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-mono font-semibold text-slate-900 whitespace-nowrap">
-                      ₹ {r.standardCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-mono text-[12.5px] text-slate-600 whitespace-nowrap">
-                      ₹ {r.costPerUnit.toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3.5 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                        <Clock className="h-3 w-3" />
-                        {r.shelfLifeDays} days
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setViewingRecipe(r)}
-                          title="View Recipe Details"
-                          className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEdit(r)}
-                          title="Edit Recipe"
-                          className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => navigate({ to: "/pos/inventory/production/execution" })}
-                          title="Prepare New Batch with this Recipe"
-                          className="flex items-center gap-1 rounded-lg bg-teal-50 px-2 py-1 text-[11.5px] font-bold text-teal-700 hover:bg-teal-100 transition cursor-pointer"
-                        >
-                          <ChefHat className="h-3.5 w-3.5" />
-                          Prepare
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteRecipe(r)}
-                          title="Delete Recipe"
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
+                    {visibleColumns.code !== false && (
+                      <td className="px-4 py-3.5 font-mono text-[12px] font-bold text-teal-700 whitespace-nowrap">
+                        {r.code}
+                      </td>
+                    )}
+                    {visibleColumns.name !== false && (
+                      <td className="px-4 py-3.5 font-semibold text-slate-900">
+                        {r.name}
+                      </td>
+                    )}
+                    {visibleColumns.category !== false && (
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <span className="inline-flex rounded-lg bg-slate-100 px-2.5 py-0.5 text-[11.5px] font-medium text-slate-700">
+                          {r.category}
+                        </span>
+                      </td>
+                    )}
+                    {visibleColumns.expectedYield !== false && (
+                      <td className="px-4 py-3.5 text-right font-medium text-slate-800 whitespace-nowrap">
+                        {r.expectedYield} {r.outputUnit}
+                      </td>
+                    )}
+                    {visibleColumns.ingredientsSummary !== false && (
+                      <td className="px-4 py-3.5 text-slate-600 text-[12px] max-w-xs truncate" title={r.ingredientsSummary}>
+                        {r.ingredientsSummary}
+                      </td>
+                    )}
+                    {visibleColumns.standardCost !== false && (
+                      <td className="px-4 py-3.5 text-right font-mono font-semibold text-slate-900 whitespace-nowrap">
+                        ₹ {r.standardCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
+                    )}
+                    {visibleColumns.costPerUnit !== false && (
+                      <td className="px-4 py-3.5 text-right font-mono text-[12.5px] text-slate-600 whitespace-nowrap">
+                        ₹ {r.costPerUnit.toFixed(2)}
+                      </td>
+                    )}
+                    {visibleColumns.shelfLifeDays !== false && (
+                      <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                          <Clock className="h-3 w-3" />
+                          {r.shelfLifeDays} days
+                        </span>
+                      </td>
+                    )}
+                    {visibleColumns.actions !== false && (
+                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setViewingRecipe(r)}
+                            title="View Recipe Details"
+                            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(r)}
+                            title="Edit Recipe"
+                            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => navigate({ to: "/pos/inventory/production/execution" })}
+                            title="Prepare New Batch with this Recipe"
+                            className="flex items-center gap-1 rounded-lg bg-teal-50 px-2 py-1 text-[11.5px] font-bold text-teal-700 hover:bg-teal-100 transition cursor-pointer"
+                          >
+                            <ChefHat className="h-3.5 w-3.5" />
+                            Prepare
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRecipe(r)}
+                            title="Delete Recipe"
+                            className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
