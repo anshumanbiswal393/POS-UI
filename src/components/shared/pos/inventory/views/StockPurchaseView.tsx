@@ -3,6 +3,7 @@ import {
   Plus,
   Search,
   Calendar,
+  CalendarDays,
   CheckCircle2,
   Clock,
   AlertCircle,
@@ -26,6 +27,7 @@ import {
   Tag,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { exportToExcel } from "@/utils/exportUtils";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import {
@@ -35,18 +37,48 @@ import {
   type DataTableColumn,
 } from "@/components/common";
 import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from "@/components/ui/popover";
+import {
+  Calendar as PmsCalendar,
+  type DateRange,
+} from "@/components/ui/calendar";
+import {
   posPurchasesService,
   type UnifiedPurchaseDto,
   type PurchaseVendor,
   type PurchaseLineItem,
 } from "@/services/posPurchasesService";
 
+const formatToYmd = (date: Date): string => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
+const parseYmd = (str?: string): Date | undefined => {
+  if (!str) return undefined;
+  const parts = str.split("-");
+  if (parts.length !== 3) return undefined;
+  return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+};
+
+const formatToDmy = (str?: string): string => {
+  if (!str) return "dd-mm-yyyy";
+  const parts = str.split("-");
+  if (parts.length !== 3) return "dd-mm-yyyy";
+  return `${parts[2].padStart(2, "0")}-${parts[1].padStart(2, "0")}-${parts[0]}`;
+};
+
 export function StockPurchaseView() {
   const [purchases, setPurchases] = useState<UnifiedPurchaseDto[]>([]);
   const [vendors, setVendors] = useState<PurchaseVendor[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Date Range Filter
+  // Date Range Filter (PMS format: dd-MM-yyyy in UI, yyyy-MM-dd in queries)
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -54,6 +86,45 @@ export function StockPurchaseView() {
     return d.toISOString().slice(0, 10);
   });
   const [endDate, setEndDate] = useState(todayStr);
+
+  // PMS Slide Date Range Picker Popover State
+  const [dateRangePopoverOpen, setDateRangePopoverOpen] = useState(false);
+  const [activeDateField, setActiveDateField] = useState<"from" | "to">("from");
+  const [tempRange, setTempRange] = useState<DateRange | undefined>(() => ({
+    from: parseYmd(startDate),
+    to: parseYmd(endDate),
+  }));
+
+  useEffect(() => {
+    setTempRange({
+      from: parseYmd(startDate),
+      to: parseYmd(endDate),
+    });
+  }, [startDate, endDate]);
+
+  const handleOpenDateRange = (target: "from" | "to") => {
+    setActiveDateField(target);
+    setTempRange({
+      from: parseYmd(startDate) || new Date(),
+      to: parseYmd(endDate) || new Date(),
+    });
+    setDateRangePopoverOpen(true);
+  };
+
+  const handleDateRangeSelect = (range: DateRange | undefined) => {
+    setTempRange(range);
+    if (!range?.from) return;
+
+    if (range.to) {
+      const fromYmd = formatToYmd(range.from);
+      const toYmd = formatToYmd(range.to);
+      setStartDate(fromYmd);
+      setEndDate(toYmd);
+      setTimeout(() => {
+        setDateRangePopoverOpen(false);
+      }, 250);
+    }
+  };
 
   // Filter Toolbar (Search & Column Visibility)
   const [search, setSearch] = useState("");
@@ -524,7 +595,7 @@ export function StockPurchaseView() {
     exportToExcel({
       filename: `Purchases_${startDate}_to_${endDate}`,
       title: "Stock Purchases & Settlement Register",
-      subtitle: `Period: ${startDate} to ${endDate} | Total Invoices: ${filteredPurchases.length}`,
+      subtitle: `Period: ${formatToDmy(startDate)} to ${formatToDmy(endDate)} | Total Invoices: ${filteredPurchases.length}`,
       columns: headers,
       rows,
     });
@@ -570,31 +641,162 @@ export function StockPurchaseView() {
         </div>
       </div>
 
-      {/* 2. Date Range Filter Bar */}
+      {/* 2. Date Range Filter Bar (PMS Style: dd-MM-yyyy, button & border styling, slide-to-choose) */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs">
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-teal-600" />
-          <span className="text-[13px] font-semibold text-slate-800">Date Range Filter</span>
+          <span className="text-[13px] font-semibold text-slate-800">Date Range</span>
           <span className="text-[12px] text-slate-400">| View stock purchases within selected date range</span>
         </div>
 
-        {/* Custom From-To Date Pickers */}
-        <div className="flex items-center gap-2 text-[12px]">
-          <span className="text-slate-500 font-medium">From:</span>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-700 font-medium focus:bg-white focus:border-teal-500 focus:outline-none"
-          />
-          <span className="text-slate-500 font-medium">To:</span>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-700 font-medium focus:bg-white focus:border-teal-500 focus:outline-none"
-          />
-        </div>
+        {/* PMS From & To Date Trigger Buttons with Sliding Range Popover */}
+        <Popover open={dateRangePopoverOpen} onOpenChange={setDateRangePopoverOpen}>
+          <PopoverAnchor asChild>
+            <div className="flex flex-wrap items-center gap-3">
+              {/* From Date */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[12px] font-semibold text-slate-500">From Date:</span>
+                <button
+                  type="button"
+                  onClick={() => handleOpenDateRange("from")}
+                  className={cn(
+                    "flex items-center justify-between text-left font-sans font-medium cursor-pointer bg-white border rounded-xl px-3 py-1.5 min-w-[135px] text-[12.5px] text-slate-800 shadow-2xs transition",
+                    dateRangePopoverOpen && activeDateField === "from"
+                      ? "border-teal-600 ring-2 ring-teal-500/20"
+                      : "border-slate-200 hover:border-slate-300"
+                  )}
+                >
+                  <span className="font-sans font-medium text-slate-800">
+                    {formatToDmy(startDate)}
+                  </span>
+                  <CalendarDays className="h-4 w-4 text-slate-400 shrink-0 ml-2" />
+                </button>
+              </div>
+
+              {/* To Date */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[12px] font-semibold text-slate-500">To Date:</span>
+                <button
+                  type="button"
+                  onClick={() => handleOpenDateRange("to")}
+                  className={cn(
+                    "flex items-center justify-between text-left font-sans font-medium cursor-pointer bg-white border rounded-xl px-3 py-1.5 min-w-[135px] text-[12.5px] text-slate-800 shadow-2xs transition",
+                    dateRangePopoverOpen && activeDateField === "to"
+                      ? "border-teal-600 ring-2 ring-teal-500/20"
+                      : "border-slate-200 hover:border-slate-300"
+                  )}
+                >
+                  <span className="font-sans font-medium text-slate-800">
+                    {formatToDmy(endDate)}
+                  </span>
+                  <CalendarDays className="h-4 w-4 text-slate-400 shrink-0 ml-2" />
+                </button>
+              </div>
+            </div>
+          </PopoverAnchor>
+
+          <PopoverContent
+            className="w-auto p-0 border border-slate-200 bg-white shadow-xl rounded-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150"
+            align="end"
+            sideOffset={8}
+          >
+            {/* Popover Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 bg-slate-50/60">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-teal-600" />
+                <span className="text-[13px] font-bold text-slate-800">
+                  {tempRange?.from && !tempRange?.to ? "Slide or Click to Choose End Date" : "Select Date Range"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {tempRange?.from && tempRange?.to && (
+                  <span className="rounded-full bg-teal-50 border border-teal-200 px-2.5 py-0.5 text-[11px] font-semibold text-teal-700">
+                    {Math.max(1, Math.round((tempRange.to.getTime() - tempRange.from.getTime()) / (1000 * 60 * 60 * 24)))} Days
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setDateRangePopoverOpen(false)}
+                  className="rounded-lg p-1 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 transition cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Selection Guidance Pill */}
+            <div className="px-4 pt-2.5 pb-1 flex items-center justify-between text-[11.5px] text-slate-500 border-b border-slate-100/60">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-slate-400">Selected:</span>
+                <span className="font-bold text-slate-800 font-sans">
+                  {tempRange?.from ? formatToDmy(formatToYmd(tempRange.from)) : "dd-mm-yyyy"}
+                </span>
+                <span className="text-slate-300">→</span>
+                <span className="font-bold text-slate-800 font-sans">
+                  {tempRange?.to ? formatToDmy(formatToYmd(tempRange.to)) : "dd-mm-yyyy"}
+                </span>
+              </div>
+              <span className="text-[11px] text-teal-600 font-medium">Click & slide to range</span>
+            </div>
+
+            {/* Sliding Calendar */}
+            <div className="p-3">
+              <PmsCalendar
+                mode="range"
+                numberOfMonths={2}
+                selected={tempRange}
+                onSelect={handleDateRangeSelect}
+                selectionTarget={activeDateField === "from" ? "arrival" : "departure"}
+                durationUnit="days"
+                className="rounded-xl"
+              />
+            </div>
+
+            {/* Popover Quick Shortcuts Footer */}
+            <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-4 py-2.5 text-[11.5px]">
+              <div className="flex items-center gap-1.5">
+                {[
+                  { label: "Today", days: 0 },
+                  { label: "Last 7 Days", days: 7 },
+                  { label: "Last 30 Days", days: 30 },
+                  { label: "Last 90 Days", days: 90 },
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => {
+                      const now = new Date();
+                      const past = new Date();
+                      if (preset.days > 0) {
+                        past.setDate(past.getDate() - preset.days);
+                      }
+                      setStartDate(formatToYmd(past));
+                      setEndDate(formatToYmd(now));
+                      setTempRange({ from: past, to: now });
+                      setDateRangePopoverOpen(false);
+                    }}
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (tempRange?.from) {
+                    setStartDate(formatToYmd(tempRange.from));
+                    setEndDate(formatToYmd(tempRange.to || tempRange.from));
+                  }
+                  setDateRangePopoverOpen(false);
+                }}
+                className="rounded-lg bg-teal-600 px-3 py-1 font-semibold text-white shadow-2xs hover:bg-teal-700 transition cursor-pointer"
+              >
+                Apply
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* 3. KPI Metrics Strip */}
