@@ -28,7 +28,12 @@ import {
 import { toast } from "sonner";
 import { exportToExcel } from "@/utils/exportUtils";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
-import { DataTableHeader, DataTableFooter, type DataTableColumn } from "@/components/common";
+import {
+  DataTableHeader,
+  DataTableFooter,
+  ChooseColumnsMenu,
+  type DataTableColumn,
+} from "@/components/common";
 import {
   posPurchasesService,
   type UnifiedPurchaseDto,
@@ -49,12 +54,21 @@ export function StockPurchaseView() {
     return d.toISOString().slice(0, 10);
   });
   const [endDate, setEndDate] = useState(todayStr);
-  const [activeDatePreset, setActiveDatePreset] = useState<"today" | "yesterday" | "7days" | "30days" | "custom">("30days");
 
-  // Filter Toolbar
+  // Filter Toolbar (Search & Column Visibility)
   const [search, setSearch] = useState("");
-  const [selectedVendor, setSelectedVendor] = useState("All");
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState<"All" | "Done" | "Pending" | "Partial">("All");
+  const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
+    invoiceNo: true,
+    invoiceDate: true,
+    vendorName: true,
+    items: true,
+    totalAmount: true,
+    paidAmount: true,
+    balanceAmount: true,
+    paymentStatus: true,
+    actions: true,
+  });
 
   // Tab View: Purchases (Bills) vs Purchase Orders
   const [activeTab, setActiveTab] = useState<"purchases" | "orders">("purchases");
@@ -104,8 +118,6 @@ export function StockPurchaseView() {
         posPurchasesService.fetchPurchases({
           startDate,
           endDate,
-          vendor: selectedVendor !== "All" ? selectedVendor : undefined,
-          paymentStatus: paymentStatusFilter !== "All" ? paymentStatusFilter : undefined,
         }),
         posPurchasesService.fetchVendors(),
       ]);
@@ -123,55 +135,7 @@ export function StockPurchaseView() {
 
   useEffect(() => {
     loadData();
-  }, [startDate, endDate, selectedVendor, paymentStatusFilter]);
-
-  // Date Preset Handlers
-  const handlePresetChange = (preset: "today" | "yesterday" | "7days" | "30days") => {
-    setActiveDatePreset(preset);
-    const now = new Date();
-    if (preset === "today") {
-      const s = now.toISOString().slice(0, 10);
-      setStartDate(s);
-      setEndDate(s);
-    } else if (preset === "yesterday") {
-      const y = new Date();
-      y.setDate(y.getDate() - 1);
-      const s = y.toISOString().slice(0, 10);
-      setStartDate(s);
-      setEndDate(s);
-    } else if (preset === "7days") {
-      const past = new Date();
-      past.setDate(past.getDate() - 7);
-      setStartDate(past.toISOString().slice(0, 10));
-      setEndDate(now.toISOString().slice(0, 10));
-    } else if (preset === "30days") {
-      const past = new Date();
-      past.setDate(past.getDate() - 30);
-      setStartDate(past.toISOString().slice(0, 10));
-      setEndDate(now.toISOString().slice(0, 10));
-    }
-  };
-
-  // Filtered List
-  const filteredPurchases = useMemo(() => {
-    return purchases.filter((p) => {
-      if (selectedVendor !== "All" && !p.vendorName.toLowerCase().includes(selectedVendor.toLowerCase())) {
-        return false;
-      }
-      if (paymentStatusFilter !== "All" && p.paymentStatus !== paymentStatusFilter) {
-        return false;
-      }
-      if (search) {
-        const q = search.toLowerCase();
-        return (
-          p.invoiceNo.toLowerCase().includes(q) ||
-          p.vendorName.toLowerCase().includes(q) ||
-          p.items.some((i) => i.name.toLowerCase().includes(q))
-        );
-      }
-      return true;
-    });
-  }, [purchases, selectedVendor, paymentStatusFilter, search]);
+  }, [startDate, endDate]);
 
   // Table Columns Definition for DataTableHeader
   const purchaseColumns = useMemo<DataTableColumn<UnifiedPurchaseDto>[]>(
@@ -248,9 +212,49 @@ export function StockPurchaseView() {
     [],
   );
 
+  // Filtered List based on search and table header column filters
+  const filteredPurchases = useMemo(() => {
+    return purchases.filter((p) => {
+      if (search) {
+        const q = search.toLowerCase();
+        const matches = (
+          p.invoiceNo.toLowerCase().includes(q) ||
+          p.vendorName.toLowerCase().includes(q) ||
+          p.items.some((i) => i.name.toLowerCase().includes(q))
+        );
+        if (!matches) return false;
+      }
+
+      // Column Filters (such as Vendor / Supplier or Payment Status from column header filter popovers)
+      for (const [colId, allowedValues] of Object.entries(columnFilters)) {
+        if (!allowedValues) continue;
+        const col = purchaseColumns.find((c) => c.id === colId);
+        let cellVal = "";
+        if (col?.getValue) {
+          cellVal = col.getValue(p);
+        } else if ((p as any)[colId] !== undefined && (p as any)[colId] !== null) {
+          cellVal = String((p as any)[colId]);
+        }
+        if (!allowedValues.includes(cellVal.trim())) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [purchases, search, columnFilters, purchaseColumns]);
+
+  const activeVisibleColumnCount = useMemo(() => {
+    return purchaseColumns.filter((c) => visibleColumns[c.id || ""] !== false).length;
+  }, [purchaseColumns, visibleColumns]);
+
   const [sortConfig, setSortConfig] = useState<{ colId: string; direction: "asc" | "desc" } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, columnFilters, startDate, endDate]);
 
   const sortedPurchases = useMemo(() => {
     if (!sortConfig) return filteredPurchases;
@@ -387,9 +391,6 @@ export function StockPurchaseView() {
     try {
       await posPurchasesService.deleteVendor(vendor.id);
       setVendors((prev) => prev.filter((v) => v.id !== vendor.id));
-      if (selectedVendor.toLowerCase() === vendor.name.toLowerCase()) {
-        setSelectedVendor("All");
-      }
       if (formVendor.toLowerCase() === vendor.name.toLowerCase()) {
         const remaining = vendors.filter((v) => v.id !== vendor.id);
         setFormVendor(remaining[0]?.name || "Metro Cash & Carry");
@@ -569,54 +570,28 @@ export function StockPurchaseView() {
         </div>
       </div>
 
-      {/* 2. Date Range Filter Bar with Quick Presets */}
+      {/* 2. Date Range Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-          <span className="text-[12px] font-semibold text-slate-500 mr-1.5 flex items-center gap-1">
-            <Calendar className="h-3.5 w-3.5 text-slate-400" />
-            Period:
-          </span>
-          {[
-            { id: "today" as const, label: "Today" },
-            { id: "yesterday" as const, label: "Yesterday" },
-            { id: "7days" as const, label: "Last 7 Days" },
-            { id: "30days" as const, label: "Last 30 Days" },
-          ].map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => handlePresetChange(preset.id)}
-              className={`rounded-xl px-3 py-1.5 text-[12px] font-medium transition cursor-pointer whitespace-nowrap ${
-                activeDatePreset === preset.id
-                  ? "bg-slate-900 text-white shadow-2xs"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200/70"
-              }`}
-            >
-              {preset.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-teal-600" />
+          <span className="text-[13px] font-semibold text-slate-800">Date Range Filter</span>
+          <span className="text-[12px] text-slate-400">| View stock purchases within selected date range</span>
         </div>
 
         {/* Custom From-To Date Pickers */}
         <div className="flex items-center gap-2 text-[12px]">
-          <span className="text-slate-400 font-medium">From:</span>
+          <span className="text-slate-500 font-medium">From:</span>
           <input
             type="date"
             value={startDate}
-            onChange={(e) => {
-              setStartDate(e.target.value);
-              setActiveDatePreset("custom");
-            }}
+            onChange={(e) => setStartDate(e.target.value)}
             className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-700 font-medium focus:bg-white focus:border-teal-500 focus:outline-none"
           />
-          <span className="text-slate-400 font-medium">To:</span>
+          <span className="text-slate-500 font-medium">To:</span>
           <input
             type="date"
             value={endDate}
-            onChange={(e) => {
-              setEndDate(e.target.value);
-              setActiveDatePreset("custom");
-            }}
+            onChange={(e) => setEndDate(e.target.value)}
             className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-700 font-medium focus:bg-white focus:border-teal-500 focus:outline-none"
           />
         </div>
@@ -682,8 +657,8 @@ export function StockPurchaseView() {
         </div>
       </div>
 
-      {/* 4. Filter Toolbar (Search, Vendor, Payment Status Tabs) */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs space-y-3">
+      {/* 4. Filter Toolbar (Search & Choose Columns) */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="relative flex-1 min-w-[240px] max-w-md">
             <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
@@ -705,48 +680,13 @@ export function StockPurchaseView() {
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Vendor Filter */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-[12px] font-semibold text-slate-500">Vendor:</span>
-              <select
-                value={selectedVendor}
-                onChange={(e) => setSelectedVendor(e.target.value)}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-700 focus:border-teal-500 focus:outline-none"
-              >
-                <option value="All">All Vendors</option>
-                {vendors.map((v) => (
-                  <option key={v.id} value={v.name}>
-                    {v.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Payment Status Tabs: All, Done, Pending, Partial */}
-            <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-0.5">
-              {(["All", "Done", "Pending", "Partial"] as const).map((st) => {
-                const active = paymentStatusFilter === st;
-                return (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setPaymentStatusFilter(st)}
-                    className={`rounded-lg px-2.5 py-1 text-[11.5px] font-semibold transition cursor-pointer ${
-                      active
-                        ? st === "Done"
-                          ? "bg-emerald-600 text-white shadow-xs"
-                          : st === "Pending"
-                          ? "bg-amber-600 text-white shadow-xs"
-                          : "bg-teal-600 text-white shadow-xs"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    {st === "Done" ? "Done (Paid)" : st}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="flex items-center gap-2">
+            <ChooseColumnsMenu
+              columns={purchaseColumns}
+              visibleColumns={visibleColumns}
+              onVisibleColumnsChange={setVisibleColumns}
+              className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-[12.5px] font-medium text-slate-700 shadow-2xs"
+            />
           </div>
         </div>
       </div>
@@ -758,21 +698,27 @@ export function StockPurchaseView() {
             <DataTableHeader
               columns={purchaseColumns}
               data={sortedPurchases}
+              visibleColumns={visibleColumns}
+              onVisibleColumnsChange={setVisibleColumns}
               sortConfig={sortConfig}
               onSortChange={setSortConfig}
+              columnFilters={columnFilters}
+              onColumnFilterChange={setColumnFilters}
               themeVariant="primary"
             />
             <tbody className="divide-y divide-slate-100">
               {paginatedPurchases.length === 0 ? (
                 <tr>
-                  <td colSpan={purchaseColumns.length} className="py-14 text-center">
+                  <td colSpan={activeVisibleColumnCount} className="py-14 text-center">
                     <div className="flex flex-col items-center justify-center max-w-sm mx-auto text-slate-400">
                       <FileText className="h-10 w-10 text-slate-300 mb-2 stroke-[1.5]" />
                       <p className="text-[14px] font-semibold text-slate-700">No purchase bills found</p>
                       <p className="text-[12px] text-slate-400 mt-0.5">
-                        {search ? "No records matching your search terms." : "Record your first incoming stock purchase bill."}
+                        {search || Object.keys(columnFilters).length > 0
+                          ? "No records matching your search terms or column filters."
+                          : "Record your first incoming stock purchase bill."}
                       </p>
-                      {!search && (
+                      {!search && Object.keys(columnFilters).length === 0 && (
                         <button
                           type="button"
                           onClick={handleOpenAdd}
@@ -793,85 +739,103 @@ export function StockPurchaseView() {
 
                   return (
                     <tr key={p.id} className="hover:bg-slate-50/70 transition">
-                      <td className="px-4 py-3.5 font-mono text-[12.5px] font-bold text-teal-700 whitespace-nowrap">
-                        {p.invoiceNo}
-                      </td>
-                      <td className="px-4 py-3.5 text-slate-600 text-[12.5px] whitespace-nowrap">
-                        {p.invoiceDate}
-                      </td>
-                      <td className="px-4 py-3.5 font-semibold text-slate-900">
-                        {p.vendorName}
-                      </td>
-                      <td className="px-4 py-3.5 text-slate-600 text-[12.5px]">
-                        <span className="font-semibold text-slate-800">{p.itemCount} SKUs</span>
-                        {p.items && p.items.length > 0 && (
-                          <span className="text-[11.5px] text-slate-400 block truncate max-w-xs" title={p.items.map((i) => i.name).join(", ")}>
-                            {p.items.map((i) => i.name).join(", ")}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
-                        ₹ {p.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-4 py-3.5 text-right font-mono text-slate-700 whitespace-nowrap">
-                        ₹ {p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-4 py-3.5 text-right font-mono font-bold whitespace-nowrap">
-                        {p.balanceAmount > 0 ? (
-                          <span className="text-amber-700">₹ {p.balanceAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        ) : (
-                          <span className="text-slate-400">₹ 0.00</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5 text-center whitespace-nowrap">
-                        {isDone ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Done
-                          </span>
-                        ) : isPending ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[11px] font-bold text-amber-700">
-                            <Clock className="h-3.5 w-3.5" />
-                            Pending
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 border border-sky-200 px-2.5 py-0.5 text-[11px] font-bold text-sky-700">
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            Partial
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Direct Quick Pay button if not Done */}
-                          {!isDone && (
+                      {visibleColumns.invoiceNo !== false && (
+                        <td className="px-4 py-3.5 font-mono text-[12.5px] font-bold text-teal-700 whitespace-nowrap">
+                          {p.invoiceNo}
+                        </td>
+                      )}
+                      {visibleColumns.invoiceDate !== false && (
+                        <td className="px-4 py-3.5 text-slate-600 text-[12.5px] whitespace-nowrap">
+                          {p.invoiceDate}
+                        </td>
+                      )}
+                      {visibleColumns.vendorName !== false && (
+                        <td className="px-4 py-3.5 font-semibold text-slate-900">
+                          {p.vendorName}
+                        </td>
+                      )}
+                      {visibleColumns.items !== false && (
+                        <td className="px-4 py-3.5 text-slate-600 text-[12.5px]">
+                          <span className="font-semibold text-slate-800">{p.itemCount} SKUs</span>
+                          {p.items && p.items.length > 0 && (
+                            <span className="text-[11.5px] text-slate-400 block truncate max-w-xs" title={p.items.map((i) => i.name).join(", ")}>
+                              {p.items.map((i) => i.name).join(", ")}
+                            </span>
+                          )}
+                        </td>
+                      )}
+                      {visibleColumns.totalAmount !== false && (
+                        <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
+                          ₹ {p.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                      )}
+                      {visibleColumns.paidAmount !== false && (
+                        <td className="px-4 py-3.5 text-right font-mono text-slate-700 whitespace-nowrap">
+                          ₹ {p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                      )}
+                      {visibleColumns.balanceAmount !== false && (
+                        <td className="px-4 py-3.5 text-right font-mono font-bold whitespace-nowrap">
+                          {p.balanceAmount > 0 ? (
+                            <span className="text-amber-700">₹ {p.balanceAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          ) : (
+                            <span className="text-slate-400">₹ 0.00</span>
+                          )}
+                        </td>
+                      )}
+                      {visibleColumns.paymentStatus !== false && (
+                        <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                          {isDone ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Done
+                            </span>
+                          ) : isPending ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[11px] font-bold text-amber-700">
+                              <Clock className="h-3.5 w-3.5" />
+                              Pending
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 border border-sky-200 px-2.5 py-0.5 text-[11px] font-bold text-sky-700">
+                              <AlertCircle className="h-3.5 w-3.5" />
+                              Partial
+                            </span>
+                          )}
+                        </td>
+                      )}
+                      {visibleColumns.actions !== false && (
+                        <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Direct Quick Pay button if not Done */}
+                            {!isDone && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenPayment(p)}
+                                className="flex items-center gap-1 rounded-lg bg-teal-50 border border-teal-200 px-2.5 py-1 text-[11.5px] font-bold text-teal-700 hover:bg-teal-100 transition cursor-pointer"
+                              >
+                                <CreditCard className="h-3.5 w-3.5" />
+                                Pay
+                              </button>
+                            )}
                             <button
                               type="button"
-                              onClick={() => handleOpenPayment(p)}
-                              className="flex items-center gap-1 rounded-lg bg-teal-50 border border-teal-200 px-2.5 py-1 text-[11.5px] font-bold text-teal-700 hover:bg-teal-100 transition cursor-pointer"
+                              onClick={() => setDetailsModalInvoice(p)}
+                              title="View Invoice & Received Items"
+                              className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer"
                             >
-                              <CreditCard className="h-3.5 w-3.5" />
-                              Pay
+                              <Eye className="h-4 w-4" />
                             </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => setDetailsModalInvoice(p)}
-                            title="View Invoice & Received Items"
-                            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeletePurchase(p)}
-                            title="Delete Purchase"
-                            className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePurchase(p)}
+                              title="Delete Purchase"
+                              className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })
