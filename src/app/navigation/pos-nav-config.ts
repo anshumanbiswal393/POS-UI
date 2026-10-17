@@ -87,14 +87,8 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
         id: "purchase-group",
         label: "Purchases",
         children: [
-          { id: "stock-purchase", label: "Add Purchase", to: "/pos/inventory/purchase" },
-          { id: "purchase-order", label: "Purchase Orders", to: "/pos/inventory/order" },
+          { id: "stock-purchase", label: "Purchases", to: "/pos/inventory/purchase" },
           { id: "purchase-return", label: "Purchase Returns", to: "/pos/inventory/return" },
-          {
-            id: "inv-purchase-payments",
-            label: "Purchase Bill Payments",
-            to: "/pos/inventory/purchase-payments",
-          },
         ],
       },
       {
@@ -124,11 +118,6 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
             id: "inv-prod-exec",
             label: "Prepare Items",
             to: "/pos/inventory/production/execution",
-          },
-          {
-            id: "inv-barcode-gen",
-            label: "Create Barcodes",
-            to: "/pos/inventory/production/barcode",
           },
         ],
       },
@@ -185,7 +174,6 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
       { id: "rep-day-end", label: "Day End Summary", to: "/pos/reports/day-end" },
       { id: "rep-other", label: "Other Reports", to: "/pos/reports/other" },
       { id: "rep-notifications", label: "Report Notification", to: "/pos/reports/notifications" },
-      { id: "rep-delivery", label: "Delivery Management", to: "/pos/reports/delivery" },
     ],
   },
   {

@@ -142,7 +142,7 @@ export function BillingMenuCatalog({
           <div className="inline-flex items-center gap-0.5 rounded-xl border border-border bg-surface p-0.5 shadow-2xs">
             {(
               [
-                { id: "all" as const, label: "All" },
+                { id: "all" as const, label: "All", icon: false },
                 { id: "veg" as const, label: "Veg", icon: true },
                 { id: "non_veg" as const, label: "Non-Veg", icon: true },
               ] as const

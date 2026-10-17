@@ -1,7 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { BarcodeGenerationView } from "@/components/shared/pos/inventory/views/BarcodeGenerationView";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/pos/inventory/production/barcode")({
-  head: () => ({ meta: [{ title: "Create Barcodes — Retrod POS" }] }),
-  component: BarcodeGenerationView,
+  head: () => ({ meta: [{ title: "Preparation Setup — Retrod POS" }] }),
+  component: () => <Navigate to="/pos/inventory/production" replace />,
 });

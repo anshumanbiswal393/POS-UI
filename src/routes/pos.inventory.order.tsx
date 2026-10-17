@@ -1,7 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PurchaseOrderView } from "@/components/shared/pos/inventory/views/PurchaseOrderView";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/pos/inventory/order")({
-  head: () => ({ meta: [{ title: "Purchase Orders — Retrod POS" }] }),
-  component: PurchaseOrderView,
+  head: () => ({ meta: [{ title: "Purchases — Retrod POS" }] }),
+  component: () => <Navigate to="/pos/inventory/purchase" replace />,
 });

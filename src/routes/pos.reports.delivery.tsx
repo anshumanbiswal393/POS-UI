@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { DeliveryManagementView } from "@/components/shared/pos/reports/views/DeliveryManagementView";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/pos/reports/delivery")({
-  head: () => ({ meta: [{ title: "Delivery Management — Retrod POS Reports" }] }),
-  component: DeliveryManagementView,
+  beforeLoad: () => {
+    throw redirect({ to: "/pos/reports/day-end" });
+  },
+  component: () => null,
 });
