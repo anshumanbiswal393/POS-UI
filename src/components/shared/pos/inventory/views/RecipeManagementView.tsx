@@ -9,7 +9,6 @@ import {
   Trash2,
   Files,
   ChevronRight,
-  Search,
 } from "lucide-react";
 import {
   DataTableHeader,
@@ -17,11 +16,23 @@ import {
   type DataTableColumn,
 } from "@/components/common/DataTableHeader";
 import { toast } from "sonner";
+import {
+  CreateRecipeModal,
+  type RecipeFormValues,
+  type RecipeIngredientInput,
+} from "@/components/shared/pos/inventory/modals/CreateRecipeModal";
+import { ExploreRecipesModal } from "@/components/shared/pos/inventory/modals/ExploreRecipesModal";
 
 interface RecipeRow {
   id: string;
   name: string;
   category: string;
+  menuItem?: string;
+  yieldQty?: string;
+  yieldUnit?: string;
+  prepTimeMinutes?: string;
+  notes?: string;
+  ingredients?: RecipeIngredientInput[];
 }
 
 export function RecipeManagementView() {
@@ -32,6 +43,11 @@ export function RecipeManagementView() {
   const [recipeStatus, setRecipeStatus] = useState("Created Recipes");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isExploreOpen, setIsExploreOpen] = useState(false);
+  const [editingRecipe, setEditingRecipe] = useState<RecipeRow | null>(null);
+  const [createPrefill, setCreatePrefill] = useState<Partial<RecipeFormValues> | null>(null);
 
   const recipeColumns: DataTableColumn<RecipeRow>[] = useMemo(
     () => [
@@ -64,24 +80,175 @@ export function RecipeManagementView() {
   );
 
   const [recipes, setRecipes] = useState<RecipeRow[]>([
-    { id: "RCP-1", name: "Veg Manchuria Dry", category: "Veg Starters" },
-    { id: "RCP-2", name: "Veg Manchuria Gravy", category: "Veg Main Course" },
-    { id: "RCP-3", name: "Garlic Chann Dry", category: "Veg Starters" },
+    {
+      id: "RCP-1",
+      name: "Veg Manchuria Dry",
+      category: "Veg Starters",
+      ingredients: [
+        { id: "a1", name: "Cauliflower", quantity: "200", unit: "g" },
+        { id: "a2", name: "Corn flour", quantity: "40", unit: "g" },
+      ],
+    },
+    {
+      id: "RCP-2",
+      name: "Veg Manchuria Gravy",
+      category: "Veg Main Course",
+      ingredients: [
+        { id: "b1", name: "Cauliflower", quantity: "200", unit: "g" },
+        { id: "b2", name: "Soy sauce", quantity: "15", unit: "ml" },
+      ],
+    },
+    {
+      id: "RCP-3",
+      name: "Garlic Chann Dry",
+      category: "Veg Starters",
+      ingredients: [
+        { id: "c1", name: "Chana", quantity: "180", unit: "g" },
+        { id: "c2", name: "Garlic", quantity: "20", unit: "g" },
+      ],
+    },
   ]);
 
   const categoryCards = [
-    { id: "all", label: "All categories", count: "548 Items" },
-    { id: "indian_whisky", label: "Indian Whisky", count: "67 Items" },
-    { id: "scotch_whisky", label: "Scotch Whisky", count: "56 Items" },
-    { id: "south_indian", label: "South Indian", count: "55 Items" },
-    { id: "non_veg_starters", label: "Non-Veg Starters", count: "54 Items" },
+    { id: "all", label: "All categories", count: `${recipes.length} Items` },
+    { id: "indian_whisky", label: "Indian Whisky", count: "0 Items" },
+    { id: "scotch_whisky", label: "Scotch Whisky", count: "0 Items" },
+    { id: "south_indian", label: "South Indian", count: "0 Items" },
+    {
+      id: "veg_starters",
+      label: "Veg Starters",
+      count: `${recipes.filter((r) => r.category === "Veg Starters").length} Items`,
+    },
   ];
 
-  const filtered = recipes;
+  const filtered = useMemo(() => {
+    return recipes.filter((r) => {
+      if (selectedItem !== "Select Item" && r.name !== selectedItem) return false;
+      if (selectedCategory !== "Select Category" && r.category !== selectedCategory) return false;
+      if (activeCategoryTab === "veg_starters" && r.category !== "Veg Starters") return false;
+      if (
+        activeCategoryTab !== "all" &&
+        activeCategoryTab !== "veg_starters" &&
+        !r.category.toLowerCase().includes(activeCategoryTab.replace(/_/g, " "))
+      ) {
+        // keep other demo tabs empty unless matching
+        if (["indian_whisky", "scotch_whisky", "south_indian"].includes(activeCategoryTab)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [recipes, selectedItem, selectedCategory, activeCategoryTab]);
+
+  const openCreate = () => {
+    setEditingRecipe(null);
+    setCreatePrefill(null);
+    setIsCreateOpen(true);
+  };
+
+  const openEdit = (row: RecipeRow) => {
+    setEditingRecipe(row);
+    setCreatePrefill({
+      name: row.name,
+      category: row.category,
+      menuItem: row.menuItem || row.name,
+      yieldQty: row.yieldQty || "1",
+      yieldUnit: row.yieldUnit || "portion",
+      prepTimeMinutes: row.prepTimeMinutes || "15",
+      notes: row.notes || "",
+      ingredients: row.ingredients,
+    });
+    setIsCreateOpen(true);
+  };
+
+  const handleSaveRecipe = (values: RecipeFormValues) => {
+    if (editingRecipe) {
+      setRecipes((prev) =>
+        prev.map((r) =>
+          r.id === editingRecipe.id
+            ? {
+                ...r,
+                name: values.name,
+                category: values.category,
+                menuItem: values.menuItem,
+                yieldQty: values.yieldQty,
+                yieldUnit: values.yieldUnit,
+                prepTimeMinutes: values.prepTimeMinutes,
+                notes: values.notes,
+                ingredients: values.ingredients,
+              }
+            : r,
+        ),
+      );
+      toast.success(`Recipe "${values.name}" updated`);
+    } else {
+      const exists = recipes.some(
+        (r) => r.name.toLowerCase() === values.name.toLowerCase(),
+      );
+      if (exists) {
+        toast.error(`Recipe "${values.name}" already exists`);
+        return;
+      }
+      const row: RecipeRow = {
+        id: `RCP-${Date.now()}`,
+        name: values.name,
+        category: values.category,
+        menuItem: values.menuItem,
+        yieldQty: values.yieldQty,
+        yieldUnit: values.yieldUnit,
+        prepTimeMinutes: values.prepTimeMinutes,
+        notes: values.notes,
+        ingredients: values.ingredients,
+      };
+      setRecipes((prev) => [row, ...prev]);
+      toast.success(`Recipe "${values.name}" created`);
+    }
+    setIsCreateOpen(false);
+    setEditingRecipe(null);
+    setCreatePrefill(null);
+  };
+
+  const handleAddFromSuggestions = (drafts: RecipeFormValues[]) => {
+    let added = 0;
+    setRecipes((prev) => {
+      const names = new Set(prev.map((r) => r.name.toLowerCase()));
+      const next = [...prev];
+      for (const d of drafts) {
+        if (names.has(d.name.toLowerCase())) continue;
+        names.add(d.name.toLowerCase());
+        next.unshift({
+          id: `RCP-${Date.now()}-${added}`,
+          name: d.name,
+          category: d.category,
+          menuItem: d.menuItem,
+          yieldQty: d.yieldQty,
+          yieldUnit: d.yieldUnit,
+          prepTimeMinutes: d.prepTimeMinutes,
+          notes: d.notes,
+          ingredients: d.ingredients,
+        });
+        added += 1;
+      }
+      return next;
+    });
+    if (added === 0) {
+      toast.info("Selected suggestions are already in your recipe list");
+    } else {
+      toast.success(`Added ${added} recipe${added === 1 ? "" : "s"} from AI suggestions`);
+      setIsExploreOpen(false);
+    }
+  };
+
+  const handleUseSuggestion = (draft: RecipeFormValues) => {
+    setIsExploreOpen(false);
+    setEditingRecipe(null);
+    setCreatePrefill(draft);
+    setIsCreateOpen(true);
+  };
 
   return (
     <div className="space-y-4">
-      {/* 1. AI Suggestion Banner matching Screenshot 2 */}
+      {/* 1. AI Suggestion Banner */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-teal-200 bg-linear-to-r from-blue-50 via-sky-50 to-indigo-50 p-4 shadow-2xs">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white shadow-xs">
@@ -100,21 +267,21 @@ export function RecipeManagementView() {
 
         <button
           type="button"
-          onClick={() => toast.info("Analyzing menu items for automated recipe creation...")}
+          onClick={() => setIsExploreOpen(true)}
           className="rounded-xl border border-teal-300 bg-white px-4 py-2 text-[12.5px] font-bold text-teal-700 shadow-2xs hover:bg-teal-50 transition cursor-pointer"
         >
           Explore Recipes
         </button>
       </div>
 
-      {/* 2. Header Bar matching Screenshot 2 */}
+      {/* 2. Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">Recipe Management</h2>
 
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={() => toast.info("Create Recipe Wizard opened")}
+            onClick={openCreate}
             className="flex items-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2 text-[12.5px] font-semibold text-white shadow-2xs hover:bg-teal-700 transition cursor-pointer"
           >
             <Plus className="h-4 w-4" />
@@ -138,7 +305,6 @@ export function RecipeManagementView() {
             Files <ChevronDown className="h-3 w-3 text-slate-400" />
           </button>
 
-          {/* Auto Consumption Toggle matching Screenshot 2 */}
           <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
             <button
               type="button"
@@ -165,7 +331,7 @@ export function RecipeManagementView() {
         </div>
       </div>
 
-      {/* 3. Filter Bar matching Screenshot 2 */}
+      {/* 3. Filter Bar */}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative min-w-[150px]">
@@ -175,9 +341,11 @@ export function RecipeManagementView() {
               className="w-full appearance-none rounded-lg border border-slate-300 bg-white pl-3 pr-8 py-1.5 text-[12.5px] font-medium text-slate-700 focus:border-teal-500 focus:outline-none cursor-pointer"
             >
               <option value="Select Item">Select Item</option>
-              <option value="Veg Manchuria Dry">Veg Manchuria Dry</option>
-              <option value="Veg Manchuria Gravy">Veg Manchuria Gravy</option>
-              <option value="Garlic Chann Dry">Garlic Chann Dry</option>
+              {recipes.map((r) => (
+                <option key={r.id} value={r.name}>
+                  {r.name}
+                </option>
+              ))}
             </select>
             <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
           </div>
@@ -189,9 +357,11 @@ export function RecipeManagementView() {
               className="w-full appearance-none rounded-lg border border-slate-300 bg-white pl-3 pr-8 py-1.5 text-[12.5px] font-medium text-slate-700 focus:border-teal-500 focus:outline-none cursor-pointer"
             >
               <option value="Select Category">Select Category</option>
-              <option value="Veg Starters">Veg Starters</option>
-              <option value="Veg Main Course">Veg Main Course</option>
-              <option value="Non-Veg Starters">Non-Veg Starters</option>
+              {[...new Set(recipes.map((r) => r.category))].map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
             </select>
             <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
           </div>
@@ -222,6 +392,7 @@ export function RecipeManagementView() {
               onClick={() => {
                 setSelectedItem("Select Item");
                 setSelectedCategory("Select Category");
+                setActiveCategoryTab("all");
                 toast.info("Cleared filters");
               }}
               className="rounded-lg border border-slate-300 bg-white px-4 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
@@ -232,7 +403,7 @@ export function RecipeManagementView() {
         </div>
       </div>
 
-      {/* 4. Horizontal Category Filter Cards matching Screenshot 2 */}
+      {/* 4. Horizontal Category Filter Cards */}
       <div className="flex items-center gap-2.5 overflow-x-auto pb-1 scrollbar-none">
         {categoryCards.map((c) => (
           <button
@@ -258,7 +429,7 @@ export function RecipeManagementView() {
         </button>
       </div>
 
-      {/* 5. Recipes Table matching Screenshot 2 */}
+      {/* 5. Recipes Table */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[13px] border-collapse">
@@ -287,7 +458,13 @@ export function RecipeManagementView() {
                       <div className="inline-flex items-center gap-1 text-slate-400">
                         <button
                           type="button"
-                          onClick={() => toast.info(`Viewing ingredients breakdown for ${item.name}`)}
+                          onClick={() => {
+                            const lines =
+                              item.ingredients
+                                ?.map((i) => `${i.name}: ${i.quantity}${i.unit}`)
+                                .join(" · ") || "No ingredients listed";
+                            toast.info(`${item.name}`, { description: lines });
+                          }}
                           className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
                           title="View Ingredients"
                         >
@@ -295,7 +472,7 @@ export function RecipeManagementView() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => toast.info(`Editing recipe for ${item.name}`)}
+                          onClick={() => openEdit(item)}
                           className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
                           title="Edit Recipe"
                         >
@@ -303,7 +480,12 @@ export function RecipeManagementView() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => toast.info(`Delete recipe for ${item.name}`)}
+                          onClick={() => {
+                            if (confirm(`Delete recipe "${item.name}"?`)) {
+                              setRecipes((prev) => prev.filter((r) => r.id !== item.id));
+                              toast.success(`Deleted "${item.name}"`);
+                            }
+                          }}
                           className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-rose-600 transition cursor-pointer"
                           title="Delete"
                         >
@@ -311,7 +493,19 @@ export function RecipeManagementView() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => toast.success(`Recipe for ${item.name} cloned`)}
+                          onClick={() => {
+                            const clone: RecipeRow = {
+                              ...item,
+                              id: `RCP-${Date.now()}`,
+                              name: `${item.name} (Copy)`,
+                              ingredients: item.ingredients?.map((ing) => ({
+                                ...ing,
+                                id: `${ing.id}-c`,
+                              })),
+                            };
+                            setRecipes((prev) => [clone, ...prev]);
+                            toast.success(`Recipe for ${item.name} cloned`);
+                          }}
                           className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
                           title="Duplicate"
                         >
@@ -326,7 +520,6 @@ export function RecipeManagementView() {
           </table>
         </div>
 
-        {/* Unified DataTableFooter */}
         <DataTableFooter
           currentPage={currentPage}
           totalCount={filtered.length}
@@ -336,6 +529,26 @@ export function RecipeManagementView() {
           itemName="recipes"
         />
       </div>
+
+      <CreateRecipeModal
+        isOpen={isCreateOpen}
+        onClose={() => {
+          setIsCreateOpen(false);
+          setEditingRecipe(null);
+          setCreatePrefill(null);
+        }}
+        onSave={handleSaveRecipe}
+        initial={createPrefill}
+        title={editingRecipe ? `Edit Recipe: ${editingRecipe.name}` : "Create New Recipe"}
+      />
+
+      <ExploreRecipesModal
+        isOpen={isExploreOpen}
+        onClose={() => setIsExploreOpen(false)}
+        existingNames={recipes.map((r) => r.name)}
+        onUseSuggestion={handleUseSuggestion}
+        onAddSelected={handleAddFromSuggestions}
+      />
     </div>
   );
 }
