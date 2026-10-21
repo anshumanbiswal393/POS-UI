@@ -5,7 +5,6 @@ import {
   Clock,
   CreditCard,
   FileSpreadsheet,
-  LayoutGrid,
   Monitor,
   Image,
   Calculator,
@@ -57,12 +56,6 @@ const outletInfoCards: ConfigCard[] = [
     desc: "Configure multiple invoice sequence",
     icon: FileSpreadsheet,
     to: "/pos/management/configuration/outlet/invoice-sequence",
-  },
-  {
-    title: "Floor Plan",
-    desc: "create your own floor plan using tables",
-    icon: LayoutGrid,
-    to: "/pos/management/configuration/floor-plan",
   },
 ];
 

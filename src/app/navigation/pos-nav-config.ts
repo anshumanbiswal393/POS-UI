@@ -197,21 +197,6 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
             to: "/pos/management/configuration/sub-order-type",
           },
           {
-            id: "cfg-delivery-distance",
-            label: "Delivery Distance",
-            to: "/pos/management/configuration/delivery-distance",
-          },
-          {
-            id: "cfg-area-charges",
-            label: "Area/Locality Wise Delivery...",
-            to: "/pos/management/configuration/area-delivery-charges",
-          },
-          {
-            id: "cfg-floor-plan",
-            label: "Floor Plan",
-            to: "/pos/management/configuration/floor-plan",
-          },
-          {
             id: "cfg-email-template",
             label: "Email Template Settings",
             to: "/pos/management/configuration/email-templates",
@@ -237,11 +222,6 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
                 to: "/pos/management/accounting/payments/wallet",
               },
             ],
-          },
-          {
-            id: "acc-recon",
-            label: "Online Order Reconciliation",
-            to: "/pos/management/accounting/online-reconciliation",
           },
           { id: "acc-gst", label: "GST Information", to: "/pos/management/accounting/gst" },
           { id: "acc-bank", label: "Bank Details", to: "/pos/management/accounting/bank-details" },
