@@ -93,8 +93,15 @@ export type OutletConfigState = {
   invoiceSequences: InvoiceSequenceRow[];
   billingDisplay: {
     showItemImages: YesNo;
+    showCategoryImages: YesNo;
+    showItemCode: YesNo;
     showKotNumber: YesNo;
     showTaxBreakup: YesNo;
+    showRunningTableAmount: YesNo;
+    showOutOfStock: YesNo;
+    confirmBeforeSettle: YesNo;
+    menuLayout: "Grid" | "List";
+    itemColumns: "3" | "4" | "5";
     defaultOrderType: string;
     density: "Comfortable" | "Compact";
     themeAccent: "Teal" | "Slate";
@@ -105,29 +112,47 @@ export type OutletConfigState = {
     widthMm: string;
     printOnBill: YesNo;
     printOnKot: YesNo;
+    printOutletName: YesNo;
+    headerText: string;
+    footerText: string;
   };
   calculations: {
     taxInclusive: YesNo;
     applyServiceCharge: YesNo;
     serviceChargePct: string;
+    serviceChargeOn: "All orders" | "Dine In only";
+    gstOnServiceCharge: YesNo;
     applyPackingCharge: YesNo;
     packingCharge: string;
+    gstOnPacking: YesNo;
+    applyDeliveryCharge: YesNo;
+    deliveryCharge: string;
     discountBeforeTax: YesNo;
     autoRoundOff: YesNo;
+    roundOffMethod: "Nearest" | "Round off up" | "Round off down";
   };
   connectedServices: {
     pmsRoomService: YesNo;
     inventoryConsumption: YesNo;
     onlineOrdering: YesNo;
     aggregatorSync: YesNo;
+    whatsappBill: YesNo;
+    smsBill: YesNo;
+    paymentGateway: YesNo;
   };
   print: {
     billCopies: string;
     kotCopies: string;
     paperSize: "80mm" | "58mm" | "A4";
     autoPrintOnSettle: YesNo;
+    autoPrintKot: YesNo;
     printTokenNumber: YesNo;
     printCustomerCopy: YesNo;
+    printGstin: YesNo;
+    printFssai: YesNo;
+    printTableNumber: YesNo;
+    printCashierName: YesNo;
+    cutAfterPrint: YesNo;
   };
   customer: {
     mandatoryMobile: YesNo;
@@ -135,6 +160,11 @@ export type OutletConfigState = {
     allowGstOnBill: YesNo;
     enableLoyalty: YesNo;
     allowWalkInWithoutCustomer: YesNo;
+    captureAddress: YesNo;
+    captureBirthday: YesNo;
+    searchByMobile: YesNo;
+    autoCreateOnBill: YesNo;
+    showLastOrders: YesNo;
   };
 };
 
@@ -229,8 +259,15 @@ export const DEFAULT_OUTLET_CONFIG: OutletConfigState = {
   ],
   billingDisplay: {
     showItemImages: "Yes",
+    showCategoryImages: "Yes",
+    showItemCode: "No",
     showKotNumber: "Yes",
     showTaxBreakup: "Yes",
+    showRunningTableAmount: "Yes",
+    showOutOfStock: "No",
+    confirmBeforeSettle: "Yes",
+    menuLayout: "Grid",
+    itemColumns: "4",
     defaultOrderType: "Dine In",
     density: "Comfortable",
     themeAccent: "Teal",
@@ -241,29 +278,47 @@ export const DEFAULT_OUTLET_CONFIG: OutletConfigState = {
     widthMm: "42",
     printOnBill: "Yes",
     printOnKot: "No",
+    printOutletName: "Yes",
+    headerText: "Thank you for dining with us",
+    footerText: "Visit again · GST invoice",
   },
   calculations: {
     taxInclusive: "No",
     applyServiceCharge: "No",
     serviceChargePct: "5",
+    serviceChargeOn: "Dine In only",
+    gstOnServiceCharge: "Yes",
     applyPackingCharge: "No",
     packingCharge: "20",
+    gstOnPacking: "Yes",
+    applyDeliveryCharge: "No",
+    deliveryCharge: "40",
     discountBeforeTax: "Yes",
     autoRoundOff: "Yes",
+    roundOffMethod: "Nearest",
   },
   connectedServices: {
     pmsRoomService: "Yes",
     inventoryConsumption: "Yes",
     onlineOrdering: "No",
     aggregatorSync: "No",
+    whatsappBill: "No",
+    smsBill: "No",
+    paymentGateway: "No",
   },
   print: {
     billCopies: "1",
     kotCopies: "1",
     paperSize: "80mm",
     autoPrintOnSettle: "Yes",
+    autoPrintKot: "Yes",
     printTokenNumber: "Yes",
     printCustomerCopy: "No",
+    printGstin: "Yes",
+    printFssai: "Yes",
+    printTableNumber: "Yes",
+    printCashierName: "Yes",
+    cutAfterPrint: "Yes",
   },
   customer: {
     mandatoryMobile: "No",
@@ -271,6 +326,11 @@ export const DEFAULT_OUTLET_CONFIG: OutletConfigState = {
     allowGstOnBill: "Yes",
     enableLoyalty: "No",
     allowWalkInWithoutCustomer: "Yes",
+    captureAddress: "No",
+    captureBirthday: "No",
+    searchByMobile: "Yes",
+    autoCreateOnBill: "Yes",
+    showLastOrders: "Yes",
   },
 };
 

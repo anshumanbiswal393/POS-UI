@@ -1,7 +1,8 @@
 import { useState } from "react";
 import {
   ConfigPageShell,
-  FieldLabel,
+  OptionRadios,
+  SettingRow,
   TextInput,
   YesNoRadios,
 } from "@/components/shared/pos/management/outlet-config/ConfigPageShell";
@@ -14,57 +15,90 @@ export function PrintConfigView() {
   return (
     <ConfigPageShell
       title="Print"
-      subtitle="Configure print settings for the bill and KOT."
+      subtitle="Configure the print settings of the Bill and KOT."
       onSave={() => persist({ ...config, print: form }, "Print settings saved")}
     >
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div className="space-y-1.5">
-          <FieldLabel>Bill copies</FieldLabel>
+      <SettingRow label="Number of bill copies">
+        <div className="max-w-xs">
           <TextInput value={form.billCopies} onChange={(v) => setForm((p) => ({ ...p, billCopies: v }))} />
         </div>
-        <div className="space-y-1.5">
-          <FieldLabel>KOT copies</FieldLabel>
+      </SettingRow>
+      <SettingRow label="Number of KOT copies">
+        <div className="max-w-xs">
           <TextInput value={form.kotCopies} onChange={(v) => setForm((p) => ({ ...p, kotCopies: v }))} />
         </div>
-        <div className="space-y-1.5">
-          <FieldLabel>Paper size</FieldLabel>
-          <select
-            value={form.paperSize}
-            onChange={(e) =>
-              setForm((p) => ({ ...p, paperSize: e.target.value as typeof form.paperSize }))
-            }
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[13px]"
-          >
-            <option value="80mm">80mm thermal</option>
-            <option value="58mm">58mm thermal</option>
-            <option value="A4">A4</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <FieldLabel>Auto print on settle?</FieldLabel>
-          <YesNoRadios
-            name="autoPrintOnSettle"
-            value={form.autoPrintOnSettle}
-            onChange={(v) => setForm((p) => ({ ...p, autoPrintOnSettle: v }))}
-          />
-        </div>
-        <div className="space-y-2">
-          <FieldLabel>Print token number?</FieldLabel>
-          <YesNoRadios
-            name="printTokenNumber"
-            value={form.printTokenNumber}
-            onChange={(v) => setForm((p) => ({ ...p, printTokenNumber: v }))}
-          />
-        </div>
-        <div className="space-y-2">
-          <FieldLabel>Print extra customer copy?</FieldLabel>
-          <YesNoRadios
-            name="printCustomerCopy"
-            value={form.printCustomerCopy}
-            onChange={(v) => setForm((p) => ({ ...p, printCustomerCopy: v }))}
-          />
-        </div>
-      </div>
+      </SettingRow>
+      <SettingRow label="Paper size">
+        <OptionRadios
+          name="paperSize"
+          value={form.paperSize}
+          options={["80mm", "58mm", "A4"]}
+          onChange={(v) => setForm((p) => ({ ...p, paperSize: v as typeof form.paperSize }))}
+        />
+      </SettingRow>
+      <SettingRow label="Auto print bill on settle?">
+        <YesNoRadios
+          name="autoPrintOnSettle"
+          value={form.autoPrintOnSettle}
+          onChange={(v) => setForm((p) => ({ ...p, autoPrintOnSettle: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Auto print KOT when items are sent to kitchen?">
+        <YesNoRadios
+          name="autoPrintKot"
+          value={form.autoPrintKot}
+          onChange={(v) => setForm((p) => ({ ...p, autoPrintKot: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Print token number?">
+        <YesNoRadios
+          name="printTokenNumber"
+          value={form.printTokenNumber}
+          onChange={(v) => setForm((p) => ({ ...p, printTokenNumber: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Print extra customer copy?">
+        <YesNoRadios
+          name="printCustomerCopy"
+          value={form.printCustomerCopy}
+          onChange={(v) => setForm((p) => ({ ...p, printCustomerCopy: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Print GSTIN on the bill?">
+        <YesNoRadios
+          name="printGstin"
+          value={form.printGstin}
+          onChange={(v) => setForm((p) => ({ ...p, printGstin: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Print FSSAI license on the bill?">
+        <YesNoRadios
+          name="printFssai"
+          value={form.printFssai}
+          onChange={(v) => setForm((p) => ({ ...p, printFssai: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Print table number?">
+        <YesNoRadios
+          name="printTableNumber"
+          value={form.printTableNumber}
+          onChange={(v) => setForm((p) => ({ ...p, printTableNumber: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Print cashier / biller name?">
+        <YesNoRadios
+          name="printCashierName"
+          value={form.printCashierName}
+          onChange={(v) => setForm((p) => ({ ...p, printCashierName: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Cut paper after print?">
+        <YesNoRadios
+          name="cutAfterPrint"
+          value={form.cutAfterPrint}
+          onChange={(v) => setForm((p) => ({ ...p, cutAfterPrint: v }))}
+        />
+      </SettingRow>
     </ConfigPageShell>
   );
 }

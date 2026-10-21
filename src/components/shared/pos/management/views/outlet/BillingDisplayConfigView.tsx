@@ -1,7 +1,8 @@
 import { useState } from "react";
 import {
   ConfigPageShell,
-  FieldLabel,
+  OptionRadios,
+  SettingRow,
   YesNoRadios,
 } from "@/components/shared/pos/management/outlet-config/ConfigPageShell";
 import { useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
@@ -13,84 +14,112 @@ export function BillingDisplayConfigView() {
   return (
     <ConfigPageShell
       title="Display"
-      subtitle="Configure the billing screen display, look and values."
+      subtitle="Configure the billing screen display, look & values."
       onSave={() => persist({ ...config, billingDisplay: form }, "Billing display saved")}
     >
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <div className="space-y-2">
-            <FieldLabel>Show item images on billing?</FieldLabel>
-            <YesNoRadios
-              name="showItemImages"
-              value={form.showItemImages}
-              onChange={(v) => setForm((p) => ({ ...p, showItemImages: v }))}
-            />
-          </div>
-          <div className="space-y-2">
-            <FieldLabel>Show KOT number on billing?</FieldLabel>
-            <YesNoRadios
-              name="showKotNumber"
-              value={form.showKotNumber}
-              onChange={(v) => setForm((p) => ({ ...p, showKotNumber: v }))}
-            />
-          </div>
-          <div className="space-y-2">
-            <FieldLabel>Show tax breakup on the cart?</FieldLabel>
-            <YesNoRadios
-              name="showTaxBreakup"
-              value={form.showTaxBreakup}
-              onChange={(v) => setForm((p) => ({ ...p, showTaxBreakup: v }))}
-            />
-          </div>
-          <div className="space-y-2">
-            <FieldLabel>Default order type</FieldLabel>
-            <select
-              value={form.defaultOrderType}
-              onChange={(e) => setForm((p) => ({ ...p, defaultOrderType: e.target.value }))}
-              className="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-[13px]"
-            >
-              <option>Dine In</option>
-              <option>Takeaway</option>
-              <option>Delivery</option>
-              <option>Room Service</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <FieldLabel>Screen density</FieldLabel>
-            <div className="flex gap-4">
-              {(["Comfortable", "Compact"] as const).map((opt) => (
-                <label key={opt} className="flex cursor-pointer items-center gap-2 text-[13px]">
-                  <input
-                    type="radio"
-                    name="density"
-                    checked={form.density === opt}
-                    onChange={() => setForm((p) => ({ ...p, density: opt }))}
-                    className="h-4 w-4 text-teal-600"
-                  />
-                  {opt}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <FieldLabel>Accent</FieldLabel>
-            <div className="flex gap-4">
-              {(["Teal", "Slate"] as const).map((opt) => (
-                <label key={opt} className="flex cursor-pointer items-center gap-2 text-[13px]">
-                  <input
-                    type="radio"
-                    name="themeAccent"
-                    checked={form.themeAccent === opt}
-                    onChange={() => setForm((p) => ({ ...p, themeAccent: opt }))}
-                    className="h-4 w-4 text-teal-600"
-                  />
-                  {opt}
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      <SettingRow label="Menu layout on the billing screen">
+        <OptionRadios
+          name="menuLayout"
+          value={form.menuLayout}
+          options={["Grid", "List"]}
+          onChange={(v) => setForm((p) => ({ ...p, menuLayout: v as typeof form.menuLayout }))}
+        />
+      </SettingRow>
+      <SettingRow label="How many item columns should the grid show?">
+        <OptionRadios
+          name="itemColumns"
+          value={form.itemColumns}
+          options={["3", "4", "5"]}
+          onChange={(v) => setForm((p) => ({ ...p, itemColumns: v as typeof form.itemColumns }))}
+        />
+      </SettingRow>
+      <SettingRow label="Show item images on billing?">
+        <YesNoRadios
+          name="showItemImages"
+          value={form.showItemImages}
+          onChange={(v) => setForm((p) => ({ ...p, showItemImages: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Show category images?">
+        <YesNoRadios
+          name="showCategoryImages"
+          value={form.showCategoryImages}
+          onChange={(v) => setForm((p) => ({ ...p, showCategoryImages: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Show item short code on the menu tile?">
+        <YesNoRadios
+          name="showItemCode"
+          value={form.showItemCode}
+          onChange={(v) => setForm((p) => ({ ...p, showItemCode: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Show KOT number on the cart?">
+        <YesNoRadios
+          name="showKotNumber"
+          value={form.showKotNumber}
+          onChange={(v) => setForm((p) => ({ ...p, showKotNumber: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Show tax breakup on the cart?">
+        <YesNoRadios
+          name="showTaxBreakup"
+          value={form.showTaxBreakup}
+          onChange={(v) => setForm((p) => ({ ...p, showTaxBreakup: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Show running table amount on occupied tables?">
+        <YesNoRadios
+          name="showRunningTableAmount"
+          value={form.showRunningTableAmount}
+          onChange={(v) => setForm((p) => ({ ...p, showRunningTableAmount: v }))}
+        />
+      </SettingRow>
+      <SettingRow
+        label="Show out-of-stock items on billing?"
+        tip="If No, items marked out of stock stay hidden from the biller."
+      >
+        <YesNoRadios
+          name="showOutOfStock"
+          value={form.showOutOfStock}
+          onChange={(v) => setForm((p) => ({ ...p, showOutOfStock: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Ask for confirmation before settling a bill?">
+        <YesNoRadios
+          name="confirmBeforeSettle"
+          value={form.confirmBeforeSettle}
+          onChange={(v) => setForm((p) => ({ ...p, confirmBeforeSettle: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Default order type when billing opens">
+        <select
+          value={form.defaultOrderType}
+          onChange={(e) => setForm((p) => ({ ...p, defaultOrderType: e.target.value }))}
+          className="w-full max-w-xs cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-[13px] focus:border-teal-500 focus:outline-none"
+        >
+          <option>Dine In</option>
+          <option>Takeaway</option>
+          <option>Delivery</option>
+          <option>Room Service</option>
+        </select>
+      </SettingRow>
+      <SettingRow label="Screen density">
+        <OptionRadios
+          name="density"
+          value={form.density}
+          options={["Comfortable", "Compact"]}
+          onChange={(v) => setForm((p) => ({ ...p, density: v as typeof form.density }))}
+        />
+      </SettingRow>
+      <SettingRow label="Accent colour">
+        <OptionRadios
+          name="themeAccent"
+          value={form.themeAccent}
+          options={["Teal", "Slate"]}
+          onChange={(v) => setForm((p) => ({ ...p, themeAccent: v as typeof form.themeAccent }))}
+        />
+      </SettingRow>
     </ConfigPageShell>
   );
 }

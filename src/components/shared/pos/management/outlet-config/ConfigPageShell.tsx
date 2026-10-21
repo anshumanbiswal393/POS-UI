@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Lightbulb } from "lucide-react";
 
 export function ConfigPageShell({
   title,
@@ -37,7 +37,44 @@ export function ConfigPageShell({
           {saveLabel}
         </button>
       </div>
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">{children}</div>
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
+        <div className="p-6">{children}</div>
+        <div className="flex justify-end border-t border-slate-100 bg-slate-50/50 p-4">
+          <button
+            type="button"
+            onClick={onSave}
+            className="cursor-pointer rounded-lg bg-teal-600 px-8 py-2 text-[13px] font-bold text-white shadow-md transition hover:bg-teal-700"
+          >
+            {saveLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function SettingRow({
+  label,
+  hint,
+  tip,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  tip?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-2 border-b border-slate-100 py-4 last:border-b-0 last:pb-0 first:pt-0">
+      <div className="text-[13px] font-semibold text-slate-900">{label}</div>
+      {children}
+      {hint ? <p className="text-[12px] text-slate-500">{hint}</p> : null}
+      {tip ? (
+        <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-[12px] text-amber-900">
+          <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <span>{tip}</span>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -83,18 +120,20 @@ export function TextInput({
   );
 }
 
-export function YesNoRadios({
+export function OptionRadios({
   name,
   value,
+  options,
   onChange,
 }: {
   name: string;
-  value: "Yes" | "No";
-  onChange: (v: "Yes" | "No") => void;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-4">
-      {(["Yes", "No"] as const).map((opt) => (
+    <div className="flex flex-wrap items-center gap-4">
+      {options.map((opt) => (
         <label key={opt} className="flex cursor-pointer items-center gap-2 text-[13px] text-slate-700">
           <input
             type="radio"
@@ -108,4 +147,16 @@ export function YesNoRadios({
       ))}
     </div>
   );
+}
+
+export function YesNoRadios({
+  name,
+  value,
+  onChange,
+}: {
+  name: string;
+  value: "Yes" | "No";
+  onChange: (v: "Yes" | "No") => void;
+}) {
+  return <OptionRadios name={name} value={value} options={["Yes", "No"]} onChange={(v) => onChange(v as "Yes" | "No")} />;
 }
