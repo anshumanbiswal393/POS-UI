@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { LayoutGrid, Plus, Move, Sparkles } from "lucide-react";
+import { LayoutGrid, Plus, Move, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "@tanstack/react-router";
 
 export function FloorPlanManagementView() {
   const [hasFloorPlan, setHasFloorPlan] = useState(false);
@@ -9,7 +10,16 @@ export function FloorPlanManagementView() {
     <div className="space-y-4">
       {/* 1. Header Bar matching Screenshot 4 */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">Floor Plan</h2>
+        <div className="space-y-1">
+          <Link
+            to="/pos/management/configuration/outlet"
+            className="inline-flex items-center gap-1 text-[12px] font-semibold text-teal-700 hover:underline"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Outlet Configuration
+          </Link>
+          <h2 className="text-[18px] font-bold tracking-tight text-slate-900">Floor Plan</h2>
+        </div>
 
         <button
           type="button"

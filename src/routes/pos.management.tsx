@@ -12,7 +12,7 @@ function ManagementLayoutRoute() {
     pathname === "/pos/management" ||
     pathname === "/pos/management/" ||
     pathname === "/pos/management/configuration" ||
-    pathname === "/pos/management/configuration/outlet";
+    pathname === "/pos/management/configuration/";
 
   return isRoot ? <OutletConfigurationHubView /> : <Outlet />;
 }
