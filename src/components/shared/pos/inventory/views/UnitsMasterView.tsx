@@ -1,5 +1,10 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, Scale, CheckCircle2, Edit2, Trash2, X } from "lucide-react";
+import { Plus, Search, Scale, CheckCircle2, Edit2, Trash2 } from "lucide-react";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 import {
   DataTableHeader,
   type DataTableColumn,
@@ -202,75 +207,55 @@ export function UnitsMasterView() {
         </div>
       </div>
 
-      {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-[16px] font-bold text-slate-900">Add Unit of Measurement</h3>
-              <button
-                type="button"
-                onClick={() => setIsCreateOpen(false)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreate} className="space-y-3.5">
-              <div className="space-y-1">
-                <label className="text-[12px] font-semibold text-slate-700">Unit Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Ounce"
-                  value={newUnit.name}
-                  onChange={(e) => setNewUnit({ ...newUnit, name: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] focus:outline-none focus:border-teal-500"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[12px] font-semibold text-slate-700">Symbol *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. oz"
-                  value={newUnit.symbol}
-                  onChange={(e) => setNewUnit({ ...newUnit, symbol: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] focus:outline-none focus:border-teal-500"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[12px] font-semibold text-slate-700">Conversion Ratio</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 1 oz = 28.35 g"
-                  value={newUnit.ratio}
-                  onChange={(e) => setNewUnit({ ...newUnit, ratio: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] focus:outline-none focus:border-teal-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateOpen(false)}
-                  className="rounded-lg border border-slate-300 px-4 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-lg bg-teal-600 px-4 py-1.5 text-[12.5px] font-semibold text-white shadow-2xs hover:bg-teal-700 transition cursor-pointer"
-                >
-                  Save Unit
-                </button>
-              </div>
-            </form>
-          </div>
+      <PosCreatePanel
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        title="Add Unit of Measurement"
+        description="Standardize purchase and consumption conversion ratios."
+        icon={Scale}
+        onSubmit={handleCreate}
+        footer={
+          <>
+            <PosCreateCancelButton onClick={() => setIsCreateOpen(false)} />
+            <PosCreateSubmitButton>Save Unit</PosCreateSubmitButton>
+          </>
+        }
+      >
+        <div className="space-y-1">
+          <label className="text-[12px] font-semibold text-slate-700">Unit Name *</label>
+          <input
+            type="text"
+            required
+            placeholder="e.g. Ounce"
+            value={newUnit.name}
+            onChange={(e) => setNewUnit({ ...newUnit, name: e.target.value })}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[12.5px] focus:outline-none focus:border-teal-500"
+          />
         </div>
-      )}
+
+        <div className="space-y-1">
+          <label className="text-[12px] font-semibold text-slate-700">Symbol *</label>
+          <input
+            type="text"
+            required
+            placeholder="e.g. oz"
+            value={newUnit.symbol}
+            onChange={(e) => setNewUnit({ ...newUnit, symbol: e.target.value })}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[12.5px] focus:outline-none focus:border-teal-500"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-[12px] font-semibold text-slate-700">Conversion Ratio</label>
+          <input
+            type="text"
+            placeholder="e.g. 1 oz = 28.35 g"
+            value={newUnit.ratio}
+            onChange={(e) => setNewUnit({ ...newUnit, ratio: e.target.value })}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[12.5px] focus:outline-none focus:border-teal-500"
+          />
+        </div>
+      </PosCreatePanel>
     </div>
   );
 }

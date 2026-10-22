@@ -4,12 +4,16 @@ import {
   ArrowRight,
   Star,
   Check,
-  X,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PosDataGrid } from "@/components/ui/data-grid";
 import type { DataGridColumn } from "@/components/ui/data-grid/types";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 interface RawMaterialRow {
   id: string;
@@ -252,68 +256,47 @@ export function RawMaterialsManagementView() {
         pageSize={10}
       />
 
-      {/* Create Modal */}
-      {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-2xl border border-border space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-base font-bold text-foreground">Add New Raw Material</h3>
-              <button
-                type="button"
-                onClick={() => setIsCreateOpen(false)}
-                className="rounded-lg p-1.5 text-muted-foreground hover:bg-surface-2 hover:text-foreground transition cursor-pointer"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateSubmit} className="space-y-3.5">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">Material Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Sona Masoori Rice 25kg"
-                  value={newItemName}
-                  onChange={(e) => setNewItemName(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">Category</label>
-                <select
-                  value={newItemCategory}
-                  onChange={(e) => setNewItemCategory(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-                >
-                  <option value="Appetizers">Appetizers</option>
-                  <option value="Main Course">Main Course</option>
-                  <option value="Dairy">Dairy</option>
-                  <option value="Groceries">Groceries</option>
-                  <option value="Beverages">Beverages</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-2.5 pt-3 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateOpen(false)}
-                  className="rounded-lg border border-border bg-surface px-4 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-surface-2 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-lg bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground shadow-xs hover:opacity-90 transition cursor-pointer"
-                >
-                  Save Material
-                </button>
-              </div>
-            </form>
-          </div>
+      <PosCreatePanel
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        title="Add New Raw Material"
+        description="Add an ingredient to the kitchen catalog."
+        icon={Plus}
+        onSubmit={handleCreateSubmit}
+        footer={
+          <>
+            <PosCreateCancelButton onClick={() => setIsCreateOpen(false)} />
+            <PosCreateSubmitButton>Save Material</PosCreateSubmitButton>
+          </>
+        }
+      >
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-foreground">Material Name *</label>
+          <input
+            type="text"
+            required
+            placeholder="e.g. Sona Masoori Rice 25kg"
+            value={newItemName}
+            onChange={(e) => setNewItemName(e.target.value)}
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          />
         </div>
-      )}
+
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-foreground">Category</label>
+          <select
+            value={newItemCategory}
+            onChange={(e) => setNewItemCategory(e.target.value)}
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+          >
+            <option value="Appetizers">Appetizers</option>
+            <option value="Main Course">Main Course</option>
+            <option value="Dairy">Dairy</option>
+            <option value="Groceries">Groceries</option>
+            <option value="Beverages">Beverages</option>
+          </select>
+        </div>
+      </PosCreatePanel>
     </div>
   );
 }

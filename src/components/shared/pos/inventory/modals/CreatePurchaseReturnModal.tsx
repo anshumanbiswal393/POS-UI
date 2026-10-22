@@ -1,7 +1,12 @@
 import { useState } from "react";
-import { X, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { useCreatePurchaseReturn, useInventoryVendors } from "@/hooks/queries/usePosInventory";
 import { toast } from "sonner";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 export function CreatePurchaseReturnModal({
   isOpen,
@@ -21,8 +26,6 @@ export function CreatePurchaseReturnModal({
   const [itemCount, setItemCount] = useState("2");
   const [returnAmount, setReturnAmount] = useState("850");
   const [notes, setNotes] = useState("");
-
-  if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,25 +59,20 @@ export function CreatePurchaseReturnModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50">
-          <div className="flex items-center gap-2">
-            <RotateCcw className="h-5 w-5 text-teal-600" />
-            <h3 className="text-[16px] font-bold text-slate-900">
-              Create Purchase Return (Debit Note)
-            </h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+    <PosCreatePanel
+      open={isOpen}
+      onClose={onClose}
+      title="Create Purchase Return"
+      description="Issue a debit note for damaged, excess, or wrong stock."
+      icon={RotateCcw}
+      onSubmit={handleSubmit}
+      footer={
+        <>
+          <PosCreateCancelButton onClick={onClose} />
+          <PosCreateSubmitButton>Issue Debit Note</PosCreateSubmitButton>
+        </>
+      }
+    >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-[12.5px] font-medium text-slate-700 mb-1">
@@ -161,23 +159,6 @@ export function CreatePurchaseReturnModal({
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="rounded-lg bg-teal-600 px-5 py-2 text-[13px] font-semibold text-white hover:bg-teal-700 shadow-sm cursor-pointer"
-            >
-              Issue Debit Note
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    </PosCreatePanel>
   );
 }

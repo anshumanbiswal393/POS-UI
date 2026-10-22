@@ -6,7 +6,6 @@ import {
   Edit2,
   Copy,
   QrCode,
-  X,
 } from "lucide-react";
 import {
   useScheduleTables,
@@ -16,6 +15,11 @@ import {
 import type { ScheduleTableItem } from "@/types/posMenu";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { toast } from "sonner";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 export function ScheduleTablesTab() {
   const { data: tables, isLoading, isFetching } = useScheduleTables();
@@ -343,82 +347,61 @@ export function ScheduleTablesTab() {
         emptyMessage="No tables found matching filters."
       />
 
-      {/* Add Table Modal */}
-      {isAddTableOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-300 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50">
-              <h3 className="text-[16px] font-bold text-slate-900">Add New Table</h3>
-              <button
-                type="button"
-                onClick={() => setIsAddTableOpen(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddTableSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
-                  Table Number <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. T-12, A-04"
-                  value={newTableNo}
-                  onChange={(e) => setNewTableNo(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Area</label>
-                <select
-                  value={newAreaName}
-                  onChange={(e) => setNewAreaName(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500 cursor-pointer"
-                >
-                  <option value="Garden">Garden</option>
-                  <option value="AC Main Hall">AC Main Hall</option>
-                  <option value="Rooftop Lounge">Rooftop Lounge</option>
-                  <option value="Family Section">Family Section</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
-                  Capacity (No. of Persons)
-                </label>
-                <input
-                  type="number"
-                  placeholder="4"
-                  value={newCapacity}
-                  onChange={(e) => setNewCapacity(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setIsAddTableOpen(false)}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-lg bg-teal-600 px-5 py-2 text-[13px] font-semibold text-white hover:bg-teal-700 shadow-xs cursor-pointer"
-                >
-                  Save Table
-                </button>
-              </div>
-            </form>
-          </div>
+      <PosCreatePanel
+        open={isAddTableOpen}
+        onClose={() => setIsAddTableOpen(false)}
+        title="Add New Table"
+        description="Create a dining table for this outlet."
+        icon={Plus}
+        onSubmit={handleAddTableSubmit}
+        footer={
+          <>
+            <PosCreateCancelButton onClick={() => setIsAddTableOpen(false)} />
+            <PosCreateSubmitButton>Save Table</PosCreateSubmitButton>
+          </>
+        }
+      >
+        <div>
+          <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
+            Table Number <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            placeholder="e.g. T-12, A-04"
+            value={newTableNo}
+            onChange={(e) => setNewTableNo(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500"
+            autoFocus
+          />
         </div>
-      )}
+
+        <div>
+          <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Area</label>
+          <select
+            value={newAreaName}
+            onChange={(e) => setNewAreaName(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500 cursor-pointer"
+          >
+            <option value="Garden">Garden</option>
+            <option value="AC Main Hall">AC Main Hall</option>
+            <option value="Rooftop Lounge">Rooftop Lounge</option>
+            <option value="Family Section">Family Section</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
+            Capacity (No. of Persons)
+          </label>
+          <input
+            type="number"
+            placeholder="4"
+            value={newCapacity}
+            onChange={(e) => setNewCapacity(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500"
+          />
+        </div>
+      </PosCreatePanel>
     </div>
   );
 }

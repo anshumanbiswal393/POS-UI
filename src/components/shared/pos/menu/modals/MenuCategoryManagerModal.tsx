@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, Plus, Edit2, Trash2, Layers, Check, Ban } from "lucide-react";
+import { Plus, Edit2, Trash2, Layers, Check, Ban } from "lucide-react";
 import { toast } from "sonner";
 import type { MenuCategory } from "@/types/posMenu";
 import {
@@ -8,6 +8,11 @@ import {
   useUpdateMenuCategory,
   useDeleteMenuCategory,
 } from "@/hooks/queries/usePosMenu";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 type Mode = "menu" | "view" | "add";
 
@@ -43,8 +48,6 @@ export function MenuCategoryManagerModal({
       void refetch();
     }
   }, [isOpen, initialMode, refetch]);
-
-  if (!isOpen) return null;
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,34 +125,31 @@ export function MenuCategoryManagerModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-3 sm:p-5">
-      <div className="w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 bg-slate-50">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
-              <Layers className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-[16px] font-bold text-slate-900">
-                {mode === "add"
-                  ? "Add New Category"
-                  : mode === "view"
-                    ? "View Categories"
-                    : "Menu Categories"}
-              </h2>
-              <p className="text-[12px] text-slate-500">{outletName}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-5">
+    <PosCreatePanel
+      open={isOpen}
+      onClose={onClose}
+      title={
+        mode === "add"
+          ? "Add New Category"
+          : mode === "view"
+            ? "View Categories"
+            : "Menu Categories"
+      }
+      description={outletName}
+      icon={Layers}
+      onSubmit={mode === "add" ? handleAdd : undefined}
+      footer={
+        mode === "add" ? (
+          <>
+            <PosCreateCancelButton onClick={() => setMode("menu")}>Back</PosCreateCancelButton>
+            <PosCreateSubmitButton disabled={addMutation.isPending}>
+              <Plus className="h-4 w-4" />
+              {addMutation.isPending ? "Saving…" : "Save Category"}
+            </PosCreateSubmitButton>
+          </>
+        ) : undefined
+      }
+    >
           {mode === "menu" && (
             <div className="space-y-3">
               <p className="text-[13px] text-slate-600">
@@ -186,38 +186,19 @@ export function MenuCategoryManagerModal({
           )}
 
           {mode === "add" && (
-            <form onSubmit={handleAdd} className="space-y-4">
-              <div>
-                <label className="block text-[12.5px] font-semibold text-slate-700 mb-1">
-                  Category Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  autoFocus
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g. Starters, Main Course, Desserts"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-hidden"
-                />
-              </div>
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setMode("menu")}
-                  className="rounded-xl border border-slate-300 px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
-                >
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  disabled={addMutation.isPending}
-                  className="flex items-center gap-1.5 rounded-xl bg-teal-700 hover:bg-teal-800 px-4 py-2 text-[13px] font-bold text-white cursor-pointer disabled:opacity-60"
-                >
-                  <Plus className="h-4 w-4" />
-                  {addMutation.isPending ? "Saving…" : "Save Category"}
-                </button>
-              </div>
-            </form>
+            <div>
+              <label className="block text-[12.5px] font-semibold text-slate-700 mb-1">
+                Category Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                autoFocus
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="e.g. Starters, Main Course, Desserts"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-hidden"
+              />
+            </div>
           )}
 
           {mode === "view" && (
@@ -336,8 +317,6 @@ export function MenuCategoryManagerModal({
               </button>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+    </PosCreatePanel>
   );
 }

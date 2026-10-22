@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
-import { X, Store, Sparkles, AlertCircle } from "lucide-react";
+import { Store } from "lucide-react";
 import type { PosOutlet } from "@/types/posMenu";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { toast } from "sonner";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 const OUTLET_TYPES = [
   "Virtual Outlet",
@@ -69,8 +74,6 @@ export function OutletFormModal({
     }
   }, [isOpen, outlet]);
 
-  if (!isOpen) return null;
-
   const toggleOrderType = (type: string) => {
     setOrderTypes((prev) =>
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
@@ -132,42 +135,36 @@ export function OutletFormModal({
   const isEditingPrimary = outlet?.type === "Primary Outlet";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto">
-      <div className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
-              <Store className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-[17px] font-bold text-slate-900">
-                {outlet
-                  ? `Edit ${isEditingPrimary ? "Primary Outlet" : "Virtual Outlet"}: ${outlet.name}`
-                  : "Create New Virtual Outlet"}
-              </h2>
-              <p className="text-[12px] text-slate-500">
-                {isEditingPrimary
-                  ? "Update master restaurant profile and core contact details"
-                  : "Create independent menu brand, kitchen bay, and online aggregator presence"}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition cursor-pointer"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <form
-          id="pos-outlet-form"
-          onSubmit={(e) => void handleSubmit(e)}
-          className="flex-1 overflow-y-auto p-6 space-y-4"
-        >
+    <PosCreatePanel
+      open={isOpen}
+      onClose={onClose}
+      title={
+        outlet
+          ? `Edit ${isEditingPrimary ? "Primary Outlet" : "Virtual Outlet"}: ${outlet.name}`
+          : "Create New Virtual Outlet"
+      }
+      description={
+        isEditingPrimary
+          ? "Update master restaurant profile and core contact details"
+          : "Create independent menu brand, kitchen bay, and online aggregator presence"
+      }
+      icon={Store}
+      size="lg"
+      onSubmit={(e) => void handleSubmit(e)}
+      footer={
+        <>
+          <span className="mr-auto text-[11.5px] text-slate-500">
+            {outlet
+              ? "Updates persist in local state."
+              : "New outlet will appear in top header selector."}
+          </span>
+          <PosCreateCancelButton onClick={onClose} />
+          <PosCreateSubmitButton disabled={saving}>
+            {saving ? "Saving…" : outlet ? "Save Changes" : "Create Virtual Outlet"}
+          </PosCreateSubmitButton>
+        </>
+      }
+    >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Outlet Name */}
             <div className="sm:col-span-2">
@@ -324,35 +321,6 @@ export function OutletFormModal({
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[12.5px] text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-hidden resize-none"
             />
           </div>
-        </form>
-
-        {/* Footer */}
-        <div className="border-t border-slate-200 px-6 py-3.5 bg-slate-50 flex items-center justify-between">
-          <span className="text-[11.5px] text-slate-500">
-            {outlet
-              ? "Updates persist in local state."
-              : "New outlet will appear in top header selector."}
-          </span>
-
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-[12.5px] font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              form="pos-outlet-form"
-              className="rounded-lg bg-teal-600 hover:bg-teal-700 px-6 py-2 text-[12.5px] font-bold text-white shadow-2xs transition cursor-pointer disabled:opacity-60"
-            >
-              {saving ? "Saving…" : outlet ? "Save Changes" : "Create Virtual Outlet"}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </PosCreatePanel>
   );
 }

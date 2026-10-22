@@ -1,7 +1,12 @@
 import { useState } from "react";
-import { X, ShoppingCart } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { useCreatePurchaseOrder, useInventoryVendors } from "@/hooks/queries/usePosInventory";
 import { toast } from "sonner";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 export function CreatePurchaseOrderModal({
   isOpen,
@@ -21,8 +26,6 @@ export function CreatePurchaseOrderModal({
   const [itemCount, setItemCount] = useState("8");
   const [estimatedAmount, setEstimatedAmount] = useState("7200");
   const [notes, setNotes] = useState("");
-
-  if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,23 +59,20 @@ export function CreatePurchaseOrderModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50">
-          <div className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-teal-600" />
-            <h3 className="text-[16px] font-bold text-slate-900">Create Purchase Order</h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+    <PosCreatePanel
+      open={isOpen}
+      onClose={onClose}
+      title="Create Purchase Order"
+      description="Issue a purchase order to request stock from a supplier."
+      icon={ShoppingCart}
+      onSubmit={handleSubmit}
+      footer={
+        <>
+          <PosCreateCancelButton onClick={onClose} />
+          <PosCreateSubmitButton>Issue Purchase Order</PosCreateSubmitButton>
+        </>
+      }
+    >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-[12.5px] font-medium text-slate-700 mb-1">
@@ -157,23 +157,6 @@ export function CreatePurchaseOrderModal({
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="rounded-lg bg-teal-600 px-5 py-2 text-[13px] font-semibold text-white hover:bg-teal-700 shadow-sm cursor-pointer"
-            >
-              Issue Purchase Order
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    </PosCreatePanel>
   );
 }

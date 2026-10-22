@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
-import { X, Plus, Trash2, ChefHat } from "lucide-react";
+import { Plus, Trash2, ChefHat } from "lucide-react";
 import { toast } from "sonner";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 export type RecipeIngredientInput = {
   id: string;
@@ -81,8 +86,6 @@ export function CreateRecipeModal({
     );
   }, [isOpen, initial]);
 
-  if (!isOpen) return null;
-
   const updateIngredient = (id: string, patch: Partial<RecipeIngredientInput>) => {
     setIngredients((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)));
   };
@@ -129,31 +132,21 @@ export function CreateRecipeModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto">
-      <div className="w-full max-w-2xl max-h-[92vh] flex flex-col rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 bg-slate-50">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
-              <ChefHat className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-[16px] font-bold text-slate-900">{title}</h3>
-              <p className="text-[12px] text-slate-500">
-                Fill recipe details and raw material ingredients
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="flex-1 space-y-4 overflow-y-auto p-5">
+    <PosCreatePanel
+      open={isOpen}
+      onClose={onClose}
+      title={title}
+      description="Fill recipe details and raw material ingredients"
+      icon={ChefHat}
+      size="lg"
+      onSubmit={handleSubmit}
+      footer={
+        <>
+          <PosCreateCancelButton onClick={onClose} />
+          <PosCreateSubmitButton>Save Recipe</PosCreateSubmitButton>
+        </>
+      }
+    >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
                 <label className="block text-[12.5px] font-semibold text-slate-700 mb-1">
@@ -320,25 +313,6 @@ export function CreateRecipeModal({
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-hidden resize-none"
               />
             </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="rounded-xl bg-teal-700 hover:bg-teal-800 px-4 py-2 text-[13px] font-bold text-white cursor-pointer"
-            >
-              Save Recipe
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    </PosCreatePanel>
   );
 }

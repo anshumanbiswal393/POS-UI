@@ -1,15 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  X,
   Upload,
   Image as ImageIcon,
   Check,
   Star,
   Trash2,
   RefreshCw,
-  Plus,
   AlertCircle,
-  Sparkles,
 } from "lucide-react";
 import type { MenuItem, MenuItemImage, MenuItemType } from "@/types/posMenu";
 import {
@@ -18,6 +15,11 @@ import {
   useMenuCategories,
 } from "@/hooks/queries/usePosMenu";
 import { toast } from "sonner";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 const MAX_FILE_SIZE_MB = 5;
 const ALLOWED_EXTENSIONS = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
@@ -92,8 +94,6 @@ export function MenuItemEditModal({
       setCategory(categoryOptions[0]);
     }
   }, [isOpen, item, category, categoryOptions]);
-
-  if (!isOpen) return null;
 
   const handleFiles = (files: FileList | File[]) => {
     const validFiles: File[] = [];
@@ -259,29 +259,31 @@ export function MenuItemEditModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto">
-      <div className="w-full max-w-3xl max-h-[92vh] flex flex-col rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50">
-          <div>
-            <h2 className="text-[17px] font-bold text-slate-900">
-              {item ? `Edit Menu Item: ${item.name}` : "Add New Menu Item"}
-            </h2>
-            <p className="text-[12px] text-slate-500">
-              Configure item pricing, tax category, dietary badge, and manage photo gallery.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition cursor-pointer"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+    <PosCreatePanel
+      open={isOpen}
+      onClose={onClose}
+      title={item ? `Edit Menu Item: ${item.name}` : "Add New Menu Item"}
+      description="Configure item pricing, tax category, dietary badge, and manage photo gallery."
+      icon={ImageIcon}
+      size="lg"
+      onSubmit={handleSubmit}
+      footer={
+        <>
+          <span className="mr-auto text-[12px] text-slate-500 flex items-center gap-1.5">
+            <AlertCircle className="h-3.5 w-3.5 text-slate-400" />
+            Changes will apply to the active outlet catalog.
+          </span>
+          <PosCreateCancelButton onClick={onClose} />
+          <PosCreateSubmitButton disabled={addMutation.isPending || updateMutation.isPending}>
+            {addMutation.isPending || updateMutation.isPending
+              ? "Saving..."
+              : item
+                ? "Update Menu Item"
+                : "Add Menu Item"}
+          </PosCreateSubmitButton>
+        </>
+      }
+    >
           {/* 1. Basic Info Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {/* Name */}
@@ -630,38 +632,6 @@ export function MenuItemEditModal({
               </div>
             )}
           </div>
-        </form>
-
-        {/* Footer Actions */}
-        <div className="border-t border-slate-200 px-6 py-3.5 bg-slate-50 flex items-center justify-between">
-          <div className="text-[12px] text-slate-500 flex items-center gap-1.5">
-            <AlertCircle className="h-3.5 w-3.5 text-slate-400" />
-            <span>Changes will apply to the active outlet catalog.</span>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={addMutation.isPending || updateMutation.isPending}
-              className="rounded-lg bg-teal-600 px-6 py-2 text-[13px] font-bold text-white shadow-2xs hover:bg-teal-700 transition cursor-pointer disabled:opacity-50"
-            >
-              {addMutation.isPending || updateMutation.isPending
-                ? "Saving..."
-                : item
-                  ? "Update Menu Item"
-                  : "Add Menu Item"}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </PosCreatePanel>
   );
 }

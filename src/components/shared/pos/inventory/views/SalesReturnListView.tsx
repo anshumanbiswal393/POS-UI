@@ -8,7 +8,6 @@ import {
   FileText,
   Filter,
   CheckCircle2,
-  X,
   PackageCheck,
   AlertCircle,
 } from "lucide-react";
@@ -18,6 +17,11 @@ import {
 } from "@/components/common/DataTableHeader";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { toast } from "sonner";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 interface SalesReturnRecord {
   id: string;
@@ -391,135 +395,115 @@ export function SalesReturnListView() {
         </div>
       </div>
 
-      {/* 4. Create Sales Return Modal */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-[16px] font-bold text-slate-900">Create Sales Return Voucher</h3>
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(false)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <PosCreatePanel
+        open={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title="Create Sales Return Voucher"
+        description="Record a returned sale and restock or discard items."
+        icon={RotateCcw}
+        size="lg"
+        onSubmit={handleCreateSubmit}
+        footer={
+          <>
+            <PosCreateCancelButton onClick={() => setIsCreateModalOpen(false)} />
+            <PosCreateSubmitButton>Confirm & Save</PosCreateSubmitButton>
+          </>
+        }
+      >
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-semibold text-slate-700">Invoice No. *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. INV-88920"
+                      value={newReturn.invoiceNo}
+                      onChange={(e) => setNewReturn({ ...newReturn, invoiceNo: e.target.value })}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] focus:outline-none focus:border-teal-500"
+                    />
+                  </div>
 
-            <form onSubmit={handleCreateSubmit} className="space-y-3.5">
-              <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-semibold text-slate-700">Order Channel</label>
+                    <select
+                      value={newReturn.orderType}
+                      onChange={(e) => setNewReturn({ ...newReturn, orderType: e.target.value })}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] focus:outline-none focus:border-teal-500"
+                    >
+                      <option value="Dine-In">Dine-In</option>
+                      <option value="Takeaway">Takeaway</option>
+                      <option value="Delivery">Delivery</option>
+                      <option value="Room Service">Room Service</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div className="space-y-1">
-                  <label className="text-[12px] font-semibold text-slate-700">Invoice No. *</label>
+                  <label className="text-[12px] font-semibold text-slate-700">
+                    Returned Items & Qty *
+                  </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. INV-88920"
-                    value={newReturn.invoiceNo}
-                    onChange={(e) => setNewReturn({ ...newReturn, invoiceNo: e.target.value })}
+                    placeholder="e.g. Sprite Can (330ml) x 2"
+                    value={newReturn.items}
+                    onChange={(e) => setNewReturn({ ...newReturn, items: e.target.value })}
                     className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] focus:outline-none focus:border-teal-500"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[12px] font-semibold text-slate-700">Order Channel</label>
-                  <select
-                    value={newReturn.orderType}
-                    onChange={(e) => setNewReturn({ ...newReturn, orderType: e.target.value })}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] focus:outline-none focus:border-teal-500"
-                  >
-                    <option value="Dine-In">Dine-In</option>
-                    <option value="Takeaway">Takeaway</option>
-                    <option value="Delivery">Delivery</option>
-                    <option value="Room Service">Room Service</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-semibold text-slate-700">
+                      Refund Amount (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      step="any"
+                      placeholder="0"
+                      value={newReturn.amount}
+                      onChange={(e) => setNewReturn({ ...newReturn, amount: e.target.value })}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] font-mono focus:outline-none focus:border-teal-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-semibold text-slate-700">
+                      Inventory Action
+                    </label>
+                    <select
+                      value={newReturn.restockAction}
+                      onChange={(e) =>
+                        setNewReturn({
+                          ...newReturn,
+                          restockAction: e.target.value as
+                            | "Restocked to Inventory"
+                            | "Discarded as Wastage",
+                        })
+                      }
+                      className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] focus:outline-none focus:border-teal-500"
+                    >
+                      <option value="Restocked to Inventory">Restock to Available Stock</option>
+                      <option value="Discarded as Wastage">Discard as Wastage</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-[12px] font-semibold text-slate-700">
-                  Returned Items & Qty *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Sprite Can (330ml) x 2"
-                  value={newReturn.items}
-                  onChange={(e) => setNewReturn({ ...newReturn, items: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] focus:outline-none focus:border-teal-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[12px] font-semibold text-slate-700">
-                    Refund Amount (₹) *
+                    Reason for Return
                   </label>
                   <input
-                    type="number"
-                    required
-                    min="0"
-                    step="any"
-                    placeholder="0"
-                    value={newReturn.amount}
-                    onChange={(e) => setNewReturn({ ...newReturn, amount: e.target.value })}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] font-mono focus:outline-none focus:border-teal-500"
+                    type="text"
+                    placeholder="e.g. Customer changed mind / wrong order"
+                    value={newReturn.reason}
+                    onChange={(e) => setNewReturn({ ...newReturn, reason: e.target.value })}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] focus:outline-none focus:border-teal-500"
                   />
                 </div>
-
-                <div className="space-y-1">
-                  <label className="text-[12px] font-semibold text-slate-700">
-                    Inventory Action
-                  </label>
-                  <select
-                    value={newReturn.restockAction}
-                    onChange={(e) =>
-                      setNewReturn({
-                        ...newReturn,
-                        restockAction: e.target.value as
-                          | "Restocked to Inventory"
-                          | "Discarded as Wastage",
-                      })
-                    }
-                    className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] focus:outline-none focus:border-teal-500"
-                  >
-                    <option value="Restocked to Inventory">Restock to Available Stock</option>
-                    <option value="Discarded as Wastage">Discard as Wastage</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[12px] font-semibold text-slate-700">
-                  Reason for Return
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Customer changed mind / wrong order"
-                  value={newReturn.reason}
-                  onChange={(e) => setNewReturn({ ...newReturn, reason: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] focus:outline-none focus:border-teal-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="rounded-lg border border-slate-300 px-4 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-lg bg-teal-600 px-4 py-1.5 text-[12.5px] font-semibold text-white shadow-2xs hover:bg-teal-700 transition cursor-pointer"
-                >
-                  Confirm & Save
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      </PosCreatePanel>
     </div>
   );
 }

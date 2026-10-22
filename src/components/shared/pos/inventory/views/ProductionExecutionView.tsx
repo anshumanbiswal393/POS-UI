@@ -20,6 +20,11 @@ import {
   Check,
   AlertCircle,
 } from "lucide-react";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 import { toast } from "sonner";
 import { exportToExcel } from "@/utils/exportUtils";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
@@ -663,34 +668,21 @@ export function ProductionExecutionView() {
         />
       </div>
 
-      {/* 5. "Prepare New Batch" Execution Modal */}
-      {isPrepareModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="relative w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-100 text-teal-800 font-bold">
-                  <ChefHat className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-[16px] font-bold text-slate-900">Prepare New Kitchen Batch</h3>
-                  <p className="text-[12px] text-slate-500 mt-0.5">
-                    Select a recipe formula, specify output quantity, and deduct raw materials from inventory.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsPrepareModalOpen(false)}
-                className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 transition cursor-pointer"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Body Form */}
-            <form onSubmit={handleExecuteBatch} className="flex-1 overflow-y-auto p-6 space-y-5">
+      <PosCreatePanel
+        open={isPrepareModalOpen}
+        onClose={() => setIsPrepareModalOpen(false)}
+        title="Prepare New Kitchen Batch"
+        description="Select a recipe formula, specify output quantity, and deduct raw materials from inventory."
+        icon={ChefHat}
+        size="lg"
+        onSubmit={handleExecuteBatch}
+        footer={
+          <>
+            <PosCreateCancelButton onClick={() => setIsPrepareModalOpen(false)} />
+            <PosCreateSubmitButton>Confirm & Deduct Stock</PosCreateSubmitButton>
+          </>
+        }
+      >
               {/* Recipe Picker & Batch Configuration */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="sm:col-span-2 space-y-1">
@@ -884,27 +876,7 @@ export function ProductionExecutionView() {
                   className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-[13px] text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
                 />
               </div>
-
-              {/* Modal Buttons */}
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsPrepareModalOpen(false)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-teal-600 px-5 py-2 text-[12.5px] font-semibold text-white shadow-2xs hover:bg-teal-700 transition cursor-pointer"
-                >
-                  Confirm & Deduct Stock
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      </PosCreatePanel>
 
       {/* 6. Batch Details & Stock Deduction Modal */}
       {selectedBatchDetails && (

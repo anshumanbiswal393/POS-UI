@@ -1,15 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Calendar, Clock, Users, Phone, User, Check, Combine, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import type { RestaurantTable, ReservationItem } from "@/types/posTables";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 interface NewReservationModalProps {
   isOpen: boolean;
@@ -260,16 +257,24 @@ export function NewReservationModal({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-2xl bg-white border border-border shadow-xl rounded-2xl p-0 overflow-hidden">
-        <DialogHeader className="px-5 pt-4 pb-2.5 border-b border-border">
-          <DialogTitle className="text-[16px] font-bold text-text-primary">Book Reservation</DialogTitle>
-          <DialogDescription className="text-[12px] text-text-secondary">
-            Set pax first. If one vacant table is too small, merge tables under the same guest.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-2.5 px-5 py-3.5 max-h-[80vh] overflow-y-auto">
+    <PosCreatePanel
+      open={isOpen}
+      onClose={onClose}
+      title="Book Reservation"
+      description="Set pax first. If one vacant table is too small, merge tables under the same guest."
+      icon={Calendar}
+      size="lg"
+      onSubmit={handleSubmit}
+      footer={
+        <>
+          <PosCreateCancelButton onClick={onClose} />
+          <PosCreateSubmitButton disabled={!capacityOk}>
+            <Check className="w-3.5 h-3.5" />
+            {selectedTableIds.length > 1 ? "Confirm merged reservation" : "Confirm reservation"}
+          </PosCreateSubmitButton>
+        </>
+      }
+    >
           {/* Pax first — single compact row */}
           <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5">
             <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -541,26 +546,6 @@ export function NewReservationModal({
               Mark as VIP guest
             </label>
           </div>
-
-          <DialogFooter className="pt-2 gap-2 sm:gap-0 border-t border-border">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-[12px] font-semibold text-text-secondary hover:bg-surface-2 rounded-xl transition cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!capacityOk}
-              className="px-5 py-2 text-[12px] font-bold text-primary-foreground bg-primary hover:bg-primary/90 disabled:opacity-50 rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
-            >
-              <Check className="w-3.5 h-3.5" />
-              {selectedTableIds.length > 1 ? "Confirm merged reservation" : "Confirm reservation"}
-            </button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </PosCreatePanel>
   );
 }

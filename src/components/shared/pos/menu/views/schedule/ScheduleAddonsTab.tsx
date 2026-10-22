@@ -5,11 +5,15 @@ import {
   Upload,
   Edit2,
   Trash2,
-  X,
 } from "lucide-react";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { toast } from "sonner";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 interface AddonGroupItem {
   id: string;
@@ -306,69 +310,49 @@ export function ScheduleAddonsTab() {
         emptyMessage="No addon groups found matching filters."
       />
 
-      {/* Add Addon Group Modal */}
-      {isAddingGroup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-300 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50">
-              <h3 className="text-[16px] font-bold text-slate-900">Add New Addon Group</h3>
-              <button
-                type="button"
-                onClick={() => setIsAddingGroup(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <form onSubmit={handleAddGroupSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
-                  Group Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Choice of Cheese, Extra Toppings..."
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
-                  Department
-                </label>
-                <select
-                  value={newGroupDept}
-                  onChange={(e) => setNewGroupDept(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500 cursor-pointer"
-                >
-                  <option value="Kitchen">Kitchen</option>
-                  <option value="Bar">Bar</option>
-                  <option value="Dessert Counter">Dessert Counter</option>
-                </select>
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setIsAddingGroup(false)}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-lg bg-teal-600 px-5 py-2 text-[13px] font-semibold text-white hover:bg-teal-700 shadow-xs cursor-pointer"
-                >
-                  Create Group
-                </button>
-              </div>
-            </form>
-          </div>
+      <PosCreatePanel
+        open={isAddingGroup}
+        onClose={() => setIsAddingGroup(false)}
+        title="Add New Addon Group"
+        description="Create a modifier group for kitchen or bar items."
+        icon={Plus}
+        onSubmit={handleAddGroupSubmit}
+        footer={
+          <>
+            <PosCreateCancelButton onClick={() => setIsAddingGroup(false)} />
+            <PosCreateSubmitButton>Create Group</PosCreateSubmitButton>
+          </>
+        }
+      >
+        <div>
+          <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
+            Group Name <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            placeholder="e.g. Choice of Cheese, Extra Toppings..."
+            value={newGroupName}
+            onChange={(e) => setNewGroupName(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500"
+            autoFocus
+          />
         </div>
-      )}
+
+        <div>
+          <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
+            Department
+          </label>
+          <select
+            value={newGroupDept}
+            onChange={(e) => setNewGroupDept(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500 cursor-pointer"
+          >
+            <option value="Kitchen">Kitchen</option>
+            <option value="Bar">Bar</option>
+            <option value="Dessert Counter">Dessert Counter</option>
+          </select>
+        </div>
+      </PosCreatePanel>
     </div>
   );
 }

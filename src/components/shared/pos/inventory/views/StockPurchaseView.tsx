@@ -37,6 +37,11 @@ import {
   type DataTableColumn,
 } from "@/components/common";
 import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
+import {
   Popover,
   PopoverAnchor,
   PopoverContent,
@@ -1063,9 +1068,13 @@ export function StockPurchaseView() {
 
       {/* 6. Record Payment Modal */}
       {paymentModalInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50">
+        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div
+            className="fixed inset-0"
+            onClick={() => setPaymentModalInvoice(null)}
+          />
+          <div className="relative z-10 w-full sm:w-[480px] md:w-[35%] lg:w-[30%] min-w-[360px] h-full bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-300 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/70 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100 text-teal-700">
                   <CreditCard className="h-4 w-4" />
@@ -1078,92 +1087,94 @@ export function StockPurchaseView() {
               <button
                 type="button"
                 onClick={() => setPaymentModalInvoice(null)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleConfirmPayment} className="p-6 space-y-4">
-              <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 space-y-2">
-                <div className="flex justify-between text-[12.5px]">
-                  <span className="text-slate-500">Supplier:</span>
-                  <span className="font-semibold text-slate-800">{paymentModalInvoice.vendorName}</span>
+            <form onSubmit={handleConfirmPayment} className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 space-y-2">
+                  <div className="flex justify-between text-[12.5px]">
+                    <span className="text-slate-500">Supplier:</span>
+                    <span className="font-semibold text-slate-800">{paymentModalInvoice.vendorName}</span>
+                  </div>
+                  <div className="flex justify-between text-[12.5px]">
+                    <span className="text-slate-500">Total Invoice Amount:</span>
+                    <span className="font-mono font-medium text-slate-700">₹ {paymentModalInvoice.totalAmount.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-[13px] border-t border-slate-200 pt-1.5">
+                    <span className="font-semibold text-slate-700">Outstanding Balance:</span>
+                    <span className="font-mono font-bold text-amber-700">₹ {paymentModalInvoice.balanceAmount.toLocaleString()}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-[12.5px]">
-                  <span className="text-slate-500">Total Invoice Amount:</span>
-                  <span className="font-mono font-medium text-slate-700">₹ {paymentModalInvoice.totalAmount.toLocaleString()}</span>
+
+                <div className="space-y-1">
+                  <label className="text-[12px] font-semibold text-slate-700">
+                    Payment Amount (₹) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="1"
+                    max={paymentModalInvoice.balanceAmount}
+                    required
+                    value={payAmount}
+                    onChange={(e) => setPayAmount(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-[14px] font-mono font-bold text-slate-900 focus:border-teal-500 focus:outline-none"
+                  />
                 </div>
-                <div className="flex justify-between text-[13px] border-t border-slate-200 pt-1.5">
-                  <span className="font-semibold text-slate-700">Outstanding Balance:</span>
-                  <span className="font-mono font-bold text-amber-700">₹ {paymentModalInvoice.balanceAmount.toLocaleString()}</span>
+
+                <div className="space-y-1">
+                  <label className="text-[12px] font-semibold text-slate-700">Payment Mode</label>
+                  <select
+                    value={payMethod}
+                    onChange={(e) => setPayMethod(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none"
+                  >
+                    <option value="UPI / QR">UPI / QR Code</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Bank Transfer">Bank Transfer / NEFT</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="Card">Debit / Credit Card</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[12px] font-semibold text-slate-700">Reference / UTR / Cheque No.</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. UPI-998822 / NEFT-102"
+                    value={payRef}
+                    onChange={(e) => setPayRef(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-[13px] text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[12px] font-semibold text-slate-700">Remarks / Note</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Paid in full on 17 Oct"
+                    value={payNotes}
+                    onChange={(e) => setPayNotes(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-[13px] text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
+                  />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[12px] font-semibold text-slate-700">
-                  Payment Amount (₹) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  min="1"
-                  max={paymentModalInvoice.balanceAmount}
-                  required
-                  value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-[14px] font-mono font-bold text-slate-900 focus:border-teal-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[12px] font-semibold text-slate-700">Payment Mode</label>
-                <select
-                  value={payMethod}
-                  onChange={(e) => setPayMethod(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none"
-                >
-                  <option value="UPI / QR">UPI / QR Code</option>
-                  <option value="Cash">Cash</option>
-                  <option value="Bank Transfer">Bank Transfer / NEFT</option>
-                  <option value="Cheque">Cheque</option>
-                  <option value="Card">Debit / Credit Card</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[12px] font-semibold text-slate-700">Reference / UTR / Cheque No.</label>
-                <input
-                  type="text"
-                  placeholder="e.g. UPI-998822 / NEFT-102"
-                  value={payRef}
-                  onChange={(e) => setPayRef(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-[13px] text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[12px] font-semibold text-slate-700">Remarks / Note</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Paid in full on 17 Oct"
-                  value={payNotes}
-                  onChange={(e) => setPayNotes(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-[13px] text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2.5 px-6 py-4 border-t border-slate-100 bg-slate-50/50 shrink-0">
                 <button
                   type="button"
                   onClick={() => setPaymentModalInvoice(null)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-[12px] font-medium text-slate-700 hover:bg-slate-50"
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-[12px] font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-teal-600 px-5 py-2 text-[12.5px] font-semibold text-white shadow-2xs hover:bg-teal-700"
+                  className="rounded-xl bg-teal-600 px-5 py-2 text-[12.5px] font-semibold text-white shadow-2xs hover:bg-teal-700 cursor-pointer"
                 >
                   Confirm Payment
                 </button>
@@ -1173,276 +1184,251 @@ export function StockPurchaseView() {
         </div>
       )}
 
-      {/* 7. Add Purchase Modal */}
-      {isAddOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100 text-teal-700">
-                  <PackageCheck className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-[16px] font-bold text-slate-900">Record Inward Stock Purchase</h3>
-                  <p className="text-[12px] text-slate-500">Record received vendor bill, incoming raw materials and payment terms.</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsAddOpen(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmitAddPurchase} className="flex-1 overflow-y-auto p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-[12px] font-semibold text-slate-700">
-                    Vendor / Supplier <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={formVendor}
-                    onChange={(e) => setFormVendor(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none"
-                  >
-                    {vendors.map((v) => (
-                      <option key={v.id} value={v.name}>
-                        {v.name} ({v.category})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[12px] font-semibold text-slate-700">
-                    Invoice No <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formInvoiceNo}
-                    onChange={(e) => setFormInvoiceNo(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[13px] font-mono text-slate-800 focus:border-teal-500 focus:outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[12px] font-semibold text-slate-700">Invoice Date</label>
-                  <input
-                    type="date"
-                    value={formInvoiceDate}
-                    onChange={(e) => setFormInvoiceDate(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none"
-                  />
-                </div>
-
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-[12px] font-semibold text-slate-700">Payment Status</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: "Done" as const, label: "Done (Paid Now)" },
-                      { id: "Pending" as const, label: "Pending (Credit)" },
-                      { id: "Partial" as const, label: "Partial Advance" },
-                    ].map((opt) => (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setFormPaymentStatus(opt.id)}
-                        className={`rounded-xl px-2 py-1.5 text-[11.5px] font-semibold border transition ${
-                          formPaymentStatus === opt.id
-                            ? "bg-teal-50 border-teal-500 text-teal-800"
-                            : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Conditional Partial amount / payment method */}
-              {formPaymentStatus !== "Pending" && (
-                <div className="grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 border border-slate-200">
-                  <div className="space-y-1">
-                    <label className="text-[11.5px] font-semibold text-slate-700">Payment Mode</label>
+      <PosCreatePanel
+        open={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        title="Record Inward Stock Purchase"
+        description="Record received vendor bill, incoming raw materials and payment terms."
+        icon={PackageCheck}
+        size="lg"
+        onSubmit={handleSubmitAddPurchase}
+        footer={
+          <>
+            <PosCreateCancelButton onClick={() => setIsAddOpen(false)} />
+            <PosCreateSubmitButton>Record Purchase</PosCreateSubmitButton>
+          </>
+        }
+      >
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="text-[12px] font-semibold text-slate-700">
+                      Vendor / Supplier <span className="text-rose-500">*</span>
+                    </label>
                     <select
-                      value={formPaymentMethod}
-                      onChange={(e) => setFormPaymentMethod(e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12.5px] text-slate-800 focus:border-teal-500 focus:outline-none"
+                      value={formVendor}
+                      onChange={(e) => setFormVendor(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none"
                     >
-                      <option value="Cash">Cash</option>
-                      <option value="UPI / QR">UPI / QR Code</option>
-                      <option value="Bank Transfer">Bank Transfer / NEFT</option>
-                      <option value="Cheque">Cheque</option>
+                      {vendors.map((v) => (
+                        <option key={v.id} value={v.name}>
+                          {v.name} ({v.category})
+                        </option>
+                      ))}
                     </select>
                   </div>
 
-                  {formPaymentStatus === "Partial" && (
-                    <div className="space-y-1">
-                      <label className="text-[11.5px] font-semibold text-slate-700">Initial Paid Amount (₹)</label>
-                      <input
-                        type="number"
-                        placeholder="e.g. 5000"
-                        value={formPaidAmount}
-                        onChange={(e) => setFormPaidAmount(e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-[12.5px] font-mono text-slate-800 focus:border-teal-500 focus:outline-none"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-semibold text-slate-700">
+                      Invoice No <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formInvoiceNo}
+                      onChange={(e) => setFormInvoiceNo(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[13px] font-mono text-slate-800 focus:border-teal-500 focus:outline-none"
+                    />
+                  </div>
 
-              {/* Items Table */}
-              <div className="space-y-2 pt-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-[13px] font-bold text-slate-800">Raw Material Items Received</h4>
-                  <button
-                    type="button"
-                    onClick={handleAddItemRow}
-                    className="text-[11.5px] font-semibold text-teal-600 hover:text-teal-700 flex items-center gap-1 cursor-pointer"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Add Item
-                  </button>
-                </div>
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-semibold text-slate-700">Invoice Date</label>
+                    <input
+                      type="date"
+                      value={formInvoiceDate}
+                      onChange={(e) => setFormInvoiceDate(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none"
+                    />
+                  </div>
 
-                <div className="rounded-xl border border-slate-200 overflow-hidden">
-                  <table className="w-full text-left text-[12px]">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
-                      <tr>
-                        <th className="px-3 py-2">Item Name</th>
-                        <th className="px-2 py-2 w-20 text-right">Qty</th>
-                        <th className="px-2 py-2 w-16">Unit</th>
-                        <th className="px-2 py-2 w-24 text-right">Rate (₹)</th>
-                        <th className="px-3 py-2 w-24 text-right">Total</th>
-                        <th className="px-2 py-2 w-8"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {formItems.map((it, idx) => (
-                        <tr key={idx}>
-                          <td className="p-1.5">
-                            <input
-                              type="text"
-                              value={it.name}
-                              onChange={(e) => handleItemChange(idx, "name", e.target.value)}
-                              className="w-full rounded-lg border border-slate-200 px-2 py-1 text-[12px] text-slate-800 focus:border-teal-500 focus:outline-none"
-                            />
-                          </td>
-                          <td className="p-1.5 text-right">
-                            <input
-                              type="number"
-                              min="0.1"
-                              step="any"
-                              value={it.quantity}
-                              onChange={(e) => handleItemChange(idx, "quantity", e.target.value)}
-                              className="w-full rounded-lg border border-slate-200 px-1.5 py-1 text-right text-[12px] font-mono text-slate-800 focus:border-teal-500 focus:outline-none"
-                            />
-                          </td>
-                          <td className="p-1.5">
-                            <input
-                              type="text"
-                              value={it.unit}
-                              onChange={(e) => handleItemChange(idx, "unit", e.target.value)}
-                              className="w-full rounded-lg border border-slate-200 px-1.5 py-1 text-[12px] text-slate-800 focus:border-teal-500 focus:outline-none"
-                            />
-                          </td>
-                          <td className="p-1.5 text-right">
-                            <input
-                              type="number"
-                              min="0"
-                              step="any"
-                              value={it.unitPrice}
-                              onChange={(e) => handleItemChange(idx, "unitPrice", e.target.value)}
-                              className="w-full rounded-lg border border-slate-200 px-1.5 py-1 text-right text-[12px] font-mono text-slate-800 focus:border-teal-500 focus:outline-none"
-                            />
-                          </td>
-                          <td className="p-1.5 text-right font-mono font-semibold text-slate-900">
-                            ₹ {it.lineTotal.toFixed(2)}
-                          </td>
-                          <td className="p-1.5 text-center">
-                            {formItems.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveItemRow(idx)}
-                                className="text-slate-400 hover:text-rose-600"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="text-[12px] font-semibold text-slate-700">Payment Status</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: "Done" as const, label: "Done (Paid Now)" },
+                        { id: "Pending" as const, label: "Pending (Credit)" },
+                        { id: "Partial" as const, label: "Partial Advance" },
+                      ].map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setFormPaymentStatus(opt.id)}
+                          className={`rounded-xl px-2 py-1.5 text-[11.5px] font-semibold border transition ${formPaymentStatus === opt.id
+                            ? "bg-teal-50 border-teal-500 text-teal-800"
+                            : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                            }`}
+                        >
+                          {opt.label}
+                        </button>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Subtotal & Total Box */}
-                <div className="flex justify-end gap-6 pt-2 text-[12.5px] border-t border-slate-100">
-                  <div className="text-right space-y-1">
-                    <span className="text-slate-500 block">Subtotal:</span>
-                    <span className="text-slate-500 block">GST / Tax:</span>
-                    <span className="font-bold text-slate-900 block text-[14px]">Total Bill:</span>
-                  </div>
-                  <div className="text-right space-y-1 font-mono font-semibold">
-                    <span className="text-slate-700 block">₹ {formCalculations.subtotal.toFixed(2)}</span>
-                    <div className="flex items-center justify-end gap-1">
-                      <span>₹</span>
-                      <input
-                        type="number"
-                        step="any"
-                        value={formTax}
-                        onChange={(e) => setFormTax(e.target.value)}
-                        className="w-20 rounded border border-slate-200 px-1 py-0.5 text-right font-mono text-[12px]"
-                      />
                     </div>
-                    <span className="font-bold text-teal-800 block text-[15px]">
-                      ₹ {formCalculations.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </span>
                   </div>
                 </div>
-              </div>
 
-              {/* Notes */}
-              <div className="space-y-1">
-                <label className="text-[12px] font-semibold text-slate-700">Remarks</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Delivery received via vehicle MH-12-8822"
-                  value={formNotes}
-                  onChange={(e) => setFormNotes(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[13px] text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
-                />
-              </div>
+                {/* Conditional Partial amount / payment method */}
+                {formPaymentStatus !== "Pending" && (
+                  <div className="grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 border border-slate-200">
+                    <div className="space-y-1">
+                      <label className="text-[11.5px] font-semibold text-slate-700">Payment Mode</label>
+                      <select
+                        value={formPaymentMethod}
+                        onChange={(e) => setFormPaymentMethod(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12.5px] text-slate-800 focus:border-teal-500 focus:outline-none"
+                      >
+                        <option value="Cash">Cash</option>
+                        <option value="UPI / QR">UPI / QR Code</option>
+                        <option value="Bank Transfer">Bank Transfer / NEFT</option>
+                        <option value="Cheque">Cheque</option>
+                      </select>
+                    </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsAddOpen(false)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-[12px] font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-teal-600 px-5 py-2 text-[12.5px] font-semibold text-white shadow-2xs hover:bg-teal-700"
-                >
-                  Record Purchase
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                    {formPaymentStatus === "Partial" && (
+                      <div className="space-y-1">
+                        <label className="text-[11.5px] font-semibold text-slate-700">Initial Paid Amount (₹)</label>
+                        <input
+                          type="number"
+                          placeholder="e.g. 5000"
+                          value={formPaidAmount}
+                          onChange={(e) => setFormPaidAmount(e.target.value)}
+                          className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-[12.5px] font-mono text-slate-800 focus:border-teal-500 focus:outline-none"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Items Table */}
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[13px] font-bold text-slate-800">Raw Material Items Received</h4>
+                    <button
+                      type="button"
+                      onClick={handleAddItemRow}
+                      className="text-[11.5px] font-semibold text-teal-600 hover:text-teal-700 flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Item
+                    </button>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 overflow-x-auto">
+                    <table className="w-full min-w-[420px] text-left text-[12px]">
+                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                        <tr>
+                          <th className="px-3 py-2">Item Name</th>
+                          <th className="px-2 py-2 w-20 text-right">Qty</th>
+                          <th className="px-2 py-2 w-16">Unit</th>
+                          <th className="px-2 py-2 w-24 text-right">Rate (₹)</th>
+                          <th className="px-3 py-2 w-24 text-right">Total</th>
+                          <th className="px-2 py-2 w-8"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {formItems.map((it, idx) => (
+                          <tr key={idx}>
+                            <td className="p-1.5">
+                              <input
+                                type="text"
+                                value={it.name}
+                                onChange={(e) => handleItemChange(idx, "name", e.target.value)}
+                                className="w-full rounded-lg border border-slate-200 px-2 py-1 text-[12px] text-slate-800 focus:border-teal-500 focus:outline-none"
+                              />
+                            </td>
+                            <td className="p-1.5 text-right">
+                              <input
+                                type="number"
+                                min="0.1"
+                                step="any"
+                                value={it.quantity}
+                                onChange={(e) => handleItemChange(idx, "quantity", e.target.value)}
+                                className="w-full rounded-lg border border-slate-200 px-1.5 py-1 text-right text-[12px] font-mono text-slate-800 focus:border-teal-500 focus:outline-none"
+                              />
+                            </td>
+                            <td className="p-1.5">
+                              <input
+                                type="text"
+                                value={it.unit}
+                                onChange={(e) => handleItemChange(idx, "unit", e.target.value)}
+                                className="w-full rounded-lg border border-slate-200 px-1.5 py-1 text-[12px] text-slate-800 focus:border-teal-500 focus:outline-none"
+                              />
+                            </td>
+                            <td className="p-1.5 text-right">
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={it.unitPrice}
+                                onChange={(e) => handleItemChange(idx, "unitPrice", e.target.value)}
+                                className="w-full rounded-lg border border-slate-200 px-1.5 py-1 text-right text-[12px] font-mono text-slate-800 focus:border-teal-500 focus:outline-none"
+                              />
+                            </td>
+                            <td className="p-1.5 text-right font-mono font-semibold text-slate-900">
+                              ₹ {it.lineTotal.toFixed(2)}
+                            </td>
+                            <td className="p-1.5 text-center">
+                              {formItems.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveItemRow(idx)}
+                                  className="text-slate-400 hover:text-rose-600"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Subtotal & Total Box */}
+                  <div className="flex justify-end gap-6 pt-2 text-[12.5px] border-t border-slate-100">
+                    <div className="text-right space-y-1">
+                      <span className="text-slate-500 block">Subtotal:</span>
+                      <span className="text-slate-500 block">GST / Tax:</span>
+                      <span className="font-bold text-slate-900 block text-[14px]">Total Bill:</span>
+                    </div>
+                    <div className="text-right space-y-1 font-mono font-semibold">
+                      <span className="text-slate-700 block">₹ {formCalculations.subtotal.toFixed(2)}</span>
+                      <div className="flex items-center justify-end gap-1">
+                        <span>₹</span>
+                        <input
+                          type="number"
+                          step="any"
+                          value={formTax}
+                          onChange={(e) => setFormTax(e.target.value)}
+                          className="w-20 rounded border border-slate-200 px-1 py-0.5 text-right font-mono text-[12px]"
+                        />
+                      </div>
+                      <span className="font-bold text-teal-800 block text-[15px]">
+                        ₹ {formCalculations.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div className="space-y-1">
+                  <label className="text-[12px] font-semibold text-slate-700">Remarks</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Delivery received via vehicle MH-12-8822"
+                    value={formNotes}
+                    onChange={(e) => setFormNotes(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[13px] text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
+                  />
+                </div>
+      </PosCreatePanel>
 
       {/* 8. Purchase Details Modal */}
       {detailsModalInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="relative w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50">
+        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div
+            className="fixed inset-0"
+            onClick={() => setDetailsModalInvoice(null)}
+          />
+          <div className="relative z-10 w-full sm:w-[520px] md:w-[38%] lg:w-[32%] xl:w-[30%] min-w-[360px] h-full bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-300 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/70 shrink-0">
               <div>
                 <h3 className="text-[16px] font-bold text-slate-900">
                   Purchase Invoice · {detailsModalInvoice.invoiceNo}
@@ -1454,7 +1440,7 @@ export function StockPurchaseView() {
               <button
                 type="button"
                 onClick={() => setDetailsModalInvoice(null)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1486,8 +1472,8 @@ export function StockPurchaseView() {
               {/* Items List */}
               <div className="space-y-2">
                 <h4 className="text-[13px] font-bold text-slate-800">Items Received</h4>
-                <div className="rounded-xl border border-slate-200 overflow-hidden">
-                  <table className="w-full text-left text-[12px]">
+                <div className="rounded-xl border border-slate-200 overflow-x-auto">
+                  <table className="w-full min-w-[360px] text-left text-[12px]">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
                       <tr>
                         <th className="px-3 py-2">Item</th>
@@ -1549,7 +1535,7 @@ export function StockPurchaseView() {
               )}
             </div>
 
-            <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3.5 bg-slate-50/50">
+            <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3.5 bg-slate-50/50 shrink-0">
               <span className="text-[11.5px] text-slate-500">
                 Payment status:{" "}
                 <strong
@@ -1557,8 +1543,8 @@ export function StockPurchaseView() {
                     detailsModalInvoice.paymentStatus === "Done"
                       ? "text-emerald-700"
                       : detailsModalInvoice.paymentStatus === "Pending"
-                      ? "text-amber-700"
-                      : "text-sky-700"
+                        ? "text-amber-700"
+                        : "text-sky-700"
                   }
                 >
                   {detailsModalInvoice.paymentStatus}
@@ -1568,7 +1554,7 @@ export function StockPurchaseView() {
                 <button
                   type="button"
                   onClick={() => toast.success(`Printing purchase invoice ${detailsModalInvoice.invoiceNo}...`)}
-                  className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-100"
+                  className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-100 cursor-pointer"
                 >
                   <Printer className="h-3.5 w-3.5 text-slate-500" />
                   Print Slip
@@ -1576,7 +1562,7 @@ export function StockPurchaseView() {
                 <button
                   type="button"
                   onClick={() => setDetailsModalInvoice(null)}
-                  className="rounded-xl bg-slate-900 px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-slate-800"
+                  className="rounded-xl bg-slate-900 px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-slate-800 cursor-pointer"
                 >
                   Close
                 </button>
@@ -1588,10 +1574,17 @@ export function StockPurchaseView() {
 
       {/* 8. Vendor Management Modal */}
       {isVendorModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="relative w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div
+            className="fixed inset-0"
+            onClick={() => {
+              setIsVendorModalOpen(false);
+              setShowAddVendorForm(false);
+            }}
+          />
+          <div className="relative z-10 w-full sm:w-[560px] md:w-[42%] lg:w-[35%] xl:w-[30%] min-w-[380px] h-full bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-300 overflow-hidden">
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/70 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-100 text-teal-700 shadow-2xs">
                   <Building2 className="h-5 w-5" />
@@ -1599,7 +1592,7 @@ export function StockPurchaseView() {
                 <div>
                   <h3 className="text-[16px] font-bold text-slate-900">Vendors & Suppliers</h3>
                   <p className="text-[12px] text-slate-500">
-                    Add new suppliers or remove existing ones. Updates reflect instantly in all purchase dropdowns.
+                    Add new suppliers or manage existing ones.
                   </p>
                 </div>
               </div>
@@ -1607,11 +1600,10 @@ export function StockPurchaseView() {
                 <button
                   type="button"
                   onClick={() => setShowAddVendorForm((prev) => !prev)}
-                  className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-[12px] font-semibold transition cursor-pointer ${
-                    showAddVendorForm
-                      ? "bg-slate-200 text-slate-700 hover:bg-slate-300"
-                      : "bg-teal-600 text-white shadow-xs hover:bg-teal-700"
-                  }`}
+                  className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-[12px] font-semibold transition cursor-pointer ${showAddVendorForm
+                    ? "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                    : "bg-teal-600 text-white shadow-xs hover:bg-teal-700"
+                    }`}
                 >
                   {showAddVendorForm ? (
                     <>
@@ -1765,7 +1757,7 @@ export function StockPurchaseView() {
 
               {/* Vendors List Search Bar */}
               <div className="flex items-center justify-between gap-3">
-                <div className="relative flex-1 max-w-sm">
+                <div className="relative flex-1">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
                   <input
                     type="text"
@@ -1784,8 +1776,8 @@ export function StockPurchaseView() {
                     </button>
                   )}
                 </div>
-                <span className="text-[12px] font-medium text-slate-500">
-                  Showing <strong>{filteredModalVendors.length}</strong> vendors
+                <span className="text-[12px] font-medium text-slate-500 shrink-0">
+                  <strong>{filteredModalVendors.length}</strong> vendors
                 </span>
               </div>
 
@@ -1864,9 +1856,9 @@ export function StockPurchaseView() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3.5 bg-slate-50/50">
+            <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3.5 bg-slate-50/50 shrink-0">
               <span className="text-[11.5px] text-slate-500">
-                Any changes made here immediately sync with purchase orders, inward stock bills, and filters.
+                Any changes made here sync immediately.
               </span>
               <button
                 type="button"

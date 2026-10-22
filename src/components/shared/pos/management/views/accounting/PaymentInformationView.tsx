@@ -11,7 +11,6 @@ import {
   IndianRupee,
   Building2,
   Percent,
-  X,
   AlertCircle,
   Hash,
   User,
@@ -19,6 +18,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 interface PaymentTransaction {
   id: string;
@@ -626,25 +630,20 @@ export function PaymentInformationView() {
         }
       />
 
-      {/* 5. Add / Record Manual Transaction Entry Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/70 px-6 py-4">
-              <div>
-                <h3 className="text-[16px] font-bold text-slate-900">Record Payment / Transaction Entry</h3>
-                <p className="text-[12px] text-slate-500 mt-0.5">Manually log or adjust digital payment gateway records.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition cursor-pointer"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+      <PosCreatePanel
+        open={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        title="Record Payment / Transaction Entry"
+        description="Manually log or adjust digital payment gateway records."
+        icon={CreditCard}
+        onSubmit={handleSubmit}
+        footer={
+          <>
+            <PosCreateCancelButton onClick={() => setIsAddModalOpen(false)} />
+            <PosCreateSubmitButton disabled={!isFormValid}>Record Payment</PosCreateSubmitButton>
+          </>
+        }
+      >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[12.5px] font-semibold text-slate-800">
@@ -826,30 +825,7 @@ export function PaymentInformationView() {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!isFormValid}
-                  className={`rounded-lg px-5 py-2 text-[12.5px] font-bold transition shadow-xs ${
-                    isFormValid
-                      ? "bg-teal-600 text-white hover:bg-teal-700 cursor-pointer"
-                      : "bg-slate-200 text-slate-400 cursor-not-allowed"
-                  }`}
-                >
-                  Record Payment
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      </PosCreatePanel>
     </div>
   );
 }

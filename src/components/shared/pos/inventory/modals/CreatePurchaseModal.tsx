@@ -1,7 +1,12 @@
 import { useState } from "react";
-import { X, Plus, Trash2, Calendar, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useCreatePurchase, useInventoryVendors } from "@/hooks/queries/usePosInventory";
 import { toast } from "sonner";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 export function CreatePurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { data: vendors } = useInventoryVendors();
@@ -15,8 +20,6 @@ export function CreatePurchaseModal({ isOpen, onClose }: { isOpen: boolean; onCl
   const [itemCount, setItemCount] = useState("6");
   const [paymentStatus, setPaymentStatus] = useState<"Paid" | "Unpaid" | "Partial">("Paid");
   const [notes, setNotes] = useState("");
-
-  if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,23 +55,20 @@ export function CreatePurchaseModal({ isOpen, onClose }: { isOpen: boolean; onCl
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50">
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-teal-600" />
-            <h3 className="text-[16px] font-bold text-slate-900">New Stock Purchase</h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+    <PosCreatePanel
+      open={isOpen}
+      onClose={onClose}
+      title="New Stock Purchase"
+      description="Record a supplier invoice against kitchen stock."
+      icon={FileText}
+      onSubmit={handleSubmit}
+      footer={
+        <>
+          <PosCreateCancelButton onClick={onClose} />
+          <PosCreateSubmitButton>Save Stock Purchase</PosCreateSubmitButton>
+        </>
+      }
+    >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-[12.5px] font-medium text-slate-700 mb-1">
@@ -181,23 +181,6 @@ export function CreatePurchaseModal({ isOpen, onClose }: { isOpen: boolean; onCl
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="rounded-lg bg-teal-600 px-5 py-2 text-[13px] font-semibold text-white hover:bg-teal-700 shadow-sm cursor-pointer"
-            >
-              Save Stock Purchase
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    </PosCreatePanel>
   );
 }

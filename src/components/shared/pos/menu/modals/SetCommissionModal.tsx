@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
-import { X, Percent, IndianRupee } from "lucide-react";
+import { Percent, IndianRupee } from "lucide-react";
 import { useUpdateItemCommission } from "@/hooks/queries/usePosMenu";
 import type { MenuItemCommission } from "@/types/posMenu";
 import { toast } from "sonner";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 export function SetCommissionModal({
   isOpen,
@@ -28,10 +33,9 @@ export function SetCommissionModal({
     }
   }, [item]);
 
-  if (!isOpen || !item) return null;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!item) return;
     const numVal = commissionType === "Not Configured" ? null : parseFloat(value) || 0;
 
     updateMutation.mutate(
@@ -53,103 +57,83 @@ export function SetCommissionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-      <div className="w-full max-w-md rounded-xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50/50">
-          <div>
-            <h2 className="text-[16px] font-semibold text-slate-800">Set Menu Commission</h2>
-            <p className="text-[12px] text-slate-500 truncate max-w-xs">{item.name}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <PosCreatePanel
+      open={isOpen && Boolean(item)}
+      onClose={onClose}
+      title="Set Menu Commission"
+      description={item?.name}
+      icon={Percent}
+      onSubmit={handleSubmit}
+      footer={
+        <>
+          <PosCreateCancelButton onClick={onClose} />
+          <PosCreateSubmitButton disabled={updateMutation.isPending}>
+            {updateMutation.isPending ? "Saving..." : "Save Commission"}
+          </PosCreateSubmitButton>
+        </>
+      }
+    >
+      <div className="flex items-center justify-between rounded-lg border border-primary/15 bg-primary-tint/70 px-3 py-2.5 text-[12.5px]">
+        <div>
+          <span className="text-muted-foreground">Category:</span>{" "}
+          <span className="font-medium text-foreground">{item?.category}</span>
         </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="rounded-lg bg-slate-50 p-3 border border-slate-200 flex justify-between items-center text-[12.5px]">
-            <div>
-              <span className="text-slate-500">Category:</span>{" "}
-              <span className="font-medium text-slate-700">{item.category}</span>
-            </div>
-            <div>
-              <span className="text-slate-500">Base Price:</span>{" "}
-              <span className="font-mono font-semibold text-slate-800">₹{item.price}</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
-              Commission Type
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {(["Not Configured", "Percentage", "Fixed Amount"] as const).map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setCommissionType(type)}
-                  className={`rounded-lg border px-3 py-2 text-[12px] font-medium transition cursor-pointer text-center ${
-                    commissionType === type
-                      ? "border-teal-500 bg-teal-50 text-teal-700 font-semibold"
-                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  {type === "Not Configured"
-                    ? "None"
-                    : type === "Percentage"
-                      ? "% Percent"
-                      : "₹ Fixed"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {commissionType !== "Not Configured" && (
-            <div>
-              <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
-                Commission Value {commissionType === "Percentage" ? "(%)" : "(₹)"}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-                  {commissionType === "Percentage" ? (
-                    <Percent className="h-4 w-4" />
-                  ) : (
-                    <IndianRupee className="h-4 w-4" />
-                  )}
-                </div>
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 pl-9 pr-3.5 py-2 text-[13.5px] text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={updateMutation.isPending}
-              className="rounded-lg bg-teal-600 px-5 py-2 text-[13px] font-medium text-white shadow-sm hover:bg-teal-700 transition cursor-pointer disabled:opacity-50"
-            >
-              {updateMutation.isPending ? "Saving..." : "Save Commission"}
-            </button>
-          </div>
-        </form>
+        <div>
+          <span className="text-muted-foreground">Base Price:</span>{" "}
+          <span className="font-mono font-semibold text-foreground">₹{item?.price}</span>
+        </div>
       </div>
-    </div>
+
+      <div>
+        <label className="mb-1.5 block text-[13px] font-medium text-foreground">
+          Commission Type
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          {(["Not Configured", "Percentage", "Fixed Amount"] as const).map((type) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => setCommissionType(type)}
+              className={`rounded-lg border px-3 py-2 text-center text-[12px] font-medium transition cursor-pointer ${
+                commissionType === type
+                  ? "border-primary bg-primary-tint font-semibold text-primary"
+                  : "border-border bg-white text-foreground hover:bg-muted"
+              }`}
+            >
+              {type === "Not Configured"
+                ? "None"
+                : type === "Percentage"
+                  ? "% Percent"
+                  : "₹ Fixed"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {commissionType !== "Not Configured" ? (
+        <div>
+          <label className="mb-1.5 block text-[13px] font-medium text-foreground">
+            Commission Value {commissionType === "Percentage" ? "(%)" : "(₹)"}
+          </label>
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">
+              {commissionType === "Percentage" ? (
+                <Percent className="h-4 w-4" />
+              ) : (
+                <IndianRupee className="h-4 w-4" />
+              )}
+            </div>
+            <input
+              type="number"
+              step="any"
+              min="0"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className="w-full rounded-lg border border-border bg-primary-tint/70 py-2 pl-9 pr-3.5 text-[13.5px] text-foreground focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+        </div>
+      ) : null}
+    </PosCreatePanel>
   );
 }

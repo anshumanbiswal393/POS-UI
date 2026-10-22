@@ -1,24 +1,11 @@
 import React, { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  BedDouble,
-  Users,
-  Plus,
-  Minus,
-  Check,
-  Building2,
-  Utensils,
-  Clock,
-  Sparkles,
-} from "lucide-react";
+import { Plus, Minus, Check, Utensils } from "lucide-react";
 import type { HotelRoom, RoomServiceOrder, RoomOrderItem } from "@/types/posRoomService";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 interface NewRoomOrderModalProps {
   isOpen: boolean;
@@ -142,19 +129,24 @@ export function NewRoomOrderModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-xl bg-white border border-slate-200 shadow-2xl rounded-2xl p-6 max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <Utensils className="w-5 h-5 text-teal-700" />
-            <span>Create In-Room Dining Order</span>
-          </DialogTitle>
-          <DialogDescription className="text-xs text-slate-500">
-            Dispatch food & beverage directly to guest rooms with automatic PMS folio billing.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-4 pr-1">
+    <PosCreatePanel
+      open={isOpen}
+      onClose={onClose}
+      title="Create In-Room Dining Order"
+      description="Dispatch food & beverage directly to guest rooms with automatic PMS folio billing."
+      icon={Utensils}
+      size="lg"
+      onSubmit={handleSubmit}
+      footer={
+        <>
+          <PosCreateCancelButton onClick={onClose} />
+          <PosCreateSubmitButton disabled={orderItems.length === 0}>
+            <Check className="w-3.5 h-3.5" />
+            Dispatch to Kitchen (KOT)
+          </PosCreateSubmitButton>
+        </>
+      }
+    >
           {/* Room Selection */}
           <div className="grid grid-cols-2 gap-3 mt-2">
             <div>
@@ -307,26 +299,6 @@ export function NewRoomOrderModal({
               </span>
             </div>
           </div>
-
-          <DialogFooter className="pt-2 gap-2 sm:gap-0">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={orderItems.length === 0}
-              className="px-5 py-2 text-xs font-bold text-primary-foreground bg-primary hover:bg-primary-pressed disabled:opacity-50 rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              <Check className="w-3.5 h-3.5" />
-              Dispatch to Kitchen (KOT)
-            </button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </PosCreatePanel>
   );
 }

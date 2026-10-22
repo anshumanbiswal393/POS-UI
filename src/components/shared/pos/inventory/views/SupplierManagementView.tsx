@@ -1,13 +1,17 @@
 import { useState, useMemo } from "react";
 import {
   Plus,
-  X,
   Building,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useVendors } from "@/hooks/queries/usePosInventory";
 import { PosDataGrid } from "@/components/ui/data-grid";
 import type { DataGridColumn } from "@/components/ui/data-grid/types";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 interface SupplierItem {
   id: string;
@@ -199,103 +203,82 @@ export function SupplierManagementView() {
         pageSize={10}
       />
 
-      {/* Create Supplier Modal */}
-      {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-2xl border border-border space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-base font-bold text-foreground">Add Supplier / Third Party</h3>
-              <button
-                type="button"
-                onClick={() => setIsCreateOpen(false)}
-                className="rounded-lg p-1.5 text-muted-foreground hover:bg-surface-2 hover:text-foreground transition cursor-pointer"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <PosCreatePanel
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        title="Add Supplier / Third Party"
+        description="Register a vendor for stock purchases and returns."
+        icon={Building}
+        onSubmit={handleCreate}
+        footer={
+          <>
+            <PosCreateCancelButton onClick={() => setIsCreateOpen(false)} />
+            <PosCreateSubmitButton>Save Supplier</PosCreateSubmitButton>
+          </>
+        }
+      >
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-foreground">Company Name *</label>
+          <input
+            type="text"
+            required
+            placeholder="e.g. Metro Fresh Farm Supplies"
+            value={newVendor.company}
+            onChange={(e) => setNewVendor({ ...newVendor, company: e.target.value })}
+            className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
 
-            <form onSubmit={handleCreate} className="space-y-3.5">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">Company Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Metro Fresh Farm Supplies"
-                  value={newVendor.company}
-                  onChange={(e) => setNewVendor({ ...newVendor, company: e.target.value })}
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-foreground">Contact Person Name *</label>
+          <input
+            type="text"
+            required
+            placeholder="e.g. Ramesh Sharma"
+            value={newVendor.name}
+            onChange={(e) => setNewVendor({ ...newVendor, name: e.target.value })}
+            className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">Contact Person Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Ramesh Sharma"
-                  value={newVendor.name}
-                  onChange={(e) => setNewVendor({ ...newVendor, name: e.target.value })}
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">Phone</label>
-                  <input
-                    type="text"
-                    placeholder="+91 98..."
-                    value={newVendor.phone}
-                    onChange={(e) => setNewVendor({ ...newVendor, phone: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">Category</label>
-                  <select
-                    value={newVendor.category}
-                    onChange={(e) => setNewVendor({ ...newVendor, category: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-                  >
-                    <option value="Vegetables & Fruits">Vegetables & Fruits</option>
-                    <option value="Dairy & Cheese">Dairy & Cheese</option>
-                    <option value="Beverages & Syrups">Beverages & Syrups</option>
-                    <option value="Meat & Poultry">Meat & Poultry</option>
-                    <option value="Groceries & Spices">Groceries & Spices</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">GSTIN Number</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 27AABCM1234F1Z5"
-                  value={newVendor.gstin}
-                  onChange={(e) => setNewVendor({ ...newVendor, gstin: e.target.value })}
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2.5 pt-3 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateOpen(false)}
-                  className="rounded-lg border border-border bg-surface px-4 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-surface-2 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-lg bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground shadow-xs hover:opacity-90 transition cursor-pointer"
-                >
-                  Save Supplier
-                </button>
-              </div>
-            </form>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground">Phone</label>
+            <input
+              type="text"
+              placeholder="+91 98..."
+              value={newVendor.phone}
+              onChange={(e) => setNewVendor({ ...newVendor, phone: e.target.value })}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground">Category</label>
+            <select
+              value={newVendor.category}
+              onChange={(e) => setNewVendor({ ...newVendor, category: e.target.value })}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+            >
+              <option value="Vegetables & Fruits">Vegetables & Fruits</option>
+              <option value="Dairy & Cheese">Dairy & Cheese</option>
+              <option value="Beverages & Syrups">Beverages & Syrups</option>
+              <option value="Meat & Poultry">Meat & Poultry</option>
+              <option value="Groceries & Spices">Groceries & Spices</option>
+            </select>
           </div>
         </div>
-      )}
+
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-foreground">GSTIN Number</label>
+          <input
+            type="text"
+            placeholder="e.g. 27AABCM1234F1Z5"
+            value={newVendor.gstin}
+            onChange={(e) => setNewVendor({ ...newVendor, gstin: e.target.value })}
+            className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
+      </PosCreatePanel>
     </div>
   );
 }

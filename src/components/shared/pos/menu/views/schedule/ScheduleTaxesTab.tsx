@@ -4,12 +4,16 @@ import {
   ChevronDown,
   Edit2,
   Trash2,
-  X,
   Percent,
 } from "lucide-react";
 import type { ScheduleTaxItem } from "@/types/posMenu";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { toast } from "sonner";
+import {
+  PosCreateCancelButton,
+  PosCreatePanel,
+  PosCreateSubmitButton,
+} from "@/components/layout/pos/PosCreatePanel";
 
 export function ScheduleTaxesTab() {
   const [taxes, setTaxes] = useState<ScheduleTaxItem[]>([
@@ -236,99 +240,78 @@ export function ScheduleTaxesTab() {
         emptyMessage="No taxes configured yet."
       />
 
-      {/* Add Tax Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-300 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50">
-              <h3 className="text-[16px] font-bold text-slate-900">Create New Tax Slab</h3>
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <PosCreatePanel
+        open={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        title="Create New Tax Slab"
+        description="Add a tax rate used on billing and menus."
+        icon={Percent}
+        onSubmit={handleAddTaxSubmit}
+        footer={
+          <>
+            <PosCreateCancelButton onClick={() => setIsAddModalOpen(false)} />
+            <PosCreateSubmitButton>Save Tax Slab</PosCreateSubmitButton>
+          </>
+        }
+      >
+        <div>
+          <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
+            Tax Title <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            placeholder="e.g. VAT 5%, Liquor Tax"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500"
+            autoFocus
+          />
+        </div>
 
-            <form onSubmit={handleAddTaxSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
-                  Tax Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. VAT 5%, Liquor Tax"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500"
-                  autoFocus
-                />
-              </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
+              Tax Type
+            </label>
+            <select
+              value={newTaxType}
+              onChange={(e) => setNewTaxType(e.target.value as any)}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500 cursor-pointer"
+            >
+              <option value="Forward Tax">Forward Tax</option>
+              <option value="Backward Tax">Backward Tax</option>
+            </select>
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
-                    Tax Type
-                  </label>
-                  <select
-                    value={newTaxType}
-                    onChange={(e) => setNewTaxType(e.target.value as any)}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500 cursor-pointer"
-                  >
-                    <option value="Forward Tax">Forward Tax</option>
-                    <option value="Backward Tax">Backward Tax</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
-                    Rate Type
-                  </label>
-                  <select
-                    value={newRateType}
-                    onChange={(e) => setNewRateType(e.target.value as any)}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500 cursor-pointer"
-                  >
-                    <option value="Percentage">Percentage (%)</option>
-                    <option value="Fixed Amount">Fixed Amount (₹)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
-                  Tax Rate / Amount <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="5"
-                  value={newAmount}
-                  onChange={(e) => setNewAmount(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-lg bg-teal-600 px-5 py-2 text-[13px] font-semibold text-white hover:bg-teal-700 shadow-xs cursor-pointer"
-                >
-                  Save Tax Slab
-                </button>
-              </div>
-            </form>
+          <div>
+            <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
+              Rate Type
+            </label>
+            <select
+              value={newRateType}
+              onChange={(e) => setNewRateType(e.target.value as any)}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500 cursor-pointer"
+            >
+              <option value="Percentage">Percentage (%)</option>
+              <option value="Fixed Amount">Fixed Amount (₹)</option>
+            </select>
           </div>
         </div>
-      )}
+
+        <div>
+          <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
+            Tax Rate / Amount <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            placeholder="5"
+            value={newAmount}
+            onChange={(e) => setNewAmount(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-[13.5px] focus:outline-hidden focus:border-teal-500"
+          />
+        </div>
+      </PosCreatePanel>
     </div>
   );
 }
