@@ -136,12 +136,12 @@
   --text-secondary: #000000;
   --text-disabled: #64748b;             /* Slate 500 for hints/placeholders */
 
-  /* Sidebar Dark #071A2F */
-  --sidebar: oklch(0.205 0.045 256);
-  --sidebar-foreground: oklch(0.95 0.005 240);
-  --sidebar-hover: oklch(0.255 0.05 256); /* #0F2747 */
-  --sidebar-muted: oklch(0.65 0.025 256);
-  --sidebar-border: oklch(0.295 0.04 256);
+  /* Sidebar — white, matches POS canvas */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-hover: #f8fafc;
+  --sidebar-muted: #64748b;
+  --sidebar-border: #e2e8f0;
 
   /* Theme-adaptive teal color scale mapping */
   --teal-50: var(--primary-tint, color-mix(in srgb, var(--primary) 8%, white));

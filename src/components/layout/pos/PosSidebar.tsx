@@ -1,12 +1,17 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
-import { ChevronDown, ChevronRight, Folder } from "lucide-react";
-import { POS_NAV_ITEMS, POS_FOOTER_NAV_ITEMS } from "@/app/navigation/pos-nav-config";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ChevronRight } from "lucide-react";
+import {
+  POS_NAV_ITEMS,
+  POS_FOOTER_NAV_ITEMS,
+  type PosNavChild,
+  type PosNavItem,
+} from "@/app/navigation/pos-nav-config";
 import { RetrodLogo } from "@/components/common";
 import { cn } from "@/lib/utils";
 
 const ALL_NAV_LINKS: string[] = [];
-function collectLinks(items: Array<{ to?: string; children?: any[] }>) {
+function collectLinks(items: Array<{ to?: string; children?: PosNavChild[] }>) {
   for (const item of items) {
     if (item.to) ALL_NAV_LINKS.push(item.to);
     if (item.children?.length) collectLinks(item.children);
@@ -23,41 +28,36 @@ export function PosSidebar({
   onNavigate?: () => void;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const activeLinkRef = useRef<HTMLAnchorElement | null>(null);
 
-  // Auto-open groups that contain the currently active route
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+  const collectOpenGroups = (path: string) => {
     const initial: Record<string, boolean> = {};
-    POS_NAV_ITEMS.forEach((item) => {
-      if (item.children?.length) {
-        const isChildActive = item.children.some((c) =>
-          c.to
-            ? pathname === c.to || pathname.startsWith(`${c.to}/`)
-            : c.children?.some((sc) => sc.to && (pathname === sc.to || pathname.startsWith(`${sc.to}/`)))
-        );
-        if (isChildActive || (item.to && (pathname === item.to || pathname.startsWith(`${item.to}/`)))) {
-          initial[item.id] = true;
+    const markOpen = (nodes: PosNavChild[] | PosNavItem[], parentId?: string) => {
+      for (const node of nodes) {
+        const activeHere =
+          Boolean(node.to) && (path === node.to || path.startsWith(`${node.to}/`));
+        if (activeHere && parentId) initial[parentId] = true;
+        if (node.children?.length) {
+          markOpen(node.children, node.id);
+          if (initial[node.id] && parentId) initial[parentId] = true;
         }
       }
-    });
+    };
+    markOpen(POS_NAV_ITEMS);
     return initial;
-  });
+  };
 
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
-    POS_NAV_ITEMS.forEach((item) => {
-      item.children?.forEach((child) => {
-        if (child.children?.length) {
-          const isChildActive = child.children.some(
-            (sc) => sc.to && (pathname === sc.to || pathname.startsWith(`${sc.to}/`))
-          );
-          if (isChildActive) {
-            initial[child.id] = true;
-          }
-        }
-      });
-    });
-    return initial;
-  });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
+    collectOpenGroups(pathname),
+  );
+
+  useEffect(() => {
+    setOpenGroups((prev) => ({ ...prev, ...collectOpenGroups(pathname) }));
+  }, [pathname]);
+
+  useEffect(() => {
+    activeLinkRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [pathname, openGroups]);
 
   const isLinkActive = (to?: string) => {
     if (!to || !pathname) return false;
@@ -80,24 +80,94 @@ export function PosSidebar({
     return pathname === to || pathname.startsWith(`${to}/`);
   };
 
-  const navItems = POS_NAV_ITEMS ?? [];
-  const footerItems = POS_FOOTER_NAV_ITEMS ?? [];
+  const isNodeActive = (node: { to?: string; children?: PosNavChild[] }): boolean => {
+    if (node.to && isLinkActive(node.to)) return true;
+    return Boolean(node.children?.some((c) => isNodeActive(c)));
+  };
+
+  const toggleGroup = (id: string) => {
+    setOpenGroups((s) => ({ ...s, [id]: !s[id] }));
+  };
+
+  const renderNode = (node: PosNavChild, depth: number): ReactNode => {
+    const expanded = Boolean(openGroups[node.id]);
+    const ItemIcon = node.icon;
+
+    if (node.children?.length) {
+      return (
+        <div key={node.id}>
+          <button
+            type="button"
+            onClick={() => toggleGroup(node.id)}
+            className={cn(
+              "flex w-full cursor-pointer items-center justify-between gap-2.5 rounded-md font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-hover",
+              depth === 0 ? "px-3 py-2 text-[13.5px]" : "px-2.5 py-1.5 text-[13px]",
+            )}
+          >
+            <span className="flex min-w-0 items-center gap-2.5">
+              {ItemIcon ? <ItemIcon className="h-[18px] w-[18px] shrink-0 stroke-[1.5]" /> : null}
+              <span className="truncate">{node.label}</span>
+            </span>
+            <ChevronRight
+              className={cn(
+                "h-3.5 w-3.5 shrink-0 text-sidebar-muted transition-transform",
+                expanded && "rotate-90",
+              )}
+            />
+          </button>
+          {expanded && (
+            <div className={cn("mt-0.5 space-y-0.5", depth === 0 ? "pl-[30px]" : "pl-3.5")}>
+              {node.children.map((child) => renderNode(child, depth + 1))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (!node.to) return null;
+    const active = isLinkActive(node.to);
+
+    return (
+      <Link
+        key={node.id}
+        ref={active ? activeLinkRef : undefined}
+        to={node.to}
+        onClick={onNavigate}
+        activeOptions={{ exact: true }}
+        className={cn(
+          "flex items-center gap-2.5 rounded-md font-medium transition-colors",
+          depth === 0 ? "px-3 py-2 text-[13.5px]" : "px-2.5 py-1.5 text-[13px]",
+          active
+            ? "bg-primary font-semibold text-primary-foreground shadow-xs"
+            : "text-sidebar-foreground hover:bg-sidebar-hover",
+        )}
+      >
+        {ItemIcon ? (
+          <ItemIcon
+            className={cn(
+              "h-[18px] w-[18px] shrink-0 stroke-[1.5]",
+              !active && "text-sidebar-foreground",
+            )}
+          />
+        ) : null}
+        <span className="truncate">{node.label}</span>
+      </Link>
+    );
+  };
 
   return (
     <aside
       className={cn(
-        "flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-xl transition-all duration-200",
+        "flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200",
         collapsed ? "w-[68px]" : "w-[240px]",
       )}
     >
-
-      {/* Brand Header */}
       <div className="flex h-16 shrink-0 items-center border-b border-sidebar-border px-4">
         {!collapsed ? (
           <Link
             to="/pos"
             onClick={onNavigate}
-            className="flex min-w-0 items-center py-1 transition-opacity hover:opacity-90 cursor-pointer"
+            className="flex min-w-0 cursor-pointer items-center py-1 transition-opacity hover:opacity-90"
             title="Go to POS Dashboard"
           >
             <RetrodLogo variant="dark" size="md" />
@@ -107,220 +177,120 @@ export function PosSidebar({
             to="/pos"
             onClick={onNavigate}
             title="Go to POS Dashboard"
-            className="mx-auto flex items-center justify-center cursor-pointer transition-transform hover:scale-105"
+            className="mx-auto flex cursor-pointer items-center justify-center transition-transform hover:scale-105"
           >
             <RetrodLogo collapsed variant="dark" />
           </Link>
         )}
       </div>
 
-      {/* Main Navigation */}
-      <nav
-        className="flex-1 space-y-1 overflow-y-auto px-3 py-4 scrollbar-thin"
-        aria-label="POS navigation"
-      >
-        {navItems.map((item) => {
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3 scrollbar-thin" aria-label="POS navigation">
+        {POS_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const hasChildren = Boolean(item.children?.length);
-          const active = isActive(item.to, item.exact);
           const groupOpen = Boolean(openGroups[item.id]);
+          const activeLeaf = !hasChildren && isActive(item.to, item.exact);
 
-          // Check if any descendant inside this item is the currently open/active page
-          const isNodeActive = (node: { to?: string; children?: any[] }): boolean => {
-            if (node.to && isLinkActive(node.to)) return true;
-            if (node.children?.length) {
-              return node.children.some((c) => isNodeActive(c));
-            }
-            return false;
-          };
-
-          const hasActiveChild = hasChildren && Boolean(item.children?.some((c) => isNodeActive(c)));
-
-          if (hasChildren && !collapsed) {
+          if (collapsed) {
+            const collapsedActive = hasChildren ? isNodeActive(item) : activeLeaf;
             return (
-              <div key={item.id} className="space-y-1">
-                {/* Upper Folder Button — slightly light highlighted when any child inside is active */}
+              <Link
+                key={item.id}
+                to={item.to}
+                onClick={onNavigate}
+                title={item.label}
+                className={cn(
+                  "flex items-center justify-center rounded-md px-2 py-2.5 transition-colors",
+                  collapsedActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-sidebar-foreground hover:bg-sidebar-hover",
+                )}
+              >
+                <Icon className="h-[18px] w-[18px] shrink-0 stroke-[1.5]" />
+              </Link>
+            );
+          }
+
+          if (hasChildren) {
+            return (
+              <div key={item.id}>
                 <button
                   type="button"
-                  onClick={() => setOpenGroups((s) => ({ ...s, [item.id]: !groupOpen }))}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150 cursor-pointer border",
-                    hasActiveChild
-                      ? "bg-primary/15 text-sidebar-foreground border-primary/25 font-semibold shadow-2xs"
-                      : "text-sidebar-muted border-transparent hover:bg-sidebar-hover hover:text-sidebar-foreground",
-                  )}
+                  onClick={() => toggleGroup(item.id)}
+                  className="flex w-full cursor-pointer items-center justify-between gap-2.5 rounded-md px-3 py-2 text-[13.5px] font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-hover"
                 >
-                  <Icon
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <Icon className="h-[18px] w-[18px] shrink-0 stroke-[1.5]" />
+                    <span className="truncate">{item.label}</span>
+                  </span>
+                  <ChevronRight
                     className={cn(
-                      "h-4 w-4 shrink-0 transition-colors",
-                      hasActiveChild ? "text-primary" : "text-sidebar-muted",
+                      "h-3.5 w-3.5 shrink-0 text-sidebar-muted transition-transform",
+                      groupOpen && "rotate-90",
                     )}
                   />
-                  <span className="flex-1 text-left">{item.label}</span>
-                  {groupOpen ? (
-                    <ChevronDown
-                      className={cn(
-                        "h-4 w-4 transition-colors",
-                        hasActiveChild ? "text-primary/80" : "text-sidebar-muted",
-                      )}
-                    />
-                  ) : (
-                    <ChevronRight
-                      className={cn(
-                        "h-4 w-4 transition-colors",
-                        hasActiveChild ? "text-primary/80" : "text-sidebar-muted",
-                      )}
-                    />
-                  )}
                 </button>
-
                 {groupOpen && (
-                  <div
-                    className={cn(
-                      "ml-5 space-y-0.5 border-l pl-3 py-1 transition-colors",
-                      hasActiveChild ? "border-primary/30" : "border-sidebar-border",
-                    )}
-                  >
-                    {item.children!.map((child) => {
-                      const renderNavChild = (node: typeof child, depth = 0): React.ReactNode => {
-                        if (node.children?.length) {
-                          const isFolderOpen = Boolean(openFolders[node.id]);
-                          const folderHasActive = Boolean(node.children?.some((sc) => isNodeActive(sc)));
-
-                          return (
-                            <div key={node.id} className="space-y-0.5 pt-1">
-                              {/* Intermediate Folder — slightly light highlighted when containing active page */}
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setOpenFolders((s) => ({ ...s, [node.id]: !isFolderOpen }))
-                                }
-                                className={cn(
-                                  "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-[12px] font-semibold transition cursor-pointer border",
-                                  folderHasActive
-                                    ? "bg-primary/15 text-sidebar-foreground border-primary/25 shadow-2xs"
-                                    : "text-sidebar-muted border-transparent hover:text-sidebar-foreground hover:bg-sidebar-hover",
-                                )}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Folder
-                                    className={cn(
-                                      "h-3.5 w-3.5 shrink-0 transition-colors",
-                                      folderHasActive ? "text-primary" : "text-sidebar-muted",
-                                    )}
-                                  />
-                                  <span>{node.label}</span>
-                                </div>
-                                {isFolderOpen ? (
-                                  <ChevronDown
-                                    className={cn(
-                                      "h-3 w-3 transition-colors",
-                                      folderHasActive ? "text-primary/80" : "text-sidebar-muted",
-                                    )}
-                                  />
-                                ) : (
-                                  <ChevronRight
-                                    className={cn(
-                                      "h-3 w-3 transition-colors",
-                                      folderHasActive ? "text-primary/80" : "text-sidebar-muted",
-                                    )}
-                                  />
-                                )}
-                              </button>
-
-                              {isFolderOpen && (
-                                <div
-                                  className={cn(
-                                    "ml-3 space-y-0.5 border-l pl-2.5 py-0.5 transition-colors",
-                                    folderHasActive ? "border-primary/25" : "border-sidebar-border",
-                                  )}
-                                >
-                                  {node.children.map((subNode) =>
-                                    renderNavChild(subNode, depth + 1),
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        }
-
-                        // Inside Leaf Item — THE ONE WHICH WE OPEN: theme highlighted
-                        const childActive = isLinkActive(node.to);
-                        return (
-                          <Link
-                            key={node.id}
-                            to={node.to!}
-                            onClick={onNavigate}
-                            className={cn(
-                              "flex items-center rounded-md px-2.5 py-1.5 text-[12px] transition-all duration-150",
-                              childActive
-                                ? "font-bold text-primary-foreground bg-primary shadow-xs ring-1 ring-primary/40"
-                                : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-hover",
-                            )}
-                          >
-                            {node.label}
-                          </Link>
-                        );
-                      };
-
-                      return renderNavChild(child);
-                    })}
+                  <div className="mt-0.5 space-y-0.5 pl-[30px]">
+                    {item.children!.map((child) => renderNode(child, 1))}
                   </div>
                 )}
               </div>
             );
           }
 
-          // Top-level item without children (or collapsed)
-          const isItemActive = hasChildren ? hasActiveChild : active;
           return (
             <Link
               key={item.id}
+              ref={activeLeaf ? activeLinkRef : undefined}
               to={item.to}
               onClick={onNavigate}
-              title={collapsed ? item.label : undefined}
+              activeOptions={{ exact: Boolean(item.exact) }}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150 border",
-                isItemActive
-                  ? hasChildren
-                    ? "bg-primary/15 text-primary border-primary/25 font-semibold"
-                    : "bg-primary text-primary-foreground shadow-sm font-bold border-transparent ring-1 ring-primary/40"
-                  : "text-sidebar-muted border-transparent hover:bg-sidebar-hover hover:text-sidebar-foreground",
-                collapsed && "justify-center px-2",
+                "flex items-center gap-2.5 rounded-md px-3 py-2 text-[13.5px] font-medium transition-colors",
+                activeLeaf
+                  ? "bg-primary font-semibold text-primary-foreground shadow-xs"
+                  : "text-sidebar-foreground hover:bg-sidebar-hover",
               )}
             >
               <Icon
                 className={cn(
-                  "h-4 w-4 shrink-0 transition-colors",
-                  isItemActive && hasChildren ? "text-primary" : "",
+                  "h-[18px] w-[18px] shrink-0 stroke-[1.5]",
+                  !activeLeaf && "text-sidebar-foreground",
                 )}
               />
-              {!collapsed && <span>{item.label}</span>}
+              <span className="truncate">{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      {/* Footer Navigation (Help & Settings) */}
-      <div className="border-t border-sidebar-border p-3 space-y-1">
-        {footerItems.map((item) => {
+      <div className="space-y-0.5 border-t border-sidebar-border p-2">
+        {POS_FOOTER_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.to);
           return (
             <Link
               key={item.id}
+              ref={active ? activeLinkRef : undefined}
               to={item.to}
               onClick={onNavigate}
+              title={collapsed ? item.label : undefined}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-[12.5px] font-medium transition-all",
+                "flex items-center gap-2.5 rounded-md px-3 py-2 text-[13.5px] font-medium transition-colors",
                 active
-                  ? "bg-primary text-primary-foreground font-bold"
-                  : "text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground",
+                  ? "bg-primary font-semibold text-primary-foreground shadow-xs"
+                  : "text-sidebar-foreground hover:bg-sidebar-hover",
                 collapsed && "justify-center px-2",
               )}
             >
-              <Icon className="h-4 w-4 shrink-0 text-sidebar-muted" />
-              {!collapsed && <span>{item.label}</span>}
+              <Icon
+                className={cn(
+                  "h-[18px] w-[18px] shrink-0 stroke-[1.5]",
+                  !active && "text-sidebar-foreground",
+                )}
+              />
+              {!collapsed && <span className="truncate">{item.label}</span>}
             </Link>
           );
         })}
