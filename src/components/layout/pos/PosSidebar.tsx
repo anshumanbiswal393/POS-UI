@@ -164,14 +164,17 @@ export function PosSidebar({
     >
       <div className="flex h-16 shrink-0 items-center border-b border-sidebar-border px-4">
         {!collapsed ? (
-          <Link
-            to="/pos"
-            onClick={onNavigate}
-            className="flex min-w-0 cursor-pointer items-center py-1 transition-opacity hover:opacity-90"
-            title="Go to POS Dashboard"
-          >
-            <RetrodLogo variant="dark" size="md" />
-          </Link>
+          <div className="flex min-w-0 items-center gap-2">
+            <Link
+              to="/pos"
+              onClick={onNavigate}
+              className="flex min-w-0 cursor-pointer items-center py-1 transition-opacity hover:opacity-90"
+              title="Go to POS Dashboard"
+            >
+              <RetrodLogo variant="dark" size="md" />
+            </Link>
+            <span className="label-uppercase shrink-0 text-[9px] !text-sidebar-muted">POS</span>
+          </div>
         ) : (
           <Link
             to="/pos"

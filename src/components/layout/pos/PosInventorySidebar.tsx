@@ -56,10 +56,11 @@ export function PosInventorySidebar({
         <Link
           to="/pos"
           onClick={onNavigate}
-          className="flex items-center py-1 transition-opacity hover:opacity-90 cursor-pointer"
+          className="flex items-center gap-2 py-1 transition-opacity hover:opacity-90 cursor-pointer"
           title="Go to POS Dashboard"
         >
           <RetrodLogo variant="light" size="md" />
+          <span className="label-uppercase shrink-0 text-[9px] text-slate-400">POS</span>
         </Link>
       </div>
 
