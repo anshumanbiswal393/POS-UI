@@ -41,9 +41,7 @@ import { Route as PosManagementDeviceMappingRouteImport } from './routes/pos.man
 import { Route as PosManagementDataManagementRouteImport } from './routes/pos.management.data-management'
 import { Route as PosManagementAuditTrailRouteImport } from './routes/pos.management.audit-trail'
 import { Route as PosInventoryWastageRouteImport } from './routes/pos.inventory.wastage'
-import { Route as PosInventoryTransferRouteImport } from './routes/pos.inventory.transfer'
 import { Route as PosInventorySettingsRouteImport } from './routes/pos.inventory.settings'
-import { Route as PosInventorySalesReturnRouteImport } from './routes/pos.inventory.sales-return'
 import { Route as PosInventorySalesRouteImport } from './routes/pos.inventory.sales'
 import { Route as PosInventoryReturnRouteImport } from './routes/pos.inventory.return'
 import { Route as PosInventoryReportsRouteImport } from './routes/pos.inventory.reports'
@@ -102,6 +100,7 @@ import { Route as PosManagementConfigurationOutletTimingsRouteImport } from './r
 import { Route as PosManagementConfigurationOutletPrintLogoRouteImport } from './routes/pos.management.configuration.outlet.print-logo'
 import { Route as PosManagementConfigurationOutletPrintRouteImport } from './routes/pos.management.configuration.outlet.print'
 import { Route as PosManagementConfigurationOutletPaymentRouteImport } from './routes/pos.management.configuration.outlet.payment'
+import { Route as PosManagementConfigurationOutletListRouteImport } from './routes/pos.management.configuration.outlet.list'
 import { Route as PosManagementConfigurationOutletInvoiceSequenceRouteImport } from './routes/pos.management.configuration.outlet.invoice-sequence'
 import { Route as PosManagementConfigurationOutletDisplayRouteImport } from './routes/pos.management.configuration.outlet.display'
 import { Route as PosManagementConfigurationOutletDetailsRouteImport } from './routes/pos.management.configuration.outlet.details'
@@ -274,19 +273,9 @@ const PosInventoryWastageRoute = PosInventoryWastageRouteImport.update({
   path: '/wastage',
   getParentRoute: () => PosInventoryRoute,
 } as any)
-const PosInventoryTransferRoute = PosInventoryTransferRouteImport.update({
-  id: '/transfer',
-  path: '/transfer',
-  getParentRoute: () => PosInventoryRoute,
-} as any)
 const PosInventorySettingsRoute = PosInventorySettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => PosInventoryRoute,
-} as any)
-const PosInventorySalesReturnRoute = PosInventorySalesReturnRouteImport.update({
-  id: '/sales-return',
-  path: '/sales-return',
   getParentRoute: () => PosInventoryRoute,
 } as any)
 const PosInventorySalesRoute = PosInventorySalesRouteImport.update({
@@ -629,6 +618,12 @@ const PosManagementConfigurationOutletPaymentRoute =
     path: '/payment',
     getParentRoute: () => PosManagementConfigurationOutletRoute,
   } as any)
+const PosManagementConfigurationOutletListRoute =
+  PosManagementConfigurationOutletListRouteImport.update({
+    id: '/list',
+    path: '/list',
+    getParentRoute: () => PosManagementConfigurationOutletRoute,
+  } as any)
 const PosManagementConfigurationOutletInvoiceSequenceRoute =
   PosManagementConfigurationOutletInvoiceSequenceRouteImport.update({
     id: '/invoice-sequence',
@@ -711,9 +706,7 @@ export interface FileRoutesByFullPath {
   '/pos/inventory/reports': typeof PosInventoryReportsRouteWithChildren
   '/pos/inventory/return': typeof PosInventoryReturnRoute
   '/pos/inventory/sales': typeof PosInventorySalesRoute
-  '/pos/inventory/sales-return': typeof PosInventorySalesReturnRoute
   '/pos/inventory/settings': typeof PosInventorySettingsRoute
-  '/pos/inventory/transfer': typeof PosInventoryTransferRoute
   '/pos/inventory/wastage': typeof PosInventoryWastageRoute
   '/pos/management/audit-trail': typeof PosManagementAuditTrailRoute
   '/pos/management/data-management': typeof PosManagementDataManagementRoute
@@ -783,6 +776,7 @@ export interface FileRoutesByFullPath {
   '/pos/management/configuration/outlet/details': typeof PosManagementConfigurationOutletDetailsRoute
   '/pos/management/configuration/outlet/display': typeof PosManagementConfigurationOutletDisplayRoute
   '/pos/management/configuration/outlet/invoice-sequence': typeof PosManagementConfigurationOutletInvoiceSequenceRoute
+  '/pos/management/configuration/outlet/list': typeof PosManagementConfigurationOutletListRoute
   '/pos/management/configuration/outlet/payment': typeof PosManagementConfigurationOutletPaymentRoute
   '/pos/management/configuration/outlet/print': typeof PosManagementConfigurationOutletPrintRoute
   '/pos/management/configuration/outlet/print-logo': typeof PosManagementConfigurationOutletPrintLogoRoute
@@ -815,9 +809,7 @@ export interface FileRoutesByTo {
   '/pos/inventory/reports': typeof PosInventoryReportsRouteWithChildren
   '/pos/inventory/return': typeof PosInventoryReturnRoute
   '/pos/inventory/sales': typeof PosInventorySalesRoute
-  '/pos/inventory/sales-return': typeof PosInventorySalesReturnRoute
   '/pos/inventory/settings': typeof PosInventorySettingsRoute
-  '/pos/inventory/transfer': typeof PosInventoryTransferRoute
   '/pos/inventory/wastage': typeof PosInventoryWastageRoute
   '/pos/management/audit-trail': typeof PosManagementAuditTrailRoute
   '/pos/management/data-management': typeof PosManagementDataManagementRoute
@@ -887,6 +879,7 @@ export interface FileRoutesByTo {
   '/pos/management/configuration/outlet/details': typeof PosManagementConfigurationOutletDetailsRoute
   '/pos/management/configuration/outlet/display': typeof PosManagementConfigurationOutletDisplayRoute
   '/pos/management/configuration/outlet/invoice-sequence': typeof PosManagementConfigurationOutletInvoiceSequenceRoute
+  '/pos/management/configuration/outlet/list': typeof PosManagementConfigurationOutletListRoute
   '/pos/management/configuration/outlet/payment': typeof PosManagementConfigurationOutletPaymentRoute
   '/pos/management/configuration/outlet/print': typeof PosManagementConfigurationOutletPrintRoute
   '/pos/management/configuration/outlet/print-logo': typeof PosManagementConfigurationOutletPrintLogoRoute
@@ -920,9 +913,7 @@ export interface FileRoutesById {
   '/pos/inventory/reports': typeof PosInventoryReportsRouteWithChildren
   '/pos/inventory/return': typeof PosInventoryReturnRoute
   '/pos/inventory/sales': typeof PosInventorySalesRoute
-  '/pos/inventory/sales-return': typeof PosInventorySalesReturnRoute
   '/pos/inventory/settings': typeof PosInventorySettingsRoute
-  '/pos/inventory/transfer': typeof PosInventoryTransferRoute
   '/pos/inventory/wastage': typeof PosInventoryWastageRoute
   '/pos/management/audit-trail': typeof PosManagementAuditTrailRoute
   '/pos/management/data-management': typeof PosManagementDataManagementRoute
@@ -992,6 +983,7 @@ export interface FileRoutesById {
   '/pos/management/configuration/outlet/details': typeof PosManagementConfigurationOutletDetailsRoute
   '/pos/management/configuration/outlet/display': typeof PosManagementConfigurationOutletDisplayRoute
   '/pos/management/configuration/outlet/invoice-sequence': typeof PosManagementConfigurationOutletInvoiceSequenceRoute
+  '/pos/management/configuration/outlet/list': typeof PosManagementConfigurationOutletListRoute
   '/pos/management/configuration/outlet/payment': typeof PosManagementConfigurationOutletPaymentRoute
   '/pos/management/configuration/outlet/print': typeof PosManagementConfigurationOutletPrintRoute
   '/pos/management/configuration/outlet/print-logo': typeof PosManagementConfigurationOutletPrintLogoRoute
@@ -1026,9 +1018,7 @@ export interface FileRouteTypes {
     | '/pos/inventory/reports'
     | '/pos/inventory/return'
     | '/pos/inventory/sales'
-    | '/pos/inventory/sales-return'
     | '/pos/inventory/settings'
-    | '/pos/inventory/transfer'
     | '/pos/inventory/wastage'
     | '/pos/management/audit-trail'
     | '/pos/management/data-management'
@@ -1098,6 +1088,7 @@ export interface FileRouteTypes {
     | '/pos/management/configuration/outlet/details'
     | '/pos/management/configuration/outlet/display'
     | '/pos/management/configuration/outlet/invoice-sequence'
+    | '/pos/management/configuration/outlet/list'
     | '/pos/management/configuration/outlet/payment'
     | '/pos/management/configuration/outlet/print'
     | '/pos/management/configuration/outlet/print-logo'
@@ -1130,9 +1121,7 @@ export interface FileRouteTypes {
     | '/pos/inventory/reports'
     | '/pos/inventory/return'
     | '/pos/inventory/sales'
-    | '/pos/inventory/sales-return'
     | '/pos/inventory/settings'
-    | '/pos/inventory/transfer'
     | '/pos/inventory/wastage'
     | '/pos/management/audit-trail'
     | '/pos/management/data-management'
@@ -1202,6 +1191,7 @@ export interface FileRouteTypes {
     | '/pos/management/configuration/outlet/details'
     | '/pos/management/configuration/outlet/display'
     | '/pos/management/configuration/outlet/invoice-sequence'
+    | '/pos/management/configuration/outlet/list'
     | '/pos/management/configuration/outlet/payment'
     | '/pos/management/configuration/outlet/print'
     | '/pos/management/configuration/outlet/print-logo'
@@ -1234,9 +1224,7 @@ export interface FileRouteTypes {
     | '/pos/inventory/reports'
     | '/pos/inventory/return'
     | '/pos/inventory/sales'
-    | '/pos/inventory/sales-return'
     | '/pos/inventory/settings'
-    | '/pos/inventory/transfer'
     | '/pos/inventory/wastage'
     | '/pos/management/audit-trail'
     | '/pos/management/data-management'
@@ -1306,6 +1294,7 @@ export interface FileRouteTypes {
     | '/pos/management/configuration/outlet/details'
     | '/pos/management/configuration/outlet/display'
     | '/pos/management/configuration/outlet/invoice-sequence'
+    | '/pos/management/configuration/outlet/list'
     | '/pos/management/configuration/outlet/payment'
     | '/pos/management/configuration/outlet/print'
     | '/pos/management/configuration/outlet/print-logo'
@@ -1544,25 +1533,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PosInventoryWastageRouteImport
       parentRoute: typeof PosInventoryRoute
     }
-    '/pos/inventory/transfer': {
-      id: '/pos/inventory/transfer'
-      path: '/transfer'
-      fullPath: '/pos/inventory/transfer'
-      preLoaderRoute: typeof PosInventoryTransferRouteImport
-      parentRoute: typeof PosInventoryRoute
-    }
     '/pos/inventory/settings': {
       id: '/pos/inventory/settings'
       path: '/settings'
       fullPath: '/pos/inventory/settings'
       preLoaderRoute: typeof PosInventorySettingsRouteImport
-      parentRoute: typeof PosInventoryRoute
-    }
-    '/pos/inventory/sales-return': {
-      id: '/pos/inventory/sales-return'
-      path: '/sales-return'
-      fullPath: '/pos/inventory/sales-return'
-      preLoaderRoute: typeof PosInventorySalesReturnRouteImport
       parentRoute: typeof PosInventoryRoute
     }
     '/pos/inventory/sales': {
@@ -1971,6 +1946,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PosManagementConfigurationOutletPaymentRouteImport
       parentRoute: typeof PosManagementConfigurationOutletRoute
     }
+    '/pos/management/configuration/outlet/list': {
+      id: '/pos/management/configuration/outlet/list'
+      path: '/list'
+      fullPath: '/pos/management/configuration/outlet/list'
+      preLoaderRoute: typeof PosManagementConfigurationOutletListRouteImport
+      parentRoute: typeof PosManagementConfigurationOutletRoute
+    }
     '/pos/management/configuration/outlet/invoice-sequence': {
       id: '/pos/management/configuration/outlet/invoice-sequence'
       path: '/invoice-sequence'
@@ -2103,9 +2085,7 @@ interface PosInventoryRouteChildren {
   PosInventoryReportsRoute: typeof PosInventoryReportsRouteWithChildren
   PosInventoryReturnRoute: typeof PosInventoryReturnRoute
   PosInventorySalesRoute: typeof PosInventorySalesRoute
-  PosInventorySalesReturnRoute: typeof PosInventorySalesReturnRoute
   PosInventorySettingsRoute: typeof PosInventorySettingsRoute
-  PosInventoryTransferRoute: typeof PosInventoryTransferRoute
   PosInventoryWastageRoute: typeof PosInventoryWastageRoute
 }
 
@@ -2120,9 +2100,7 @@ const PosInventoryRouteChildren: PosInventoryRouteChildren = {
   PosInventoryReportsRoute: PosInventoryReportsRouteWithChildren,
   PosInventoryReturnRoute: PosInventoryReturnRoute,
   PosInventorySalesRoute: PosInventorySalesRoute,
-  PosInventorySalesReturnRoute: PosInventorySalesReturnRoute,
   PosInventorySettingsRoute: PosInventorySettingsRoute,
-  PosInventoryTransferRoute: PosInventoryTransferRoute,
   PosInventoryWastageRoute: PosInventoryWastageRoute,
 }
 
@@ -2138,6 +2116,7 @@ interface PosManagementConfigurationOutletRouteChildren {
   PosManagementConfigurationOutletDetailsRoute: typeof PosManagementConfigurationOutletDetailsRoute
   PosManagementConfigurationOutletDisplayRoute: typeof PosManagementConfigurationOutletDisplayRoute
   PosManagementConfigurationOutletInvoiceSequenceRoute: typeof PosManagementConfigurationOutletInvoiceSequenceRoute
+  PosManagementConfigurationOutletListRoute: typeof PosManagementConfigurationOutletListRoute
   PosManagementConfigurationOutletPaymentRoute: typeof PosManagementConfigurationOutletPaymentRoute
   PosManagementConfigurationOutletPrintRoute: typeof PosManagementConfigurationOutletPrintRoute
   PosManagementConfigurationOutletPrintLogoRoute: typeof PosManagementConfigurationOutletPrintLogoRoute
@@ -2160,6 +2139,8 @@ const PosManagementConfigurationOutletRouteChildren: PosManagementConfigurationO
       PosManagementConfigurationOutletDisplayRoute,
     PosManagementConfigurationOutletInvoiceSequenceRoute:
       PosManagementConfigurationOutletInvoiceSequenceRoute,
+    PosManagementConfigurationOutletListRoute:
+      PosManagementConfigurationOutletListRoute,
     PosManagementConfigurationOutletPaymentRoute:
       PosManagementConfigurationOutletPaymentRoute,
     PosManagementConfigurationOutletPrintRoute:

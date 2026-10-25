@@ -213,11 +213,15 @@ export function MenuItemEditModal({
       return;
     }
 
+    const matchedCategory = outletCategories.find(
+      (c) => c.name.trim().toLowerCase() === category.trim().toLowerCase(),
+    );
     const payload = {
       name: name.trim(),
       code: code.trim().toUpperCase(),
       onlineDisplayName: (onlineDisplayName || name).trim(),
       category: category.trim(),
+      categoryId: matchedCategory?.id || item?.categoryId,
       itemType,
       price: numPrice,
       taxRate: Number(taxRate) || 5,

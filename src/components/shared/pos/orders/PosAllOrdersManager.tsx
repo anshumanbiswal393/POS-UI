@@ -15,6 +15,8 @@ import {
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useAllOrders } from "@/hooks/queries/usePosOrders";
 import type { AllOrderItem } from "@/types/posOrders";
+import { useOutletContext } from "@/context/PosOutletContext";
+import { isBackendOutletId } from "@/utils/outletId";
 import {
   PosDataGrid,
   ChooseColumnsMenu,
@@ -241,6 +243,8 @@ export function PosAllOrdersManager() {
   const [printingOrder, setPrintingOrder] = useState<AllOrderItem | null>(null);
 
   const { data } = useAllOrders();
+  const { activeOutlet } = useOutletContext();
+  const liveOutlet = isBackendOutletId(activeOutlet?.id);
 
   useEffect(() => {
     setMounted(true);
@@ -261,8 +265,15 @@ export function PosAllOrdersManager() {
   };
 
 
+  const sourceRecords = useMemo(() => {
+    if (liveOutlet) {
+      return (data?.records || []) as (AllOrderItem & { tableNo?: string; customerPhone?: string })[];
+    }
+    return EXTENDED_MOCK_RECORDS;
+  }, [liveOutlet, data?.records]);
+
   const filteredRecords = useMemo(() => {
-    return EXTENDED_MOCK_RECORDS.filter((r) => {
+    return sourceRecords.filter((r) => {
       // Tab filter
       if (activeTab === "advance_order" && !r.isAdvanceOrder) return false;
       if (activeTab === "order" && r.isAdvanceOrder) return false;
@@ -323,7 +334,7 @@ export function PosAllOrdersManager() {
 
       return true;
     });
-  }, [activeTab, appliedFilters]);
+  }, [activeTab, appliedFilters, sourceRecords]);
 
   // Pagination calculation
   const totalRecords = filteredRecords.length;
@@ -685,7 +696,9 @@ export function PosAllOrdersManager() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="text-[13px] font-bold text-slate-900">
             Grand Total :{" "}
-            <span className="text-teal-700">{data?.grandTotalFormatted ?? "₹ 643,388.00"}</span>
+            <span className="text-teal-700">
+              {data?.grandTotalFormatted ?? (liveOutlet ? "₹ 0.00" : "₹ 643,388.00")}
+            </span>
           </div>
           <ExportToExcelButton onClick={handleExportExcel} />
         </div>

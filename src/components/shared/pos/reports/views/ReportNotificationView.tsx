@@ -1,14 +1,29 @@
-import { useState } from "react";
-import { Bell, Clock, Plus, CheckCircle2, Mail, MessageSquare } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Clock, Mail, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import { useOutletContext } from "@/context/PosOutletContext";
+import {
+  DEFAULT_NOTIFY_PREFS,
+  loadReportNotifyPrefs,
+  saveReportNotifyPrefs,
+} from "@/services/posReportsService";
 
 export function ReportNotificationView() {
-  const [emailAlerts, setEmailAlerts] = useState(true);
-  const [whatsappAlerts, setWhatsappAlerts] = useState(false);
-  const [scheduleTime, setScheduleTime] = useState("23:30");
+  const { activeOutlet } = useOutletContext();
+  const [emailAlerts, setEmailAlerts] = useState(DEFAULT_NOTIFY_PREFS.emailAlerts);
+  const [whatsappAlerts, setWhatsappAlerts] = useState(DEFAULT_NOTIFY_PREFS.whatsappAlerts);
+  const [scheduleTime, setScheduleTime] = useState(DEFAULT_NOTIFY_PREFS.scheduleTime);
+
+  useEffect(() => {
+    const prefs = loadReportNotifyPrefs(activeOutlet?.id);
+    setEmailAlerts(prefs.emailAlerts);
+    setWhatsappAlerts(prefs.whatsappAlerts);
+    setScheduleTime(prefs.scheduleTime);
+  }, [activeOutlet?.id]);
 
   const handleSave = () => {
-    toast.success("Report notifications preferences saved successfully!");
+    saveReportNotifyPrefs(activeOutlet?.id, { emailAlerts, whatsappAlerts, scheduleTime });
+    toast.success("Report notifications preferences saved on this device.");
   };
 
   return (

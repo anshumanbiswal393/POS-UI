@@ -97,7 +97,22 @@ export function PosTakeOrderManager() {
 
   // ===================== HANDLERS: RESTAURANT =====================
   const handleSelectTable = (table: RestaurantTable) => {
-    // Open the setup wizard to ask for guest details and waiter name dropdown (all optional)
+    if ((table.status === "occupied" || table.activeOrder?.orderId) && table.activeOrder?.orderId) {
+      navigate({
+        to: "/pos/billing",
+        search: {
+          orderType: "dine_in",
+          table: table.tableNumber,
+          tableId: table.id,
+          orderId: table.activeOrder.orderId,
+          orderNumber: table.activeOrder.orderNumber || undefined,
+          editOrder: "1",
+          guests: table.currentGuests || table.capacity,
+          waiterName: table.activeOrder.serverName || "",
+        },
+      });
+      return;
+    }
     setWizardTableId(table.id);
     setIsTakeOrderWizardOpen(true);
   };
@@ -179,6 +194,10 @@ export function PosTakeOrderManager() {
       search: {
         orderType: "room_service",
         room: room.roomNumber,
+        roomUnitId: room.roomUnitId || "",
+        reservationId: room.reservationId || "",
+        folioId: room.folioId || "",
+        guests: room.guest.pax || 1,
         guestName: room.guest.name,
         guestPhone: room.guest.phoneExtension || "",
       },

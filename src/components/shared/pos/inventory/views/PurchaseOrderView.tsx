@@ -4,6 +4,7 @@ import {
   usePurchaseOrders,
   useInventoryVendors,
   useDeletePurchaseOrder,
+  useReceivePurchaseOrder,
 } from "@/hooks/queries/usePosInventory";
 import { CreatePurchaseOrderModal } from "../modals/CreatePurchaseOrderModal";
 import {
@@ -18,6 +19,7 @@ export function PurchaseOrderView() {
   const { data: purchaseOrders } = usePurchaseOrders();
   const { data: vendors } = useInventoryVendors();
   const deleteMutation = useDeletePurchaseOrder();
+  const receiveMutation = useReceivePurchaseOrder();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [startDate, setStartDate] = useState("2026-08-26");
@@ -276,14 +278,30 @@ export function PurchaseOrderView() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5 text-slate-400">
-                        <button
-                          type="button"
-                          onClick={() => toast.info(`Viewing PO ${po.poNumber}`)}
-                          className="p-1 hover:text-teal-600 hover:bg-slate-100 rounded transition cursor-pointer"
-                          title="View"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
+                        {po.status !== "Received" ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              receiveMutation.mutate(po.id, {
+                                onSuccess: () => toast.success(`Received PO ${po.poNumber}. Stock added.`),
+                                onError: () => toast.error("Could not receive purchase order"),
+                              })
+                            }
+                            className="p-1 hover:text-teal-600 hover:bg-slate-100 rounded transition cursor-pointer text-[11px] font-bold"
+                            title="Receive into stock"
+                          >
+                            Receive
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => toast.info(`Viewing PO ${po.poNumber}`)}
+                            className="p-1 hover:text-teal-600 hover:bg-slate-100 rounded transition cursor-pointer"
+                            title="View"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => {

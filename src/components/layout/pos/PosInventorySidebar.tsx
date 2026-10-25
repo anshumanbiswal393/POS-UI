@@ -6,7 +6,6 @@ import {
   ShoppingCart,
   Sliders,
   Utensils,
-  ArrowLeftRight,
   Trash2,
   Factory,
   BarChart2,
@@ -39,8 +38,6 @@ export function PosInventorySidebar({
     reports: false,
     masters: false,
   });
-
-  const [showMoreConsumption, setShowMoreConsumption] = useState(false);
 
   const toggleSection = (key: string) => {
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -226,20 +223,6 @@ export function PosInventorySidebar({
             </Link>
 
             <Link
-              to="/pos/inventory/transfer"
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium transition",
-                isExact("/pos/inventory/transfer")
-                  ? "text-teal-600 font-bold bg-teal-50"
-                  : "text-slate-700 hover:bg-slate-50 hover:text-slate-900",
-              )}
-            >
-              <ArrowLeftRight className="h-4 w-4 text-slate-500" />
-              <span>Transfer</span>
-            </Link>
-
-            <Link
               to="/pos/inventory/wastage"
               onClick={onNavigate}
               className={cn(
@@ -252,28 +235,6 @@ export function PosInventorySidebar({
               <Trash2 className="h-4 w-4 text-slate-500" />
               <span>Wastage</span>
             </Link>
-
-            <Link
-              to="/pos/inventory/sales-return"
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium transition",
-                isExact("/pos/inventory/sales-return")
-                  ? "text-teal-600 font-bold bg-teal-50"
-                  : "text-slate-700 hover:bg-slate-50 hover:text-slate-900",
-              )}
-            >
-              <ArrowLeftRight className="h-4 w-4 text-slate-500" />
-              <span>Sales Return</span>
-            </Link>
-
-            <button
-              type="button"
-              onClick={() => setShowMoreConsumption(!showMoreConsumption)}
-              className="px-3 py-1.5 text-[11.5px] font-semibold text-teal-600 hover:text-teal-700 hover:underline cursor-pointer"
-            >
-              {showMoreConsumption ? "View Less" : "View More"}
-            </button>
           </div>
         </div>
 

@@ -16,7 +16,7 @@ export function FloorPlanManagementView() {
             className="inline-flex items-center gap-1 text-[12px] font-semibold text-teal-700 hover:underline"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Outlet Configuration
+            Outlet Setup
           </Link>
           <h2 className="text-[18px] font-bold tracking-tight text-slate-900">Floor Plan</h2>
         </div>

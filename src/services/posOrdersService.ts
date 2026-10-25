@@ -1,5 +1,17 @@
 import httpClient from "@/utils/httpClient";
 import { formatINR } from "./posDashboardService";
+import { isBackendOutletId } from "@/utils/outletId";
+import {
+  liveGetLiveSummary,
+  liveGetCurrent,
+  liveGetHistory,
+  liveGetKot,
+  liveGetDueBills,
+  liveAdvanceOrder,
+  liveKotReady,
+  liveKotServed,
+  liveSettleDue,
+} from "./posOrderLive";
 import type {
   LiveOrderSummaryApiDto,
   AllOrdersApiResponse,
@@ -117,7 +129,11 @@ export function getInitialLiveOrdersData(): LiveOrderSummaryData {
   return mapLiveOrdersDto(liveOrdersStore);
 }
 
-export async function getLiveOrdersSummary(): Promise<LiveOrderSummaryData> {
+export async function getLiveOrdersSummary(outletId?: string): Promise<LiveOrderSummaryData> {
+  if (isBackendOutletId(outletId)) {
+    const live = await liveGetLiveSummary(outletId);
+    if (live) return live;
+  }
   if (typeof window === "undefined") return getInitialLiveOrdersData();
   try {
     const res = await httpClient.get<LiveOrderSummaryApiDto>("/api/pos/orders/live");
@@ -272,13 +288,16 @@ export function getInitialAllOrdersData(): AllOrdersData {
   return mapAllOrdersDto(allOrdersStore);
 }
 
-export async function getAllOrders(filters?: Record<string, any>): Promise<AllOrdersData> {
+export async function getAllOrders(filters?: Record<string, any>, outletId?: string): Promise<AllOrdersData> {
+  if (isBackendOutletId(outletId)) {
+    return liveGetHistory(outletId, filters);
+  }
   if (typeof window === "undefined") return getInitialAllOrdersData();
   try {
     const res = await httpClient.get<AllOrdersApiResponse>("/api/pos/orders/all", {
       params: filters,
     });
-    if (res.data && res.data.success) return mapAllOrdersDto(res.data);
+    if (res.data && res.data.success && res.data.records) return mapAllOrdersDto(res.data);
     return getInitialAllOrdersData();
   } catch {
     return getInitialAllOrdersData();
@@ -726,11 +745,14 @@ export function getInitialKotData(): KotData {
   return mapKotDto(kotOrdersStore);
 }
 
-export async function getKotOrders(filters?: Record<string, any>): Promise<KotData> {
+export async function getKotOrders(filters?: Record<string, any>, outletId?: string): Promise<KotData> {
+  if (isBackendOutletId(outletId)) {
+    return liveGetKot(outletId);
+  }
   if (typeof window === "undefined") return getInitialKotData();
   try {
     const res = await httpClient.get<KotApiResponse>("/api/pos/kot", { params: filters });
-    if (res.data && res.data.success) return mapKotDto(res.data);
+    if (res.data && res.data.success && res.data.records) return mapKotDto(res.data);
     return getInitialKotData();
   } catch {
     return getInitialKotData();
@@ -845,7 +867,10 @@ let currentOrdersStore: CurrentOrderRecord[] = [
   },
 ];
 
-export function getCurrentOrdersTimeline(): CurrentOrderRecord[] {
+export async function getCurrentOrdersTimeline(outletId?: string): Promise<CurrentOrderRecord[]> {
+  if (isBackendOutletId(outletId)) {
+    return liveGetCurrent(outletId);
+  }
   const now = Date.now();
   return currentOrdersStore.map((o) => ({
     ...o,
@@ -860,6 +885,13 @@ export function getCurrentOrderByNumber(orderNumber: string): CurrentOrderRecord
     (o) => o.orderNumber === orderNumber || o.orderNumber === `ORD-${bare}` || o.orderNumber.endsWith(bare),
   );
   return found ? { ...found, items: found.items.map((i) => ({ ...i })) } : null;
+}
+
+export async function advanceCurrentOrderById(orderId: string) {
+  if (isBackendOutletId(orderId) || /^[0-9a-f-]{36}$/i.test(orderId)) {
+    return liveAdvanceOrder(orderId);
+  }
+  return advanceCurrentOrderStage(orderId);
 }
 
 export function advanceCurrentOrderStage(orderNumber: string): CurrentOrderRecord | null {
@@ -1211,7 +1243,10 @@ let dueBillsStore: DueBill[] = [
   },
 ];
 
-export async function getDueBills(): Promise<DueBill[]> {
+export async function getDueBills(outletId?: string): Promise<DueBill[]> {
+  if (isBackendOutletId(outletId)) {
+    return liveGetDueBills(outletId);
+  }
   // Pending list only — settled bills live in Order History
   return dueBillsStore.filter((b) => b.status !== "Settled");
 }
@@ -1219,6 +1254,14 @@ export async function getDueBills(): Promise<DueBill[]> {
 /**
  * Chef 1-click action: Marks KOT Prepared and generates/routes bill to Due Settlement
  */
+export async function markKotReadyLive(ticketId: string) {
+  return liveKotReady(ticketId);
+}
+
+export async function markKotServedLive(ticketId: string) {
+  return liveKotServed(ticketId);
+}
+
 export function markKotPrepared(kotId: number): { kot: any; bill: DueBill | null } {
   let targetKot: any = null;
 
@@ -1338,6 +1381,17 @@ export function markKotPrepared(kotId: number): { kot: any; bill: DueBill | null
 /**
  * Reception Settlement: Settles bill, archives in Order History, and marks table ready
  */
+export async function settleDueBillLive(
+  billId: string,
+  paymentMode: "Cash" | "Card" | "UPI" | "Room Charge" | "Split",
+  paidAmount?: number,
+) {
+  if (/^[0-9a-f-]{36}$/i.test(billId)) {
+    return liveSettleDue(billId, paymentMode.toUpperCase().replace(" ", "_"), paidAmount || 0);
+  }
+  return settleDueBill(billId, paymentMode, paidAmount);
+}
+
 export function settleDueBill(
   billId: string,
   paymentMode: "Cash" | "Card" | "UPI" | "Room Charge" | "Split",

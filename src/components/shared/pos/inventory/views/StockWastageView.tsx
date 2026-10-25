@@ -1,5 +1,13 @@
 import { useMemo, useState } from "react";
 import {
+  useCreateWastage,
+  useDeleteWastage,
+  useStockItems,
+  useWastageEntries,
+} from "@/hooks/queries/usePosInventory";
+import { useOutletContext } from "@/context/PosOutletContext";
+import { isBackendOutletId } from "@/utils/outletId";
+import {
   Plus,
   Search,
   Trash2,
@@ -48,62 +56,34 @@ function formatINR(amount: number) {
   return `₹ ${amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 
-const INITIAL: WastageEntry[] = [
-  {
-    id: "WST-044",
-    date: "02 Sep 2026",
-    dateKey: "2026-09-02",
-    item: "Tomatoes (Local)",
-    category: "Vegetables",
-    quantity: "4.2 kg",
-    costValue: 168,
-    cost: "₹ 168",
-    reason: "Spoiled / Overripe",
-    approvedBy: "Chef Vikram",
-  },
-  {
-    id: "WST-043",
-    date: "01 Sep 2026",
-    dateKey: "2026-09-01",
-    item: "Milk (Full Cream)",
-    category: "Dairy",
-    quantity: "3.0 L",
-    costValue: 195,
-    cost: "₹ 195",
-    reason: "Curdled during power outage",
-    approvedBy: "Store Mgr",
-  },
-  {
-    id: "WST-042",
-    date: "01 Sep 2026",
-    dateKey: "2026-09-01",
-    item: "Chicken Curry (Prepared)",
-    category: "Prepared Food",
-    quantity: "2 portions",
-    costValue: 340,
-    cost: "₹ 340",
-    reason: "Customer order cancellation",
-    approvedBy: "Supervisor Rohit",
-  },
-  {
-    id: "WST-041",
-    date: "31 Aug 2026",
-    dateKey: "2026-08-31",
-    item: "Burger Buns",
-    category: "Bakery",
-    quantity: "8 pcs",
-    costValue: 96,
-    cost: "₹ 96",
-    reason: "Expired shelf life",
-    approvedBy: "Chef Vikram",
-  },
-];
+const INITIAL: WastageEntry[] = [];
 
 export function StockWastageView() {
   const [search, setSearch] = useState("");
   const [reasonFilter, setReasonFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
-  const [entries, setEntries] = useState<WastageEntry[]>(INITIAL);
+  const { activeOutlet } = useOutletContext();
+  const isLive = isBackendOutletId(activeOutlet.id);
+  const { data: stockItems = [] } = useStockItems();
+  const { data: apiEntries = [] } = useWastageEntries();
+  const createWastage = useCreateWastage();
+  const deleteWastage = useDeleteWastage();
+  const [localEntries, setLocalEntries] = useState<WastageEntry[]>(INITIAL);
+  const entries: WastageEntry[] = isLive
+    ? (apiEntries as Array<Record<string, unknown>>).map((row) => ({
+        id: String(row.id),
+        date: String(row.date || ""),
+        dateKey: String(row.dateKey || ""),
+        item: String(row.item || ""),
+        category: String(row.category || ""),
+        quantity: String(row.quantity || ""),
+        costValue: Number(row.costValue || 0),
+        cost: String(row.cost || ""),
+        reason: String(row.reason || ""),
+        approvedBy: String(row.approvedBy || ""),
+        notes: String(row.notes || ""),
+      }))
+    : localEntries;
   const [isRecordOpen, setIsRecordOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -222,8 +202,7 @@ export function StockWastageView() {
         topCategory = cat;
       }
     }
-    const purchaseBase = 158000;
-    const pct = purchaseBase > 0 ? ((totalCost / purchaseBase) * 100).toFixed(1) : "0.0";
+    const pct = "0.0";
     return {
       totalCost,
       pct,
@@ -234,37 +213,61 @@ export function StockWastageView() {
   }, [entries]);
 
   const handleRecord = (values: WastageFormValues & { costLoss: number }) => {
-    const nextNum =
-      entries.reduce((max, e) => {
-        const n = parseInt(e.id.replace(/\D/g, ""), 10);
-        return Number.isFinite(n) ? Math.max(max, n) : max;
-      }, 40) + 1;
-
-    const entry: WastageEntry = {
-      id: `WST-${String(nextNum).padStart(3, "0")}`,
-      date: formatDisplayDate(values.date),
-      dateKey: values.date,
-      item: values.item,
-      category: values.category,
-      quantity: `${values.quantity} ${values.unit}`,
-      costValue: values.costLoss,
-      cost: formatINR(values.costLoss),
-      reason: values.reason,
-      approvedBy: values.approvedBy,
-      notes: values.notes,
-    };
-
-    setEntries((prev) => [entry, ...prev]);
-    setCurrentPage(1);
-    setIsRecordOpen(false);
-    toast.success(`Wastage ${entry.id} recorded`, {
-      description: `${entry.item} · ${entry.quantity} · ${entry.cost}`,
-    });
+    if (!values.stockItemId) {
+      toast.error("Select a stock SKU");
+      return;
+    }
+    createWastage.mutate(
+      {
+        stockItemId: values.stockItemId,
+        quantity: parseFloat(values.quantity) || 0,
+        unit: values.unit,
+        reason: values.reason,
+        approvedBy: values.approvedBy,
+        date: values.date,
+        notes: values.notes,
+      },
+      {
+        onSuccess: () => {
+          if (!isLive) {
+            const nextNum =
+              entries.reduce((max, e) => {
+                const n = parseInt(e.id.replace(/\D/g, ""), 10);
+                return Number.isFinite(n) ? Math.max(max, n) : max;
+              }, 0) + 1;
+            const entry: WastageEntry = {
+              id: `WST-${String(nextNum).padStart(3, "0")}`,
+              date: formatDisplayDate(values.date),
+              dateKey: values.date,
+              item: values.item,
+              category: values.category,
+              quantity: `${values.quantity} ${values.unit}`,
+              costValue: values.costLoss,
+              cost: formatINR(values.costLoss),
+              reason: values.reason,
+              approvedBy: values.approvedBy,
+              notes: values.notes,
+            };
+            setLocalEntries((prev) => [entry, ...prev]);
+            setCurrentPage(1);
+          }
+          setIsRecordOpen(false);
+          toast.success("Wastage recorded", {
+            description: `${values.item} · ${values.quantity} ${values.unit}`,
+          });
+        },
+        onError: () => toast.error("Could not record wastage"),
+      },
+    );
   };
 
   const handleDelete = (entry: WastageEntry) => {
     if (!confirm(`Remove wastage entry ${entry.id} (${entry.item})?`)) return;
-    setEntries((prev) => prev.filter((e) => e.id !== entry.id));
+    if (isLive) {
+      deleteWastage.mutate(entry.id, { onSuccess: () => toast.success(`${entry.id} removed`) });
+      return;
+    }
+    setLocalEntries((prev) => prev.filter((e) => e.id !== entry.id));
     toast.success(`${entry.id} removed`);
   };
 
@@ -485,6 +488,7 @@ export function StockWastageView() {
         isOpen={isRecordOpen}
         onClose={() => setIsRecordOpen(false)}
         onSave={handleRecord}
+        stockItems={stockItems}
       />
     </div>
   );

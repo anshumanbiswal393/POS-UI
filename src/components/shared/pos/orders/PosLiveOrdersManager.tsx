@@ -51,36 +51,44 @@ export function PosLiveOrdersManager() {
     null,
   );
 
+  const emptyMoney = "₹ 0.00";
   const running = data?.runningOrders ?? {
-    totalOrders: 2,
-    totalAmountFormatted: "₹ 1,760.00",
-    dineIn: { count: 2, amountFormatted: "₹ 1,760.00" },
-    pickUp: { count: 0, amountFormatted: "₹ 0.00" },
-    delivery: { count: 0, amountFormatted: "₹ 0.00" },
+    totalOrders: 0,
+    totalAmountFormatted: emptyMoney,
+    dineIn: { count: 0, amountFormatted: emptyMoney },
+    pickUp: { count: 0, amountFormatted: emptyMoney },
+    delivery: { count: 0, amountFormatted: emptyMoney },
   };
 
   const pending = data?.pendingOrders ?? {
-    totalOrders: 3,
-    totalAmountFormatted: "₹ 1,270.00",
-    inPreparation: { count: 2, amountFormatted: "₹ 1,020.00" },
-    waitingForPickup: { count: 0, amountFormatted: "₹ 0.00" },
-    outForDelivery: { count: 1, amountFormatted: "₹ 890.00" },
+    totalOrders: 0,
+    totalAmountFormatted: emptyMoney,
+    inPreparation: { count: 0, amountFormatted: emptyMoney },
+    waitingForPickup: { count: 0, amountFormatted: emptyMoney },
+    outForDelivery: { count: 0, amountFormatted: emptyMoney },
   };
 
   const openOrderInBilling = (ord: LiveTimelineOrder, settle = false) => {
     navigate({
       to: "/pos/billing",
       search: {
-        orderType: ord.type === "pickup" || ord.type === "takeaway" ? "takeaway" : "dine_in",
+        orderType:
+          ord.type === "pickup" || ord.type === "takeaway"
+            ? "takeaway"
+            : ord.type === "room_service"
+              ? "room_service"
+              : "dine_in",
         table: ord.tableOrRoom
           ? ord.tableOrRoom.startsWith("Table")
             ? ord.tableOrRoom
             : `Table ${ord.tableOrRoom}`
           : ord.source,
+        tableId: ord.tableId || undefined,
         guests: ord.pax || 2,
         guestName: ord.customerName || "",
         guestPhone: ord.customerPhone || "",
         orderNumber: ord.orderNumber,
+        orderId: ord.id,
         editOrder: "1",
         ...(settle ? { settle: "1" } : {}),
         ...(ord.orderNote ? { note: ord.orderNote } : {}),
@@ -91,7 +99,7 @@ export function PosLiveOrdersManager() {
   const handleAdvanceStage = (ord: LiveTimelineOrder, e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (ord.currentStage === "placed") {
-      advanceStageMutation.mutate(ord.orderNumber, {
+      advanceStageMutation.mutate(ord.id || ord.orderNumber, {
         onSuccess: () => {
           toast.success(`${ord.orderNumber} → Prepared`);
           refetchTimeline();

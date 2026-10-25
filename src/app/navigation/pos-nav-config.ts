@@ -132,9 +132,7 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
         icon: ArrowLeftRight,
         children: [
           { id: "inv-sales", label: "Items Sold", to: "/pos/inventory/sales", icon: ShoppingBag },
-          { id: "inv-transfer", label: "Stock Transfer", to: "/pos/inventory/transfer", icon: ArrowLeftRight },
           { id: "inv-wastage", label: "Stock Wastage", to: "/pos/inventory/wastage", icon: Package },
-          { id: "inv-sales-return", label: "Returned Items", to: "/pos/inventory/sales-return", icon: ArrowLeftRight },
         ],
       },
       {
@@ -225,16 +223,35 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
         icon: SlidersHorizontal,
         children: [
           {
-            id: "cfg-outlet",
-            label: "Outlet Configuration",
-            to: "/pos/management/configuration/outlet",
+            id: "cfg-outlet-group",
+            label: "Outlet",
             icon: Store,
-          },
-          {
-            id: "cfg-sub-order",
-            label: "Sub Order Type",
-            to: "/pos/management/configuration/sub-order-type",
-            icon: List,
+            children: [
+              {
+                id: "cfg-outlet-list",
+                label: "Outlet List",
+                to: "/pos/management/configuration/outlet/list",
+                icon: List,
+              },
+              {
+                id: "cfg-outlet-setup",
+                label: "Outlet Setup",
+                to: "/pos/management/configuration/outlet",
+                icon: Store,
+              },
+              {
+                id: "out-ho",
+                label: "Add New HO",
+                to: "/pos/management/outlet/ho",
+                icon: Building2,
+              },
+              {
+                id: "out-kitchen",
+                label: "Add New Kitchen",
+                to: "/pos/management/outlet/kitchen",
+                icon: ChefHat,
+              },
+            ],
           },
           {
             id: "cfg-email-template",
@@ -324,24 +341,6 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
         label: "User Logs",
         icon: ScrollText,
         children: [
-          {
-            id: "log-online-store",
-            label: "Online Store Logs",
-            to: "/pos/management/logs/online-store",
-            icon: ScrollText,
-          },
-          {
-            id: "log-online-items",
-            label: "Online Item On/Off Logs",
-            to: "/pos/management/logs/online-items",
-            icon: ScrollText,
-          },
-          {
-            id: "log-auto-accept",
-            label: "Auto Accept Change Logs",
-            to: "/pos/management/logs/auto-accept",
-            icon: ScrollText,
-          },
           { id: "log-support", label: "Support Management", to: "/pos/management/logs/support", icon: HelpCircle },
           { id: "log-notifications", label: "Notification", to: "/pos/management/logs/notifications", icon: StickyNote },
           {
@@ -388,15 +387,6 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
       { id: "mgmt-audit", label: "Audit Trail", to: "/pos/management/audit-trail", icon: ScrollText },
       { id: "mgmt-data", label: "Data Management", to: "/pos/management/data-management", icon: FileText },
       { id: "mgmt-device", label: "Device Mapping", to: "/pos/management/device-mapping", icon: Settings2 },
-      {
-        id: "outlet-group",
-        label: "Outlet",
-        icon: Building2,
-        children: [
-          { id: "out-ho", label: "Add New HO", to: "/pos/management/outlet/ho", icon: Building2 },
-          { id: "out-kitchen", label: "Add New Kitchen", to: "/pos/management/outlet/kitchen", icon: ChefHat },
-        ],
-      },
     ],
   },
 ];

@@ -36,7 +36,9 @@ export interface AllOrderItem {
   id: string;
   orderNo: string;
   orderTypeDisplay: string;
+  tableNo?: string;
   customerName: string;
+  customerPhone?: string;
   assignTo: string;
   itemsSummary: string;
   myAmountFormatted: string;
@@ -94,6 +96,8 @@ export interface OnlineOrdersData {
 export interface KotItem {
   id: string;
   kotId: number;
+  orderId?: string;
+  orderNumber?: string;
   orderType: string;
   customerName: string;
   customerPhone: string;

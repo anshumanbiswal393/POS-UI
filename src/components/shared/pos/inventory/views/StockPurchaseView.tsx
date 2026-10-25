@@ -56,6 +56,9 @@ import {
   type PurchaseVendor,
   type PurchaseLineItem,
 } from "@/services/posPurchasesService";
+import { INVENTORY_QUERY_KEYS, useStockItems } from "@/hooks/queries/usePosInventory";
+import { useOutletContext } from "@/context/PosOutletContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 const formatToYmd = (date: Date): string => {
   const y = date.getFullYear();
@@ -79,6 +82,9 @@ const formatToDmy = (str?: string): string => {
 };
 
 export function StockPurchaseView() {
+  const { activeOutlet } = useOutletContext();
+  const { data: stockItems = [] } = useStockItems();
+  const queryClient = useQueryClient();
   const [purchases, setPurchases] = useState<UnifiedPurchaseDto[]>([]);
   const [vendors, setVendors] = useState<PurchaseVendor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,8 +189,7 @@ export function StockPurchaseView() {
   const [formTax, setFormTax] = useState("0");
   const [formNotes, setFormNotes] = useState("");
   const [formItems, setFormItems] = useState<PurchaseLineItem[]>([
-    { name: "Basmati Rice Grade A (50kg Bag)", quantity: 2, unit: "Bags", unitPrice: 4500, lineTotal: 9000 },
-    { name: "Refined Sunflower Oil (15L)", quantity: 3, unit: "Tins", unitPrice: 1850, lineTotal: 5550 },
+    { stockItemId: "", name: "", quantity: 1, unit: "Kg", unitPrice: 0, lineTotal: 0 },
   ]);
 
   const loadData = async () => {
@@ -194,6 +199,7 @@ export function StockPurchaseView() {
         posPurchasesService.fetchPurchases({
           startDate,
           endDate,
+          outletId: activeOutlet.id,
         }),
         posPurchasesService.fetchVendors(),
       ]);
@@ -211,7 +217,7 @@ export function StockPurchaseView() {
 
   useEffect(() => {
     loadData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, activeOutlet.id]);
 
   // Table Columns Definition for DataTableHeader
   const purchaseColumns = useMemo<DataTableColumn<UnifiedPurchaseDto>[]>(
@@ -487,17 +493,14 @@ export function StockPurchaseView() {
     setFormPaymentMethod("Cash");
     setFormTax("0");
     setFormNotes("");
-    setFormItems([
-      { name: "Basmati Rice Grade A (50kg Bag)", quantity: 2, unit: "Bags", unitPrice: 4500, lineTotal: 9000 },
-      { name: "Refined Sunflower Oil (15L)", quantity: 3, unit: "Tins", unitPrice: 1850, lineTotal: 5550 },
-    ]);
+    setFormItems([{ stockItemId: "", name: "", quantity: 1, unit: "Kg", unitPrice: 0, lineTotal: 0 }]);
     setIsAddOpen(true);
   };
 
   const handleAddItemRow = () => {
     setFormItems((prev) => [
       ...prev,
-      { name: "Raw Material Item", quantity: 1, unit: "kg", unitPrice: 100, lineTotal: 100 },
+      { stockItemId: "", name: "", quantity: 1, unit: "Kg", unitPrice: 0, lineTotal: 0 },
     ]);
   };
 
@@ -532,8 +535,8 @@ export function StockPurchaseView() {
       toast.error("Please enter an invoice number");
       return;
     }
-    if (formItems.length === 0) {
-      toast.error("Please add at least one item");
+    if (formItems.length === 0 || formItems.every((it) => !it.stockItemId && !it.name.trim())) {
+      toast.error("Please add at least one stock SKU");
       return;
     }
 
@@ -551,8 +554,13 @@ export function StockPurchaseView() {
         items: formItems,
       };
 
-      const created = await posPurchasesService.createPurchase(payload);
+      const created = await posPurchasesService.createPurchase({
+        ...payload,
+        outletId: activeOutlet.id,
+      });
       setPurchases((prev) => [created, ...prev]);
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.stockItems });
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.overview });
       setIsAddOpen(false);
       toast.success(`Purchase ${created.invoiceNo} recorded successfully! Stock adjusted.`);
     } catch {
@@ -1326,12 +1334,37 @@ export function StockPurchaseView() {
                         {formItems.map((it, idx) => (
                           <tr key={idx}>
                             <td className="p-1.5">
-                              <input
-                                type="text"
-                                value={it.name}
-                                onChange={(e) => handleItemChange(idx, "name", e.target.value)}
-                                className="w-full rounded-lg border border-slate-200 px-2 py-1 text-[12px] text-slate-800 focus:border-teal-500 focus:outline-none"
-                              />
+                              <select
+                                value={it.stockItemId || ""}
+                                onChange={(e) => {
+                                  const sku = stockItems.find((s) => s.id === e.target.value);
+                                  setFormItems((prev) => {
+                                    const copy = [...prev];
+                                    copy[idx] = {
+                                      ...copy[idx],
+                                      stockItemId: e.target.value,
+                                      name: sku?.rawMaterial || "",
+                                      unit: sku?.unit || copy[idx].unit,
+                                      unitPrice: sku?.unitCost ?? copy[idx].unitPrice,
+                                      lineTotal:
+                                        Math.round(
+                                          (copy[idx].quantity || 0) * (sku?.unitCost ?? copy[idx].unitPrice) * 100,
+                                        ) / 100,
+                                    };
+                                    return copy;
+                                  });
+                                }}
+                                className="w-full rounded-lg border border-slate-200 px-2 py-1 text-[12px] text-slate-800 focus:border-teal-500 focus:outline-none cursor-pointer"
+                              >
+                                <option value="">
+                                  {stockItems.length ? "Select SKU" : "Add raw materials first"}
+                                </option>
+                                {stockItems.map((sku) => (
+                                  <option key={sku.id} value={sku.id}>
+                                    {sku.rawMaterial}
+                                  </option>
+                                ))}
+                              </select>
                             </td>
                             <td className="p-1.5 text-right">
                               <input

@@ -5,6 +5,7 @@ import {
   posOutletsService,
   type CreateOutletPayload,
 } from "@/services/posOutletsService";
+import { isDiningOutlet } from "@/utils/outletKind";
 
 const STORAGE_KEY_ACTIVE_ID = "retrod_pos_active_outlet_id";
 
@@ -15,6 +16,7 @@ export const INITIAL_OUTLETS: PosOutlet[] = [
     name: "HIGHWAY INN BAR & RESTAURANT",
     code: "HI-MAIN",
     type: "Primary Outlet",
+    outletKind: "PRIMARY",
     cuisine: "Multi-Cuisine & Bar",
     description: "Main flagship dining, bar lounge, banquet, and room service counter.",
     address: "National Highway 48, Mumbai - Pune Expressway, Sector 4",
@@ -85,7 +87,8 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
       setOutlets((prev) => {
         const merged = mergeOutletLists(prev, remote);
         setActiveOutletId((prevId) => {
-          if (prevId && merged.some((o) => o.id === prevId)) return prevId;
+          const current = merged.find((o) => o.id === prevId);
+          if (current && isDiningOutlet(current)) return prevId;
           return "outlet-primary";
         });
         return merged;
@@ -112,14 +115,18 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
   }, [activeOutletId]);
 
   const activeOutlet =
-    outlets.find((o) => o.id === activeOutletId) ||
+    outlets.find((o) => o.id === activeOutletId && isDiningOutlet(o)) ||
     outlets.find((o) => o.id === "outlet-primary") ||
-    outlets[0] ||
+    outlets.find(isDiningOutlet) ||
     INITIAL_OUTLETS[0];
 
   const handleSetActiveOutlet = (outletId: string) => {
     const target = outlets.find((o) => o.id === outletId);
     if (!target) return;
+    if (!isDiningOutlet(target)) {
+      toast.info("Head Offices and kitchens stay on Outlet List — they are not Take Order floors");
+      return;
+    }
     setActiveOutletId(outletId);
     toast.info(`Switched outlet context to ${target.name}`);
   };
@@ -128,8 +135,10 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
     const created = await posOutletsService.createOutlet(payload);
     // Append new outlet; Highway and all previous outlets stay
     setOutlets((prev) => mergeOutletLists(prev, [created]));
-    setActiveOutletId(created.id);
-    toast.success(`Outlet "${created.name}" created — starts blank (separate from Highway Inn)`);
+    if (isDiningOutlet(created)) {
+      setActiveOutletId(created.id);
+      toast.success(`Outlet "${created.name}" created — starts blank (separate from Highway Inn)`);
+    }
     return created;
   };
 

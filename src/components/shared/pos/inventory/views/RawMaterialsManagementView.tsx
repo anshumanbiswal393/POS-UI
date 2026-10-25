@@ -1,4 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
+import {
+  useDeleteStockItem,
+  usePatchStockItem,
+  useStockItems,
+  useUpsertStockItem,
+} from "@/hooks/queries/usePosInventory";
 import {
   Plus,
   ArrowRight,
@@ -17,6 +23,7 @@ import {
 
 interface RawMaterialRow {
   id: string;
+  code: string;
   name: string;
   category: string;
   isFavorite: boolean;
@@ -25,94 +32,69 @@ interface RawMaterialRow {
 
 export function RawMaterialsManagementView() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const { data: stockItems = [] } = useStockItems();
+  const upsert = useUpsertStockItem();
+  const patch = usePatchStockItem();
+  const remove = useDeleteStockItem();
 
-  // Rows
-  const [items, setItems] = useState<RawMaterialRow[]>([
-    {
-      id: "RM-01",
-      name: "Veg Manchuria Dry",
-      category: "Appetizers",
-      isFavorite: false,
-      isActive: true,
-    },
-    {
-      id: "RM-02",
-      name: "Veg Manchuria Gravy",
-      category: "Main Course",
-      isFavorite: true,
-      isActive: true,
-    },
-    {
-      id: "RM-03",
-      name: "Garlic Chann Dry",
-      category: "Appetizers",
-      isFavorite: false,
-      isActive: true,
-    },
-    {
-      id: "RM-04",
-      name: "Paneer Butter Masala Gravy Base",
-      category: "Main Course",
-      isFavorite: true,
-      isActive: true,
-    },
-    {
-      id: "RM-05",
-      name: "Fresh Mozzarella Cheese Block",
-      category: "Dairy",
-      isFavorite: false,
-      isActive: true,
-    },
-    {
-      id: "RM-06",
-      name: "Basmati Rice Grade A",
-      category: "Groceries",
-      isFavorite: false,
-      isActive: true,
-    },
-  ]);
+  const items: RawMaterialRow[] = stockItems.map((sku) => ({
+    id: sku.id,
+    code: sku.code || sku.id,
+    name: sku.rawMaterial,
+    category: sku.category || "Groceries",
+    isFavorite: Boolean(sku.isFavorite),
+    isActive: sku.isActive !== false,
+  }));
 
   const [newItemName, setNewItemName] = useState("");
-  const [newItemCategory, setNewItemCategory] = useState("Appetizers");
+  const [newItemCategory, setNewItemCategory] = useState("Groceries");
 
   const toggleFavorite = (id: string) => {
-    setItems((prev) =>
-      prev.map((it) => (it.id === id ? { ...it, isFavorite: !it.isFavorite } : it))
-    );
+    const row = items.find((it) => it.id === id);
+    patch.mutate({ id, data: { isFavorite: !row?.isFavorite } });
   };
 
   const toggleActive = (id: string) => {
-    setItems((prev) =>
-      prev.map((it) => (it.id === id ? { ...it, isActive: !it.isActive } : it))
-    );
+    const row = items.find((it) => it.id === id);
+    patch.mutate({ id, data: { isActive: !row?.isActive } });
   };
 
   const handleDelete = (id: string) => {
-    setItems((prev) => prev.filter((it) => it.id !== id));
-    toast.success("Raw material removed");
+    remove.mutate(id, { onSuccess: () => toast.success("Raw material removed") });
   };
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemName.trim()) return;
-
-    const created: RawMaterialRow = {
-      id: `RM-0${items.length + 1}`,
-      name: newItemName.trim(),
-      category: newItemCategory,
-      isFavorite: false,
-      isActive: true,
-    };
-
-    setItems([...items, created]);
-    setNewItemName("");
-    setIsCreateOpen(false);
-    toast.success(`Raw material '${created.name}' created.`);
+    const name = newItemName.trim();
+    const code = name.replace(/[^A-Za-z0-9]+/g, "-").toUpperCase().slice(0, 24);
+    upsert.mutate(
+      {
+        code,
+        name,
+        rawMaterial: name,
+        category: newItemCategory,
+        unit: "Kg",
+        itemKind: "RAW",
+        availableStock: 0,
+        reorderLevel: 5,
+        parLevel: 10,
+      },
+      {
+        onSuccess: () => {
+          setNewItemName("");
+          setNewItemCategory("Groceries");
+          setIsCreateOpen(false);
+          toast.success(`Raw material '${name}' created.`);
+        },
+        onError: () => toast.error("Could not create raw material"),
+      },
+    );
   };
 
   const columns: DataGridColumn<RawMaterialRow>[] = [
     {
-      id: "id",
+      id: "code",
       header: "Code",
       sortable: true,
       filterable: true,
@@ -293,6 +275,7 @@ export function RawMaterialsManagementView() {
             <option value="Main Course">Main Course</option>
             <option value="Dairy">Dairy</option>
             <option value="Groceries">Groceries</option>
+            <option value="Meat">Meat</option>
             <option value="Beverages">Beverages</option>
           </select>
         </div>

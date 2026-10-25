@@ -4,7 +4,11 @@ import { PosBillingManager } from "@/components/shared/pos/billing/PosBillingMan
 type BillingSearch = {
   orderType?: string;
   table?: string;
+  tableId?: string;
   room?: string;
+  roomUnitId?: string;
+  reservationId?: string;
+  folioId?: string;
   guests?: number | string;
   pax?: number | string;
   guestName?: string;
@@ -12,6 +16,7 @@ type BillingSearch = {
   waiterName?: string;
   note?: string;
   orderNumber?: string;
+  orderId?: string;
   editOrder?: string;
   settle?: string;
 };
@@ -20,7 +25,11 @@ export const Route = createFileRoute("/pos/billing")({
   validateSearch: (search: Record<string, unknown>): BillingSearch => ({
     orderType: typeof search.orderType === "string" ? search.orderType : undefined,
     table: typeof search.table === "string" ? search.table : undefined,
+    tableId: typeof search.tableId === "string" ? search.tableId : undefined,
     room: typeof search.room === "string" ? search.room : undefined,
+    roomUnitId: typeof search.roomUnitId === "string" ? search.roomUnitId : undefined,
+    reservationId: typeof search.reservationId === "string" ? search.reservationId : undefined,
+    folioId: typeof search.folioId === "string" ? search.folioId : undefined,
     guests: search.guests as number | string | undefined,
     pax: search.pax as number | string | undefined,
     guestName: typeof search.guestName === "string" ? search.guestName : undefined,
@@ -28,6 +37,7 @@ export const Route = createFileRoute("/pos/billing")({
     waiterName: typeof search.waiterName === "string" ? search.waiterName : undefined,
     note: typeof search.note === "string" ? search.note : undefined,
     orderNumber: typeof search.orderNumber === "string" ? search.orderNumber : undefined,
+    orderId: typeof search.orderId === "string" ? search.orderId : undefined,
     editOrder: typeof search.editOrder === "string" ? search.editOrder : undefined,
     settle: typeof search.settle === "string" ? search.settle : undefined,
   }),

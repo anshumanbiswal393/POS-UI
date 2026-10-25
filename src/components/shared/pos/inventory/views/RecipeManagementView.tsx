@@ -1,4 +1,15 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
+import {
+  useDishRecipes,
+  useInventorySettings,
+  useSaveDishRecipe,
+  useDeleteDishRecipe,
+  useSaveInventorySettings,
+  useStockItems,
+} from "@/hooks/queries/usePosInventory";
+import { useOutletContext } from "@/context/PosOutletContext";
+import { isBackendOutletId } from "@/utils/outletId";
+import type { DishRecipe } from "@/types/posInventory";
 import {
   Sparkles,
   Plus,
@@ -35,7 +46,17 @@ interface RecipeRow {
   ingredients?: RecipeIngredientInput[];
 }
 
+const DEMO_RECIPES: RecipeRow[] = [];
+
 export function RecipeManagementView() {
+  const { activeOutlet } = useOutletContext();
+  const isLive = isBackendOutletId(activeOutlet.id);
+  const { data: apiRecipes = [] } = useDishRecipes();
+  const { data: stockItems = [] } = useStockItems();
+  const { data: settings } = useInventorySettings();
+  const saveRecipe = useSaveDishRecipe();
+  const deleteRecipe = useDeleteDishRecipe();
+  const saveSettings = useSaveInventorySettings();
   const [autoConsumption, setAutoConsumption] = useState(false);
   const [activeCategoryTab, setActiveCategoryTab] = useState("all");
   const [selectedItem, setSelectedItem] = useState("Select Item");
@@ -79,35 +100,9 @@ export function RecipeManagementView() {
     [],
   );
 
-  const [recipes, setRecipes] = useState<RecipeRow[]>([
-    {
-      id: "RCP-1",
-      name: "Veg Manchuria Dry",
-      category: "Veg Starters",
-      ingredients: [
-        { id: "a1", name: "Cauliflower", quantity: "200", unit: "g" },
-        { id: "a2", name: "Corn flour", quantity: "40", unit: "g" },
-      ],
-    },
-    {
-      id: "RCP-2",
-      name: "Veg Manchuria Gravy",
-      category: "Veg Main Course",
-      ingredients: [
-        { id: "b1", name: "Cauliflower", quantity: "200", unit: "g" },
-        { id: "b2", name: "Soy sauce", quantity: "15", unit: "ml" },
-      ],
-    },
-    {
-      id: "RCP-3",
-      name: "Garlic Chann Dry",
-      category: "Veg Starters",
-      ingredients: [
-        { id: "c1", name: "Chana", quantity: "180", unit: "g" },
-        { id: "c2", name: "Garlic", quantity: "20", unit: "g" },
-      ],
-    },
-  ]);
+  const [localRecipes, setLocalRecipes] = useState<RecipeRow[]>(DEMO_RECIPES);
+  const recipes = isLive ? apiRecipes.map(mapRecipe) : localRecipes;
+  const autoOn = isLive ? settings?.recipeBasedConsumption === "Yes" : autoConsumption;
 
   const categoryCards = [
     { id: "all", label: "All categories", count: `${recipes.length} Items` },
@@ -161,9 +156,38 @@ export function RecipeManagementView() {
     setIsCreateOpen(true);
   };
 
+  const closeCreate = () => {
+    setIsCreateOpen(false);
+    setEditingRecipe(null);
+    setCreatePrefill(null);
+  };
+
   const handleSaveRecipe = (values: RecipeFormValues) => {
+    if (isLive) {
+      saveRecipe.mutate(
+        {
+          id: editingRecipe?.id,
+          name: values.name,
+          category: values.category,
+          menuItem: values.menuItem,
+          yieldQty: values.yieldQty,
+          yieldUnit: values.yieldUnit,
+          prepTimeMinutes: values.prepTimeMinutes,
+          notes: values.notes,
+          ingredients: values.ingredients,
+        },
+        {
+          onSuccess: () => {
+            toast.success(`Recipe "${values.name}" ${editingRecipe ? "updated" : "created"}`);
+            closeCreate();
+          },
+          onError: () => toast.error("Could not save recipe"),
+        },
+      );
+      return;
+    }
     if (editingRecipe) {
-      setRecipes((prev) =>
+      setLocalRecipes((prev) =>
         prev.map((r) =>
           r.id === editingRecipe.id
             ? {
@@ -182,9 +206,7 @@ export function RecipeManagementView() {
       );
       toast.success(`Recipe "${values.name}" updated`);
     } else {
-      const exists = recipes.some(
-        (r) => r.name.toLowerCase() === values.name.toLowerCase(),
-      );
+      const exists = recipes.some((r) => r.name.toLowerCase() === values.name.toLowerCase());
       if (exists) {
         toast.error(`Recipe "${values.name}" already exists`);
         return;
@@ -200,17 +222,15 @@ export function RecipeManagementView() {
         notes: values.notes,
         ingredients: values.ingredients,
       };
-      setRecipes((prev) => [row, ...prev]);
+      setLocalRecipes((prev) => [row, ...prev]);
       toast.success(`Recipe "${values.name}" created`);
     }
-    setIsCreateOpen(false);
-    setEditingRecipe(null);
-    setCreatePrefill(null);
+    closeCreate();
   };
 
   const handleAddFromSuggestions = (drafts: RecipeFormValues[]) => {
     let added = 0;
-    setRecipes((prev) => {
+    setLocalRecipes((prev) => {
       const names = new Set(prev.map((r) => r.name.toLowerCase()));
       const next = [...prev];
       for (const d of drafts) {
@@ -309,20 +329,35 @@ export function RecipeManagementView() {
             <button
               type="button"
               onClick={() => {
-                setAutoConsumption(!autoConsumption);
-                toast.success(
-                  !autoConsumption
-                    ? "Auto consumption enabled (raw materials will deduct on KOT billing)"
-                    : "Auto consumption disabled",
-                );
+                const next = !autoOn;
+                if (isLive) {
+                  saveSettings.mutate(
+                    { recipeBasedConsumption: next ? "Yes" : "No" },
+                    {
+                      onSuccess: () =>
+                        toast.success(
+                          next
+                            ? "Auto consumption enabled (raw materials will deduct on settle)"
+                            : "Auto consumption disabled",
+                        ),
+                    },
+                  );
+                } else {
+                  setAutoConsumption(next);
+                  toast.success(
+                    next
+                      ? "Auto consumption enabled (raw materials will deduct on KOT billing)"
+                      : "Auto consumption disabled",
+                  );
+                }
               }}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                autoConsumption ? "bg-teal-600" : "bg-slate-300"
+                autoOn ? "bg-teal-600" : "bg-slate-300"
               }`}
             >
               <span
                 className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out ${
-                  autoConsumption ? "translate-x-5" : "translate-x-0"
+                  autoOn ? "translate-x-5" : "translate-x-0"
                 }`}
               />
             </button>
@@ -482,8 +517,14 @@ export function RecipeManagementView() {
                           type="button"
                           onClick={() => {
                             if (confirm(`Delete recipe "${item.name}"?`)) {
-                              setRecipes((prev) => prev.filter((r) => r.id !== item.id));
-                              toast.success(`Deleted "${item.name}"`);
+                              if (isLive) {
+                                deleteRecipe.mutate(item.id, {
+                                  onSuccess: () => toast.success(`Deleted "${item.name}"`),
+                                });
+                              } else {
+                                setLocalRecipes((prev) => prev.filter((r) => r.id !== item.id));
+                                toast.success(`Deleted "${item.name}"`);
+                              }
                             }
                           }}
                           className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-rose-600 transition cursor-pointer"
@@ -503,7 +544,7 @@ export function RecipeManagementView() {
                                 id: `${ing.id}-c`,
                               })),
                             };
-                            setRecipes((prev) => [clone, ...prev]);
+                            setLocalRecipes((prev) => [clone, ...prev]);
                             toast.success(`Recipe for ${item.name} cloned`);
                           }}
                           className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
@@ -540,6 +581,7 @@ export function RecipeManagementView() {
         onSave={handleSaveRecipe}
         initial={createPrefill}
         title={editingRecipe ? `Edit Recipe: ${editingRecipe.name}` : "Create New Recipe"}
+        stockItems={stockItems}
       />
 
       <ExploreRecipesModal

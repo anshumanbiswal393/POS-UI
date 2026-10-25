@@ -82,10 +82,7 @@ export function ProductionMasterView() {
     expectedYield: "25",
     shelfLifeDays: "3",
     instructions: "",
-    ingredients: [
-      { stockItemId: "rm-1", stockItemName: "Fresh Tomatoes (Grade A)", quantity: "15", unit: "kg", unitCost: "40" },
-      { stockItemId: "rm-2", stockItemName: "Dairy Butter Block", quantity: "3", unit: "kg", unitCost: "280" },
-    ],
+    ingredients: [{ stockItemId: "", stockItemName: "", quantity: "", unit: "kg", unitCost: "0" }],
   });
 
   const categories = [
@@ -277,10 +274,7 @@ export function ProductionMasterView() {
       expectedYield: "25",
       shelfLifeDays: "3",
       instructions: "",
-      ingredients: [
-        { stockItemId: "rm-1", stockItemName: "Fresh Tomatoes (Grade A)", quantity: "15", unit: "kg", unitCost: "40" },
-        { stockItemId: "rm-2", stockItemName: "Dairy Butter Block", quantity: "3", unit: "kg", unitCost: "280" },
-      ],
+      ingredients: [{ stockItemId: "", stockItemName: "", quantity: "", unit: "kg", unitCost: "0" }],
     });
     setIsCreateOpen(true);
   };

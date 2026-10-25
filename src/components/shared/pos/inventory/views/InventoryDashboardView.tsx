@@ -16,16 +16,16 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useStockItems } from "@/hooks/queries/usePosInventory";
+import { useStockItems, useStockOverview } from "@/hooks/queries/usePosInventory";
+import type { StockItem } from "@/types/posInventory";
 import { CreatePurchaseModal } from "@/components/shared/pos/inventory/modals/CreatePurchaseModal";
 import { useOutletContext } from "@/context/PosOutletContext";
-import { isBackendOutletId } from "@/utils/outletId";
 
 type StockLocation = "all" | "kitchen" | "bar" | "cold_storage";
 
 interface LiveStockMovement {
   id: string;
-  type: "sale" | "purchase" | "transfer" | "wastage";
+  type: "sale" | "purchase" | "wastage";
   item: string;
   qty: string;
   location: string;
@@ -47,89 +47,6 @@ interface LowStockRadarItem {
   status: "critical" | "low" | "optimal";
 }
 
-const DEMO_LOW_STOCK: LowStockRadarItem[] = [
-  {
-    id: "ls-1",
-    name: "Chicken Breast Boneless",
-    category: "Meat",
-    currentStock: 1.4,
-    minThreshold: 8,
-    unit: "Kg",
-    daysRemaining: 1,
-    percent: 17,
-    supplier: "Supreme Poultry",
-    status: "critical",
-  },
-  {
-    id: "ls-2",
-    name: "Amul Butter Salted",
-    category: "Dairy",
-    currentStock: 3,
-    minThreshold: 12,
-    unit: "Pkt",
-    daysRemaining: 2,
-    percent: 25,
-    supplier: "Royal Dairy",
-    status: "critical",
-  },
-  {
-    id: "ls-3",
-    name: "7 Up (330ml)",
-    category: "Beverages",
-    currentStock: 6,
-    minThreshold: 24,
-    unit: "Cans",
-    daysRemaining: 4,
-    percent: 25,
-    supplier: "Classic Spirits",
-    status: "low",
-  },
-  {
-    id: "ls-4",
-    name: "Sprite (330ml)",
-    category: "Beverages",
-    currentStock: 8,
-    minThreshold: 24,
-    unit: "Cans",
-    daysRemaining: 5,
-    percent: 33,
-    supplier: "Classic Spirits",
-    status: "low",
-  },
-  {
-    id: "ls-5",
-    name: "Paneer Fresh Malai",
-    category: "Dairy",
-    currentStock: 2.5,
-    minThreshold: 6,
-    unit: "Kg",
-    daysRemaining: 2,
-    percent: 41,
-    supplier: "Royal Dairy",
-    status: "low",
-  },
-  {
-    id: "ls-6",
-    name: "Garlic (Peeled)",
-    category: "Groceries",
-    currentStock: 3.2,
-    minThreshold: 5,
-    unit: "Kg",
-    daysRemaining: 6,
-    percent: 64,
-    supplier: "Fresh Farm",
-    status: "optimal",
-  },
-];
-
-const DEMO_CATEGORIES = [
-  { label: "Groceries", percentage: 40, valuation: "₹1.14L", color: "#38bdf8" },
-  { label: "Dairy", percentage: 24, valuation: "₹68k", color: "#facc15" },
-  { label: "Beverages", percentage: 18, valuation: "₹51k", color: "#34d399" },
-  { label: "Meat & Apps", percentage: 12, valuation: "₹34k", color: "#fb923c" },
-  { label: "Others", percentage: 6, valuation: "₹17k", color: "#c084fc" },
-];
-
 const EMPTY_CATEGORIES = [
   { label: "Groceries", percentage: 0, valuation: "₹0", color: "#38bdf8" },
   { label: "Dairy", percentage: 0, valuation: "₹0", color: "#facc15" },
@@ -138,63 +55,47 @@ const EMPTY_CATEGORIES = [
   { label: "Others", percentage: 0, valuation: "₹0", color: "#c084fc" },
 ];
 
-const DEMO_MOVEMENTS: LiveStockMovement[] = [
-  {
-    id: "mov-1",
-    type: "sale",
-    item: "Paneer Chilli Dry",
-    qty: "-2",
-    location: "Kitchen",
-    time: "Just now",
-    amount: "₹520",
-    deltaType: "decrease",
-  },
-  {
-    id: "mov-2",
-    type: "sale",
-    item: "Sprite 330ml",
-    qty: "-1",
-    location: "Bar",
-    time: "2m",
-    amount: "₹60",
-    deltaType: "decrease",
-  },
-  {
-    id: "mov-3",
-    type: "purchase",
-    item: "Basmati Rice",
-    qty: "+50kg",
-    location: "Dry Store",
-    time: "14m",
-    amount: "₹4.2k",
-    deltaType: "increase",
-  },
-  {
-    id: "mov-4",
-    type: "transfer",
-    item: "Cooking Oil",
-    qty: "5L",
-    location: "Store→Kitchen",
-    time: "26m",
-    deltaType: "neutral",
-  },
-  {
-    id: "mov-5",
-    type: "wastage",
-    item: "Tomatoes",
-    qty: "-0.8kg",
-    location: "Cold Store",
-    time: "42m",
-    amount: "₹35",
-    deltaType: "decrease",
-  },
-];
-
 export function InventoryDashboardView() {
   const navigate = useNavigate();
   const { activeOutlet } = useOutletContext();
-  const isNewOutlet = isBackendOutletId(activeOutlet?.id);
   const { refetch: refetchStock } = useStockItems();
+  const { data: overview } = useStockOverview();
+
+  const liveLowStock: LowStockRadarItem[] = (overview?.lowStock || []).map((item: StockItem) => {
+    const current = item.availableStock;
+    const min = item.minThreshold || item.reorderLevel || 0;
+    const percent = min > 0 ? Math.round((current / Math.max(min, 1)) * 100) : 100;
+    return {
+      id: item.id,
+      name: item.rawMaterial,
+      category: item.category,
+      currentStock: current,
+      minThreshold: min,
+      unit: item.unit,
+      daysRemaining: 0,
+      percent,
+      supplier: "—",
+      status: item.isLow ? "critical" : item.isAtPar ? "low" : "optimal",
+    };
+  });
+
+  const liveMovements: LiveStockMovement[] = (overview?.movements || []).map((mov) => {
+    const typeName = (mov.type || "").toUpperCase();
+    const type: LiveStockMovement["type"] = typeName.includes("WASTAGE")
+      ? "wastage"
+      : typeName.includes("IN") || typeName.includes("PURCHASE")
+        ? "purchase"
+        : "sale";
+    return {
+      id: mov.id,
+      type,
+      item: mov.name,
+      qty: `${mov.signedQty} ${mov.unit}`,
+      location: "Kitchen",
+      time: mov.createdAt ? new Date(mov.createdAt).toLocaleTimeString() : "",
+      deltaType: mov.signedQty >= 0 ? "increase" : "decrease",
+    };
+  });
 
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<StockLocation>("all");
@@ -205,60 +106,37 @@ export function InventoryDashboardView() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [liveBannerDismissed, setLiveBannerDismissed] = useState(false);
 
-  const lowStock = isNewOutlet ? [] : DEMO_LOW_STOCK;
-  const categories = isNewOutlet ? EMPTY_CATEGORIES : DEMO_CATEGORIES;
-  const movements = isNewOutlet ? [] : DEMO_MOVEMENTS;
+  const lowStock = liveLowStock;
+  const categories = EMPTY_CATEGORIES;
+  const movements = liveMovements;
+  const formatInr = (n: number) =>
+    `₹ ${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
-  const kpis = isNewOutlet
-    ? {
-        valuation: "₹ 0",
-        valuationTrend: "0% this week",
-        skuActive: "0 SKUs Active",
-        consumption: "₹ 0",
-        portions: "0 Portions Served",
-        pace: "No Activity",
-        wastagePct: "0%",
-        wastageAmt: "₹ 0 logged today",
-        health: "—",
-        healthLabel: "No Data",
-        critical: 0,
-        low: 0,
-        healthy: 0,
-        closingCompliance: "0%",
-        closingDays: "0 of 0 Days Closed",
-        missedDaysLabel: "0 Days",
-        missedDates: "—",
-        categoryTotal: "₹ 0",
-      }
-    : {
-        valuation: "₹ 2,84,500",
-        valuationTrend: "+3.4% this week",
-        skuActive: "142 SKUs Active",
-        consumption: "₹ 19,840",
-        portions: "184 Portions Served",
-        pace: "Normal Pace",
-        wastagePct: "1.8%",
-        wastageAmt: "₹ 1,420 logged today",
-        health: "92%",
-        healthLabel: "Optimal",
-        critical: 2,
-        low: 3,
-        healthy: 137,
-        closingCompliance: "86%",
-        closingDays: "23 of 25 Days Closed",
-        missedDaysLabel: "2 Days",
-        missedDates: "Sep 4, Sep 18",
-        categoryTotal: "₹ 2.84L",
-      };
+  const kpis = {
+    valuation: formatInr(overview?.valuation || 0),
+    valuationTrend: "Stock ledger",
+    skuActive: `${overview?.skuActive || 0} SKUs Active`,
+    consumption: formatInr(0),
+    portions: `${overview?.skuActive || 0} SKUs`,
+    pace: overview?.skuActive ? "Live" : "No Activity",
+    wastagePct: overview?.wastageTodayQty ? `${overview.wastageTodayQty}` : "0%",
+    wastageAmt: `${overview?.wastageTodayQty || 0} logged today`,
+    health: overview?.lowStockCount ? "Watch" : "—",
+    healthLabel: overview?.skuActive ? "Live" : "No Data",
+    critical: overview?.critical || 0,
+    low: overview?.lowStockCount || 0,
+    healthy: Math.max(0, (overview?.skuActive || 0) - (overview?.lowStockCount || 0)),
+    closingCompliance: "0%",
+    closingDays: "0 of 0 Days Closed",
+    missedDaysLabel: "0 Days",
+    missedDates: "—",
+    categoryTotal: "₹ 0",
+  };
 
-  const currentDay = isNewOutlet ? new Date().getDate() : 26;
-  const missedDays = isNewOutlet ? [] : [4, 18];
+  const currentDay = new Date().getDate();
+  const missedDays: number[] = [];
   const daysInMonth = Array.from({ length: 30 }, (_, i) => i + 1);
-  const completedDays = isNewOutlet
-    ? []
-    : Array.from({ length: 25 }, (_, i) => i + 1).filter(
-        (d) => !missedDays.includes(d) && d < currentDay,
-      );
+  const completedDays: number[] = [];
 
   useEffect(() => {
     setLiveBannerDismissed(false);
@@ -307,7 +185,7 @@ export function InventoryDashboardView() {
   }, [selectedCategoryFilter, lowStock]);
 
   const criticalCount = lowStock.filter((i) => i.status === "critical").length;
-  const showAlert = !isNewOutlet && !liveBannerDismissed && criticalCount > 0;
+  const showAlert = !liveBannerDismissed && criticalCount > 0;
 
   const locations: { id: StockLocation; label: string }[] = [
     { id: "all", label: "All" },
@@ -383,8 +261,13 @@ export function InventoryDashboardView() {
           <div className="flex min-w-0 items-center gap-2.5">
             <Flame className="h-4 w-4 shrink-0 text-amber-600" />
             <span>
-              <strong className="font-bold">{criticalCount} critical items</strong> — Chicken Breast
-              1.4 kg and Amul Butter 3 packets below safe buffer.
+              <strong className="font-bold">{criticalCount} critical items</strong>
+              {lowStock
+                .filter((item) => item.status === "critical")
+                .slice(0, 2)
+                .map((item) => ` ${item.name} ${item.currentStock} ${item.unit}`)
+                .join(" and ")}{" "}
+              below reorder level.
             </span>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -406,10 +289,10 @@ export function InventoryDashboardView() {
         </div>
       )}
 
-      {isNewOutlet && (
+      {!(overview?.skuActive) && (
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-[12.5px] text-slate-600">
-          New outlet <strong className="text-slate-800">{activeOutlet.name}</strong> — stock KPIs
-          stay at zero until you receive inventory and start operations.
+          <strong className="text-slate-800">{activeOutlet.name}</strong> — stock stays at zero
+          until you add raw materials and receive a purchase.
         </div>
       )}
 
@@ -714,7 +597,7 @@ export function InventoryDashboardView() {
                 <Activity className="mb-2 h-8 w-8 text-slate-300" />
                 <p className="text-[13px] font-bold text-slate-700">No movements yet</p>
                 <p className="mt-1 text-[12px] text-slate-400">
-                  Sales, purchases, and transfers will stream here once stock is active.
+                  Sales, purchases, and wastage will stream here once stock is active.
                 </p>
               </div>
             ) : (
@@ -722,11 +605,9 @@ export function InventoryDashboardView() {
                 const badge =
                   mov.type === "purchase"
                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    : mov.type === "transfer"
-                      ? "bg-purple-50 text-purple-700 border-purple-200"
-                      : mov.type === "wastage"
-                        ? "bg-rose-50 text-rose-700 border-rose-200"
-                        : "bg-blue-50 text-blue-700 border-blue-200";
+                    : mov.type === "wastage"
+                      ? "bg-rose-50 text-rose-700 border-rose-200"
+                      : "bg-blue-50 text-blue-700 border-blue-200";
                 return (
                   <div key={mov.id} className="px-5 py-3.5">
                     <div className="flex items-start justify-between gap-3">

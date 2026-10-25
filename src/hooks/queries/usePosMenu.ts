@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { posMenuService } from "@/services/posMenuService";
+import { liveGetBillingMenu } from "@/services/posOrderLive";
+import { isBackendOutletId } from "@/utils/outletId";
 import type { MenuItem, MenuItemImage } from "@/types/posMenu";
 
 export const MENU_QUERY_KEYS = {
@@ -18,6 +20,20 @@ export function useMenuItems(outletId?: string) {
   return useQuery({
     queryKey: MENU_QUERY_KEYS.menuItems(outletId),
     queryFn: () => posMenuService.getMenuItems(outletId),
+  });
+}
+
+export function useBillingMenuItems(outletId?: string) {
+  const live = isBackendOutletId(outletId);
+  return useQuery({
+    queryKey: ["pos", "billing", "menu", outletId || "all"] as const,
+    queryFn: async (): Promise<MenuItem[]> => {
+      if (live && outletId) {
+        return (await liveGetBillingMenu(outletId)) as MenuItem[];
+      }
+      return posMenuService.getMenuItems(outletId);
+    },
+    enabled: Boolean(outletId),
   });
 }
 
@@ -252,10 +268,10 @@ export function useDeleteSpecialNote(outletId?: string) {
 }
 
 // 5. Item Commissions
-export function useItemCommissions() {
+export function useItemCommissions(outletId?: string) {
   return useQuery({
-    queryKey: MENU_QUERY_KEYS.commissions,
-    queryFn: posMenuService.getCommissions,
+    queryKey: [...MENU_QUERY_KEYS.commissions, outletId || "all"],
+    queryFn: () => posMenuService.getCommissions(outletId),
   });
 }
 

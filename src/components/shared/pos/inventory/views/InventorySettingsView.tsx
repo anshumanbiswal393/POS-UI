@@ -9,6 +9,7 @@ import {
   Sliders,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useSaveInventorySettings } from "@/hooks/queries/usePosInventory";
 import {
   DEFAULT_INVENTORY_SETTINGS,
   INVENTORY_SETTING_FIELDS,
@@ -203,6 +204,7 @@ function SettingField({
 
 export function InventorySettingsView() {
   const navigate = useNavigate();
+  const saveFlags = useSaveInventorySettings();
   const [activeSection, setActiveSection] =
     useState<InventorySettingsSectionId>("consumption_production");
   const [searchQuery, setSearchQuery] = useState("");
@@ -266,6 +268,15 @@ export function InventorySettingsView() {
       return;
     }
     localStorage.setItem(INVENTORY_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    saveFlags.mutate({
+      recipeBasedConsumption: settings.recipeBasedConsumption,
+      consumptionType: settings.consumptionType,
+      atParStockNotification: settings.atParStockNotification,
+      minStockOutOfStockNotify: settings.minStockOutOfStockNotify,
+      notifyKitchenBelowPar: settings.notifyKitchenBelowPar,
+      reverseConsumptionCancelled: settings.reverseConsumptionCancelled,
+      restrictNegativeStockProduction: settings.restrictNegativeStockProduction,
+    });
     toast.success("Stock settings saved");
   };
 

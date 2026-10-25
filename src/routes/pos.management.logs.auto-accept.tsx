@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AutoAcceptLogsView } from "@/components/shared/pos/management/views/logs/AutoAcceptLogsView";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/pos/management/logs/auto-accept")({
-  head: () => ({ meta: [{ title: "Auto Accept Change Logs — Retrod POS" }] }),
-  component: AutoAcceptLogsView,
+  beforeLoad: () => {
+    throw redirect({ to: "/pos/management/logs/notifications" });
+  },
+  component: () => null,
 });

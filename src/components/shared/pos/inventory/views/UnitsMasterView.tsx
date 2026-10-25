@@ -1,4 +1,7 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useDeleteUnit, useSaveUnit, useStockUnits } from "@/hooks/queries/usePosInventory";
+import { useOutletContext } from "@/context/PosOutletContext";
+import { isBackendOutletId } from "@/utils/outletId";
 import { Plus, Search, Scale, CheckCircle2, Edit2, Trash2 } from "lucide-react";
 import {
   PosCreateCancelButton,
@@ -11,8 +14,7 @@ import {
 } from "@/components/common/DataTableHeader";
 import { toast } from "sonner";
 
-export function UnitsMasterView() {
-  const [units, setUnits] = useState([
+const DEMO_UNITS = [
     {
       id: "U-1",
       name: "Kilogram",
@@ -61,7 +63,25 @@ export function UnitsMasterView() {
       ratio: "1 portion = 1 portion",
       type: "Serving",
     },
-  ]);
+];
+
+export function UnitsMasterView() {
+  const { activeOutlet } = useOutletContext();
+  const isLive = isBackendOutletId(activeOutlet.id);
+  const { data: apiUnits = [] } = useStockUnits();
+  const saveUnit = useSaveUnit();
+  const deleteUnit = useDeleteUnit();
+  const [localUnits, setLocalUnits] = useState(DEMO_UNITS);
+  const units = isLive
+    ? (apiUnits as Array<Record<string, unknown>>).map((u) => ({
+        id: String(u.id),
+        name: String(u.name || ""),
+        symbol: String(u.symbol || ""),
+        baseUnit: String(u.baseUnit || u.baseSymbol || ""),
+        ratio: String(u.ratio || ""),
+        type: String(u.type || "Weight"),
+      }))
+    : localUnits;
 
   const unitColumns: DataTableColumn<any>[] = useMemo(
     () => [
@@ -128,7 +148,25 @@ export function UnitsMasterView() {
       ratio: newUnit.ratio || `1 ${newUnit.symbol} = 1 ${newUnit.symbol}`,
       type: newUnit.type,
     };
-    setUnits([...units, created]);
+    if (isLive) {
+      saveUnit.mutate(
+        {
+          name: created.name,
+          symbol: created.symbol,
+          type: created.type,
+          baseUnit: created.baseUnit,
+        },
+        {
+          onSuccess: () => {
+            setIsCreateOpen(false);
+            setNewUnit({ name: "", symbol: "", baseUnit: "", ratio: "", type: "Weight" });
+            toast.success(`Unit ${created.name} (${created.symbol}) added.`);
+          },
+        },
+      );
+      return;
+    }
+    setLocalUnits([...units, created]);
     setIsCreateOpen(false);
     setNewUnit({ name: "", symbol: "", baseUnit: "", ratio: "", type: "Weight" });
     toast.success(`Unit ${created.name} (${created.symbol}) added.`);
@@ -190,8 +228,14 @@ export function UnitsMasterView() {
                         <button
                           type="button"
                           onClick={() => {
-                            setUnits(units.filter((x) => x.id !== u.id));
-                            toast.success(`Deleted unit ${u.name}`);
+                            if (isLive) {
+                              deleteUnit.mutate(u.id, {
+                                onSuccess: () => toast.success(`Deleted unit ${u.name}`),
+                              });
+                            } else {
+                              setLocalUnits(units.filter((x) => x.id !== u.id));
+                              toast.success(`Deleted unit ${u.name}`);
+                            }
                           }}
                           className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-rose-600 transition cursor-pointer"
                         >

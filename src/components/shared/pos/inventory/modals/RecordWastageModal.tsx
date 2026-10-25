@@ -9,6 +9,7 @@ import {
 
 export type WastageFormValues = {
   item: string;
+  stockItemId?: string;
   category: string;
   quantity: string;
   unit: string;
@@ -19,15 +20,7 @@ export type WastageFormValues = {
   notes: string;
 };
 
-const ITEM_OPTIONS = [
-  { name: "Tomatoes (Local)", category: "Vegetables", unit: "kg", unitCost: "40" },
-  { name: "Milk (Full Cream)", category: "Dairy", unit: "L", unitCost: "65" },
-  { name: "Chicken Curry (Prepared)", category: "Prepared Food", unit: "portions", unitCost: "170" },
-  { name: "Burger Buns", category: "Bakery", unit: "pcs", unitCost: "12" },
-  { name: "Paneer Fresh Malai", category: "Dairy", unit: "kg", unitCost: "320" },
-  { name: "Chicken Breast Boneless", category: "Meat", unit: "kg", unitCost: "260" },
-  { name: "Basmati Rice", category: "Groceries", unit: "kg", unitCost: "85" },
-];
+const ITEM_OPTIONS: Array<{ name: string; category: string; unit: string; unitCost: string }> = [];
 
 const REASON_OPTIONS = [
   "Spoiled / Overripe",
@@ -50,16 +43,28 @@ export function RecordWastageModal({
   isOpen,
   onClose,
   onSave,
+  stockItems = [],
 }: {
   isOpen: boolean;
   onClose: () => void;
   onSave: (values: WastageFormValues & { costLoss: number }) => void;
+  stockItems?: Array<{ id: string; rawMaterial: string; category: string; unit: string; unitCost?: number }>;
 }) {
-  const [item, setItem] = useState(ITEM_OPTIONS[0].name);
-  const [category, setCategory] = useState(ITEM_OPTIONS[0].category);
+  const skuOptions = stockItems.length
+    ? stockItems.map((sku) => ({
+        id: sku.id,
+        name: sku.rawMaterial,
+        category: sku.category,
+        unit: sku.unit,
+        unitCost: String(sku.unitCost ?? 0),
+      }))
+    : ITEM_OPTIONS.map((opt) => ({ id: opt.name, ...opt }));
+  const [item, setItem] = useState(skuOptions[0]?.name || "");
+  const [stockItemId, setStockItemId] = useState(skuOptions[0]?.id || "");
+  const [category, setCategory] = useState(skuOptions[0]?.category || "");
   const [quantity, setQuantity] = useState("");
-  const [unit, setUnit] = useState(ITEM_OPTIONS[0].unit);
-  const [unitCost, setUnitCost] = useState(ITEM_OPTIONS[0].unitCost);
+  const [unit, setUnit] = useState(skuOptions[0]?.unit || "Kg");
+  const [unitCost, setUnitCost] = useState(skuOptions[0]?.unitCost || "0");
   const [reason, setReason] = useState(REASON_OPTIONS[0]);
   const [approvedBy, setApprovedBy] = useState(APPROVER_OPTIONS[0]);
   const [date, setDate] = useState(todayInputValue());
@@ -67,25 +72,27 @@ export function RecordWastageModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    const first = ITEM_OPTIONS[0];
-    setItem(first.name);
-    setCategory(first.category);
+    const first = skuOptions[0];
+    setItem(first?.name || "");
+    setStockItemId(first?.id || "");
+    setCategory(first?.category || "");
     setQuantity("");
-    setUnit(first.unit);
-    setUnitCost(first.unitCost);
+    setUnit(first?.unit || "Kg");
+    setUnitCost(first?.unitCost || "0");
     setReason(REASON_OPTIONS[0]);
     setApprovedBy(APPROVER_OPTIONS[0]);
     setDate(todayInputValue());
     setNotes("");
-  }, [isOpen]);
+  }, [isOpen, stockItems]);
 
   const qtyNum = parseFloat(quantity) || 0;
   const costNum = parseFloat(unitCost) || 0;
   const costLoss = Math.round(qtyNum * costNum * 100) / 100;
 
-  const handleItemChange = (name: string) => {
-    setItem(name);
-    const match = ITEM_OPTIONS.find((i) => i.name === name);
+  const handleItemChange = (id: string) => {
+    const match = skuOptions.find((i) => i.id === id);
+    setStockItemId(id);
+    setItem(match?.name || "");
     if (match) {
       setCategory(match.category);
       setUnit(match.unit);
@@ -118,6 +125,7 @@ export function RecordWastageModal({
 
     onSave({
       item: item.trim(),
+      stockItemId,
       category: category.trim(),
       quantity: quantity.trim(),
       unit: unit.trim(),
@@ -152,12 +160,12 @@ export function RecordWastageModal({
                   Raw Material / Item <span className="text-rose-500">*</span>
                 </label>
                 <select
-                  value={item}
+                  value={stockItemId || item}
                   onChange={(e) => handleItemChange(e.target.value)}
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] focus:border-rose-400 focus:outline-hidden cursor-pointer"
                 >
-                  {ITEM_OPTIONS.map((opt) => (
-                    <option key={opt.name} value={opt.name}>
+                  {skuOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
                       {opt.name}
                     </option>
                   ))}

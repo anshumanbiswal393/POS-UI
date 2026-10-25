@@ -6,6 +6,23 @@ import type {
   RoomServiceOrderStatus,
   RoomOrderItem,
 } from "@/types/posRoomService";
+import httpClient from "@/utils/httpClient";
+import { API_ENDPOINTS } from "@/config/apiEndpoints";
+import { isBackendOutletId } from "@/utils/outletId";
+
+let scopedOutletId: string | undefined;
+let scopedPropertyId: string | undefined;
+let scopedTenantId: string | undefined;
+
+export function setRoomsOutletScope(scope?: {
+  outletId?: string | null;
+  propertyId?: string | null;
+  tenantId?: string | null;
+}) {
+  scopedOutletId = scope?.outletId || undefined;
+  scopedPropertyId = scope?.propertyId || undefined;
+  scopedTenantId = scope?.tenantId || undefined;
+}
 
 // Initial mock orders representing various active states
 const INITIAL_ORDERS: RoomServiceOrder[] = [
@@ -314,6 +331,35 @@ export const posRoomService = {
   },
 
   getRooms: async (floor?: RoomFloor): Promise<HotelRoom[]> => {
+    if (scopedOutletId && isBackendOutletId(scopedOutletId)) {
+      if (!scopedPropertyId && !scopedTenantId) return [];
+      const res = await httpClient.get(API_ENDPOINTS.ROOM_SERVICE.ROOMS, {
+        params: {
+          property_id: scopedPropertyId,
+          tenant_id: scopedTenantId,
+        },
+      });
+      const rooms = (res.data?.rooms || []) as Array<Record<string, any>>;
+      const mapped: HotelRoom[] = rooms.map((r) => ({
+        id: String(r.unit_id || r.reservation_id || r.room_number),
+        roomNumber: String(r.room_number),
+        floor: (r.floor || "Floor 1") as RoomFloor,
+        roomType: r.unit_type || "Standard Room",
+        isOccupied: true,
+        guest: {
+          name: r.guest_name || "In-house guest",
+          phoneExtension: r.guest_phone || "",
+          pax: Number(r.pax || 1),
+          checkInDate: r.arrival_date || undefined,
+          checkOutDate: r.departure_date || undefined,
+        },
+        roomUnitId: r.unit_id || undefined,
+        reservationId: r.reservation_id || undefined,
+        folioId: r.folio_id || undefined,
+      }));
+      if (floor && floor !== "All") return mapped.filter((r) => r.floor === floor);
+      return mapped;
+    }
     // Re-link active orders to rooms
     const updated = roomsStore.map((r) => {
       const active = ordersStore.find(

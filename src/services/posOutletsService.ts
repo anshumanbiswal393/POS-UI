@@ -55,10 +55,8 @@ export type CreateOutletPayload = {
 
 function mapOutletType(apiType?: string): PosOutlet["type"] {
   const t = (apiType || "").toUpperCase();
-  if (t === "PRIMARY" || t === "HO" || t === "BAR" || t === "BANQUET" || t === "CAFE") {
-    return "Primary Outlet";
-  }
-  return "Virtual Outlet";
+  if (t === "VIRTUAL" || t === "KITCHEN") return "Virtual Outlet";
+  return "Primary Outlet";
 }
 
 export function mapOutletApiToPosOutlet(dto: OutletApiDto): PosOutlet {
@@ -71,11 +69,13 @@ export function mapOutletApiToPosOutlet(dto: OutletApiDto): PosOutlet {
   const parentRaw = meta.parent_outlet_id ?? meta.parentOutletId;
   const parentOutletId =
     typeof parentRaw === "string" && parentRaw.trim() ? String(parentRaw) : null;
+  const kind = (dto.outlet_type || "PRIMARY").toUpperCase();
   return {
     id: String(dto.id),
     name: dto.name,
     code: dto.code,
     type: mapOutletType(dto.outlet_type),
+    outletKind: kind,
     cuisine: dto.cuisine || (typeof meta.form_type === "string" ? String(meta.form_type) : "Multi-Cuisine"),
     description:
       (typeof meta.additional_info === "string" && meta.additional_info) ||
@@ -83,13 +83,16 @@ export function mapOutletApiToPosOutlet(dto: OutletApiDto): PosOutlet {
     address,
     contact: dto.phone || (typeof meta.owner_mobile === "string" ? meta.owner_mobile : "") || "",
     orderTypes:
-      (dto.outlet_type || "").toUpperCase() === "KITCHEN" ||
-      (dto.outlet_type || "").toUpperCase() === "VIRTUAL"
+      kind === "KITCHEN" || kind === "VIRTUAL"
         ? ["Online Delivery", "Takeaway"]
         : ["Dine-In", "Takeaway", "Room Service"],
     status: dto.is_active === false ? "Inactive" : "Active",
     menuCount: 0,
+    city: typeof meta.city === "string" ? meta.city : "",
+    email: dto.email || undefined,
     parentOutletId,
+    propertyId: dto.property ? String(dto.property) : null,
+    tenantId: dto.tenant ? String(dto.tenant) : null,
   };
 }
 

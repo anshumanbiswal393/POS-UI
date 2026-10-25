@@ -134,11 +134,14 @@ export function ClosingStockView() {
       return;
     }
 
-    saveMutation.mutate(entries, {
-      onSuccess: () => {
-        toast.success(`Saved closing stock for ${entries.length} items`);
+    saveMutation.mutate(
+      { entries, date: selectedDate },
+      {
+        onSuccess: () => {
+          toast.success(`Saved closing stock for ${entries.length} items`);
+        },
       },
-    });
+    );
   };
 
   const handleReview = () => {
@@ -167,7 +170,7 @@ export function ClosingStockView() {
       notes: "Imported via Excel spreadsheet",
     }));
 
-    saveMutation.mutate(sampleImportEntries, {
+    saveMutation.mutate({ entries: sampleImportEntries, date: selectedDate }, {
       onSuccess: () => {
         setStep(3);
         toast.success(

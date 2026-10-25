@@ -25,9 +25,11 @@ export type MenuItem = {
   name: string;
   onlineDisplayName: string;
   category: string;
+  categoryId?: string | null;
   itemType: MenuItemType;
   price: number;
   taxRate: number; // in percentage e.g. 5, 12, 18
+  taxProfileId?: string | null;
   status: "Active" | "Inactive";
   description?: string;
   images: MenuItemImage[];
@@ -40,6 +42,8 @@ export type MenuItem = {
   direct: boolean;
   nextAvailableTime?: string;
   updatedAt: string;
+  commissionType?: MenuItemCommission["commissionType"];
+  commissionValue?: number | null;
 };
 
 export type SpecialNote = {
@@ -90,11 +94,24 @@ export type MenuScheduleItem = {
   status: "Active" | "Scheduled" | "Paused";
 };
 
+export type PosOutletKind =
+  | "PRIMARY"
+  | "VIRTUAL"
+  | "HO"
+  | "KITCHEN"
+  | "BAR"
+  | "ROOM_SERVICE"
+  | "BANQUET"
+  | "CAFE"
+  | string;
+
 export type PosOutlet = {
   id: string;
   name: string;
   code: string;
   type: "Primary Outlet" | "Virtual Outlet";
+  /** Raw POS outlet_type from Postgres (HO / KITCHEN / PRIMARY / …). */
+  outletKind?: PosOutletKind;
   cuisine: string;
   description: string;
   address: string;
@@ -102,8 +119,12 @@ export type PosOutlet = {
   orderTypes: string[];
   status: "Active" | "Inactive";
   menuCount: number;
+  city?: string;
+  email?: string;
   /** Parent physical/HO outlet id for virtual / cloud brands */
   parentOutletId?: string | null;
+  propertyId?: string | null;
+  tenantId?: string | null;
 };
 
 export type VirtualOutlet = PosOutlet;

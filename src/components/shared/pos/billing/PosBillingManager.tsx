@@ -20,7 +20,7 @@ import { BillingModifierModal } from "./BillingModifierModal";
 import { BillingReceiptModal } from "./BillingReceiptModal";
 import { BillingHeldDrawer } from "./BillingHeldDrawer";
 import { BillingTableModal } from "./BillingTableModal";
-import { useMenuItems } from "@/hooks/queries/usePosMenu";
+import { useBillingMenuItems } from "@/hooks/queries/usePosMenu";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -29,6 +29,12 @@ import {
   getCurrentOrderByNumber,
   updateCurrentOrderFromBilling,
 } from "@/services/posOrdersService";
+import {
+  liveCreateOrder,
+  livePatchOrder,
+  liveSettleOrder,
+  liveGetOrder,
+} from "@/services/posOrderLive";
 import { getPosTaxSettings } from "@/lib/posTaxSettings";
 import { useHotelRooms } from "@/hooks/queries/usePosRoomService";
 import { usePosTables } from "@/hooks/queries/usePosTables";
@@ -38,7 +44,7 @@ export function PosBillingManager() {
   const queryClient = useQueryClient();
   const { activeOutlet } = useOutletContext();
   const { user } = useAuth();
-  const { data: menuList = [] } = useMenuItems(activeOutlet?.id || "outlet-primary");
+  const { data: menuList = [] } = useBillingMenuItems(activeOutlet?.id || "outlet-primary");
   const { data: hotelRooms = [] } = useHotelRooms();
   const { data: restaurantTables = [] } = usePosTables();
 
@@ -82,7 +88,13 @@ export function PosBillingManager() {
   const [billNumber, setBillNumber] = useState("RET-2026-9024");
   const [searchQuery, setSearchQuery] = useState("");
   const [specialNote, setSpecialNote] = useState("");
-  const captainName = user?.name?.trim() || "Steward";
+  const [waiterFromUrl, setWaiterFromUrl] = useState("");
+  const [billingTableId, setBillingTableId] = useState("");
+  const [roomUnitId, setRoomUnitId] = useState("");
+  const [reservationId, setReservationId] = useState("");
+  const [folioId, setFolioId] = useState("");
+  const [linkedOrderId, setLinkedOrderId] = useState<string | null>(null);
+  const captainName = waiterFromUrl.trim() || user?.name?.trim() || "Steward";
   const isBackendOutlet = isBackendOutletId(activeOutlet?.id);
 
   // Reset cart / held bills when switching to a real DB outlet (new HO/Kitchen starts empty)
@@ -183,7 +195,18 @@ export function PosBillingManager() {
     const qGuestPhone = params.get("guestPhone");
     const qNote = params.get("note");
     const qOrderNumber = params.get("orderNumber");
+    const qOrderId = params.get("orderId");
     const qEditOrder = params.get("editOrder");
+    const qWaiter = params.get("waiterName");
+    const qTableId = params.get("tableId");
+    const qRoomUnitId = params.get("roomUnitId");
+    const qReservationId = params.get("reservationId");
+    const qFolioId = params.get("folioId");
+    if (qWaiter) setWaiterFromUrl(decodeURIComponent(qWaiter));
+    if (qTableId) setBillingTableId(qTableId);
+    if (qRoomUnitId) setRoomUnitId(qRoomUnitId);
+    if (qReservationId) setReservationId(qReservationId);
+    if (qFolioId) setFolioId(qFolioId);
 
     if (qOrderType) {
       setOrderType(qOrderType);
@@ -222,8 +245,64 @@ export function PosBillingManager() {
     }
 
     // Edit existing Current Order → hydrate cart + link check
-    if (qOrderNumber && qEditOrder) {
-      const open = getCurrentOrderByNumber(decodeURIComponent(qOrderNumber));
+    if ((qOrderId || qOrderNumber) && qEditOrder) {
+      if (qOrderId) {
+        liveGetOrder(qOrderId).then((open) => {
+          if (!open) {
+            toast.error("Open order not found");
+            return;
+          }
+          setLinkedOrderId(open.id);
+          setLinkedOrderNumber(open.orderNumber);
+          setBillNumber(open.orderNumber);
+          setKotSentForCart(true);
+          if (open.tableId) setBillingTableId(open.tableId);
+          if (open.tableOrRoom) {
+            const tbl = open.tableOrRoom.startsWith("Table")
+              ? open.tableOrRoom
+              : `Table ${open.tableOrRoom}`;
+            setActiveTable(tbl);
+          }
+          if (open.pax) setGuestCount(open.pax);
+          if (open.orderNote) setSpecialNote(open.orderNote);
+          if (open.customerName) {
+            setSelectedCustomer({
+              id: `guest-${open.orderNumber}`,
+              name: open.customerName,
+              phone: open.customerPhone && open.customerPhone !== "--" ? open.customerPhone : "",
+              tier: "Silver",
+              loyaltyPoints: 0,
+              visitCount: 1,
+              lastVisit: "Today",
+            });
+          }
+          setCartItems(
+            open.items.map((line, idx) => ({
+              cartId: `edit-${open.orderNumber}-${idx}`,
+              item: {
+                id: line.id,
+                code: line.code || `#${line.id}`,
+                name: line.name,
+                category: (line.category as BillingMenuItem["category"]) || "All Items",
+                diet: line.diet || "veg",
+                price: line.price,
+                inStock: true,
+                prepTimeMinutes: 15,
+              },
+              quantity: line.quantity,
+              selectedVariant: line.selectedVariantName
+                ? { id: `var-${line.id}`, name: line.selectedVariantName, price: line.price }
+                : undefined,
+              selectedModifiers: [],
+              specialInstructions: line.notes,
+              addedAt: open.startTime,
+            })),
+          );
+          toast.success(`Editing ${open.orderNumber}`);
+        });
+        return;
+      }
+      const open = getCurrentOrderByNumber(decodeURIComponent(qOrderNumber || ""));
       if (open) {
         setLinkedOrderNumber(open.orderNumber);
         setBillNumber(open.orderNumber);
@@ -410,6 +489,7 @@ export function PosBillingManager() {
     setCartItems([]);
     setKotSentForCart(false);
     setLinkedOrderNumber(null);
+    setLinkedOrderId(null);
     toast.info("Cleared order cart");
   };
 
@@ -422,6 +502,7 @@ export function PosBillingManager() {
     setSpecialNote("");
     setKotSentForCart(false);
     setLinkedOrderNumber(null);
+    setLinkedOrderId(null);
     if (orderType === "room_service") {
       setRoomNumber("");
       setGuestCount(0);
@@ -436,6 +517,7 @@ export function PosBillingManager() {
       const mp = item.selectedModifiers.reduce((mSum, m) => mSum + m.price, 0);
       return {
         id: item.item.id,
+        menuItemId: item.item.id,
         name: item.item.name,
         quantity: item.quantity,
         price: item.isComplimentary ? 0 : bp + mp,
@@ -570,9 +652,65 @@ export function PosBillingManager() {
   const handlePrintKot = useCallback(() => {
     if (cartItems.length === 0) return;
 
-    const { orderItems, subtotal, grandTotal, tableLabel } = buildOrderPayload();
+    const { orderItems, subtotal, grandTotal, tableLabel, cgst, sgst, serviceCharge, discountAmount } =
+      buildOrderPayload();
     if (!tableLabel && orderType === "dine_in") {
       toast.error("Select a table before sending KOT");
+      return;
+    }
+
+    if (isBackendOutlet && activeOutlet?.id) {
+      const payload = {
+        outletId: activeOutlet.id,
+        orderType,
+        tableId: billingTableId || resolveTableMatch(activeTable)?.id,
+        tableNumber: tableLabel,
+        section: activeOutlet.name,
+        roomNumber:
+          orderType === "room_service" ? roomNumber.replace(/^Room\s+/i, "") : undefined,
+        roomUnitId: roomUnitId || undefined,
+        reservationId: reservationId || undefined,
+        folioId: folioId || undefined,
+        guestName: selectedCustomer?.name,
+        guestPhone: selectedCustomer?.phone,
+        waiterName: captainName,
+        pax: guestCount || 1,
+        orderNote: specialNote.trim() || undefined,
+        subtotal,
+        taxAmount: cgst + sgst,
+        serviceCharge,
+        discountAmount,
+        grandTotal,
+        sendKot: true,
+        items: orderItems,
+      };
+      void (async () => {
+        try {
+          if (linkedOrderId) {
+            const updated = await livePatchOrder(linkedOrderId, payload);
+            setKotSentForCart(true);
+            queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
+            queryClient.invalidateQueries({ queryKey: ["pos", "tables"] });
+            toast.success(`KOT updated → Preparing`, {
+              description: updated.orderNumber || linkedOrderNumber || "",
+            });
+            return;
+          }
+          const created = await liveCreateOrder(payload);
+          setKotSentForCart(true);
+          setLinkedOrderId(created.id);
+          setLinkedOrderNumber(created.orderNumber);
+          setBillNumber(created.orderNumber);
+          if (created.tableId) setBillingTableId(created.tableId);
+          queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
+          queryClient.invalidateQueries({ queryKey: ["pos", "tables"] });
+          toast.success(`KOT #${created.kotId || ""} → Preparing`, {
+            description: `${created.orderNumber} · Current Orders`,
+          });
+        } catch (err: any) {
+          toast.error(err?.response?.data?.detail || err?.message || "Could not send KOT");
+        }
+      })();
       return;
     }
 
@@ -670,6 +808,17 @@ export function PosBillingManager() {
     selectedCustomer,
     specialNote,
     queryClient,
+    isBackendOutlet,
+    activeOutlet?.id,
+    activeOutlet?.name,
+    billingTableId,
+    resolveTableMatch,
+    activeTable,
+    roomNumber,
+    roomUnitId,
+    reservationId,
+    folioId,
+    linkedOrderId,
   ]);
 
   // Submit order → Current Orders (+ KOT if not already sent)
@@ -688,6 +837,72 @@ export function PosBillingManager() {
         roundOff,
         tableLabel,
       } = buildOrderPayload();
+
+      if (isBackendOutlet && activeOutlet?.id) {
+        const payMap: Record<string, string> = {
+          cash: "CASH",
+          upi: "UPI",
+          card: "CARD",
+          room_post: "ROOM_CHARGE",
+          due: "DUE",
+          split: "SPLIT",
+        };
+        void (async () => {
+          try {
+            let orderId = linkedOrderId;
+            if (!orderId) {
+              const created = await liveCreateOrder({
+                outletId: activeOutlet.id,
+                orderType,
+                tableId: billingTableId || resolveTableMatch(activeTable)?.id,
+                tableNumber: tableLabel,
+                section: activeOutlet.name,
+                roomNumber:
+                  orderType === "room_service"
+                    ? roomNumber.replace(/^Room\s+/i, "")
+                    : undefined,
+                roomUnitId: roomUnitId || undefined,
+                reservationId: reservationId || undefined,
+                folioId: folioId || undefined,
+                guestName: selectedCustomer?.name,
+                guestPhone: selectedCustomer?.phone,
+                waiterName: captainName,
+                pax: guestCount || 1,
+                orderNote: specialNote.trim() || undefined,
+                subtotal,
+                taxAmount: cgst + sgst,
+                serviceCharge,
+                discountAmount,
+                grandTotal,
+                sendKot: true,
+                items: orderItems,
+              });
+              orderId = created.id;
+              setLinkedOrderId(created.id);
+              setLinkedOrderNumber(created.orderNumber);
+              setBillNumber(created.orderNumber);
+            }
+            const settled = await liveSettleOrder(orderId, {
+              paymentMode: payMap[paymentMethod] || "CASH",
+              tenderedAmount: tenderedAmount || grandTotal,
+              folioId: folioId || undefined,
+              reservationId: reservationId || undefined,
+              idempotencyKey: `settle-${orderId}-${Date.now()}`,
+            });
+            queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
+            queryClient.invalidateQueries({ queryKey: ["pos", "tables"] });
+            queryClient.invalidateQueries({ queryKey: ["pos", "inventory"] });
+            toast.success(`Settled ${settled.orderNumber || billNumber}`);
+            setCartItems([]);
+            setKotSentForCart(false);
+            setLinkedOrderId(null);
+            setLinkedOrderNumber(null);
+          } catch (err: any) {
+            toast.error(err?.response?.data?.detail || err?.message || "Could not settle bill");
+          }
+        })();
+        return;
+      }
 
       const effectiveTender = tenderedAmount || grandTotal;
       const changeDue = Math.max(0, effectiveTender - grandTotal);
@@ -803,6 +1018,14 @@ export function PosBillingManager() {
       queryClient,
       selectedCustomer,
       handleNewBill,
+      isBackendOutlet,
+      activeOutlet?.id,
+      billingTableId,
+      resolveTableMatch,
+      roomUnitId,
+      reservationId,
+      folioId,
+      linkedOrderId,
     ],
   );
 

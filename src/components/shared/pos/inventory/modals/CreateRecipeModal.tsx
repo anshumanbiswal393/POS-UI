@@ -12,6 +12,7 @@ export type RecipeIngredientInput = {
   name: string;
   quantity: string;
   unit: string;
+  stockItemId?: string;
 };
 
 export type RecipeFormValues = {
@@ -54,12 +55,14 @@ export function CreateRecipeModal({
   onSave,
   initial,
   title = "Create New Recipe",
+  stockItems = [],
 }: {
   isOpen: boolean;
   onClose: () => void;
   onSave: (values: RecipeFormValues) => void;
   initial?: Partial<RecipeFormValues> | null;
   title?: string;
+  stockItems?: Array<{ id: string; rawMaterial: string; unit: string }>;
 }) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
@@ -105,11 +108,16 @@ export function CreateRecipeModal({
         ...ing,
         name: ing.name.trim(),
         quantity: ing.quantity.trim(),
+        stockItemId: ing.stockItemId,
       }))
-      .filter((ing) => ing.name);
+      .filter((ing) => ing.name || ing.stockItemId);
 
     if (cleaned.length === 0) {
       toast.error("Add at least one ingredient");
+      return;
+    }
+    if (stockItems.length > 0 && cleaned.some((ing) => !ing.stockItemId)) {
+      toast.error("Select a stock SKU for every ingredient");
       return;
     }
     for (const ing of cleaned) {
@@ -251,6 +259,27 @@ export function CreateRecipeModal({
                     className="grid grid-cols-12 gap-2 items-center rounded-lg bg-white border border-slate-200 p-2"
                   >
                     <div className="col-span-12 sm:col-span-5">
+                      {stockItems.length > 0 ? (
+                        <select
+                          value={ing.stockItemId || ""}
+                          onChange={(e) => {
+                            const sku = stockItems.find((s) => s.id === e.target.value);
+                            updateIngredient(ing.id, {
+                              stockItemId: e.target.value,
+                              name: sku?.rawMaterial || "",
+                              unit: sku?.unit || ing.unit,
+                            });
+                          }}
+                          className="w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-[12.5px] focus:border-teal-500 focus:outline-hidden cursor-pointer"
+                        >
+                          <option value="">Select stock item</option>
+                          {stockItems.map((sku) => (
+                            <option key={sku.id} value={sku.id}>
+                              {sku.rawMaterial}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
                       <input
                         type="text"
                         value={ing.name}
@@ -258,6 +287,7 @@ export function CreateRecipeModal({
                         placeholder={`Ingredient ${idx + 1}`}
                         className="w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-[12.5px] focus:border-teal-500 focus:outline-hidden"
                       />
+                      )}
                     </div>
                     <div className="col-span-5 sm:col-span-3">
                       <input

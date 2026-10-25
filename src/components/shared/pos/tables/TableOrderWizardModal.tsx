@@ -283,8 +283,10 @@ export function TableOrderWizardModal({
       search: {
         orderType: "dine_in",
         table: tableLabel || primaryTable?.tableNumber || "Table #1",
+        tableId: primaryTable?.id || "",
         guests: pax > 0 ? pax : primaryTable?.capacity || 2,
         guestName: guestName.trim() || "",
+        guestPhone: guestPhone.trim() || "",
         waiterName: effectiveWaiter || "",
         ...(billingNotes ? { note: billingNotes } : {}),
       },

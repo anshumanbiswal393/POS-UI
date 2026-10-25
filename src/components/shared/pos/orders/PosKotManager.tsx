@@ -1,6 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { ChefHat, Clock, CheckCircle2, Flame, Printer } from "lucide-react";
-import { useKotOrders, useMarkKotPreparedMutation } from "@/hooks/queries/usePosOrders";
+import {
+  useKotOrders,
+  useMarkKotPreparedMutation,
+  useMarkKotServedMutation,
+} from "@/hooks/queries/usePosOrders";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { printKotTicket } from "@/utils/printKotTicket";
@@ -8,6 +12,8 @@ import { printKotTicket } from "@/utils/printKotTicket";
 type KdsTicket = {
   id: string;
   kotId: number;
+  orderId?: string;
+  status?: string;
   orderType: string;
   customerName: string;
   itemsText: string;
@@ -59,19 +65,22 @@ export function PosKotManager() {
 
   const { data: kotData, refetch } = useKotOrders();
   const markPreparedMutation = useMarkKotPreparedMutation();
+  const markServedMutation = useMarkKotServedMutation();
 
   useEffect(() => {
     const id = setInterval(() => refetch(), 4000);
     return () => clearInterval(id);
   }, [refetch]);
 
-  // Active kitchen queue only — Ready removes the card from KDS
+  // Kitchen queue: hide Served. Ready stays until waiter Serves.
   const tickets: KdsTicket[] = useMemo(() => {
     return (kotData?.records || [])
-      .filter((k) => k.status !== "Prepared" && k.status !== "Served")
+      .filter((k) => k.status !== "Served")
       .map((k) => ({
         id: k.id,
         kotId: k.kotId,
+        orderId: k.orderId,
+        status: k.status,
         orderType: k.orderType,
         customerName: k.customerName,
         itemsText: k.itemsText,
@@ -85,13 +94,30 @@ export function PosKotManager() {
   }, [kotData]);
 
   const handleMarkReady = (kot: KdsTicket) => {
-    markPreparedMutation.mutate(kot.kotId, {
-      onSuccess: () => {
-        toast.success(`Order #${kot.kotId} cleared from KDS`);
-        refetch();
+    markPreparedMutation.mutate(
+      { ticketId: kot.id, kotId: kot.kotId },
+      {
+        onSuccess: () => {
+          toast.success(`KOT #${kot.kotId} ready — notify waiter`);
+          refetch();
+        },
+        onError: () => toast.error("Failed to mark ready"),
       },
-      onError: () => toast.error("Failed to mark ready"),
-    });
+    );
+  };
+
+  const handleMarkServed = (kot: KdsTicket) => {
+    if (/^[0-9a-f-]{36}$/i.test(kot.id)) {
+      markServedMutation.mutate(kot.id, {
+        onSuccess: () => {
+          toast.success(`KOT #${kot.kotId} served`);
+          refetch();
+        },
+        onError: () => toast.error("Failed to mark served"),
+      });
+      return;
+    }
+    handleMarkReady(kot);
   };
 
   const handlePrintKot = (kot: KdsTicket) => {
@@ -129,7 +155,7 @@ export function PosKotManager() {
               </span>
             </div>
             <p className="text-[11.5px] text-text-secondary">
-              FCFS · timer orange at 10m · red at 15m · Ready clears the card
+              FCFS · timer orange at 10m · red at 15m · Ready notifies waiter · Serve clears the card
             </p>
           </div>
         </div>
@@ -156,8 +182,9 @@ export function PosKotManager() {
                 kot={kot}
                 now={now}
                 onReady={() => handleMarkReady(kot)}
+                onServe={() => handleMarkServed(kot)}
                 onPrint={() => handlePrintKot(kot)}
-                isBusy={markPreparedMutation.isPending}
+                isBusy={markPreparedMutation.isPending || markServedMutation.isPending}
               />
             ))}
           </div>
@@ -171,15 +198,18 @@ function KdsOrderCard({
   kot,
   now,
   onReady,
+  onServe,
   onPrint,
   isBusy,
 }: {
   kot: KdsTicket;
   now: number;
   onReady: () => void;
+  onServe: () => void;
   onPrint: () => void;
   isBusy?: boolean;
 }) {
+  const isReady = kot.status === "Prepared";
   const elapsedMs = Math.max(0, now - kot.createdTimestamp);
   const tone = timerTone(elapsedMs);
   const lines = parseItemLines(kot);
@@ -265,16 +295,15 @@ function KdsOrderCard({
         ))}
       </ul>
 
-      {/* Small Ready — clears card from KDS */}
       <div className="border-t border-border/80 px-3 py-2.5">
         <button
           type="button"
           disabled={isBusy}
-          onClick={onReady}
+          onClick={isReady ? onServe : onReady}
           className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-bold text-primary-foreground hover:bg-primary/90 active:scale-[0.99] disabled:opacity-60 cursor-pointer"
         >
           <CheckCircle2 className="h-3.5 w-3.5" />
-          Ready
+          {isReady ? "Serve" : "Ready"}
         </button>
       </div>
     </article>

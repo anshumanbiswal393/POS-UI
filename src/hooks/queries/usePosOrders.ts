@@ -10,32 +10,45 @@ import {
   getInitialKotData,
   getDueBills,
   getCurrentOrdersTimeline,
-  advanceCurrentOrderStage,
+  advanceCurrentOrderById,
   markKotPrepared,
+  markKotReadyLive,
+  markKotServedLive,
   settleDueBill,
+  settleDueBillLive,
   acceptOnlineOrderToKitchen,
   cancelOnlineOrder,
-  dispatchNewOnlineOrder,
   type DueBill,
   type CurrentOrderRecord,
 } from "@/services/posOrdersService";
 import { POS_TABLES_QUERY_KEY, POS_TABLE_STATS_QUERY_KEY } from "./usePosTables";
+import { useOutletContext } from "@/context/PosOutletContext";
+import { isBackendOutletId } from "@/utils/outletId";
+
+function useActiveOutletId() {
+  const { activeOutlet } = useOutletContext();
+  return activeOutlet?.id;
+}
 
 export function useLiveOrders() {
+  const outletId = useActiveOutletId();
+  const live = isBackendOutletId(outletId);
   return useQuery({
-    queryKey: ["pos", "orders", "live"],
-    queryFn: () => getLiveOrdersSummary(),
-    initialData: () => getInitialLiveOrdersData(),
+    queryKey: ["pos", "orders", "live", outletId],
+    queryFn: () => getLiveOrdersSummary(outletId),
+    initialData: live ? undefined : () => getInitialLiveOrdersData(),
     staleTime: 1000 * 15,
     refetchInterval: 1000 * 30,
   });
 }
 
 export function useCurrentOrdersTimeline() {
+  const outletId = useActiveOutletId();
+  const live = isBackendOutletId(outletId);
   return useQuery({
-    queryKey: ["pos", "orders", "current-timeline"],
-    queryFn: async (): Promise<CurrentOrderRecord[]> => getCurrentOrdersTimeline(),
-    initialData: () => getCurrentOrdersTimeline(),
+    queryKey: ["pos", "orders", "current-timeline", outletId],
+    queryFn: async (): Promise<CurrentOrderRecord[]> => getCurrentOrdersTimeline(outletId),
+    initialData: live ? undefined : [],
     staleTime: 1000 * 5,
     refetchInterval: 1000 * 15,
   });
@@ -44,19 +57,22 @@ export function useCurrentOrdersTimeline() {
 export function useAdvanceCurrentOrderStageMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (orderNumber: string) => advanceCurrentOrderStage(orderNumber),
+    mutationFn: async (orderIdOrNumber: string) => advanceCurrentOrderById(orderIdOrNumber),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "current-timeline"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
     },
   });
 }
 
 export function useAllOrders(filters?: Record<string, any>) {
+  const outletId = useActiveOutletId();
+  const live = isBackendOutletId(outletId);
   return useQuery({
-    queryKey: ["pos", "orders", "all", filters],
-    queryFn: () => getAllOrders(filters),
-    initialData: () => getInitialAllOrdersData(),
+    queryKey: ["pos", "orders", "all", outletId, filters],
+    queryFn: () => getAllOrders(filters, outletId),
+    initialData: live ? undefined : () => getInitialAllOrdersData(),
     staleTime: 1000 * 30,
   });
 }
@@ -72,19 +88,22 @@ export function useOnlineOrders(filters?: Record<string, any>) {
 }
 
 export function useKotOrders(filters?: Record<string, any>) {
+  const outletId = useActiveOutletId();
+  const live = isBackendOutletId(outletId);
   return useQuery({
-    queryKey: ["pos", "orders", "kot", filters],
-    queryFn: () => getKotOrders(filters),
-    initialData: () => getInitialKotData(),
+    queryKey: ["pos", "orders", "kot", outletId, filters],
+    queryFn: () => getKotOrders(filters, outletId),
+    initialData: live ? undefined : () => getInitialKotData(),
     staleTime: 1000 * 5,
     refetchInterval: 1000 * 15,
   });
 }
 
 export function useDueBills() {
+  const outletId = useActiveOutletId();
   return useQuery({
-    queryKey: ["pos", "orders", "due-bills"],
-    queryFn: () => getDueBills(),
+    queryKey: ["pos", "orders", "due-bills", outletId],
+    queryFn: () => getDueBills(outletId),
     staleTime: 1000 * 5,
     refetchInterval: 1000 * 15,
   });
@@ -93,14 +112,29 @@ export function useDueBills() {
 export function useMarkKotPreparedMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (kotId: number) => markKotPrepared(kotId),
+    mutationFn: async (input: number | { ticketId?: string; kotId?: number }) => {
+      if (typeof input === "object" && input.ticketId && /^[0-9a-f-]{36}$/i.test(input.ticketId)) {
+        return markKotReadyLive(input.ticketId);
+      }
+      const kotId = typeof input === "number" ? input : Number(input.kotId);
+      return markKotPrepared(kotId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
-      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "due-bills"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "current-timeline"] });
-      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "all"] });
-      queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
+    },
+  });
+}
+
+export function useMarkKotServedMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ticketId: string) => markKotServedLive(ticketId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "current-timeline"] });
     },
   });
 }
@@ -116,7 +150,7 @@ export function useSettleDueBillMutation() {
       billId: string;
       paymentMode: "Cash" | "Card" | "UPI" | "Room Charge" | "Split";
       paidAmount?: number;
-    }) => settleDueBill(billId, paymentMode, paidAmount),
+    }) => settleDueBillLive(billId, paymentMode, paidAmount),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "due-bills"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "all"] });
@@ -149,5 +183,3 @@ export function useCancelOnlineOrderMutation() {
     },
   });
 }
-
-

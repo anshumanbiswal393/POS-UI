@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { posRoomService } from "@/services/posRoomService";
+import { posRoomService, setRoomsOutletScope } from "@/services/posRoomService";
+import { useOutletContext } from "@/context/PosOutletContext";
 import type {
   RoomFloor,
   RoomServiceOrderStatus,
@@ -20,9 +22,24 @@ export function useRoomServiceOrders(floor?: RoomFloor) {
 }
 
 export function useHotelRooms(floor?: RoomFloor) {
+  const { activeOutlet } = useOutletContext();
+  useEffect(() => {
+    setRoomsOutletScope({
+      outletId: activeOutlet?.id,
+      propertyId: activeOutlet?.propertyId,
+      tenantId: activeOutlet?.tenantId,
+    });
+  }, [activeOutlet?.id, activeOutlet?.propertyId, activeOutlet?.tenantId]);
   return useQuery({
-    queryKey: [...POS_ROOM_SERVICE_ROOMS_KEY, floor],
-    queryFn: () => posRoomService.getRooms(floor),
+    queryKey: [...POS_ROOM_SERVICE_ROOMS_KEY, floor, activeOutlet?.id],
+    queryFn: () => {
+      setRoomsOutletScope({
+        outletId: activeOutlet?.id,
+        propertyId: activeOutlet?.propertyId,
+        tenantId: activeOutlet?.tenantId,
+      });
+      return posRoomService.getRooms(floor);
+    },
     staleTime: 1000 * 10,
   });
 }

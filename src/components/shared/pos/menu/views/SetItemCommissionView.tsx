@@ -6,9 +6,11 @@ import type { MenuItemCommission } from "@/types/posMenu";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { toast } from "sonner";
 import { registerAddMenuCommissionHandler } from "@/components/shared/pos/menu/menuCommissionActions";
+import { useOutletContext } from "@/context/PosOutletContext";
 
 export function SetItemCommissionView({ onBack }: { onBack?: () => void } = {}) {
-  const { data: commissions, isFetching, isLoading } = useItemCommissions();
+  const { activeOutlet } = useOutletContext();
+  const { data: commissions, isFetching, isLoading } = useItemCommissions(activeOutlet?.id);
 
   const [activeTab, setActiveTab] = useState<"item" | "addon">("item");
   const [categoryFilter, setCategoryFilter] = useState("All");

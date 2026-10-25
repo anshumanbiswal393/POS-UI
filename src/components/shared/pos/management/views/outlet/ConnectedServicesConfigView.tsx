@@ -5,6 +5,7 @@ import {
   YesNoRadios,
 } from "@/components/shared/pos/management/outlet-config/ConfigPageShell";
 import { useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
+import { useSaveInventorySettings } from "@/hooks/queries/usePosInventory";
 import type { OutletConfigState, YesNo } from "@/components/shared/pos/management/outlet-config/outletConfigStore";
 
 const SERVICES: Array<{
@@ -59,13 +60,17 @@ const SERVICES: Array<{
 
 export function ConnectedServicesConfigView() {
   const { config, persist } = useOutletConfig();
+  const saveSettings = useSaveInventorySettings();
   const [form, setForm] = useState(config.connectedServices);
 
   return (
     <ConfigPageShell
       title="Connected Services"
       subtitle="Configure how different services gets connects."
-      onSave={() => persist({ ...config, connectedServices: form }, "Connected services saved")}
+      onSave={() => {
+        persist({ ...config, connectedServices: form }, "Connected services saved");
+        saveSettings.mutate({ recipeBasedConsumption: form.inventoryConsumption });
+      }}
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {SERVICES.map((svc) => {

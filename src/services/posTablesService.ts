@@ -6,6 +6,57 @@ import type {
 } from "@/types/posTables";
 import { createDineInOrder, updateDineInOrder, type CreateDineInOrderInput } from "./posOrdersService";
 import { isBackendOutletId } from "@/utils/outletId";
+import httpClient from "@/utils/httpClient";
+import { API_ENDPOINTS } from "@/config/apiEndpoints";
+
+function unwrapRows<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (data && typeof data === "object" && Array.isArray((data as { results?: unknown }).results)) {
+    return (data as { results: T[] }).results;
+  }
+  return [];
+}
+
+function mapApiTable(dto: Record<string, any>, areaName?: string): RestaurantTable {
+  const raw = parseInt(String(dto.table_number || "").replace(/\D/g, ""), 10) || 0;
+  const statusMap: Record<string, RestaurantTable["status"]> = {
+    VACANT: "vacant",
+    RESERVED: "reserved",
+    OCCUPIED: "occupied",
+    BILLED: "occupied",
+    DIRTY: "occupied",
+  };
+  const shapeMap: Record<string, RestaurantTable["shape"]> = {
+    SQUARE: "square",
+    ROUND: "circle",
+    CIRCLE: "circle",
+    RECTANGLE: "rectangle",
+  };
+  const label = String(dto.table_number || raw);
+  return {
+    id: String(dto.id),
+    tableNumber: label.toLowerCase().startsWith("table") ? label : `Table #${label}`,
+    tableNumberRaw: raw,
+    capacity: Number(dto.capacity || 2),
+    currentGuests: dto.status === "OCCUPIED" || dto.status === "BILLED" ? Number(dto.capacity || 0) : 0,
+    shape: shapeMap[String(dto.shape || "").toUpperCase()] || "square",
+    area: dto.section_name || areaName || "Main Dining",
+    status: statusMap[String(dto.status || "VACANT").toUpperCase()] || "vacant",
+    activeOrder: dto.active_order_id
+      ? {
+          orderId: String(dto.active_order_id),
+          orderNumber: "",
+          serverName: dto.active_waiter_name || "Captain",
+          seatedAt: "",
+          elapsedMinutes: 0,
+          itemsCount: 0,
+          subtotal: 0,
+          totalAmount: 0,
+          status: "in_prep",
+        }
+      : undefined,
+  };
+}
 
 // Initial mock reservations matching the provided design
 const INITIAL_RESERVATIONS: ReservationItem[] = [
@@ -474,11 +525,25 @@ function store(): TableBucket {
 
 export const posTablesService = {
   getAreas: async (): Promise<string[]> => {
+    if (scopedOutletId && isBackendOutletId(scopedOutletId)) {
+      const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+        params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 200 },
+      });
+      return unwrapRows<any>(res.data).map((s) => String(s.name));
+    }
     return [...store().areas];
   },
 
   addArea: async (areaName: string): Promise<string[]> => {
     const trimmed = areaName.trim();
+    if (scopedOutletId && isBackendOutletId(scopedOutletId)) {
+      await httpClient.post(API_ENDPOINTS.TABLES.AREAS, {
+        outlet: scopedOutletId,
+        name: trimmed,
+        is_active: true,
+      });
+      return posTablesService.getAreas();
+    }
     if (trimmed && !store().areas.includes(trimmed)) {
       store().areas = [...store().areas, trimmed];
     }
@@ -491,6 +556,34 @@ export const posTablesService = {
     area: string;
     shape?: "rectangle" | "square" | "circle";
   }): Promise<RestaurantTable> => {
+    if (scopedOutletId && isBackendOutletId(scopedOutletId)) {
+      const sectionsRes = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+        params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 200 },
+      });
+      const sections = unwrapRows<any>(sectionsRes.data);
+      let section = sections.find(
+        (s) => String(s.name).toLowerCase() === (input.area || "").trim().toLowerCase(),
+      );
+      if (!section) {
+        const created = await httpClient.post(API_ENDPOINTS.TABLES.AREAS, {
+          outlet: scopedOutletId,
+          name: input.area || "Main Dining",
+          is_active: true,
+        });
+        section = created.data;
+      }
+      const shapeApi =
+        input.shape === "circle" ? "ROUND" : input.shape === "rectangle" ? "RECTANGLE" : "SQUARE";
+      const res = await httpClient.post(API_ENDPOINTS.TABLES.LIST, {
+        section: section.id,
+        table_number: input.tableNumber.replace(/^Table\s*#?/i, "").trim() || input.tableNumber,
+        capacity: input.capacity,
+        shape: shapeApi,
+        status: "VACANT",
+        is_active: true,
+      });
+      return mapApiTable(res.data, input.area);
+    }
     const rawNum = parseInt(input.tableNumber.replace(/\D/g, ""), 10) || store().tables.length + 1;
     const defaultShape = input.capacity >= 6 ? "rectangle" : "square";
 
@@ -514,6 +607,14 @@ export const posTablesService = {
   },
 
   getTables: async (area?: DiningArea): Promise<RestaurantTable[]> => {
+    if (scopedOutletId && isBackendOutletId(scopedOutletId)) {
+      const res = await httpClient.get(API_ENDPOINTS.TABLES.LIST, {
+        params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 500 },
+      });
+      const mapped = unwrapRows<any>(res.data).map((row) => mapApiTable(row, area));
+      if (area) return mapped.filter((t) => t.area === area);
+      return mapped;
+    }
     // Re-link reservations in case status changed
     const current = store().tables.map((tbl) => {
       const activeRes = store().reservations.find(
@@ -536,7 +637,12 @@ export const posTablesService = {
   },
 
   getStats: async (area?: DiningArea): Promise<TableManagementStats> => {
-    const list = area ? store().tables.filter((t) => t.area === area) : store().tables;
+    const list =
+      scopedOutletId && isBackendOutletId(scopedOutletId)
+        ? await posTablesService.getTables(area)
+        : area
+          ? store().tables.filter((t) => t.area === area)
+          : store().tables;
     const totalTables = list.length;
     const availableCount = list.filter((t) => t.status === "vacant").length;
     const reservedCount = list.filter((t) => t.status === "reserved").length;
@@ -723,6 +829,9 @@ export const posTablesService = {
     subtotal: number;
     grandTotal: number;
   }): Promise<{ table: RestaurantTable; orderNumber: string; kotId: number }> => {
+    if (scopedOutletId && isBackendOutletId(scopedOutletId)) {
+      throw new Error("Send KOT from Billing to create this order");
+    }
     let targetTable = store().tables.find((t) => t.id === input.tableId);
     const tableNumber = targetTable?.tableNumber || `Table #${input.tableId}`;
     const section = targetTable?.area || "Main Dining";

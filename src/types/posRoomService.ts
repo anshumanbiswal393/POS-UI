@@ -68,6 +68,9 @@ export interface HotelRoom {
   guest?: RoomGuest;
   activeOrder?: RoomServiceOrder;
   trayClearancePending?: boolean;
+  roomUnitId?: string;
+  reservationId?: string;
+  folioId?: string;
 }
 
 export interface RoomServiceKpis {

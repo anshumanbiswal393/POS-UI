@@ -168,7 +168,7 @@ export function OutletConfigurationHubView() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-[18px] font-bold tracking-tight text-slate-900">Outlet Configuration</h2>
+          <h2 className="text-[18px] font-bold tracking-tight text-slate-900">Outlet Setup</h2>
           <p className="mt-0.5 text-[12.5px] text-slate-500">
             Below are the configuration to manage your outlet information.
           </p>

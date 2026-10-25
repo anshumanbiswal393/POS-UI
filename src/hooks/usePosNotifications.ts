@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useStockAlerts } from "@/hooks/queries/usePosInventory";
+import { useKotOrders } from "@/hooks/queries/usePosOrders";
+import { useOutletContext } from "@/context/PosOutletContext";
+import { isBackendOutletId } from "@/utils/outletId";
 
 export type PosNotificationCategory =
   | "ORDER"
@@ -46,14 +50,6 @@ const SEED: Array<Omit<PosNotification, "isRead">> = [
     link: "/pos/settlement",
   },
   {
-    id: "pos-n4",
-    title: "Low stock alert",
-    message: "Carlsberg Elephant 650 ml is below the reorder level.",
-    category: "STOCK",
-    createdAt: Date.now() - 42 * 60 * 1000,
-    link: "/pos/inventory/available-stock",
-  },
-  {
     id: "pos-n5",
     title: "Pickup order confirmed",
     message: "Online pickup #RET-9040 is confirmed and waiting in kitchen.",
@@ -98,6 +94,10 @@ export function formatNotificationTime(createdAt: number) {
 }
 
 export function usePosNotifications() {
+  const { data: stockAlerts = [] } = useStockAlerts();
+  const { data: kotData } = useKotOrders();
+  const { activeOutlet } = useOutletContext();
+  const liveOutlet = isBackendOutletId(activeOutlet?.id);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const [hydrated, setHydrated] = useState(false);
 
@@ -111,14 +111,37 @@ export function usePosNotifications() {
     writeStoredIds(readIds);
   }, [hydrated, readIds]);
 
-  const notifications = useMemo<PosNotification[]>(
-    () =>
-      SEED.map((item) => ({
-        ...item,
-        isRead: readIds.has(item.id),
-      })).sort((a, b) => b.createdAt - a.createdAt),
-    [readIds],
-  );
+  const notifications = useMemo<PosNotification[]>(() => {
+    const seed = liveOutlet ? [] : SEED.filter((item) => item.category !== "STOCK");
+    const alerts: PosNotification[] = stockAlerts.map((alert) => ({
+      id: alert.id,
+      title: alert.title,
+      message: alert.message,
+      category: "STOCK",
+      createdAt: Date.now(),
+      link: alert.link || "/pos/inventory/available-stock",
+      isRead: readIds.has(alert.id),
+    }));
+    const kotReady: PosNotification[] = liveOutlet
+      ? (kotData?.records || [])
+          .filter((kot) => kot.status === "Prepared")
+          .map((kot) => {
+            const id = `kot-ready-${kot.id}`;
+            return {
+              id,
+              title: "Kitchen order ready",
+              message: `KOT #${kot.kotId} — ${kot.itemsText || "items"} is ready to serve.`,
+              category: "KOT" as const,
+              createdAt: kot.readyTimestamp || kot.createdTimestamp || Date.now(),
+              link: "/pos/kot",
+              isRead: readIds.has(id),
+            };
+          })
+      : [];
+    return [...alerts, ...kotReady, ...seed.map((item) => ({ ...item, isRead: readIds.has(item.id) }))].sort(
+      (a, b) => b.createdAt - a.createdAt,
+    );
+  }, [readIds, stockAlerts, liveOutlet, kotData]);
 
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.isRead).length,
@@ -138,10 +161,14 @@ export function usePosNotifications() {
     setReadIds((prev) => {
       const next = new Set(prev);
       SEED.forEach((item) => next.add(item.id));
+      stockAlerts.forEach((item) => next.add(item.id));
+      (kotData?.records || [])
+        .filter((kot) => kot.status === "Prepared")
+        .forEach((kot) => next.add(`kot-ready-${kot.id}`));
       if (next.size === prev.size) return prev;
       return next;
     });
-  }, []);
+  }, [stockAlerts, kotData]);
 
   return { notifications, unreadCount, markAsRead, markAllAsRead };
 }

@@ -1,4 +1,6 @@
 import httpClient from "@/utils/httpClient";
+import { isBackendOutletId } from "@/utils/outletId";
+import { posInventoryService } from "@/services/posInventoryService";
 
 export interface PurchaseLineItem {
   id?: string;
@@ -53,7 +55,7 @@ export interface PurchaseVendor {
   address?: string;
 }
 
-const LOCAL_STORAGE_PURCHASES_KEY = "retrod_pos_unified_purchases";
+const LOCAL_STORAGE_PURCHASES_KEY = "retrod_pos_unified_purchases_v2";
 const LOCAL_STORAGE_VENDORS_KEY = "retrod_pos_unified_vendors";
 
 export const DEFAULT_VENDORS: PurchaseVendor[] = [
@@ -64,154 +66,7 @@ export const DEFAULT_VENDORS: PurchaseVendor[] = [
   { id: "v-5", name: "Supreme Poultry & Meat", phone: "+91 98500 44556", category: "Meat & Poultry", contactPerson: "Mohd. Aslam", gstin: "27AAECS7890M1Z8" },
 ];
 
-export const DEFAULT_PURCHASES: UnifiedPurchaseDto[] = [
-  {
-    id: "PUR-9042",
-    invoiceNo: "INV-20261017-001",
-    vendorName: "Metro Cash & Carry",
-    purchaseDate: "17 Oct 2026",
-    invoiceDate: "17 Oct 2026",
-    rawDate: "2026-10-17",
-    dueDate: "24 Oct 2026",
-    totalAmount: 18450.0,
-    taxAmount: 922.5,
-    paidAmount: 18450.0,
-    balanceAmount: 0.0,
-    itemCount: 3,
-    paymentStatus: "Done",
-    rawPaymentStatus: "PAID",
-    status: "Completed",
-    notes: "Weekly groceries consignment received in good condition.",
-    items: [
-      { name: "Basmati Biryani Rice (50kg)", quantity: 2, unit: "Bags", unitPrice: 4500, lineTotal: 9000 },
-      { name: "Refined Sunflower Oil (15L)", quantity: 4, unit: "Tins", unitPrice: 1850, lineTotal: 7400 },
-      { name: "Whole Spices Assorted", quantity: 5, unit: "kg", unitPrice: 410, lineTotal: 2050 },
-    ],
-    payments: [
-      {
-        id: "pm-1",
-        amount: 18450.0,
-        paymentMethod: "Bank Transfer",
-        paymentDate: "17 Oct 2026",
-        referenceNo: "NEFT-991204",
-        notes: "Full settlement via HDFC NetBanking",
-      },
-    ],
-  },
-  {
-    id: "PUR-9041",
-    invoiceNo: "INV-20261017-002",
-    vendorName: "Royal Dairy Suppliers",
-    purchaseDate: "17 Oct 2026",
-    invoiceDate: "17 Oct 2026",
-    rawDate: "2026-10-17",
-    dueDate: "20 Oct 2026",
-    totalAmount: 8200.0,
-    taxAmount: 410.0,
-    paidAmount: 0.0,
-    balanceAmount: 8200.0,
-    itemCount: 2,
-    paymentStatus: "Pending",
-    rawPaymentStatus: "UNPAID",
-    status: "Completed",
-    notes: "Daily morning dairy delivery. Net 3 days credit terms.",
-    items: [
-      { name: "Dairy Butter 500g Blocks", quantity: 20, unit: "pcs", unitPrice: 240, lineTotal: 4800 },
-      { name: "Fresh Paneer Malai", quantity: 10, unit: "kg", unitPrice: 340, lineTotal: 3400 },
-    ],
-    payments: [],
-  },
-  {
-    id: "PUR-9040",
-    invoiceNo: "INV-20261016-003",
-    vendorName: "Fresh Farm Greens & Veggies",
-    purchaseDate: "16 Oct 2026",
-    invoiceDate: "16 Oct 2026",
-    rawDate: "2026-10-16",
-    dueDate: "23 Oct 2026",
-    totalAmount: 12600.0,
-    taxAmount: 0.0,
-    paidAmount: 5000.0,
-    balanceAmount: 7600.0,
-    itemCount: 4,
-    paymentStatus: "Partial",
-    rawPaymentStatus: "PARTIAL",
-    status: "Completed",
-    notes: "Farm vegetables consignment. Advance ₹5,000 paid via UPI.",
-    items: [
-      { name: "Nashik Red Onions", quantity: 100, unit: "kg", unitPrice: 35, lineTotal: 3500 },
-      { name: "Fresh Hybrid Tomatoes", quantity: 80, unit: "kg", unitPrice: 40, lineTotal: 3200 },
-      { name: "Potatoes Jyoti Grade A", quantity: 120, unit: "kg", unitPrice: 28, lineTotal: 3360 },
-      { name: "Ginger & Garlic Mixed", quantity: 15, unit: "kg", unitPrice: 170, lineTotal: 2540 },
-    ],
-    payments: [
-      {
-        id: "pm-2",
-        amount: 5000.0,
-        paymentMethod: "UPI / QR",
-        paymentDate: "16 Oct 2026",
-        referenceNo: "UPI-REF-88741",
-        notes: "Advance on delivery",
-      },
-    ],
-  },
-  {
-    id: "PUR-9039",
-    invoiceNo: "INV-20261015-004",
-    vendorName: "Supreme Poultry & Meat",
-    purchaseDate: "15 Oct 2026",
-    invoiceDate: "15 Oct 2026",
-    rawDate: "2026-10-15",
-    dueDate: "15 Oct 2026",
-    totalAmount: 15500.0,
-    taxAmount: 0.0,
-    paidAmount: 15500.0,
-    balanceAmount: 0.0,
-    itemCount: 2,
-    paymentStatus: "Done",
-    rawPaymentStatus: "PAID",
-    status: "Completed",
-    notes: "Fresh boneless chicken & mutton cuts. Paid cash on delivery.",
-    items: [
-      { name: "Boneless Chicken Breast", quantity: 40, unit: "kg", unitPrice: 240, lineTotal: 9600 },
-      { name: "Mutton Curry Cut", quantity: 10, unit: "kg", unitPrice: 590, lineTotal: 5900 },
-    ],
-    payments: [
-      {
-        id: "pm-3",
-        amount: 15500.0,
-        paymentMethod: "Cash",
-        paymentDate: "15 Oct 2026",
-        referenceNo: "CASH-REC-105",
-        notes: "Settled on spot",
-      },
-    ],
-  },
-  {
-    id: "PUR-9038",
-    invoiceNo: "INV-20261014-005",
-    vendorName: "Classic Spirits & Beverages",
-    purchaseDate: "14 Oct 2026",
-    invoiceDate: "14 Oct 2026",
-    rawDate: "2026-10-14",
-    dueDate: "21 Oct 2026",
-    totalAmount: 24300.0,
-    taxAmount: 2430.0,
-    paidAmount: 0.0,
-    balanceAmount: 24300.0,
-    itemCount: 3,
-    paymentStatus: "Pending",
-    rawPaymentStatus: "UNPAID",
-    status: "Completed",
-    notes: "Bar inventory restock. Awaiting weekly consolidated statement.",
-    items: [
-      { name: "Tonic Water Cans (24 pack)", quantity: 10, unit: "Cases", unitPrice: 850, lineTotal: 8500 },
-      { name: "Assorted Syrups & Purees", quantity: 12, unit: "Bottles", unitPrice: 650, lineTotal: 7800 },
-      { name: "Craft Soda & Mixers", quantity: 16, unit: "Cases", unitPrice: 500, lineTotal: 8000 },
-    ],
-    payments: [],
-  },
-];
+export const DEFAULT_PURCHASES: UnifiedPurchaseDto[] = [];
 
 function getStoredPurchases(): UnifiedPurchaseDto[] {
   if (typeof window === "undefined") return DEFAULT_PURCHASES;
@@ -344,11 +199,12 @@ export const posPurchasesService = {
     vendor?: string;
     paymentStatus?: string;
     search?: string;
+    outletId?: string;
   }): Promise<UnifiedPurchaseDto[]> {
     try {
       const res = await httpClient.get<{ success: boolean; purchases: UnifiedPurchaseDto[] }>(
         "/api/pos/stock/purchases/",
-        { params },
+        { params: { ...params, outlet_id: params?.outletId } },
       );
       if (res?.data?.purchases && res.data.purchases.length > 0) {
         saveStoredPurchases(res.data.purchases);
@@ -399,20 +255,24 @@ export const posPurchasesService = {
     paymentMethod?: string;
     notes?: string;
     items?: PurchaseLineItem[];
+    outletId?: string;
   }): Promise<UnifiedPurchaseDto> {
-    try {
-      const res = await httpClient.post<UnifiedPurchaseDto>(
-        "/api/pos/stock/purchases/",
-        payload,
-      );
-      if (res?.data) {
-        const stored = getStoredPurchases();
-        const updated = [res.data, ...stored];
-        saveStoredPurchases(updated);
-        return res.data;
+    if (isBackendOutletId(payload.outletId)) {
+      try {
+        const res = await httpClient.post<UnifiedPurchaseDto>(
+          "/api/pos/stock/purchases/",
+          payload,
+          { params: { outlet_id: payload.outletId } },
+        );
+        if (res?.data) {
+          const stored = getStoredPurchases();
+          const updated = [res.data, ...stored];
+          saveStoredPurchases(updated);
+          return res.data;
+        }
+      } catch {
+        // Fall through to local ledger
       }
-    } catch {
-      // Fallback
     }
 
     const stored = getStoredPurchases();
@@ -469,6 +329,18 @@ export const posPurchasesService = {
 
     const next = [newPurchase, ...stored];
     saveStoredPurchases(next);
+    if (!isBackendOutletId(payload.outletId)) {
+      for (const line of payload.items || []) {
+        if (!line.stockItemId) continue;
+        posInventoryService.adjustMockStock(
+          line.stockItemId,
+          Number(line.quantity) || 0,
+          "PURCHASE_IN",
+          invoiceNo,
+          { unitCost: line.unitPrice },
+        );
+      }
+    }
     return newPurchase;
   },
 

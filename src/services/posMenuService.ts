@@ -1656,6 +1656,42 @@ function unwrapList<T>(data: unknown): T[] {
   }
   return [];
 }
+
+function toMenuItemWritePayload(item: Partial<MenuItem> & { outletId?: string }) {
+  const itemType =
+    item.itemType === "Non-Veg" ? "NON_VEG" : item.itemType === "Egg" ? "EGG" : "VEG";
+  return {
+    outlet: item.outletId,
+    outletId: item.outletId,
+    category: item.categoryId || item.category,
+    categoryId: item.categoryId,
+    code: item.code,
+    name: item.name,
+    online_display_name: item.onlineDisplayName,
+    onlineDisplayName: item.onlineDisplayName,
+    item_type: itemType,
+    itemType: item.itemType,
+    price: item.price,
+    taxRate: item.taxRate,
+    tax_profile: item.taxProfileId,
+    status: item.status === "Inactive" ? "INACTIVE" : "ACTIVE",
+    description: item.description,
+    images: item.images || [],
+    base_menu: item.baseMenu,
+    baseMenu: item.baseMenu,
+    zomato: item.zomato,
+    swiggy: item.swiggy,
+    direct: item.direct,
+    variants: item.variants?.map((v, idx) => ({
+      name: v.name,
+      price: v.price,
+      sort_order: idx,
+      is_active: true,
+    })),
+    commissionType: item.commissionType,
+    commissionValue: item.commissionValue,
+  };
+}
 let commissionsStore: MenuItemCommission[] = [...initialCommissions];
 let schedulesStore: MenuScheduleItem[] = [...initialSchedules];
 let physicalMenusStore: PhysicalMenuRecord[] = [...initialPhysicalMenus];
@@ -1703,15 +1739,12 @@ export const posMenuService = {
       updatedAt: "Just now",
       images: item.images || [],
     };
-    try {
-      const res = await httpClient.post<MenuItem>(API_ENDPOINTS.MENU.CREATE_ITEM, newItem);
-      if (res.data) {
-        menuItemsStore = [res.data, ...menuItemsStore];
-        saveMenuItemsToStorage(menuItemsStore);
-        return res.data;
-      }
-    } catch {
-      // Fallback
+    if (isBackendOutletId(newItem.outletId)) {
+      const res = await httpClient.post<MenuItem>(
+        API_ENDPOINTS.MENU.CREATE_ITEM,
+        toMenuItemWritePayload(newItem),
+      );
+      return res.data;
     }
     menuItemsStore = [newItem, ...menuItemsStore];
     saveMenuItemsToStorage(menuItemsStore);
@@ -1719,10 +1752,12 @@ export const posMenuService = {
   },
 
   updateMenuItem: async (id: string, data: Partial<MenuItem>) => {
-    try {
-      await httpClient.put(API_ENDPOINTS.MENU.UPDATE_ITEM(id), data);
-    } catch {
-      // Fallback
+    if (isBackendOutletId(data.outletId) || /^[0-9a-f-]{36}$/i.test(id)) {
+      const res = await httpClient.patch<MenuItem>(
+        API_ENDPOINTS.MENU.UPDATE_ITEM(id),
+        toMenuItemWritePayload(data),
+      );
+      return res.data;
     }
     menuItemsStore = menuItemsStore.map((item) =>
       item.id === id ? { ...item, ...data, updatedAt: "Just now" } : item,
@@ -1732,10 +1767,9 @@ export const posMenuService = {
   },
 
   deleteMenuItem: async (id: string) => {
-    try {
+    if (/^[0-9a-f-]{36}$/i.test(id)) {
       await httpClient.delete(API_ENDPOINTS.MENU.DELETE_ITEM(id));
-    } catch {
-      // Fallback
+      return true;
     }
     menuItemsStore = menuItemsStore.filter((i) => i.id !== id);
     saveMenuItemsToStorage(menuItemsStore);
@@ -1744,10 +1778,9 @@ export const posMenuService = {
 
   // 2. Channel & Platform Availability
   toggleItemPlatform: async (id: string, platform: "zomato" | "swiggy" | "direct" | "baseMenu") => {
-    try {
-      await httpClient.patch(API_ENDPOINTS.MENU.TOGGLE_PLATFORM(id, platform));
-    } catch {
-      // Fallback
+    if (/^[0-9a-f-]{36}$/i.test(id)) {
+      const res = await httpClient.patch<MenuItem>(API_ENDPOINTS.MENU.TOGGLE_PLATFORM(id, platform));
+      return res.data;
     }
     menuItemsStore = menuItemsStore.map((item) => {
       if (item.id === id) {
@@ -1773,10 +1806,9 @@ export const posMenuService = {
       baseMenu?: boolean;
     },
   ) => {
-    try {
+    if (ids.some((id) => /^[0-9a-f-]{36}$/i.test(id))) {
       await httpClient.post(API_ENDPOINTS.MENU.BULK_PLATFORMS, { ids, updates });
-    } catch {
-      // Fallback
+      return true;
     }
     const idSet = new Set(ids);
     menuItemsStore = menuItemsStore.map((item) => {
@@ -1799,10 +1831,9 @@ export const posMenuService = {
   },
 
   toggleStockStatus: async (id: string) => {
-    try {
-      await httpClient.patch(API_ENDPOINTS.MENU.TOGGLE_STATUS(id));
-    } catch {
-      // Fallback
+    if (/^[0-9a-f-]{36}$/i.test(id)) {
+      const res = await httpClient.patch<MenuItem>(API_ENDPOINTS.MENU.TOGGLE_STATUS(id));
+      return res.data;
     }
     menuItemsStore = menuItemsStore.map((item) => {
       if (item.id === id) {
@@ -2123,12 +2154,39 @@ export const posMenuService = {
   },
 
   // 5. Item Commissions
-  getCommissions: async () => [...commissionsStore],
+  getCommissions: async (outletId?: string) => {
+    if (isBackendOutletId(outletId)) {
+      const items = await posMenuService.getMenuItems(outletId);
+      return items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        price: item.price,
+        commissionType: item.commissionType || "Not Configured",
+        commissionValue: item.commissionValue ?? null,
+      }));
+    }
+    return [...commissionsStore];
+  },
   updateCommission: async (
     id: string,
     commissionType: "Not Configured" | "Percentage" | "Fixed Amount",
     commissionValue: number | null,
   ) => {
+    if (/^[0-9a-f-]{36}$/i.test(id)) {
+      const res = await httpClient.patch<MenuItem>(API_ENDPOINTS.MENU.UPDATE_ITEM(id), {
+        commissionType,
+        commissionValue,
+      });
+      return {
+        id: res.data.id,
+        name: res.data.name,
+        category: res.data.category,
+        price: res.data.price,
+        commissionType: res.data.commissionType || commissionType,
+        commissionValue: res.data.commissionValue ?? commissionValue,
+      };
+    }
     commissionsStore = commissionsStore.map((item) =>
       item.id === id ? { ...item, commissionType, commissionValue } : item,
     );

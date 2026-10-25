@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Star,
   Search,
@@ -32,6 +32,11 @@ import { toast } from "sonner";
 import { DataTableHeader, DataTableFooter, type DataTableColumn } from "@/components/common";
 import { exportToExcel } from "@/utils/exportUtils";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
+import { useOutletContext } from "@/context/PosOutletContext";
+import { isBackendOutletId } from "@/utils/outletId";
+import { usePosSalesReport, usePosReportsDashboard } from "@/hooks/queries/usePosReports";
+import { isoDate, rangeLastDays, rangeThisMonth } from "@/services/posReportsService";
+import { formatINR } from "@/services/posDashboardService";
 import {
   Popover,
   PopoverTrigger,
@@ -450,7 +455,12 @@ const CATEGORY_PILLS = [
   { id: "favorites", label: "⭐ Favorites" },
 ] as const;
 
+const MOCK_FROM = "2026-08-27";
+const MOCK_TO = "2026-09-02";
+
 export function MainOtherReportsView() {
+  const { activeOutlet } = useOutletContext();
+  const live = isBackendOutletId(activeOutlet?.id);
   const [viewMode, setViewMode] = useState<"catalog" | "dashboard">("catalog");
   const [activePill, setActivePill] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -460,8 +470,8 @@ export function MainOtherReportsView() {
   // ---------------------------------------------------------
   // DRILLDOWN REPORT VIEW STATE
   // ---------------------------------------------------------
-  const [fromDate, setFromDate] = useState("2026-08-27");
-  const [toDate, setToDate] = useState("2026-09-02");
+  const [fromDate, setFromDate] = useState(live ? rangeLastDays(7).from : MOCK_FROM);
+  const [toDate, setToDate] = useState(live ? rangeLastDays(7).to : MOCK_TO);
   const [reportSearch, setReportSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -469,6 +479,27 @@ export function MainOtherReportsView() {
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
   const [sortConfig, setSortConfig] = useState<{ colId: string; direction: "asc" | "desc" } | null>(null);
   const [selectedOutlet, setSelectedOutlet] = useState<string>("ALL");
+
+  useEffect(() => {
+    if (live) {
+      const range = rangeLastDays(7);
+      setFromDate(range.from);
+      setToDate(range.to);
+      setSelectedOutlet(activeOutlet?.name || "ALL");
+    } else {
+      setFromDate(MOCK_FROM);
+      setToDate(MOCK_TO);
+      setSelectedOutlet("ALL");
+    }
+  }, [live, activeOutlet?.id, activeOutlet?.name]);
+
+  const salesQuery = usePosSalesReport({
+    kind: selectedReport?.id,
+    fromDate,
+    toDate,
+    enabled: Boolean(selectedReport),
+  });
+  const dashQuery = usePosReportsDashboard(fromDate, toDate, live && viewMode === "dashboard");
 
   const favoriteCount = useMemo(() => {
     return reportList.filter((r) => r.isFavorite).length;
@@ -515,8 +546,12 @@ export function MainOtherReportsView() {
   // ---------------------------------------------------------
   const currentReportConfig = useMemo(() => {
     if (!selectedReport) return null;
-    return DATASETS[selectedReport.id] || DATASETS["REP-01"];
-  }, [selectedReport]);
+    const base = DATASETS[selectedReport.id] || DATASETS["REP-01"];
+    if (live) {
+      return { columns: base.columns, data: salesQuery.data?.records || [] };
+    }
+    return base;
+  }, [selectedReport, live, salesQuery.data]);
 
   const allColumns = useMemo(() => {
     return currentReportConfig?.columns || [];
@@ -544,23 +579,24 @@ export function MainOtherReportsView() {
     if (!currentReportConfig) return [];
     let rows = currentReportConfig.data;
 
-    // Date range filtering
-    if (fromDate || toDate) {
-      rows = rows.filter((r) => {
-        if (!r.date && !r.timestamp && !r.lastVisit) return true;
-        const rowDate = r.date || (r.timestamp ? r.timestamp.slice(0, 10) : r.lastVisit);
-        if (fromDate && rowDate < fromDate) return false;
-        if (toDate && rowDate > toDate) return false;
-        return true;
-      });
-    }
+    if (!live) {
+      // Date range filtering (mock rows only — live rows are already scoped)
+      if (fromDate || toDate) {
+        rows = rows.filter((r) => {
+          if (!r.date && !r.timestamp && !r.lastVisit) return true;
+          const rowDate = r.date || (r.timestamp ? r.timestamp.slice(0, 10) : r.lastVisit);
+          if (fromDate && rowDate < fromDate) return false;
+          if (toDate && rowDate > toDate) return false;
+          return true;
+        });
+      }
 
-    // Outlet filtering
-    if (selectedOutlet !== "ALL") {
-      rows = rows.filter((r) => {
-        const out = r.outlet || r.outletName || r.outlet_name || "";
-        return !out || out.toLowerCase().includes(selectedOutlet.toLowerCase()) || selectedOutlet.toLowerCase().includes(out.toLowerCase());
-      });
+      if (selectedOutlet !== "ALL") {
+        rows = rows.filter((r) => {
+          const out = r.outlet || r.outletName || r.outlet_name || "";
+          return !out || out.toLowerCase().includes(selectedOutlet.toLowerCase()) || selectedOutlet.toLowerCase().includes(out.toLowerCase());
+        });
+      }
     }
 
     // Search filtering
@@ -590,7 +626,7 @@ export function MainOtherReportsView() {
     }
 
     return rows;
-  }, [currentReportConfig, fromDate, toDate, selectedOutlet, reportSearch, sortConfig]);
+  }, [currentReportConfig, fromDate, toDate, selectedOutlet, reportSearch, sortConfig, live]);
 
   const paginatedReportData = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -762,16 +798,24 @@ export function MainOtherReportsView() {
               <div className="space-y-1">
                 <label className="text-[11.5px] font-semibold text-slate-600">Outlet</label>
                 <select
-                  value={selectedOutlet}
+                  value={live ? activeOutlet?.name || selectedOutlet : selectedOutlet}
                   onChange={(e) => {
+                    if (live) return;
                     setSelectedOutlet(e.target.value);
                     setPage(1);
                   }}
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
+                  disabled={live}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer disabled:bg-slate-50"
                 >
-                  <option value="ALL">All Outlets</option>
-                  <option value="HIGHWAY INN BAR & RESTAURANT">Highway Inn Bar &amp; Restaurant</option>
-                  <option value="HIGHWAY INN BANQUET">Highway Inn Banquet</option>
+                  {live ? (
+                    <option value={activeOutlet?.name}>{activeOutlet?.name}</option>
+                  ) : (
+                    <>
+                      <option value="ALL">All Outlets</option>
+                      <option value="HIGHWAY INN BAR & RESTAURANT">Highway Inn Bar &amp; Restaurant</option>
+                      <option value="HIGHWAY INN BANQUET">Highway Inn Banquet</option>
+                    </>
+                  )}
                 </select>
               </div>
 
@@ -780,8 +824,15 @@ export function MainOtherReportsView() {
                 <button
                   type="button"
                   onClick={() => {
-                    setFromDate("2026-09-02");
-                    setToDate("2026-09-02");
+                    if (live) {
+                      const today = isoDate(new Date());
+                      setFromDate(today);
+                      setToDate(today);
+                    } else {
+                      setFromDate("2026-09-02");
+                      setToDate("2026-09-02");
+                    }
+                    setPage(1);
                   }}
                   className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 transition cursor-pointer"
                 >
@@ -790,8 +841,15 @@ export function MainOtherReportsView() {
                 <button
                   type="button"
                   onClick={() => {
-                    setFromDate("2026-08-27");
-                    setToDate("2026-09-02");
+                    if (live) {
+                      const range = rangeLastDays(7);
+                      setFromDate(range.from);
+                      setToDate(range.to);
+                    } else {
+                      setFromDate(MOCK_FROM);
+                      setToDate(MOCK_TO);
+                    }
+                    setPage(1);
                   }}
                   className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 transition cursor-pointer"
                 >
@@ -800,8 +858,15 @@ export function MainOtherReportsView() {
                 <button
                   type="button"
                   onClick={() => {
-                    setFromDate("2026-08-01");
-                    setToDate("2026-09-02");
+                    if (live) {
+                      const range = rangeThisMonth();
+                      setFromDate(range.from);
+                      setToDate(range.to);
+                    } else {
+                      setFromDate("2026-08-01");
+                      setToDate(MOCK_TO);
+                    }
+                    setPage(1);
                   }}
                   className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 transition cursor-pointer"
                 >
@@ -826,13 +891,19 @@ export function MainOtherReportsView() {
                 />
               </div>
 
-              {(reportSearch || fromDate !== "2026-08-27" || toDate !== "2026-09-02") && (
+              {(reportSearch || fromDate !== (live ? rangeLastDays(7).from : MOCK_FROM) || toDate !== (live ? rangeLastDays(7).to : MOCK_TO)) && (
                 <button
                   type="button"
                   onClick={() => {
                     setReportSearch("");
-                    setFromDate("2026-08-27");
-                    setToDate("2026-09-02");
+                    if (live) {
+                      const range = rangeLastDays(7);
+                      setFromDate(range.from);
+                      setToDate(range.to);
+                    } else {
+                      setFromDate(MOCK_FROM);
+                      setToDate(MOCK_TO);
+                    }
                     setPage(1);
                     toast.info("Reset report filters");
                   }}
@@ -850,7 +921,7 @@ export function MainOtherReportsView() {
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-xl font-black text-slate-900 tracking-wide uppercase">
-                HIGHWAY INN BAR &amp; RESTAURANT
+                {activeOutlet?.name || "HIGHWAY INN BAR & RESTAURANT"}
               </h1>
               <h2 className="text-sm font-bold text-slate-800 mt-0.5 uppercase">
                 {selectedReport.title}
@@ -875,7 +946,21 @@ export function MainOtherReportsView() {
         </div>
 
         {/* Tabular Data with DataTableHeader and DataTableFooter */}
-        {reportDataset.length === 0 ? (
+        {live && salesQuery.isFetching ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-20 text-center shadow-xs space-y-3 print:hidden">
+            <div className="text-[14.5px] font-bold text-slate-700">Loading report…</div>
+            <p className="text-[12.5px] text-slate-400 max-w-sm mx-auto">
+              Pulling settled bills for {fromDate} to {toDate}.
+            </p>
+          </div>
+        ) : salesQuery.isError ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-20 text-center shadow-xs space-y-3 print:hidden">
+            <div className="text-[14.5px] font-bold text-slate-700">Could not load this report</div>
+            <p className="text-[12.5px] text-slate-400 max-w-sm mx-auto">
+              Check that the backend is running and Postgres is reachable, then try again.
+            </p>
+          </div>
+        ) : reportDataset.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-20 text-center shadow-xs space-y-3 print:hidden">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 text-slate-300">
               <Search className="h-8 w-8" />
@@ -1087,6 +1172,10 @@ export function MainOtherReportsView() {
       {viewMode === "dashboard" && (
         <div className="space-y-6 animate-in fade-in duration-200">
           {/* KPI Strip */}
+          {(() => {
+            const kpis = live ? dashQuery.data?.kpis : null;
+            const grossDelta = kpis?.grossDeltaPct ?? 12.4;
+            return (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 shadow-2xs">
               <div className="flex items-center justify-between">
@@ -1095,8 +1184,12 @@ export function MainOtherReportsView() {
                   <TrendingUp className="h-4 w-4" />
                 </span>
               </div>
-              <div className="mt-2 text-[22px] font-extrabold text-slate-900">₹3,74,200</div>
-              <div className="text-[11.5px] text-emerald-600 font-semibold mt-1">↑ 12.4% vs last week</div>
+              <div className="mt-2 text-[22px] font-extrabold text-slate-900">
+                {kpis ? formatINR(kpis.grossSales) : "₹3,74,200"}
+              </div>
+              <div className={`text-[11.5px] font-semibold mt-1 ${grossDelta >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                {grossDelta >= 0 ? "↑" : "↓"} {Math.abs(grossDelta)}% vs prior period
+              </div>
             </div>
 
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 shadow-2xs">
@@ -1106,8 +1199,12 @@ export function MainOtherReportsView() {
                   <Receipt className="h-4 w-4" />
                 </span>
               </div>
-              <div className="mt-2 text-[22px] font-extrabold text-slate-900">482</div>
-              <div className="text-[11.5px] text-slate-500 font-semibold mt-1">Avg 68 bills / day</div>
+              <div className="mt-2 text-[22px] font-extrabold text-slate-900">
+                {kpis ? kpis.totalBills.toLocaleString("en-IN") : "482"}
+              </div>
+              <div className="text-[11.5px] text-slate-500 font-semibold mt-1">
+                Avg {kpis ? kpis.billsPerDay : 68} bills / day
+              </div>
             </div>
 
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 shadow-2xs">
@@ -1117,8 +1214,14 @@ export function MainOtherReportsView() {
                   <Coins className="h-4 w-4" />
                 </span>
               </div>
-              <div className="mt-2 text-[22px] font-extrabold text-slate-900">₹776.35</div>
-              <div className="text-[11.5px] text-emerald-600 font-semibold mt-1">↑ ₹42.10 higher per bill</div>
+              <div className="mt-2 text-[22px] font-extrabold text-slate-900">
+                {kpis ? formatINR(kpis.avgTicket) : "₹776.35"}
+              </div>
+              <div className="text-[11.5px] text-emerald-600 font-semibold mt-1">
+                {kpis
+                  ? `${kpis.avgTicketDelta >= 0 ? "↑" : "↓"} ${formatINR(Math.abs(kpis.avgTicketDelta))} vs prior period`
+                  : "↑ ₹42.10 higher per bill"}
+              </div>
             </div>
 
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 shadow-2xs">
@@ -1128,14 +1231,41 @@ export function MainOtherReportsView() {
                   <Utensils className="h-4 w-4" />
                 </span>
               </div>
-              <div className="mt-2 text-[22px] font-extrabold text-slate-900">58.2%</div>
+              <div className="mt-2 text-[22px] font-extrabold text-slate-900">
+                {kpis ? `${kpis.dineInVolume}%` : "58.2%"}
+              </div>
               <div className="text-[11.5px] text-slate-500 font-semibold mt-1">Dine-In & Banquet share</div>
             </div>
           </div>
+            );
+          })()}
 
           {/* Quick Analytics Visuals */}
+          {(() => {
+            const channels = live && dashQuery.data?.channels?.length
+              ? dashQuery.data.channels
+              : [
+                  { label: "Dine-In Restaurant", amount: 182400, pct: 48.7, color: "teal" },
+                  { label: "Banquet & Hall Events", amount: 115000, pct: 30.7, color: "sky" },
+                  { label: "Online Delivery (Zomato & Swiggy)", amount: 48200, pct: 12.9, color: "purple" },
+                  { label: "Direct Counter Takeaway", amount: 28600, pct: 7.7, color: "amber" },
+                ];
+            const barColor: Record<string, string> = {
+              teal: "bg-teal-600",
+              sky: "bg-sky-600",
+              purple: "bg-purple-600",
+              amber: "bg-amber-500",
+            };
+            const dishes = live && dashQuery.data?.topDishes?.length
+              ? dashQuery.data.topDishes
+              : [
+                  { name: "Murgh Dum Biryani (Handi)", category: "High Margin", qty: 142, revenue: 68160 },
+                  { name: "Paneer Butter Masala", category: "Veg Best Seller", qty: 118, revenue: 42480 },
+                  { name: "Tandoori Pomfret", category: "Starters", qty: 64, revenue: 41600 },
+                  { name: "Butter Garlic Naan", category: "Breads", qty: 410, revenue: 30750 },
+                ];
+            return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Channel Breakdown Card */}
             <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-[14px] font-bold text-slate-900">Channel Revenue Distribution</h3>
@@ -1150,49 +1280,25 @@ export function MainOtherReportsView() {
               </div>
 
               <div className="space-y-3 pt-1">
-                <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                    <span>Dine-In Restaurant</span>
-                    <span className="font-bold">₹1,82,400 (48.7%)</span>
+                {channels.map((ch) => (
+                  <div key={ch.label}>
+                    <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+                      <span>{ch.label}</span>
+                      <span className="font-bold">
+                        {formatINR(ch.amount)} ({ch.pct}%)
+                      </span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${barColor[ch.color || "teal"] || "bg-teal-600"}`}
+                        style={{ width: `${Math.min(ch.pct, 100)}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-teal-600 rounded-full" style={{ width: "48.7%" }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                    <span>Banquet & Hall Events</span>
-                    <span className="font-bold">₹1,15,000 (30.7%)</span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-sky-600 rounded-full" style={{ width: "30.7%" }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                    <span>Online Delivery (Zomato & Swiggy)</span>
-                    <span className="font-bold">₹48,200 (12.9%)</span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-purple-600 rounded-full" style={{ width: "12.9%" }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                    <span>Direct Counter Takeaway</span>
-                    <span className="font-bold">₹28,600 (7.7%)</span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-amber-500 rounded-full" style={{ width: "7.7%" }} />
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
-            {/* Top Selling Items Card */}
             <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-[14px] font-bold text-slate-900">Top Moving Dishes</h3>
@@ -1207,64 +1313,32 @@ export function MainOtherReportsView() {
               </div>
 
               <div className="divide-y divide-slate-100">
-                <div className="py-2.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-teal-50 text-teal-800 font-bold text-[11px]">1</span>
-                    <div>
-                      <div className="text-[12.5px] font-bold text-slate-900">Murgh Dum Biryani (Handi)</div>
-                      <div className="text-[11px] text-slate-500">142 orders sold</div>
+                {dishes.length === 0 ? (
+                  <div className="py-6 text-[12.5px] text-slate-400">No settled dishes in this period.</div>
+                ) : (
+                  dishes.map((dish, idx) => (
+                    <div key={`${dish.name}-${idx}`} className="py-2.5 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-teal-50 text-teal-800 font-bold text-[11px]">
+                          {idx + 1}
+                        </span>
+                        <div>
+                          <div className="text-[12.5px] font-bold text-slate-900">{dish.name}</div>
+                          <div className="text-[11px] text-slate-500">{dish.qty} sold</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[12.5px] font-bold text-slate-900">{formatINR(dish.revenue)}</div>
+                        <div className="text-[11px] text-emerald-600 font-semibold">{dish.category || "Menu"}</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[12.5px] font-bold text-slate-900">₹68,160</div>
-                    <div className="text-[11px] text-emerald-600 font-semibold">High Margin</div>
-                  </div>
-                </div>
-
-                <div className="py-2.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-teal-50 text-teal-800 font-bold text-[11px]">2</span>
-                    <div>
-                      <div className="text-[12.5px] font-bold text-slate-900">Paneer Butter Masala</div>
-                      <div className="text-[11px] text-slate-500">118 orders sold</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[12.5px] font-bold text-slate-900">₹42,480</div>
-                    <div className="text-[11px] text-emerald-600 font-semibold">Veg Best Seller</div>
-                  </div>
-                </div>
-
-                <div className="py-2.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-teal-50 text-teal-800 font-bold text-[11px]">3</span>
-                    <div>
-                      <div className="text-[12.5px] font-bold text-slate-900">Tandoori Pomfret</div>
-                      <div className="text-[11px] text-slate-500">64 orders sold</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[12.5px] font-bold text-slate-900">₹41,600</div>
-                    <div className="text-[11px] text-emerald-600 font-semibold">Starters</div>
-                  </div>
-                </div>
-
-                <div className="py-2.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-teal-50 text-teal-800 font-bold text-[11px]">4</span>
-                    <div>
-                      <div className="text-[12.5px] font-bold text-slate-900">Butter Garlic Naan</div>
-                      <div className="text-[11px] text-slate-500">410 pieces sold</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[12.5px] font-bold text-slate-900">₹30,750</div>
-                    <div className="text-[11px] text-emerald-600 font-semibold">Breads</div>
-                  </div>
-                </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
+            );
+          })()}
         </div>
       )}
 

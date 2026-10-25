@@ -1,4 +1,7 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useConsumptionReport } from "@/hooks/queries/usePosInventory";
+import { useOutletContext } from "@/context/PosOutletContext";
+import { isBackendOutletId } from "@/utils/outletId";
 import { Search } from "lucide-react";
 import {
   DataTableHeader,
@@ -7,57 +10,34 @@ import {
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { toast } from "sonner";
 
-export function SalesConsumptionView() {
-  const [search, setSearch] = useState("");
-  const [selectedDate, setSelectedDate] = useState("2026-09-02");
+const DEMO_CONSUMPTION: Array<{
+  id: string;
+  item: string;
+  category: string;
+  quantity: string;
+  salesVolume: string;
+  cost: string;
+  wastage: string;
+}> = [];
 
-  const consumptionRecords = [
-    {
-      id: "SC-101",
-      item: "Chicken Breast",
-      category: "Meat",
-      quantity: "14.5 kg",
-      salesVolume: "29 orders",
-      cost: "₹ 4,350",
-      wastage: "0.5 kg",
-    },
-    {
-      id: "SC-102",
-      item: "Paneer (Cottage Cheese)",
-      category: "Dairy",
-      quantity: "8.2 kg",
-      salesVolume: "41 orders",
-      cost: "₹ 2,870",
-      wastage: "0.2 kg",
-    },
-    {
-      id: "SC-103",
-      item: "Basmati Rice",
-      category: "Groceries",
-      quantity: "22.0 kg",
-      salesVolume: "68 orders",
-      cost: "₹ 1,980",
-      wastage: "0.8 kg",
-    },
-    {
-      id: "SC-104",
-      item: "Cooking Oil (Sunflower)",
-      category: "Groceries",
-      quantity: "12.0 L",
-      salesVolume: "105 orders",
-      cost: "₹ 1,680",
-      wastage: "0.1 L",
-    },
-    {
-      id: "SC-105",
-      item: "Sprite Cans (330ml)",
-      category: "Beverages",
-      quantity: "34 units",
-      salesVolume: "34 orders",
-      cost: "₹ 1,020",
-      wastage: "0 units",
-    },
-  ];
+export function SalesConsumptionView() {
+  const { activeOutlet } = useOutletContext();
+  const isLive = isBackendOutletId(activeOutlet.id);
+  const { data: apiRows = [] } = useConsumptionReport();
+  const [search, setSearch] = useState("");
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
+
+  const consumptionRecords = isLive
+    ? (apiRows as Array<Record<string, unknown>>).map((row) => ({
+        id: String(row.code || row.stockItemId || row.id || ""),
+        item: String(row.item || row.name || ""),
+        category: String(row.category || ""),
+        quantity: `${row.consumedQty ?? row.qtyUsed ?? 0} ${row.unit || ""}`.trim(),
+        salesVolume: "Movements",
+        cost: "—",
+        wastage: "—",
+      }))
+    : DEMO_CONSUMPTION;
 
   const consumptionColumns: DataTableColumn<any>[] = useMemo(
     () => [

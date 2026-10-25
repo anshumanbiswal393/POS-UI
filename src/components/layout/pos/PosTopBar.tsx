@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
+import { isDiningOutlet } from "@/utils/outletKind";
 import { useAuth } from "@/hooks/useAuth";
 import { useOutletContext } from "@/context/PosOutletContext";
 import {
@@ -109,8 +110,9 @@ export function PosTopBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const primaryOutlets = outlets.filter((o) => o.type === "Primary Outlet");
-  const virtualOutlets = outlets.filter((o) => o.type === "Virtual Outlet");
+  const diningOutlets = outlets.filter(isDiningOutlet);
+  const primaryOutlets = diningOutlets.filter((o) => o.type === "Primary Outlet");
+  const virtualOutlets = diningOutlets.filter((o) => o.type === "Virtual Outlet");
   const roleText = user ? roleLabel(user.role) : "Retrod Admin";
 
   const dateOptions = [
@@ -235,7 +237,7 @@ export function PosTopBar({
                 <span className="text-[11px] font-bold uppercase tracking-wider text-text-disabled">
                   Switch Outlet
                 </span>
-                <span className="text-[11px] font-medium text-primary">{outlets.length} Total</span>
+                <span className="text-[11px] font-medium text-primary">{diningOutlets.length} Total</span>
               </div>
 
               <div className="max-h-80 overflow-y-auto py-1 space-y-1">

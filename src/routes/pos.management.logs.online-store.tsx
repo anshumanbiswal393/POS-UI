@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { OnlineStoreLogsView } from "@/components/shared/pos/management/views/logs/OnlineStoreLogsView";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/pos/management/logs/online-store")({
-  head: () => ({ meta: [{ title: "Online Store Logs — Retrod POS" }] }),
-  component: OnlineStoreLogsView,
+  beforeLoad: () => {
+    throw redirect({ to: "/pos/management/logs/notifications" });
+  },
+  component: () => null,
 });
