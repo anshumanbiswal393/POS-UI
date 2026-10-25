@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { posTablesService, setTablesOutletScope } from "@/services/posTablesService";
 import type { DiningArea, ReservationItem } from "@/types/posTables";
 import { useOutletContext } from "@/context/PosOutletContext";
@@ -45,6 +46,14 @@ export function useAddAreaMutation() {
       queryClient.invalidateQueries({ queryKey: POS_AREAS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: POS_TABLE_STATS_QUERY_KEY });
+      toast.success("Dining area saved");
+    },
+    onError: (err: unknown) => {
+      const message =
+        (err as { message?: string })?.message ||
+        (err as { data?: { detail?: string } })?.data?.detail ||
+        "Could not save dining area";
+      toast.error(String(message));
     },
   });
 }
@@ -65,6 +74,15 @@ export function useAddTableMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: POS_TABLE_STATS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_AREAS_QUERY_KEY });
+      toast.success("Table saved");
+    },
+    onError: (err: unknown) => {
+      const message =
+        (err as { message?: string })?.message ||
+        (err as { data?: { detail?: string } })?.data?.detail ||
+        "Could not save table";
+      toast.error(String(message));
     },
   });
 }
@@ -186,6 +204,14 @@ export function useCreateTableOrderMutation() {
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "all"] });
+      toast.success("Order sent to kitchen");
+    },
+    onError: (err: unknown) => {
+      const message =
+        (err as { message?: string })?.message ||
+        (err as { data?: { detail?: string } })?.data?.detail ||
+        "Could not send order";
+      toast.error(String(message));
     },
   });
 }

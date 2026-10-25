@@ -5,7 +5,8 @@ import {
   posOutletsService,
   type CreateOutletPayload,
 } from "@/services/posOutletsService";
-import { isDiningOutlet } from "@/utils/outletKind";
+import { firstLiveDiningOutlet, isDiningOutlet } from "@/utils/outletKind";
+import { isBackendOutletId } from "@/utils/outletId";
 
 const STORAGE_KEY_ACTIVE_ID = "retrod_pos_active_outlet_id";
 
@@ -87,9 +88,13 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
       setOutlets((prev) => {
         const merged = mergeOutletLists(prev, remote);
         setActiveOutletId((prevId) => {
+          const liveDining = firstLiveDiningOutlet(merged);
           const current = merged.find((o) => o.id === prevId);
-          if (current && isDiningOutlet(current)) return prevId;
-          return "outlet-primary";
+          // Highway Inn is demo-only (tables reset on refresh). Prefer a live dining floor.
+          if ((!prevId || prevId === "outlet-primary") && liveDining) return liveDining.id;
+          if (current && isDiningOutlet(current) && isBackendOutletId(current.id)) return prevId;
+          if (current && isDiningOutlet(current) && !liveDining) return prevId;
+          return liveDining?.id || "outlet-primary";
         });
         return merged;
       });
@@ -116,6 +121,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
 
   const activeOutlet =
     outlets.find((o) => o.id === activeOutletId && isDiningOutlet(o)) ||
+    firstLiveDiningOutlet(outlets) ||
     outlets.find((o) => o.id === "outlet-primary") ||
     outlets.find(isDiningOutlet) ||
     INITIAL_OUTLETS[0];

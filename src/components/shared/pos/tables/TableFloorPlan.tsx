@@ -22,6 +22,7 @@ interface TableFloorPlanProps {
   onOpenTakeOrder?: (tableId?: string) => void;
   stats?: TableManagementStats;
   onRefresh?: () => void;
+  demoFloor?: boolean;
 }
 
 const DEFAULT_AREAS = ["Main Dining", "Terrace", "Outdoor"];
@@ -40,6 +41,7 @@ export function TableFloorPlan({
   onOpenTakeOrder,
   stats,
   onRefresh,
+  demoFloor = false,
 }: TableFloorPlanProps) {
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-slate-50/50 overflow-y-auto">
@@ -58,12 +60,23 @@ export function TableFloorPlan({
             <p className="text-[11.5px] text-slate-500 mt-0.5">
               Live restaurant seating layout, floor occupancy, and reservation schedule.
             </p>
+            {demoFloor ? (
+              <p className="mt-1.5 max-w-xl rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11.5px] font-semibold text-amber-900">
+                Highway Inn is demo data. Tables and dining areas here reset on refresh. Switch to
+                The Grand Pavilion Restaurant at the top right, then add them again to save.
+              </p>
+            ) : null}
           </div>
 
           {/* Area Switcher & Actions */}
           <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
             {/* Area Switcher (Main Dining, Terrace, Outdoor, etc.) with + button */}
             <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/60">
+              {areas.length === 0 ? (
+                <span className="px-3 py-1 text-[11px] font-semibold text-slate-500">
+                  No dining area yet
+                </span>
+              ) : null}
               {areas.map((area) => {
                 const isActive = activeArea === area;
                 return (

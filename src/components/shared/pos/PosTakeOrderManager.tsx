@@ -1,5 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { useOutletContext } from "@/context/PosOutletContext";
+import { isHighwayDemoOutlet } from "@/utils/outletId";
 import {
   usePosTables,
   useDiningAreas,
@@ -43,6 +46,8 @@ import type {
 
 export function PosTakeOrderManager() {
   const navigate = useNavigate();
+  const { activeOutlet } = useOutletContext();
+  const demoFloor = isHighwayDemoOutlet(activeOutlet?.id);
 
   // Slide Switcher State: "restaurant" (Table) vs "room" (Room)
   const [activeSlide, setActiveSlide] = useState<"restaurant" | "room">("restaurant");
@@ -160,7 +165,19 @@ export function PosTakeOrderManager() {
     updateTableOrderMutation.mutate(data);
   };
 
+  useEffect(() => {
+    if (diningAreas.length > 0 && !diningAreas.includes(activeArea)) {
+      setActiveArea(diningAreas[0]);
+    }
+  }, [diningAreas, activeArea]);
+
   const handleAddArea = (areaName: string) => {
+    if (demoFloor) {
+      toast.error(
+        "Highway Inn is demo data and resets on refresh. Switch to The Grand Pavilion Restaurant (top right), then add the area again.",
+      );
+      return;
+    }
     addAreaMutation.mutate(areaName, {
       onSuccess: () => {
         setActiveArea(areaName);
@@ -174,6 +191,12 @@ export function PosTakeOrderManager() {
     area: string;
     shape?: TableShape;
   }) => {
+    if (demoFloor) {
+      toast.error(
+        "Highway Inn is demo data and resets on refresh. Switch to The Grand Pavilion Restaurant (top right), then add the table again.",
+      );
+      return;
+    }
     addTableMutation.mutate(data, {
       onSuccess: () => {
         if (data.area) setActiveArea(data.area);
@@ -339,6 +362,7 @@ export function PosTakeOrderManager() {
             }}
             stats={stats}
             onRefresh={() => refetchTables()}
+            demoFloor={demoFloor}
           />
         ) : (
           // ROOM SLIDE - Ultra-compact Room View matching reference image

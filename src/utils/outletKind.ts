@@ -1,4 +1,5 @@
 import type { PosOutlet } from "@/types/posMenu";
+import { isBackendOutletId } from "@/utils/outletId";
 
 export const DINING_OUTLET_KINDS = new Set([
   "PRIMARY",
@@ -26,4 +27,12 @@ export function locationRoleLabel(outlet: PosOutlet): "HO" | "Kitchen" | "Outlet
   if (kind === "HO") return "HO";
   if (kind === "KITCHEN") return "Kitchen";
   return "Outlet";
+}
+
+/** First live Postgres dining floor — use this so Take Order tables persist. */
+export function firstLiveDiningOutlet(outlets: PosOutlet[]): PosOutlet | undefined {
+  const live = outlets.filter((o) => isBackendOutletId(o.id) && o.status !== "Inactive");
+  return (
+    live.find(isDiningOutlet) || live.find((o) => locationRoleLabel(o) === "Outlet")
+  );
 }

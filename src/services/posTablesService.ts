@@ -4,10 +4,11 @@ import type {
   TableManagementStats,
   DiningArea,
 } from "@/types/posTables";
-import { createDineInOrder, updateDineInOrder, type CreateDineInOrderInput } from "./posOrdersService";
+import { createDineInOrder, updateDineInOrder } from "./posOrdersService";
 import { isBackendOutletId } from "@/utils/outletId";
 import httpClient from "@/utils/httpClient";
 import { API_ENDPOINTS } from "@/config/apiEndpoints";
+import { liveCreateOrder, livePatchOrder } from "@/services/posOrderLive";
 
 function unwrapRows<T>(data: unknown): T[] {
   if (Array.isArray(data)) return data as T[];
@@ -511,21 +512,36 @@ export function setTablesOutletScope(outletId?: string | null) {
   scopedOutletId = outletId || undefined;
 }
 
+function isLiveFloor() {
+  return Boolean(scopedOutletId && isBackendOutletId(scopedOutletId));
+}
+
 function store(): TableBucket {
-  if (scopedOutletId && isBackendOutletId(scopedOutletId)) {
-    let b = outletBuckets.get(scopedOutletId);
+  if (isLiveFloor()) {
+    let b = outletBuckets.get(scopedOutletId as string);
     if (!b) {
       b = { areas: [], tables: [], reservations: [] };
-      outletBuckets.set(scopedOutletId, b);
+      outletBuckets.set(scopedOutletId as string, b);
     }
     return b;
   }
   return legacyBucket;
 }
 
+async function patchTableStatus(
+  tableId: string,
+  status: "VACANT" | "OCCUPIED" | "RESERVED" | "BILLED" | "DIRTY",
+  extra?: Record<string, unknown>,
+) {
+  await httpClient.patch(API_ENDPOINTS.TABLES.STATUS(tableId), {
+    status,
+    ...extra,
+  });
+}
+
 export const posTablesService = {
   getAreas: async (): Promise<string[]> => {
-    if (scopedOutletId && isBackendOutletId(scopedOutletId)) {
+    if (isLiveFloor()) {
       const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
         params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 200 },
       });
@@ -536,7 +552,7 @@ export const posTablesService = {
 
   addArea: async (areaName: string): Promise<string[]> => {
     const trimmed = areaName.trim();
-    if (scopedOutletId && isBackendOutletId(scopedOutletId)) {
+    if (isLiveFloor()) {
       await httpClient.post(API_ENDPOINTS.TABLES.AREAS, {
         outlet: scopedOutletId,
         name: trimmed,
@@ -556,7 +572,7 @@ export const posTablesService = {
     area: string;
     shape?: "rectangle" | "square" | "circle";
   }): Promise<RestaurantTable> => {
-    if (scopedOutletId && isBackendOutletId(scopedOutletId)) {
+    if (isLiveFloor()) {
       const sectionsRes = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
         params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 200 },
       });
@@ -607,7 +623,7 @@ export const posTablesService = {
   },
 
   getTables: async (area?: DiningArea): Promise<RestaurantTable[]> => {
-    if (scopedOutletId && isBackendOutletId(scopedOutletId)) {
+    if (isLiveFloor()) {
       const res = await httpClient.get(API_ENDPOINTS.TABLES.LIST, {
         params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 500 },
       });
@@ -637,12 +653,11 @@ export const posTablesService = {
   },
 
   getStats: async (area?: DiningArea): Promise<TableManagementStats> => {
-    const list =
-      scopedOutletId && isBackendOutletId(scopedOutletId)
-        ? await posTablesService.getTables(area)
-        : area
-          ? store().tables.filter((t) => t.area === area)
-          : store().tables;
+    const list = isLiveFloor()
+      ? await posTablesService.getTables(area)
+      : area
+        ? store().tables.filter((t) => t.area === area)
+        : store().tables;
     const totalTables = list.length;
     const availableCount = list.filter((t) => t.status === "vacant").length;
     const reservedCount = list.filter((t) => t.status === "reserved").length;
@@ -663,6 +678,27 @@ export const posTablesService = {
   addReservation: async (
     data: Omit<ReservationItem, "id" | "createdAt" | "status">,
   ): Promise<ReservationItem> => {
+    if (isLiveFloor()) {
+      const mergedIds =
+        data.mergedTableIds && data.mergedTableIds.length > 0
+          ? Array.from(new Set([data.tableId, ...data.mergedTableIds]))
+          : [data.tableId];
+      for (const id of mergedIds) {
+        if (isBackendOutletId(id)) {
+          await patchTableStatus(id, "RESERVED", {
+            notes: data.notes || `Reserved for ${data.customerName}`,
+            active_waiter_name: data.customerName,
+          });
+        }
+      }
+      return {
+        ...data,
+        tableId: mergedIds[0],
+        id: mergedIds[0],
+        status: "reserved",
+        createdAt: new Date().toISOString(),
+      };
+    }
     const mergedIds =
       data.mergedTableIds && data.mergedTableIds.length > 0
         ? Array.from(new Set([data.tableId, ...data.mergedTableIds]))
@@ -703,6 +739,13 @@ export const posTablesService = {
   },
 
   seatGuests: async (tableId: string, reservationId?: string): Promise<RestaurantTable> => {
+    if (isLiveFloor()) {
+      await patchTableStatus(tableId, "OCCUPIED");
+      const tables = await posTablesService.getTables();
+      const found = tables.find((t) => t.id === tableId);
+      if (!found) throw new Error("Table not found");
+      return found;
+    }
     let reservation: ReservationItem | undefined;
 
     if (reservationId) {
@@ -785,6 +828,13 @@ export const posTablesService = {
   },
 
   vacateTable: async (tableId: string): Promise<RestaurantTable> => {
+    if (isLiveFloor()) {
+      await patchTableStatus(tableId, "VACANT");
+      const tables = await posTablesService.getTables();
+      const found = tables.find((t) => t.id === tableId);
+      if (!found) throw new Error("Table not found");
+      return found;
+    }
     let updatedTable!: RestaurantTable;
 
     store().tables = store().tables.map((tbl) => {
@@ -829,8 +879,30 @@ export const posTablesService = {
     subtotal: number;
     grandTotal: number;
   }): Promise<{ table: RestaurantTable; orderNumber: string; kotId: number }> => {
-    if (scopedOutletId && isBackendOutletId(scopedOutletId)) {
-      throw new Error("Send KOT from Billing to create this order");
+    if (isLiveFloor() && scopedOutletId) {
+      const tables = await posTablesService.getTables();
+      const targetTable = tables.find((t) => t.id === input.tableId);
+      const created = await liveCreateOrder({
+        outletId: scopedOutletId,
+        orderType: "dine_in",
+        tableId: input.tableId,
+        tableNumber: targetTable?.tableNumber,
+        section: targetTable?.area,
+        waiterName: input.waiterName,
+        pax: input.pax,
+        guestName: input.guestName,
+        guestPhone: input.guestPhone,
+        subtotal: input.subtotal,
+        grandTotal: input.grandTotal,
+        sendKot: true,
+        items: input.items,
+      });
+      const refreshed = (await posTablesService.getTables()).find((t) => t.id === input.tableId);
+      return {
+        table: refreshed || targetTable || tables[0],
+        orderNumber: String(created?.orderNumber || created?.order_number || ""),
+        kotId: Number(created?.kotId || created?.kot_id || 0),
+      };
     }
     let targetTable = store().tables.find((t) => t.id === input.tableId);
     const tableNumber = targetTable?.tableNumber || `Table #${input.tableId}`;
@@ -895,6 +967,27 @@ export const posTablesService = {
     grandTotal: number;
     modifiedSummaryText: string;
   }): Promise<{ table: RestaurantTable; kotId: number }> => {
+    if (isLiveFloor() && scopedOutletId) {
+      const tables = await posTablesService.getTables();
+      const targetTable = tables.find((t) => t.id === input.tableId);
+      const orderId = targetTable?.activeOrder?.orderId;
+      if (!orderId || !isBackendOutletId(orderId)) {
+        throw new Error("This table has no live order to update. Place the order again.");
+      }
+      const patched = await livePatchOrder(orderId, {
+        outletId: scopedOutletId,
+        items: input.items,
+        subtotal: input.subtotal,
+        grandTotal: input.grandTotal,
+        sendKot: true,
+        orderNote: input.modifiedSummaryText,
+      });
+      const refreshed = (await posTablesService.getTables()).find((t) => t.id === input.tableId);
+      return {
+        table: refreshed || targetTable || tables[0],
+        kotId: Number(patched?.kotId || patched?.kot_id || 0),
+      };
+    }
     let targetTable = store().tables.find((t) => t.id === input.tableId);
     const tableNumber = targetTable?.tableNumber || `Table #${input.tableId}`;
 
