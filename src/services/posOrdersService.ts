@@ -1247,6 +1247,33 @@ export async function getDueBills(outletId?: string): Promise<DueBill[]> {
   if (isBackendOutletId(outletId)) {
     return liveGetDueBills(outletId);
   }
+  // Sync open current orders into due bills store for mock/local mode
+  for (const ord of currentOrdersStore) {
+    if (ord.currentStage !== "settled") {
+      const billNo = `BILL-${ord.orderNumber.replace(/^ORD-/i, "")}`;
+      if (!dueBillsStore.some((b) => b.billNo === billNo || b.id === `due-${ord.id}`)) {
+        dueBillsStore.push({
+          id: `due-${ord.id}`,
+          billNo,
+          orderType: ord.type === "room_service" ? "Room Service" : "Dine In",
+          tableOrRoom: ord.tableOrRoom ? `Table ${ord.tableOrRoom}` : ord.source,
+          tableId: ord.tableId,
+          customerName: ord.customerName || "Walk-in Guest",
+          customerPhone: ord.customerPhone || "--",
+          waiterName: ord.waiterName || "Captain",
+          itemsSummary: ord.itemsSummary,
+          totalAmount: ord.amount,
+          paidAmount: 0,
+          dueAmount: ord.amount,
+          dueDate: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+          daysOverdue: 0,
+          status: "Pending",
+          agingBucket: "0-15",
+          createdAt: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+        });
+      }
+    }
+  }
   // Pending list only — settled bills live in Order History
   return dueBillsStore.filter((b) => b.status !== "Settled");
 }
@@ -1386,8 +1413,20 @@ export async function settleDueBillLive(
   paymentMode: "Cash" | "Card" | "UPI" | "Room Charge" | "Split",
   paidAmount?: number,
 ) {
-  if (/^[0-9a-f-]{36}$/i.test(billId)) {
-    return liveSettleDue(billId, paymentMode.toUpperCase().replace(" ", "_"), paidAmount || 0);
+  if (/^[0-9a-f-]{36}$/i.test(billId) || billId.startsWith("BILL-") || billId.startsWith("due-")) {
+    try {
+      const raw = await liveSettleDue(billId, paymentMode.toUpperCase().replace(" ", "_"), paidAmount || 0);
+      const settledBill = raw?.settledBill || raw;
+      return {
+        settledBill,
+        archivedOrder: settledBill,
+      };
+    } catch (e) {
+      if (!isBackendOutletId()) {
+        return settleDueBill(billId, paymentMode, paidAmount);
+      }
+      throw e;
+    }
   }
   return settleDueBill(billId, paymentMode, paidAmount);
 }
@@ -1421,9 +1460,16 @@ export function settleDueBill(
     throw new Error("Bill not found");
   }
 
-  // Fully paid → drop from pending payments list
+  // Fully paid → drop from pending payments list and current orders
   if (settledBill.status === "Settled") {
     dueBillsStore = dueBillsStore.filter((b) => b.id !== settledBill.id);
+    const bareNum = settledBill.billNo.replace(/^BILL-/, "");
+    currentOrdersStore = currentOrdersStore.filter(
+      (o) =>
+        o.id !== settledBill.id.replace(/^due-/, "") &&
+        o.orderNumber !== `ORD-${bareNum}` &&
+        o.orderNumber !== settledBill.billNo
+    );
   }
 
   // Archive or update in All Order History

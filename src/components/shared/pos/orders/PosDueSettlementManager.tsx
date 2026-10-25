@@ -274,8 +274,11 @@ export function PosDueSettlementManager() {
         paidAmount: settleAmt,
       },
       {
-        onSuccess: (data) => {
-          const fullyPaid = data.settledBill.status === "Settled";
+        onSuccess: (data: any) => {
+          const settled = data?.settledBill || data;
+          const status = settled?.status;
+          const dueAmt = Number(settled?.dueAmount ?? 0);
+          const fullyPaid = status === "Settled" || dueAmt === 0;
           if (fullyPaid) {
             toast.success(`Paid · ${selectedBill.billNo} → Order History`, {
               description: `${settlementMode} · ₹${settleAmt.toLocaleString("en-IN")}`,
@@ -283,13 +286,22 @@ export function PosDueSettlementManager() {
             handleCloseSettle();
           } else {
             toast.success(`Partial payment recorded`, {
-              description: `Balance ₹${data.settledBill.dueAmount.toLocaleString("en-IN")} still due`,
+              description: `Balance ₹${dueAmt.toLocaleString("en-IN")} still due`,
             });
-            setSelectedBill(data.settledBill);
-            setSettlementAmount(data.settledBill.dueAmount.toString());
+            setSelectedBill(settled);
+            setSettlementAmount(dueAmt.toString());
           }
         },
-        onError: () => toast.error("Payment failed"),
+        onError: (err: any) => {
+          const detail =
+            err?.data?.payment_mode ||
+            err?.data?.amount ||
+            err?.data?.bill ||
+            err?.data?.detail ||
+            err?.message ||
+            "Payment failed";
+          toast.error(typeof detail === "string" ? detail : "Payment failed");
+        },
       },
     );
   };

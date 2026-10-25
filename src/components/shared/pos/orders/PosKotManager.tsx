@@ -75,7 +75,7 @@ export function PosKotManager() {
   // Kitchen queue: active preparation tickets (Ready/Prepared removes from KOT screen)
   const tickets: KdsTicket[] = useMemo(() => {
     return (kotData?.records || [])
-      .filter((k) => k.status !== "Served" && k.status !== "Prepared")
+      .filter((k) => k.status !== "Served" && k.status !== "Prepared" && (k as any).status !== "Cancelled")
       .map((k) => ({
         id: k.id,
         kotId: k.kotId,
@@ -101,7 +101,17 @@ export function PosKotManager() {
           toast.success(`KOT #${kot.kotId} ready — notify waiter`);
           refetch();
         },
-        onError: () => toast.error("Failed to mark ready"),
+        onError: (err: any) => {
+          const detail =
+            err?.data?.ticket ||
+            err?.data?.order ||
+            err?.data?.status ||
+            err?.data?.detail ||
+            err?.message ||
+            "Failed to mark ready";
+          toast.error(typeof detail === "string" ? detail : "Failed to mark ready");
+          refetch();
+        },
       },
     );
   };

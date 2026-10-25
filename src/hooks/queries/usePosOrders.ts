@@ -156,6 +156,7 @@ export function useSettleDueBillMutation() {
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "all"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "current-timeline"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
       queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: POS_TABLE_STATS_QUERY_KEY });
     },
