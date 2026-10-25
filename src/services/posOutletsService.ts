@@ -1,5 +1,6 @@
 import httpClient from "@/utils/httpClient";
 import type { PosOutlet } from "@/types/posMenu";
+import { isBackendOutletId, isHighwayInnName } from "@/utils/outletId";
 
 export type OutletApiDto = {
   id: string;
@@ -104,6 +105,10 @@ function unwrapList(data: unknown): OutletApiDto[] {
   return [];
 }
 
+export function findLiveHighwayInn(outlets: PosOutlet[]): PosOutlet | undefined {
+  return outlets.find((o) => isBackendOutletId(o.id) && isHighwayInnName(o.name, o.code));
+}
+
 export const posOutletsService = {
   async listOutlets(params?: { propertyId?: string; tenantId?: string }): Promise<PosOutlet[]> {
     const res = await httpClient.get("/api/pos/outlets/", {
@@ -165,6 +170,27 @@ export const posOutletsService = {
       // One retry after remote DB stall
       const res = await postOnce();
       return mapOutletApiToPosOutlet(res.data);
+    }
+  },
+
+  /** Find or create the live Highway Inn dining floor so tables persist like any other outlet. */
+  async ensureHighwayInnOutlet(existing: PosOutlet[]): Promise<PosOutlet | null> {
+    const found = findLiveHighwayInn(existing);
+    if (found) return found;
+    try {
+      return await posOutletsService.createOutlet({
+        name: "HIGHWAY INN BAR & RESTAURANT",
+        code: "HI-MAIN",
+        outlet_type: "PRIMARY",
+        cuisine: "Multi-Cuisine & Bar",
+        phone: "+91 98765 43210",
+        address: "National Highway 48, Mumbai - Pune Expressway, Sector 4",
+        additionalInfo: "Main flagship dining, bar lounge, banquet, and room service counter.",
+        is_active: true,
+      });
+    } catch {
+      const retry = await posOutletsService.listOutlets();
+      return findLiveHighwayInn(retry) || null;
     }
   },
 };

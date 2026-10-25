@@ -2,11 +2,12 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import type { PosOutlet } from "@/types/posMenu";
 import { toast } from "sonner";
 import {
+  findLiveHighwayInn,
   posOutletsService,
   type CreateOutletPayload,
 } from "@/services/posOutletsService";
 import { firstLiveDiningOutlet, isDiningOutlet } from "@/utils/outletKind";
-import { isBackendOutletId } from "@/utils/outletId";
+import { isHighwayDemoOutlet } from "@/utils/outletId";
 
 const STORAGE_KEY_ACTIVE_ID = "retrod_pos_active_outlet_id";
 
@@ -29,24 +30,28 @@ export const INITIAL_OUTLETS: PosOutlet[] = [
 ];
 
 /**
- * Upsert by id. Highway (outlet-primary) is always retained.
- * New API outlets are added alongside — never replace the whole list.
+ * Upsert by id. Keep the dummy Highway seed only when no live Highway Inn UUID exists.
  */
 function mergeOutletLists(prev: PosOutlet[], incoming: PosOutlet[]): PosOutlet[] {
+  const liveHighway = findLiveHighwayInn(incoming) || findLiveHighwayInn(prev);
   const byId = new Map<string, PosOutlet>();
-  for (const o of INITIAL_OUTLETS) byId.set(o.id, o);
-  for (const o of prev) byId.set(o.id, o);
+  if (!liveHighway) {
+    for (const o of INITIAL_OUTLETS) byId.set(o.id, o);
+  }
+  for (const o of prev) {
+    if (liveHighway && isHighwayDemoOutlet(o.id)) continue;
+    byId.set(o.id, o);
+  }
   for (const o of incoming) {
-    if (o.id === "outlet-primary") continue; // never overwrite Highway seed
+    if (isHighwayDemoOutlet(o.id)) continue;
     byId.set(o.id, { ...byId.get(o.id), ...o });
   }
 
   const primary = [...byId.values()].filter((o) => o.type === "Primary Outlet");
   const virtual = [...byId.values()].filter((o) => o.type === "Virtual Outlet");
-  // Keep Highway first among primaries
   primary.sort((a, b) => {
-    if (a.id === "outlet-primary") return -1;
-    if (b.id === "outlet-primary") return 1;
+    if (findLiveHighwayInn([a]) || isHighwayDemoOutlet(a.id)) return -1;
+    if (findLiveHighwayInn([b]) || isHighwayDemoOutlet(b.id)) return 1;
     return a.name.localeCompare(b.name);
   });
   return [...primary, ...virtual];
@@ -84,22 +89,24 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
   const refreshOutlets = useCallback(async () => {
     setIsLoadingOutlets(true);
     try {
-      const remote = await posOutletsService.listOutlets();
+      let remote = await posOutletsService.listOutlets();
+      const highway = await posOutletsService.ensureHighwayInnOutlet(remote);
+      if (highway && !remote.some((o) => o.id === highway.id)) {
+        remote = [highway, ...remote];
+      }
       setOutlets((prev) => {
         const merged = mergeOutletLists(prev, remote);
         setActiveOutletId((prevId) => {
-          const liveDining = firstLiveDiningOutlet(merged);
+          const liveHighway = findLiveHighwayInn(merged);
           const current = merged.find((o) => o.id === prevId);
-          // Highway Inn is demo-only (tables reset on refresh). Prefer a live dining floor.
-          if ((!prevId || prevId === "outlet-primary") && liveDining) return liveDining.id;
-          if (current && isDiningOutlet(current) && isBackendOutletId(current.id)) return prevId;
-          if (current && isDiningOutlet(current) && !liveDining) return prevId;
-          return liveDining?.id || "outlet-primary";
+          if (isHighwayDemoOutlet(prevId) && liveHighway) return liveHighway.id;
+          if (current && isDiningOutlet(current)) return prevId;
+          if (liveHighway) return liveHighway.id;
+          return firstLiveDiningOutlet(merged)?.id || "outlet-primary";
         });
         return merged;
       });
     } catch {
-      // Keep Highway + current list when API unreachable
       setOutlets((prev) => mergeOutletLists(prev, []));
     } finally {
       setIsLoadingOutlets(false);
@@ -121,6 +128,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
 
   const activeOutlet =
     outlets.find((o) => o.id === activeOutletId && isDiningOutlet(o)) ||
+    findLiveHighwayInn(outlets) ||
     firstLiveDiningOutlet(outlets) ||
     outlets.find((o) => o.id === "outlet-primary") ||
     outlets.find(isDiningOutlet) ||
@@ -203,7 +211,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
     }
     setOutlets((prev) => prev.filter((o) => o.id !== id));
     if (activeOutletId === id) {
-      setActiveOutletId("outlet-primary");
+      setActiveOutletId(findLiveHighwayInn(outlets)?.id || "outlet-primary");
     }
     toast.success(`Virtual outlet "${target.name}" removed`);
   };

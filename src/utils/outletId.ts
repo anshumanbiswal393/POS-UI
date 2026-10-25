@@ -10,7 +10,13 @@ export function isBackendOutletId(outletId?: string | null): boolean {
   );
 }
 
-/** Highway Inn demo flagship — owns all existing mock/dummy POS data. */
+/** Legacy in-memory Highway Inn id — replaced by a Postgres UUID once the outlet is saved. */
 export function isHighwayDemoOutlet(outletId?: string | null): boolean {
   return outletId === "outlet-primary";
+}
+
+export function isHighwayInnName(name?: string | null, code?: string | null): boolean {
+  const n = (name || "").toUpperCase();
+  const c = (code || "").toUpperCase();
+  return c === "HI-MAIN" || n.includes("HIGHWAY INN");
 }
