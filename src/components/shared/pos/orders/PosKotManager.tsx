@@ -72,10 +72,10 @@ export function PosKotManager() {
     return () => clearInterval(id);
   }, [refetch]);
 
-  // Kitchen queue: hide Served. Ready stays until waiter Serves.
+  // Kitchen queue: active preparation tickets (Ready/Prepared removes from KOT screen)
   const tickets: KdsTicket[] = useMemo(() => {
     return (kotData?.records || [])
-      .filter((k) => k.status !== "Served")
+      .filter((k) => k.status !== "Served" && k.status !== "Prepared")
       .map((k) => ({
         id: k.id,
         kotId: k.kotId,

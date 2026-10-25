@@ -581,12 +581,26 @@ export const posTablesService = {
         (s) => String(s.name).toLowerCase() === (input.area || "").trim().toLowerCase(),
       );
       if (!section) {
-        const created = await httpClient.post(API_ENDPOINTS.TABLES.AREAS, {
-          outlet: scopedOutletId,
-          name: input.area || "Main Dining",
-          is_active: true,
-        });
-        section = created.data;
+        try {
+          const created = await httpClient.post(API_ENDPOINTS.TABLES.AREAS, {
+            outlet: scopedOutletId,
+            name: input.area || "Main Dining",
+            is_active: true,
+          });
+          section = created.data;
+        } catch {
+          const retryRes = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+            params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 200 },
+          });
+          const rows = unwrapRows<any>(retryRes.data);
+          section =
+            rows.find(
+              (s) => String(s.name).toLowerCase() === (input.area || "").trim().toLowerCase(),
+            ) || rows[0];
+        }
+      }
+      if (!section?.id) {
+        throw new Error("Unable to create or locate dining section.");
       }
       const shapeApi =
         input.shape === "circle" ? "ROUND" : input.shape === "rectangle" ? "RECTANGLE" : "SQUARE";

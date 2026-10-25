@@ -132,7 +132,7 @@ export function AddTableModal({
               onChange={(e) => setSelectedArea(e.target.value)}
               className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium"
             >
-              {areas.map((a) => (
+              {(areas.length > 0 ? areas : ["Main Dining"]).map((a) => (
                 <option key={a} value={a}>
                   {a}
                 </option>

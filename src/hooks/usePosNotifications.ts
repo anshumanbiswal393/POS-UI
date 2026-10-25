@@ -127,13 +127,14 @@ export function usePosNotifications() {
           .filter((kot) => kot.status === "Prepared")
           .map((kot) => {
             const id = `kot-ready-${kot.id}`;
+            const orderRef = kot.orderNumber ? `Order #${kot.orderNumber}` : `Order KOT #${kot.kotId}`;
             return {
               id,
-              title: "Kitchen order ready",
-              message: `KOT #${kot.kotId} — ${kot.itemsText || "items"} is ready to serve.`,
+              title: `${orderRef} is ready`,
+              message: `${orderRef} (${kot.customerName || "Dine In"}) is ready to serve.`,
               category: "KOT" as const,
               createdAt: kot.readyTimestamp || kot.createdTimestamp || Date.now(),
-              link: "/pos/kot",
+              link: "/pos/orders",
               isRead: readIds.has(id),
             };
           })

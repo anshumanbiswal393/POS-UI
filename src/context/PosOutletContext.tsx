@@ -7,7 +7,7 @@ import {
   type CreateOutletPayload,
 } from "@/services/posOutletsService";
 import { firstLiveDiningOutlet, isDiningOutlet } from "@/utils/outletKind";
-import { isHighwayDemoOutlet } from "@/utils/outletId";
+import { isBackendOutletId, isHighwayDemoOutlet } from "@/utils/outletId";
 
 const STORAGE_KEY_ACTIVE_ID = "retrod_pos_active_outlet_id";
 
@@ -80,9 +80,10 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
   const [activeOutletId, setActiveOutletId] = useState<string>(() => {
     if (typeof window === "undefined") return "outlet-primary";
     try {
-      return localStorage.getItem(STORAGE_KEY_ACTIVE_ID) || "outlet-primary";
+      const stored = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
+      return stored && isBackendOutletId(stored) ? stored : "";
     } catch {
-      return "outlet-primary";
+      return "";
     }
   });
 
@@ -98,11 +99,14 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         const merged = mergeOutletLists(prev, remote);
         setActiveOutletId((prevId) => {
           const liveHighway = findLiveHighwayInn(merged);
+          const liveDining = firstLiveDiningOutlet(merged);
           const current = merged.find((o) => o.id === prevId);
-          if (isHighwayDemoOutlet(prevId) && liveHighway) return liveHighway.id;
-          if (current && isDiningOutlet(current)) return prevId;
-          if (liveHighway) return liveHighway.id;
-          return firstLiveDiningOutlet(merged)?.id || "outlet-primary";
+          // If prevId is empty or mock demo ID, prefer a live database outlet
+          if (!prevId || isHighwayDemoOutlet(prevId) || !isBackendOutletId(prevId)) {
+            return liveHighway?.id || liveDining?.id || prevId;
+          }
+          if (current && isDiningOutlet(current) && isBackendOutletId(current.id)) return prevId;
+          return liveHighway?.id || liveDining?.id || "outlet-primary";
         });
         return merged;
       });
@@ -127,10 +131,10 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
   }, [activeOutletId]);
 
   const activeOutlet =
-    outlets.find((o) => o.id === activeOutletId && isDiningOutlet(o)) ||
+    outlets.find((o) => o.id === activeOutletId && isDiningOutlet(o) && isBackendOutletId(o.id)) ||
     findLiveHighwayInn(outlets) ||
     firstLiveDiningOutlet(outlets) ||
-    outlets.find((o) => o.id === "outlet-primary") ||
+    outlets.find((o) => o.id === activeOutletId && isDiningOutlet(o)) ||
     outlets.find(isDiningOutlet) ||
     INITIAL_OUTLETS[0];
 
