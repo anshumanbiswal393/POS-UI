@@ -17,10 +17,10 @@ import {
 import { toast } from "sonner";
 
 export function AvailableStockView() {
-  const { data: stockItems } = useStockItems();
+  const { data: stockItems, refetch, isFetching } = useStockItems();
 
-  const [activeTab, setActiveTab] = useState<"add_stock" | "import_excel">("import_excel");
-  const [selectedDate, setSelectedDate] = useState("2026-09-02");
+  const [activeTab, setActiveTab] = useState<"add_stock" | "import_excel">("add_stock");
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
   const [updateCycle, setUpdateCycle] = useState("Daily");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -113,7 +113,7 @@ export function AvailableStockView() {
               : "text-slate-600 hover:text-slate-900"
           }`}
         >
-          Add Available Stock
+          Available Stock List
         </button>
         <button
           type="button"
