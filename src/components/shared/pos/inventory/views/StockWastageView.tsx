@@ -69,21 +69,25 @@ export function StockWastageView() {
   const createWastage = useCreateWastage();
   const deleteWastage = useDeleteWastage();
   const [localEntries, setLocalEntries] = useState<WastageEntry[]>(INITIAL);
-  const entries: WastageEntry[] = isLive
-    ? (apiEntries as Array<Record<string, unknown>>).map((row) => ({
-        id: String(row.id),
-        date: String(row.date || ""),
-        dateKey: String(row.dateKey || ""),
-        item: String(row.item || ""),
-        category: String(row.category || ""),
-        quantity: String(row.quantity || ""),
-        costValue: Number(row.costValue || 0),
-        cost: String(row.cost || ""),
-        reason: String(row.reason || ""),
-        approvedBy: String(row.approvedBy || ""),
-        notes: String(row.notes || ""),
-      }))
-    : localEntries;
+  const rawList =
+    apiEntries && apiEntries.length > 0
+      ? apiEntries
+      : isLive
+        ? []
+        : localEntries;
+  const entries: WastageEntry[] = (rawList as Array<Record<string, unknown>>).map((row) => ({
+    id: String(row.id),
+    date: String(row.date || ""),
+    dateKey: String(row.dateKey || ""),
+    item: String(row.item || ""),
+    category: String(row.category || ""),
+    quantity: String(row.quantity || ""),
+    costValue: Number(row.costValue || 0),
+    cost: String(row.cost || ""),
+    reason: String(row.reason || ""),
+    approvedBy: String(row.approvedBy || ""),
+    notes: String(row.notes || ""),
+  }));
   const [isRecordOpen, setIsRecordOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);

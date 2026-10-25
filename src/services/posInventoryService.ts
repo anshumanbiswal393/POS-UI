@@ -464,17 +464,14 @@ export const posInventoryService = {
   },
 
   getRecipes: async (outletId?: string): Promise<DishRecipe[]> => {
-    if (isBackendOutletId(outletId)) {
-      try {
-        const res = await httpClient.get<{ recipes: DishRecipe[] }>("/api/pos/stock/recipes/", {
-          params: scopeParams(outletId),
-        });
-        return res.data.recipes || [];
-      } catch {
-        return [];
-      }
+    try {
+      const res = await httpClient.get<{ recipes: DishRecipe[] }>("/api/pos/stock/recipes/", {
+        params: scopeParams(outletId),
+      });
+      return res.data.recipes || [];
+    } catch {
+      return [];
     }
-    return [];
   },
 
   saveRecipe: async (data: Partial<DishRecipe>, outletId?: string): Promise<DishRecipe> => {
@@ -488,7 +485,6 @@ export const posInventoryService = {
   },
 
   getWastage: async (outletId?: string) => {
-    if (!isBackendOutletId(outletId)) return [];
     try {
       const res = await httpClient.get<{ items: Array<Record<string, unknown>> }>("/api/pos/stock/wastage/", {
         params: scopeParams(outletId),

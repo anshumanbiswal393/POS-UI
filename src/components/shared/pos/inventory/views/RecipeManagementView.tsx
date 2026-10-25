@@ -48,6 +48,26 @@ interface RecipeRow {
 
 const DEMO_RECIPES: RecipeRow[] = [];
 
+function mapRecipe(r: DishRecipe): RecipeRow {
+  return {
+    id: r.id,
+    name: r.name || r.menuItemName || r.menuItem || "Unnamed Recipe",
+    category: r.category || "Main Course",
+    menuItem: r.menuItemName || r.menuItem || r.name,
+    yieldQty: String(r.yieldQty ?? "1"),
+    yieldUnit: r.yieldUnit || "portion",
+    prepTimeMinutes: String(r.prepTimeMinutes ?? "15"),
+    notes: r.notes || "",
+    ingredients: (r.ingredients || []).map((ing, idx) => ({
+      id: ing.id || `ing-${idx}-${ing.stockItemId}`,
+      stockItemId: ing.stockItemId,
+      name: ing.stockItemName || ing.name || "",
+      quantity: String(ing.quantity || 0),
+      unit: ing.unit || "Kg",
+    })),
+  };
+}
+
 export function RecipeManagementView() {
   const { activeOutlet } = useOutletContext();
   const isLive = isBackendOutletId(activeOutlet.id);
