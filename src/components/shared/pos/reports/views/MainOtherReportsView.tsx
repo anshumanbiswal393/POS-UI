@@ -455,8 +455,6 @@ const CATEGORY_PILLS = [
   { id: "favorites", label: "⭐ Favorites" },
 ] as const;
 
-const MOCK_FROM = "2026-08-27";
-const MOCK_TO = "2026-09-02";
 
 export function MainOtherReportsView() {
   const { activeOutlet } = useOutletContext();
@@ -470,8 +468,8 @@ export function MainOtherReportsView() {
   // ---------------------------------------------------------
   // DRILLDOWN REPORT VIEW STATE
   // ---------------------------------------------------------
-  const [fromDate, setFromDate] = useState(live ? rangeLastDays(7).from : MOCK_FROM);
-  const [toDate, setToDate] = useState(live ? rangeLastDays(7).to : MOCK_TO);
+  const [fromDate, setFromDate] = useState(rangeLastDays(7).from);
+  const [toDate, setToDate] = useState(rangeLastDays(7).to);
   const [reportSearch, setReportSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -481,16 +479,10 @@ export function MainOtherReportsView() {
   const [selectedOutlet, setSelectedOutlet] = useState<string>("ALL");
 
   useEffect(() => {
-    if (live) {
-      const range = rangeLastDays(7);
-      setFromDate(range.from);
-      setToDate(range.to);
-      setSelectedOutlet(activeOutlet?.name || "ALL");
-    } else {
-      setFromDate(MOCK_FROM);
-      setToDate(MOCK_TO);
-      setSelectedOutlet("ALL");
-    }
+    const range = rangeLastDays(7);
+    setFromDate(range.from);
+    setToDate(range.to);
+    setSelectedOutlet(activeOutlet?.name || "ALL");
   }, [live, activeOutlet?.id, activeOutlet?.name]);
 
   const salesQuery = usePosSalesReport({
@@ -547,10 +539,7 @@ export function MainOtherReportsView() {
   const currentReportConfig = useMemo(() => {
     if (!selectedReport) return null;
     const base = DATASETS[selectedReport.id] || DATASETS["REP-01"];
-    if (live) {
-      return { columns: base.columns, data: salesQuery.data?.records || [] };
-    }
-    return base;
+    return { columns: base.columns, data: salesQuery.data?.records || [] };
   }, [selectedReport, live, salesQuery.data]);
 
   const allColumns = useMemo(() => {
@@ -841,14 +830,9 @@ export function MainOtherReportsView() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (live) {
-                      const range = rangeLastDays(7);
-                      setFromDate(range.from);
-                      setToDate(range.to);
-                    } else {
-                      setFromDate(MOCK_FROM);
-                      setToDate(MOCK_TO);
-                    }
+                    const range = rangeLastDays(7);
+                    setFromDate(range.from);
+                    setToDate(range.to);
                     setPage(1);
                   }}
                   className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 transition cursor-pointer"
@@ -858,14 +842,9 @@ export function MainOtherReportsView() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (live) {
-                      const range = rangeThisMonth();
-                      setFromDate(range.from);
-                      setToDate(range.to);
-                    } else {
-                      setFromDate("2026-08-01");
-                      setToDate(MOCK_TO);
-                    }
+                    const range = rangeThisMonth();
+                    setFromDate(range.from);
+                    setToDate(range.to);
                     setPage(1);
                   }}
                   className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 transition cursor-pointer"
@@ -891,19 +870,14 @@ export function MainOtherReportsView() {
                 />
               </div>
 
-              {(reportSearch || fromDate !== (live ? rangeLastDays(7).from : MOCK_FROM) || toDate !== (live ? rangeLastDays(7).to : MOCK_TO)) && (
+              {(reportSearch || fromDate !== rangeLastDays(7).from || toDate !== rangeLastDays(7).to) && (
                 <button
                   type="button"
                   onClick={() => {
                     setReportSearch("");
-                    if (live) {
-                      const range = rangeLastDays(7);
-                      setFromDate(range.from);
-                      setToDate(range.to);
-                    } else {
-                      setFromDate(MOCK_FROM);
-                      setToDate(MOCK_TO);
-                    }
+                    const range = rangeLastDays(7);
+                    setFromDate(range.from);
+                    setToDate(range.to);
                     setPage(1);
                     toast.info("Reset report filters");
                   }}

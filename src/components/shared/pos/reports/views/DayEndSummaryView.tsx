@@ -14,23 +14,12 @@ import {
 } from "@/services/posReportsService";
 import type { DayEndRecord } from "@/types/posReports";
 
-const MOCK_RECORDS: DayEndRecord[] = [
-  { id: "1", date: "1 Sep 2026", orderCount: 48, totalAmount: 36400 },
-  { id: "2", date: "31 Aug 2026", orderCount: 38, totalAmount: 28726 },
-  { id: "3", date: "30 Aug 2026", orderCount: 64, totalAmount: 52984 },
-  { id: "4", date: "29 Aug 2026", orderCount: 61, totalAmount: 54227 },
-  { id: "5", date: "28 Aug 2026", orderCount: 71, totalAmount: 71860 },
-  { id: "6", date: "27 Aug 2026", orderCount: 54, totalAmount: 61031 },
-  { id: "7", date: "26 Aug 2026", orderCount: 44, totalAmount: 51155 },
-  { id: "8", date: "25 Aug 2026", orderCount: 50, totalAmount: 48320 },
-  { id: "9", date: "24 Aug 2026", orderCount: 41, totalAmount: 39140 },
-  { id: "10", date: "23 Aug 2026", orderCount: 68, totalAmount: 65400 },
-];
+const MOCK_RECORDS: DayEndRecord[] = [];
 
 export function DayEndSummaryView() {
   const { activeOutlet } = useOutletContext();
   const live = isBackendOutletId(activeOutlet?.id);
-  const defaultRange = live ? rangeLastDays(14) : { from: "2026-08-03", to: "2026-09-02" };
+  const defaultRange = rangeLastDays(14);
 
   const [startDate, setStartDate] = useState(defaultRange.from);
   const [endDate, setEndDate] = useState(defaultRange.to);
@@ -41,7 +30,7 @@ export function DayEndSummaryView() {
   const [sortConfig, setSortConfig] = useState<{ colId: string; direction: "asc" | "desc" } | null>(null);
 
   useEffect(() => {
-    const range = live ? rangeLastDays(14) : { from: "2026-08-03", to: "2026-09-02" };
+    const range = rangeLastDays(14);
     setStartDate(range.from);
     setEndDate(range.to);
     setAppliedStart(range.from);
@@ -53,7 +42,7 @@ export function DayEndSummaryView() {
   const dayEndQuery = usePosDayEnd(appliedStart, appliedEnd, live);
   const closeMut = useClosePosDayMutation();
 
-  const records: DayEndRecord[] = live ? dayEndQuery.data?.records || [] : MOCK_RECORDS;
+  const records: DayEndRecord[] = dayEndQuery.data?.records || [];
 
   const columns: DataTableColumn<DayEndRecord>[] = useMemo(
     () => [

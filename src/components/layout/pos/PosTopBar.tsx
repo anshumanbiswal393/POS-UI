@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
-import { isDiningOutlet } from "@/utils/outletKind";
+import { DINING_OUTLET_KINDS, normalizeOutletKind } from "@/utils/outletKind";
 import { useAuth } from "@/hooks/useAuth";
 import { useOutletContext } from "@/context/PosOutletContext";
 import {
@@ -226,7 +226,7 @@ export function PosTopBar({
             className="flex h-9 max-w-[200px] items-center gap-1.5 rounded-xl border border-border bg-surface-2 px-2.5 text-[12.5px] font-semibold text-text-primary hover:bg-surface transition cursor-pointer"
             title={`Active: ${activeOutlet.name}`}
           >
-            <Store className="h-3.5 w-3.5 text-primary shrink-0" />
+            <ActiveOutletIcon className="h-3.5 w-3.5 text-primary shrink-0" />
             <span className="truncate">{activeOutlet.name}</span>
             <ChevronDown className="h-3.5 w-3.5 text-text-disabled shrink-0" />
           </button>
@@ -237,7 +237,7 @@ export function PosTopBar({
                 <span className="text-[11px] font-bold uppercase tracking-wider text-text-disabled">
                   Switch Outlet
                 </span>
-                <span className="text-[11px] font-medium text-primary">{diningOutlets.length} Total</span>
+                <span className="text-[11px] font-medium text-primary">{outlets.length} Total</span>
               </div>
 
               <div className="max-h-80 overflow-y-auto py-1 space-y-1">

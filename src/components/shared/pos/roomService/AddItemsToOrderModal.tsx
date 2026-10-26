@@ -20,6 +20,8 @@ import {
   Receipt,
 } from "lucide-react";
 import type { RoomServiceOrder, RoomOrderItem } from "@/types/posRoomService";
+import { useBillingMenuItems } from "@/hooks/queries/usePosMenu";
+import { useOutletContext } from "@/context/PosOutletContext";
 
 interface AddItemsToOrderModalProps {
   isOpen: boolean;
@@ -27,31 +29,6 @@ interface AddItemsToOrderModalProps {
   order: RoomServiceOrder | null;
   onConfirmAddItems: (orderId: string, newItems: RoomOrderItem[]) => void;
 }
-
-const AVAILABLE_SUPPLEMENTARY_ITEMS = [
-  { id: "sup-1", name: "Warm Chocolate Lava Cake", price: 12.0, category: "Dessert" },
-  {
-    id: "sup-2",
-    name: "Artisan Gelato Trio (Pistachio, Vanilla, Berry)",
-    price: 9.5,
-    category: "Dessert",
-  },
-  { id: "sup-3", name: "Double Espresso", price: 5.5, category: "Beverage" },
-  { id: "sup-4", name: "Fresh Mint & Chamomile Tea Pot", price: 6.0, category: "Beverage" },
-  { id: "sup-5", name: "Cold Pressed Orange Juice", price: 7.5, category: "Beverage" },
-  { id: "sup-6", name: "San Pellegrino Sparkling Water (750ml)", price: 9.0, category: "Beverage" },
-  { id: "sup-7", name: "Château Margaux Red Wine (Glass)", price: 24.0, category: "Wine & Bar" },
-  {
-    id: "sup-8",
-    name: "Moët & Chandon Champagne (Half Bottle)",
-    price: 65.0,
-    category: "Wine & Bar",
-  },
-  { id: "sup-9", name: "Truffle Parmesan French Fries", price: 11.0, category: "Late Night" },
-  { id: "sup-10", name: "Artisan Cheese & Cracker Board", price: 19.0, category: "Late Night" },
-  { id: "sup-11", name: "Club Sandwich with Sweet Potato Fries", price: 19.5, category: "Mains" },
-  { id: "sup-12", name: "Wild Mushroom Risotto with Truffle Oil", price: 28.0, category: "Mains" },
-];
 
 export function AddItemsToOrderModal({
   isOpen,
@@ -65,7 +42,27 @@ export function AddItemsToOrderModal({
 
   if (!order) return null;
 
-  const categories = ["All", "Beverage", "Dessert", "Late Night", "Wine & Bar", "Mains"];
+    const { activeOutlet } = useOutletContext();
+  const { data: menuList = [] } = useBillingMenuItems(activeOutlet?.id);
+
+  const availableItems = React.useMemo(() => {
+    return menuList
+      .filter((item) => item.status === "Active" && item.baseMenu !== false)
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        category: item.category || "General",
+      }));
+  }, [menuList]);
+
+  const categories = React.useMemo(() => {
+    const fromItems = Array.from(
+      new Set(availableItems.map((i) => i.category).filter((c): c is string => Boolean(c?.trim()))),
+    ).sort((a, b) => a.localeCompare(b));
+    return ["All", ...fromItems];
+  }, [availableItems]);
+
 
   const handleAddItem = (id: string) => {
     setSelectedItems((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
@@ -83,7 +80,7 @@ export function AddItemsToOrderModal({
     });
   };
 
-  const filteredItems = AVAILABLE_SUPPLEMENTARY_ITEMS.filter((item) => {
+  const filteredItems = availableItems.filter((item) => {
     if (activeCategory === "All") return true;
     return item.category === activeCategory;
   });
@@ -93,7 +90,7 @@ export function AddItemsToOrderModal({
   const newItemsList: RoomOrderItem[] = [];
 
   Object.entries(selectedItems).forEach(([id, qty]) => {
-    const item = AVAILABLE_SUPPLEMENTARY_ITEMS.find((m) => m.id === id);
+    const item = availableItems.find((m) => m.id === id);
     if (item && qty > 0) {
       addedSubtotal += item.price * qty;
       newItemsList.push({

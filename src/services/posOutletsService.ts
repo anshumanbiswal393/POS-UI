@@ -54,6 +54,29 @@ export type CreateOutletPayload = {
   is_active?: boolean;
 };
 
+const STORAGE_KEY_CUSTOM_OUTLETS = "retrod_pos_custom_outlets";
+
+export function getLocalCustomOutlets(): PosOutlet[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_CUSTOM_OUTLETS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalCustomOutlet(outlet: PosOutlet) {
+  if (typeof window === "undefined") return;
+  try {
+    const current = getLocalCustomOutlets();
+    const filtered = current.filter((o) => o.id !== outlet.id && o.code !== outlet.code);
+    localStorage.setItem(STORAGE_KEY_CUSTOM_OUTLETS, JSON.stringify([outlet, ...filtered]));
+  } catch {
+    // ignore
+  }
+}
+
 function mapOutletType(apiType?: string): PosOutlet["type"] {
   const t = (apiType || "").toUpperCase();
   if (t === "VIRTUAL" || t === "KITCHEN") return "Virtual Outlet";
@@ -77,7 +100,7 @@ export function mapOutletApiToPosOutlet(dto: OutletApiDto): PosOutlet {
     code: dto.code,
     type: mapOutletType(dto.outlet_type),
     outletKind: kind,
-    cuisine: dto.cuisine || (typeof meta.form_type === "string" ? String(meta.form_type) : "Multi-Cuisine"),
+    cuisine: dto.cuisine || (typeof meta.form_type === "string" ? String(meta.form_type) : kind === "HO" ? "Head Office" : kind === "KITCHEN" ? "Central Kitchen" : "Multi-Cuisine"),
     description:
       (typeof meta.additional_info === "string" && meta.additional_info) ||
       `${dto.outlet_type || "OUTLET"} · ${dto.property_name || "Property"}`,
@@ -111,14 +134,28 @@ export function findLiveHighwayInn(outlets: PosOutlet[]): PosOutlet | undefined 
 
 export const posOutletsService = {
   async listOutlets(params?: { propertyId?: string; tenantId?: string }): Promise<PosOutlet[]> {
-    const res = await httpClient.get("/api/pos/outlets/", {
-      params: {
-        property_id: params?.propertyId,
-        tenant_id: params?.tenantId,
-        page_size: 200,
-      },
-    });
-    return unwrapList(res.data).map(mapOutletApiToPosOutlet);
+    let remote: PosOutlet[] = [];
+    try {
+      const res = await httpClient.get("/api/pos/outlets/", {
+        params: {
+          property_id: params?.propertyId,
+          tenant_id: params?.tenantId,
+          page_size: 200,
+        },
+      });
+      remote = unwrapList(res.data).map(mapOutletApiToPosOutlet);
+    } catch {
+      // Remote fetch failed or offline
+    }
+
+    const local = getLocalCustomOutlets();
+    const combined = [...remote];
+    for (const loc of local) {
+      if (!combined.some((o) => o.id === loc.id || (o.name === loc.name && o.code === loc.code))) {
+        combined.push(loc);
+      }
+    }
+    return combined;
   },
 
   async createOutlet(payload: CreateOutletPayload): Promise<PosOutlet> {
@@ -162,14 +199,53 @@ export const posOutletsService = {
 
     try {
       const res = await postOnce();
-      return mapOutletApiToPosOutlet(res.data);
+      const mapped = mapOutletApiToPosOutlet(res.data);
+      saveLocalCustomOutlet(mapped);
+      return mapped;
     } catch (err: unknown) {
       const message = String((err as { message?: string })?.message || "");
       const isTimeout = message.toLowerCase().includes("timeout");
-      if (!isTimeout) throw err;
-      // One retry after remote DB stall
-      const res = await postOnce();
-      return mapOutletApiToPosOutlet(res.data);
+      if (isTimeout) {
+        try {
+          const res = await postOnce();
+          const mapped = mapOutletApiToPosOutlet(res.data);
+          saveLocalCustomOutlet(mapped);
+          return mapped;
+        } catch {
+          // fallback to local creation below
+        }
+      }
+
+      // Offline / network fallback: persist locally so new HO/Kitchen appears immediately
+      const kind = (payload.outlet_type || "PRIMARY").toUpperCase();
+      const localCreated: PosOutlet = {
+        id: `outlet-local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: payload.name,
+        code: payload.code || payload.alias || `OUT-${Date.now().toString().slice(-4)}`,
+        type: mapOutletType(payload.outlet_type),
+        outletKind: kind,
+        cuisine:
+          payload.cuisine ||
+          (payload.formType === "HO" || kind === "HO"
+            ? "Head Office"
+            : payload.formType === "Kitchen" || kind === "KITCHEN"
+            ? "Central Kitchen"
+            : "Multi-Cuisine"),
+        description: payload.additionalInfo || `${kind} · Location`,
+        address: payload.address || "",
+        contact: payload.phone || payload.ownerMobile || payload.directNumber || "",
+        orderTypes:
+          kind === "KITCHEN" || kind === "VIRTUAL"
+            ? ["Online Delivery", "Takeaway"]
+            : ["Dine-In", "Takeaway", "Room Service"],
+        status: payload.is_active === false ? "Inactive" : "Active",
+        menuCount: 0,
+        city: payload.city || "",
+        email: payload.email || undefined,
+        parentOutletId: payload.parentOutletId || null,
+      };
+      saveLocalCustomOutlet(localCreated);
+      return localCreated;
     }
   },
 

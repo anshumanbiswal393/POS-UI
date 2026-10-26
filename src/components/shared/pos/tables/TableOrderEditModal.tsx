@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import type { RestaurantTable } from "@/types/posTables";
 import { toast } from "sonner";
+import { useBillingMenuItems } from "@/hooks/queries/usePosMenu";
+import { useOutletContext } from "@/context/PosOutletContext";
 
 // Rich Mock Menu Catalog (matching TableOrderWizardModal catalog)
 interface MenuItem {
@@ -29,204 +31,6 @@ interface MenuItem {
   hasVariants?: boolean;
   variants?: Array<{ name: string; price: number }>;
 }
-
-const MENU_CATALOG: MenuItem[] = [
-  // Appetizers & Starters
-  {
-    id: "m-1",
-    name: "Paneer Tikka (6 Pcs)",
-    category: "Starters & Snacks",
-    price: 280,
-    isVeg: true,
-    description: "Cottage cheese cubes marinated in spiced hung curd and grilled in clay oven",
-  },
-  {
-    id: "m-2",
-    name: "Chicken Malai Tikka",
-    category: "Starters & Snacks",
-    price: 360,
-    isVeg: false,
-    description: "Tender boneless chicken marinated in cream, cheese, and mild spices",
-  },
-  {
-    id: "m-3",
-    name: "Crispy Corn Pepper Salt",
-    category: "Starters & Snacks",
-    price: 220,
-    isVeg: true,
-    description: "Sweet corn tossed with spring onions, garlic, and fresh ground pepper",
-  },
-  {
-    id: "m-4",
-    name: "Fish Amritsari",
-    category: "Starters & Snacks",
-    price: 420,
-    isVeg: false,
-    isSpicy: true,
-    description: "Batter-fried freshwater fish fillets flavored with carom seeds & lemon",
-  },
-  {
-    id: "m-5",
-    name: "Veg Spring Rolls",
-    category: "Starters & Snacks",
-    price: 190,
-    isVeg: true,
-    description: "Crispy rolls stuffed with julienned veggies, served with sweet chili dip",
-  },
-
-  // Main Course
-  {
-    id: "m-6",
-    name: "Butter Chicken",
-    category: "Main Course",
-    price: 440,
-    isVeg: false,
-    description: "Succulent tandoori chicken cooked in velvety tomato, butter & cashew gravy",
-    hasVariants: true,
-    variants: [
-      { name: "Half (2 Pcs)", price: 290 },
-      { name: "Full (4 Pcs)", price: 440 },
-    ],
-  },
-  {
-    id: "m-7",
-    name: "Paneer Butter Masala",
-    category: "Main Course",
-    price: 340,
-    isVeg: true,
-    description: "Soft paneer cubes simmered in a rich tomato, butter, and cream sauce",
-  },
-  {
-    id: "m-8",
-    name: "Dal Makhani",
-    category: "Main Course",
-    price: 260,
-    isVeg: true,
-    description: "Black lentils slow-cooked overnight with white butter & cream",
-  },
-  {
-    id: "m-9",
-    name: "Mutton Rogan Josh",
-    category: "Main Course",
-    price: 520,
-    isVeg: false,
-    isSpicy: true,
-    description: "Kashmiri-style braised lamb chunks in an aromatic spiced red gravy",
-  },
-  {
-    id: "m-10",
-    name: "Kadhai Paneer",
-    category: "Main Course",
-    price: 320,
-    isVeg: true,
-    isSpicy: true,
-    description: "Paneer cubes tossed with bell peppers, onions, and freshly pounded kadhai masala",
-  },
-
-  // Breads & Rice
-  {
-    id: "m-11",
-    name: "Butter Naan",
-    category: "Breads & Rice",
-    price: 60,
-    isVeg: true,
-    description: "Tandoori leavened flatbread glazed with melted butter",
-  },
-  {
-    id: "m-12",
-    name: "Garlic Naan",
-    category: "Breads & Rice",
-    price: 80,
-    isVeg: true,
-    description: "Tandoori flatbread topped with minced garlic and fresh coriander",
-  },
-  {
-    id: "m-13",
-    name: "Chicken Dum Biryani",
-    category: "Breads & Rice",
-    price: 390,
-    isVeg: false,
-    isSpicy: true,
-    description: "Long grain basmati rice layered with spiced chicken, mint & saffron",
-  },
-  {
-    id: "m-14",
-    name: "Jeera Rice",
-    category: "Breads & Rice",
-    price: 180,
-    isVeg: true,
-    description: "Fragrant basmati rice tempered with cumin seeds and ghee",
-  },
-  {
-    id: "m-15",
-    name: "Tandoori Roti (Butter)",
-    category: "Breads & Rice",
-    price: 35,
-    isVeg: true,
-    description: "Whole wheat bread baked in clay oven",
-  },
-
-  // Beverages & Mocktails
-  {
-    id: "m-16",
-    name: "Fresh Lime Soda",
-    category: "Beverages",
-    price: 110,
-    isVeg: true,
-    description: "Refreshing lemon cooler with sweet/salted club soda",
-  },
-  {
-    id: "m-17",
-    name: "Virgin Mojito",
-    category: "Beverages",
-    price: 160,
-    isVeg: true,
-    description: "Muddled fresh mint, lime chunks, and cane sugar topped with sparkling soda",
-  },
-  {
-    id: "m-18",
-    name: "Sweet Punjabi Lassi",
-    category: "Beverages",
-    price: 130,
-    isVeg: true,
-    description: "Thick beaten yogurt drink flavored with rose water and cardamom",
-  },
-  {
-    id: "m-19",
-    name: "Cold Coffee with Ice Cream",
-    category: "Beverages",
-    price: 170,
-    isVeg: true,
-    description: "Blended espresso, chilled milk, and vanilla ice cream scoop",
-  },
-
-  // Desserts
-  {
-    id: "m-20",
-    name: "Gulab Jamun with Ice Cream",
-    category: "Desserts",
-    price: 140,
-    isVeg: true,
-    description: "Warm khoya dumplings served with a scoop of vanilla bean ice cream",
-  },
-  {
-    id: "m-21",
-    name: "Matka Kulfi",
-    category: "Desserts",
-    price: 120,
-    isVeg: true,
-    description: "Traditional slow-cooked milk ice cream infused with saffron and pistachios",
-  },
-];
-
-const CATEGORIES = [
-  "All Items",
-  "Starters & Snacks",
-  "Main Course",
-  "Breads & Rice",
-  "Beverages",
-  "Desserts",
-];
 
 interface CartItem {
   id: string;
@@ -267,6 +71,31 @@ export function TableOrderEditModal({
   const [activeCategory, setActiveCategory] = useState("All Items");
   const [searchQuery, setSearchQuery] = useState("");
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const { activeOutlet } = useOutletContext();
+  const { data: menuList = [] } = useBillingMenuItems(activeOutlet?.id);
+
+  const menuCatalog = useMemo<MenuItem[]>(() => {
+    return menuList
+      .filter((item) => item.status === "Active" && item.baseMenu !== false)
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        category: item.category || "General",
+        price: item.price,
+        isVeg: item.itemType === "Veg",
+        description: item.description || "",
+        hasVariants: Boolean(item.variants && item.variants.length > 0),
+        variants: item.variants?.map((v) => ({ name: v.name, price: v.price })),
+      }));
+  }, [menuList]);
+
+  const categories = useMemo(() => {
+    const fromItems = Array.from(
+      new Set(menuCatalog.map((i) => i.category).filter((c): c is string => Boolean(c?.trim()))),
+    ).sort((a, b) => a.localeCompare(b));
+    return ["All Items", ...fromItems];
+  }, [menuCatalog]);
+
 
   // Initialize cart from existing active table order
   useEffect(() => {
@@ -304,7 +133,7 @@ export function TableOrderEditModal({
   }, [isOpen, table]);
 
   const filteredMenuItems = useMemo(() => {
-    return MENU_CATALOG.filter((item) => {
+    return menuCatalog.filter((item) => {
       if (activeCategory !== "All Items" && item.category !== activeCategory) {
         return false;
       }
@@ -316,7 +145,7 @@ export function TableOrderEditModal({
       }
       return true;
     });
-  }, [activeCategory, searchQuery]);
+  }, [menuCatalog, activeCategory, searchQuery]);
 
   const handleAddItemToCart = (item: MenuItem, variant?: { name: string; price: number }) => {
     const itemKey = variant ? `${item.id}-${variant.name}` : item.id;
@@ -456,7 +285,7 @@ export function TableOrderEditModal({
 
               {/* Category Pills */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-                {CATEGORIES.map((cat) => (
+                {categories.map((cat) => (
                   <button
                     key={cat}
                     type="button"

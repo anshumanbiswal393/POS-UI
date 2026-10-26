@@ -15,7 +15,8 @@ import {
   Receipt,
 } from "lucide-react";
 import type { BillingMenuItem, BillingCategory } from "@/types/posBilling";
-import { MOCK_MENU_ITEMS, BILLING_CATEGORIES } from "../billing/mockBillingData";
+import { useBillingMenuItems } from "@/hooks/queries/usePosMenu";
+import { useOutletContext } from "@/context/PosOutletContext";
 import { FoodTypeIcon } from "@/components/ui/FoodTypeIcon";
 import { PaymentModal } from "../billing/PaymentModal";
 
@@ -28,6 +29,7 @@ export interface PosOrderCartItem {
 }
 
 interface PosOrderTabularCatalogStepProps {
+  items?: BillingMenuItem[];
   // Title & Metadata shown on top of the bill
   billTitle: string;
   billSubtitle?: React.ReactNode;
@@ -57,6 +59,7 @@ interface PosOrderTabularCatalogStepProps {
 }
 
 export function PosOrderTabularCatalogStep({
+  items: propItems,
   billTitle,
   billSubtitle,
   badgeText,
@@ -73,6 +76,52 @@ export function PosOrderTabularCatalogStep({
   holdButtonText = "Hold Order",
   confirmButtonText = "Send to KOT",
 }: PosOrderTabularCatalogStepProps) {
+    const { activeOutlet } = useOutletContext();
+  const { data: menuList = [] } = useBillingMenuItems(activeOutlet?.id);
+
+  const catalogItems = useMemo<BillingMenuItem[]>(() => {
+    if (propItems && propItems.length > 0) return propItems;
+    return menuList
+      .filter((item) => item.status === "Active" && item.baseMenu !== false)
+      .map((item) => {
+        const primaryImg =
+          item.images?.find((img) => img.isPrimary)?.url || item.images?.[0]?.url;
+        const diet: "veg" | "non_veg" | "egg" | "drinks" =
+          item.itemType === "Veg"
+            ? "veg"
+            : item.itemType === "Egg"
+              ? "egg"
+              : item.category.toLowerCase().includes("bev") ||
+                item.category.toLowerCase().includes("cocktail") ||
+                item.category.toLowerCase().includes("vodka") ||
+                item.category.toLowerCase().includes("whisky")
+                ? "drinks"
+                : "non_veg";
+
+        return {
+          id: item.id,
+          code: item.code.startsWith("#") ? item.code : "#" + item.code,
+          name: item.name,
+          category: item.category as any,
+          diet,
+          price: item.price,
+          inStock: true,
+          prepTimeMinutes: 15,
+          imageUrl: primaryImg,
+          description: item.description,
+          variants: item.variants && item.variants.length > 0 ? (item.variants as any) : undefined,
+          modifierGroups: item.modifierGroups,
+        };
+      });
+  }, [propItems, menuList]);
+
+  const categories = useMemo(() => {
+    const fromItems = Array.from(
+      new Set(catalogItems.map((i) => i.category).filter((c): c is string => Boolean(c?.trim()))),
+    ).sort((a, b) => a.localeCompare(b));
+    return ["All Items", ...fromItems];
+  }, [catalogItems]);
+
   const [selectedCategory, setSelectedCategory] = useState<BillingCategory>("All Items");
   const [dietFilter, setDietFilter] = useState<"all" | "veg" | "non_veg">("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -102,7 +151,7 @@ export function PosOrderTabularCatalogStep({
 
   // Filtered menu items
   const filteredMenuItems = useMemo(() => {
-    return MOCK_MENU_ITEMS.filter((item) => {
+    return catalogItems.filter((item) => {
       if (selectedCategory !== "All Items" && item.category !== selectedCategory) {
         return false;
       }
@@ -118,7 +167,7 @@ export function PosOrderTabularCatalogStep({
       }
       return true;
     });
-  }, [selectedCategory, dietFilter, searchQuery]);
+  }, [catalogItems, selectedCategory, dietFilter, searchQuery]);
 
   // Barcode / Direct match handler on Enter
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -229,7 +278,7 @@ export function PosOrderTabularCatalogStep({
 
         {/* Category Filter Pills (Brand Rose Accents) */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-thin">
-          {BILLING_CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <button
               key={cat}
               type="button"
@@ -260,7 +309,16 @@ export function PosOrderTabularCatalogStep({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredMenuItems.map((item) => {
+              {filteredMenuItems.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-12 text-center text-text-secondary">
+                    <Utensils className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p className="font-semibold text-sm">No dishes found in menu</p>
+                    <p className="text-xs text-slate-400 mt-1">Add items to this outlet's Food Menu to take orders.</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredMenuItems.map((item) => {
                 const hasVariants = item.variants && item.variants.length > 0;
                 const chosenVarId =
                   selectedVariants[item.id] || (hasVariants ? item.variants![0].id : "");
@@ -357,7 +415,8 @@ export function PosOrderTabularCatalogStep({
                     </td>
                   </tr>
                 );
-              })}
+              })
+            )}
             </tbody>
           </table>
         </div>

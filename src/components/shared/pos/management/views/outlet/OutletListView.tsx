@@ -17,7 +17,7 @@ export function OutletListView() {
 
   const rows = useMemo(
     () =>
-      outlets.filter((o) => isBackendOutletId(o.id) && !isHighwayDemoOutlet(o.id)),
+      outlets.filter((o) => !isHighwayDemoOutlet(o.id)),
     [outlets],
   );
 

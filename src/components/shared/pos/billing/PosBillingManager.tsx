@@ -12,7 +12,6 @@ import type {
   HeldBill,
   BillSettlementRecord,
 } from "@/types/posBilling";
-import { MOCK_HELD_BILLS, MOCK_CUSTOMERS } from "./mockBillingData";
 import { BillingHeader } from "./BillingHeader";
 import { BillingMenuCatalog } from "./BillingMenuCatalog";
 import { BillingCartRegister } from "./BillingCartRegister";
@@ -374,10 +373,8 @@ export function PosBillingManager() {
   // 3. Customer Loyalty State
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerProfile | null>(null);
 
-  // 4. Parked/Held Bills State — empty for real DB outlets
-  const [heldBills, setHeldBills] = useState<HeldBill[]>(() =>
-    isBackendOutletId(activeOutlet?.id) ? [] : MOCK_HELD_BILLS,
-  );
+  // 4. Parked/Held Bills State — empty by default
+  const [heldBills, setHeldBills] = useState<HeldBill[]>([]);
   const [isHeldDrawerOpen, setIsHeldDrawerOpen] = useState(false);
 
   useEffect(() => {
@@ -624,18 +621,15 @@ export function PosBillingManager() {
     setSpecialNote(held.notes || "");
 
     if (held.customerName) {
-      const match = MOCK_CUSTOMERS.find((c) => c.phone === held.customerPhone);
-      setSelectedCustomer(
-        match || {
-          id: "temp",
-          name: held.customerName,
-          phone: held.customerPhone || "",
-          tier: "Silver",
-          loyaltyPoints: 0,
-          visitCount: 1,
-          lastVisit: "Today",
-        },
-      );
+      setSelectedCustomer({
+        id: `guest-${Date.now()}`,
+        name: held.customerName,
+        phone: held.customerPhone || "",
+        tier: "Silver",
+        loyaltyPoints: 0,
+        visitCount: 1,
+        lastVisit: "Today",
+      });
     }
 
     setHeldBills((prev) => prev.filter((h) => h.id !== held.id));

@@ -1,7 +1,6 @@
 /**
- * True when outlet id is a persisted Postgres UUID (real HO/Kitchen).
- * False for Highway demo (`outlet-primary`) and other local mock ids —
- * those keep full dummy POS data; UUID outlets stay blank until you feed them.
+ * True when outlet id is a persisted Postgres UUID (real backend outlet).
+ * Outlets start clean without hardcoded dummy POS data; items and orders are populated dynamically.
  */
 export function isBackendOutletId(outletId?: string | null): boolean {
   return Boolean(

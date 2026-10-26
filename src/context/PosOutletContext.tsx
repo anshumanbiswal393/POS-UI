@@ -6,12 +6,11 @@ import {
   posOutletsService,
   type CreateOutletPayload,
 } from "@/services/posOutletsService";
-import { firstLiveDiningOutlet, isDiningOutlet } from "@/utils/outletKind";
-import { isBackendOutletId, isHighwayDemoOutlet } from "@/utils/outletId";
+import { firstLiveDiningOutlet } from "@/utils/outletKind";
+import { isHighwayDemoOutlet } from "@/utils/outletId";
 
 const STORAGE_KEY_ACTIVE_ID = "retrod_pos_active_outlet_id";
 
-/** Demo flagship outlet — keep dummy POS data; never wipe when creating other outlets. */
 export const INITIAL_OUTLETS: PosOutlet[] = [
   {
     id: "outlet-primary",
@@ -25,13 +24,10 @@ export const INITIAL_OUTLETS: PosOutlet[] = [
     contact: "+91 98765 43210",
     orderTypes: ["Dine-In", "Takeaway", "Room Service", "Aggregators"],
     status: "Active",
-    menuCount: 660,
+    menuCount: 0,
   },
 ];
 
-/**
- * Upsert by id. Keep the dummy Highway seed only when no live Highway Inn UUID exists.
- */
 function mergeOutletLists(prev: PosOutlet[], incoming: PosOutlet[]): PosOutlet[] {
   const liveHighway = findLiveHighwayInn(incoming) || findLiveHighwayInn(prev);
   const byId = new Map<string, PosOutlet>();
@@ -47,14 +43,13 @@ function mergeOutletLists(prev: PosOutlet[], incoming: PosOutlet[]): PosOutlet[]
     byId.set(o.id, { ...byId.get(o.id), ...o });
   }
 
-  const primary = [...byId.values()].filter((o) => o.type === "Primary Outlet");
-  const virtual = [...byId.values()].filter((o) => o.type === "Virtual Outlet");
-  primary.sort((a, b) => {
+  const all = [...byId.values()];
+  all.sort((a, b) => {
     if (findLiveHighwayInn([a]) || isHighwayDemoOutlet(a.id)) return -1;
     if (findLiveHighwayInn([b]) || isHighwayDemoOutlet(b.id)) return 1;
     return a.name.localeCompare(b.name);
   });
-  return [...primary, ...virtual];
+  return all;
 }
 
 type PosOutletContextType = {
@@ -81,7 +76,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === "undefined") return "outlet-primary";
     try {
       const stored = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
-      return stored && isBackendOutletId(stored) ? stored : "";
+      return stored || "";
     } catch {
       return "";
     }
@@ -101,12 +96,10 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
           const liveHighway = findLiveHighwayInn(merged);
           const liveDining = firstLiveDiningOutlet(merged);
           const current = merged.find((o) => o.id === prevId);
-          // If prevId is empty or mock demo ID, prefer a live database outlet
-          if (!prevId || isHighwayDemoOutlet(prevId) || !isBackendOutletId(prevId)) {
-            return liveHighway?.id || liveDining?.id || prevId;
+          if (current) {
+            return prevId;
           }
-          if (current && isDiningOutlet(current) && isBackendOutletId(current.id)) return prevId;
-          return liveHighway?.id || liveDining?.id || "outlet-primary";
+          return liveHighway?.id || liveDining?.id || merged[0]?.id || "outlet-primary";
         });
         return merged;
       });
@@ -131,32 +124,30 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
   }, [activeOutletId]);
 
   const activeOutlet =
-    outlets.find((o) => o.id === activeOutletId && isDiningOutlet(o) && isBackendOutletId(o.id)) ||
+    outlets.find((o) => o.id === activeOutletId) ||
     findLiveHighwayInn(outlets) ||
     firstLiveDiningOutlet(outlets) ||
-    outlets.find((o) => o.id === activeOutletId && isDiningOutlet(o)) ||
-    outlets.find(isDiningOutlet) ||
+    outlets[0] ||
     INITIAL_OUTLETS[0];
 
   const handleSetActiveOutlet = (outletId: string) => {
     const target = outlets.find((o) => o.id === outletId);
     if (!target) return;
-    if (!isDiningOutlet(target)) {
-      toast.info("Head Offices and kitchens stay on Outlet List — they are not Take Order floors");
-      return;
-    }
     setActiveOutletId(outletId);
-    toast.info(`Switched outlet context to ${target.name}`);
+    toast.info("Switched outlet context to " + target.name);
   };
 
   const createOutletFromForm = async (payload: CreateOutletPayload) => {
     const created = await posOutletsService.createOutlet(payload);
-    // Append new outlet; Highway and all previous outlets stay
     setOutlets((prev) => mergeOutletLists(prev, [created]));
-    if (isDiningOutlet(created)) {
-      setActiveOutletId(created.id);
-      toast.success(`Outlet "${created.name}" created — starts blank (separate from Highway Inn)`);
-    }
+    setActiveOutletId(created.id);
+    const role =
+      payload.formType === "HO" || payload.outlet_type === "HO"
+        ? "Head Office"
+        : payload.formType === "Kitchen" || payload.outlet_type === "KITCHEN"
+        ? "Central Kitchen"
+        : "Outlet";
+    toast.success(role + ' "' + created.name + '" created and selected');
     return created;
   };
 
@@ -178,18 +169,12 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
       address: data.address,
       additionalInfo: data.description,
       formType: "Kitchen",
-      parentOutletId: parentId || undefined,
+      parentOutletId: parentId,
       is_active: data.status !== "Inactive",
     });
   };
 
   const updateOutlet = (id: string, data: Partial<PosOutlet>) => {
-    if (id === "outlet-primary") {
-      // Allow local edits to Highway display fields only in UI state
-      setOutlets((prev) => prev.map((o) => (o.id === id ? { ...o, ...data } : o)));
-      toast.success("Outlet details updated");
-      return;
-    }
     setOutlets((prev) => prev.map((o) => (o.id === id ? { ...o, ...data } : o)));
     toast.success("Outlet details updated");
   };
@@ -199,7 +184,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
       prev.map((o) => {
         if (o.id === id) {
           const next = o.status === "Active" ? "Inactive" : "Active";
-          toast.info(`${o.name} is now ${next}`);
+          toast.info(o.name + " is now " + next);
           return { ...o, status: next };
         }
         return o;
@@ -217,7 +202,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
     if (activeOutletId === id) {
       setActiveOutletId(findLiveHighwayInn(outlets)?.id || "outlet-primary");
     }
-    toast.success(`Virtual outlet "${target.name}" removed`);
+    toast.success('Virtual outlet "' + target.name + '" removed');
   };
 
   return (
