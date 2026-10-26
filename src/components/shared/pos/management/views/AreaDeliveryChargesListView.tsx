@@ -1,7 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Plus, ChevronDown, Edit2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
+import { useOutletContext } from "@/context/PosOutletContext";
+import { posManagementService } from "@/services/posManagementService";
 
 interface AreaDeliveryCharge {
   id: string;
@@ -15,8 +17,10 @@ interface AreaDeliveryCharge {
 }
 
 export function AreaDeliveryChargesListView() {
+  const { activeOutlet } = useOutletContext();
   const [statusFilter, setStatusFilter] = useState("All");
   const [searchArea, setSearchArea] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [records, setRecords] = useState<AreaDeliveryCharge[]>([
     {
@@ -70,6 +74,33 @@ export function AreaDeliveryChargesListView() {
       status: "Inactive",
     },
   ]);
+
+  useEffect(() => {
+    if (!activeOutlet?.id) return;
+    setLoading(true);
+    posManagementService
+      .getAreaDeliveryCharges(activeOutlet.id)
+      .then((data) => {
+        if (data && data.length > 0) {
+          setRecords(
+            data.map((item: any) => ({
+              id: String(item.id),
+              areaName: item.area_name || item.areaName,
+              city: item.city || "Angul",
+              pincode: item.pincode || "",
+              deliveryCharge: Number(item.delivery_charge ?? item.deliveryCharge ?? 0),
+              minOrder: Number(item.min_order_amount ?? item.minOrder ?? 0),
+              estimatedTime: item.estimated_delivery_time || item.estimatedTime || "25-35 mins",
+              status: item.is_active ? "Active" : "Inactive",
+            }))
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not fetch area delivery charges:", err);
+      })
+      .finally(() => setLoading(false));
+  }, [activeOutlet?.id]);
 
   const columns: PosDataGridColumn<AreaDeliveryCharge>[] = useMemo(
     () => [

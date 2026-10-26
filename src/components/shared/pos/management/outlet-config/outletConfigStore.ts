@@ -365,4 +365,44 @@ export function loadOutletConfig(outletId: string): OutletConfigState {
 
 export function saveOutletConfig(outletId: string, state: OutletConfigState) {
   localStorage.setItem(`${OUTLET_CONFIG_STORAGE_KEY}.${outletId}`, JSON.stringify(state));
+  // Asynchronously synchronize with backend PostgreSQL
+  import("@/services/posManagementService")
+    .then(({ posManagementService }) => {
+      posManagementService.updateOutletConfig(outletId, state).catch((err) => {
+        console.warn("[OutletConfigStore] Background sync to backend notice:", err);
+      });
+    })
+    .catch(() => {});
 }
+
+export async function syncOutletConfigFromBackend(outletId: string): Promise<OutletConfigState> {
+  try {
+    const { posManagementService } = await import("@/services/posManagementService");
+    const remote = await posManagementService.getOutletConfig(outletId);
+    if (remote && typeof remote === "object") {
+      const merged: OutletConfigState = {
+        ...structuredClone(DEFAULT_OUTLET_CONFIG),
+        ...loadOutletConfig(outletId),
+        details: { ...DEFAULT_OUTLET_CONFIG.details, ...(remote.details as any) },
+        contact: { ...DEFAULT_OUTLET_CONFIG.contact, ...(remote.contact as any) },
+        timings: { ...DEFAULT_OUTLET_CONFIG.timings, ...(remote.timings as any) },
+        payment: { ...DEFAULT_OUTLET_CONFIG.payment, ...(remote.payment as any) },
+        billingDisplay: { ...DEFAULT_OUTLET_CONFIG.billingDisplay, ...(remote.billing_display as any) },
+        printLogo: { ...DEFAULT_OUTLET_CONFIG.printLogo, ...(remote.print_logo as any) },
+        calculations: { ...DEFAULT_OUTLET_CONFIG.calculations, ...(remote.calculations as any) },
+        connectedServices: { ...DEFAULT_OUTLET_CONFIG.connectedServices, ...(remote.connected_services as any) },
+        print: { ...DEFAULT_OUTLET_CONFIG.print, ...(remote.print_settings as any) },
+        customer: { ...DEFAULT_OUTLET_CONFIG.customer, ...(remote.customer_settings as any) },
+        invoiceSequences: (remote.invoice_sequences as any)?.length
+          ? (remote.invoice_sequences as any)
+          : DEFAULT_OUTLET_CONFIG.invoiceSequences,
+      };
+      localStorage.setItem(`${OUTLET_CONFIG_STORAGE_KEY}.${outletId}`, JSON.stringify(merged));
+      return merged;
+    }
+  } catch (err) {
+    console.warn("[OutletConfigStore] Failed fetching remote config, using local cache:", err);
+  }
+  return loadOutletConfig(outletId);
+}
+

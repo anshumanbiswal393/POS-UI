@@ -1,7 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Plus, ChevronDown, Search, Edit2, Trash2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid";
+import { useOutletContext } from "@/context/PosOutletContext";
+import { posManagementService } from "@/services/posManagementService";
 
 interface SubOrderTypeItem {
   id: string;
@@ -13,10 +15,12 @@ interface SubOrderTypeItem {
 }
 
 export function SubOrderTypeListView() {
+  const { activeOutlet } = useOutletContext();
   const [searchName, setSearchName] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [loading, setLoading] = useState(false);
 
   // Exact data rows matching Screenshot 2
   const [items, setItems] = useState<SubOrderTypeItem[]>([
@@ -85,6 +89,31 @@ export function SubOrderTypeListView() {
       created: "5 Oct 2024",
     },
   ]);
+
+  useEffect(() => {
+    if (!activeOutlet?.id) return;
+    setLoading(true);
+    posManagementService
+      .getSubOrderTypes(activeOutlet.id)
+      .then((res) => {
+        if (res && res.length > 0) {
+          setItems(
+            res.map((r) => ({
+              id: r.id,
+              name: r.name,
+              type: (r.type as any) || "Area",
+              orderType: r.order_type || "Dine In",
+              status: (r.status as any) || "Active",
+              created: r.created_at ? new Date(r.created_at).toLocaleDateString() : "Today",
+            }))
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn("[SubOrderTypes] Fallback to default records:", err);
+      })
+      .finally(() => setLoading(false));
+  }, [activeOutlet?.id]);
 
   const columns: PosDataGridColumn<SubOrderTypeItem>[] = useMemo(
     () => [
