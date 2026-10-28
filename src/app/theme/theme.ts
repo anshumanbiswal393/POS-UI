@@ -38,7 +38,7 @@ export const APP_THEMES: ThemeDefinition[] = [
     group: "core",
     tagline: "Daylight Contrast",
     description: "Crisp neutral canvas engineered for high-glare daytime counters.",
-    swatches: ["#0f766e", "#f6f5f0", "#0b192c", "#f0fdfa"],
+    swatches: ["#24664e", "#EEF4F1", "#FFFFFF", "#d1fae5"],
   },
   {
     value: "dark",
@@ -47,7 +47,7 @@ export const APP_THEMES: ThemeDefinition[] = [
     tagline: "Midnight Dimmed",
     description: "Low-strain dark palette ideal for evening dinner service & dimly-lit bars.",
     isDark: true,
-    swatches: ["#0d9488", "#121824", "#090e17", "#1c2638"],
+    swatches: ["#0d9488", "#121824", "#182236", "#1c2638"],
   },
   {
     value: "graphite-blue-pro",
@@ -55,7 +55,7 @@ export const APP_THEMES: ThemeDefinition[] = [
     group: "professional",
     tagline: "Executive Slate",
     description: "Refined corporate slate blue designed for quick-service and enterprise.",
-    swatches: ["#3F4F7D", "#EFF2F7", "#182236", "#dbe4f0"],
+    swatches: ["#3F4F7D", "#EFF2F7", "#FFFFFF", "#dbe4f0"],
   },
   {
     value: "forest-slate-executive",
@@ -63,7 +63,7 @@ export const APP_THEMES: ThemeDefinition[] = [
     group: "professional",
     tagline: "Evergreen Sage",
     description: "Deep botanical green providing a calm, organic restaurant ambiance.",
-    swatches: ["#24664e", "#EEF4F1", "#10261d", "#d1fae5"],
+    swatches: ["#24664e", "#EEF4F1", "#FFFFFF", "#d1fae5"],
   },
   {
     value: "royal-plum-business",
@@ -71,7 +71,7 @@ export const APP_THEMES: ThemeDefinition[] = [
     group: "professional",
     tagline: "Imperial Velvet",
     description: "Regal nocturnal plum crafted for fine dining establishments & banquets.",
-    swatches: ["#5B3A7B", "#F2EEF8", "#180f24", "#ede4f7"],
+    swatches: ["#5B3A7B", "#F2EEF8", "#FFFFFF", "#ede4f7"],
   },
   {
     value: "copper-night",
@@ -79,7 +79,7 @@ export const APP_THEMES: ThemeDefinition[] = [
     group: "professional",
     tagline: "Burnished Bronze",
     description: "Warm champagne canvas paired with rich copper and espresso accents.",
-    swatches: ["#b86524", "#fbf7f2", "#1c140e", "#fdf5ec"],
+    swatches: ["#b86524", "#fbf7f2", "#FFFFFF", "#fdf5ec"],
   },
   {
     value: "rose-indigo-premium",
@@ -87,7 +87,7 @@ export const APP_THEMES: ThemeDefinition[] = [
     group: "signature",
     tagline: "Couture Magenta",
     description: "Sophisticated couture berry suited for boutique bistros and cocktail cafés.",
-    swatches: ["#A3265F", "#F8EEF5", "#1f1024", "#fce7f3"],
+    swatches: ["#A3265F", "#F8EEF5", "#FFFFFF", "#fce7f3"],
   },
   {
     value: "emerald-gold-luxury",
@@ -95,7 +95,7 @@ export const APP_THEMES: ThemeDefinition[] = [
     group: "signature",
     tagline: "Prestige Jade",
     description: "Opulent emerald green with warm gold undertones for luxury hospitality.",
-    swatches: ["#1f7052", "#F5F8F2", "#0d241b", "#fef08a"],
+    swatches: ["#1f7052", "#F5F8F2", "#FFFFFF", "#fef08a"],
   },
   {
     value: "ocean-cyan-modern",
@@ -103,7 +103,7 @@ export const APP_THEMES: ThemeDefinition[] = [
     group: "signature",
     tagline: "Coastal Azure",
     description: "Vibrant marine cyan bringing a fresh, modern energy to coastal dining.",
-    swatches: ["#18708c", "#F1F7FA", "#0a1926", "#cffafe"],
+    swatches: ["#18708c", "#F1F7FA", "#FFFFFF", "#cffafe"],
   },
   {
     value: "sunset-amber",
@@ -111,7 +111,7 @@ export const APP_THEMES: ThemeDefinition[] = [
     group: "signature",
     tagline: "Golden Dusk",
     description: "Warm roasted dusk amber tailored for microbreweries and artisan bakeries.",
-    swatches: ["#b8621b", "#FFF8F2", "#24150b", "#fef3c7"],
+    swatches: ["#b8621b", "#FFF8F2", "#FFFFFF", "#fef3c7"],
   },
   {
     value: "high-contrast",
@@ -119,7 +119,7 @@ export const APP_THEMES: ThemeDefinition[] = [
     group: "accessibility",
     tagline: "WCAG Maximum",
     description: "Ultra-high visibility deep black borders with vivid royal blue highlights.",
-    swatches: ["#1d3b9e", "#FFFFFF", "#05070d", "#dbeafe"],
+    swatches: ["#1d3b9e", "#FFFFFF", "#FFFFFF", "#dbeafe"],
   },
 ];
 

@@ -1,12 +1,31 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, ChevronDown, ChevronRight, Plus, Store } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Pin,
+  PinOff,
+  Plus,
+  Store,
+} from "lucide-react";
+import { toast } from "sonner";
 import {
   POS_NAV_ITEMS,
   POS_FOOTER_NAV_ITEMS,
   type PosNavChild,
   type PosNavItem,
 } from "@/app/navigation/pos-nav-config";
+import {
+  getAllPosRouteNodes,
+  movePinnedNavNode,
+  readPinnedNavNodeIds,
+  togglePinnedNavNodeId,
+} from "@/app/navigation/nav-personalization";
 import { RetrodLogo } from "@/components/common";
 import { cn } from "@/lib/utils";
 import { useOutletContext } from "@/context/PosOutletContext";
@@ -74,9 +93,11 @@ const { siblingsMap, descendantsMap } = (() => {
 export function PosSidebar({
   collapsed,
   onNavigate,
+  onToggle,
 }: {
   collapsed: boolean;
   onNavigate?: () => void;
+  onToggle?: () => void;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeLinkRef = useRef<HTMLAnchorElement | null>(null);
@@ -169,6 +190,21 @@ export function PosSidebar({
     });
   };
 
+  const [pinnedIds, setPinnedIds] = useState<string[]>(() => readPinnedNavNodeIds());
+
+  const allRouteNodes = getAllPosRouteNodes();
+  const pinnedNodes = pinnedIds
+    .map((id) => allRouteNodes.find((node) => node.id === id))
+    .filter((node): node is NonNullable<typeof node> => Boolean(node));
+
+  const togglePinned = (nodeId: string) => {
+    setPinnedIds(togglePinnedNavNodeId(nodeId));
+  };
+
+  const movePinned = (fromIndex: number, toIndex: number) => {
+    setPinnedIds(movePinnedNavNode(fromIndex, toIndex));
+  };
+
   const renderNode = (node: PosNavChild, depth: number): ReactNode => {
     const expanded = Boolean(openGroups[node.id]);
     const ItemIcon = node.icon;
@@ -206,32 +242,68 @@ export function PosSidebar({
 
     if (!node.to) return null;
     const active = isLinkActive(node.to);
+    const pinned = pinnedIds.includes(node.id);
 
     return (
-      <Link
-        key={node.id}
-        ref={active ? activeLinkRef : undefined}
-        to={node.to}
-        onClick={onNavigate}
-        activeOptions={{ exact: true }}
-        className={cn(
-          "flex items-center gap-2.5 rounded-md font-medium transition-colors",
-          depth === 0 ? "px-3 py-2 text-[13.5px]" : "px-2.5 py-1.5 text-[13px]",
-          active
-            ? "bg-primary font-semibold text-primary-foreground shadow-xs"
-            : "text-sidebar-foreground hover:bg-sidebar-hover",
-        )}
-      >
-        {ItemIcon ? (
-          <ItemIcon
+      <div key={node.id} className="group relative">
+        <Link
+          ref={active ? activeLinkRef : undefined}
+          to={node.to}
+          onClick={onNavigate}
+          activeOptions={{ exact: true }}
+          className={cn(
+            "relative flex items-center gap-2.5 rounded-md font-medium transition-colors",
+            depth === 0 ? "px-3 py-2 text-[13.5px]" : "px-2.5 py-1.5 text-[13px]",
+            !collapsed && (depth === 0 ? "pr-8" : "pr-7"),
+            active
+              ? "bg-primary font-semibold text-primary-foreground shadow-xs"
+              : "text-sidebar-foreground hover:bg-sidebar-hover",
+          )}
+          title={collapsed ? node.label : undefined}
+        >
+          {active && depth === 0 && (
+            <span className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r bg-primary-foreground" />
+          )}
+          {ItemIcon ? (
+            <ItemIcon
+              className={cn(
+                "h-[18px] w-[18px] shrink-0 stroke-[1.5]",
+                active ? "text-primary-foreground" : "text-sidebar-foreground",
+              )}
+            />
+          ) : null}
+          <span className="truncate">{node.label}</span>
+        </Link>
+        {!collapsed && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const next = togglePinnedNavNodeId(node.id);
+              setPinnedIds(next);
+              if (next.includes(node.id)) {
+                toast.success(`Pinned ${node.label} to top`);
+              } else {
+                toast.info(`Unpinned ${node.label}`);
+              }
+            }}
             className={cn(
-              "h-[18px] w-[18px] shrink-0 stroke-[1.5]",
-              !active && "text-sidebar-foreground",
+              "absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 transition cursor-pointer",
+              active
+                ? "text-primary-foreground hover:text-primary-foreground/90"
+                : pinned
+                  ? "text-primary"
+                  : "text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground",
+              pinned || active ? "opacity-100" : "opacity-0 group-hover:opacity-100",
             )}
-          />
-        ) : null}
-        <span className="truncate">{node.label}</span>
-      </Link>
+            aria-label={pinned ? `Unpin ${node.label}` : `Pin ${node.label}`}
+            title={pinned ? "Unpin" : "Pin"}
+          >
+            {pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -239,12 +311,13 @@ export function PosSidebar({
     <aside
       className={cn(
         "flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200",
-        collapsed ? "w-[68px]" : "w-[240px]",
+        collapsed ? "w-[64px]" : "w-[268px]",
       )}
     >
-      <div className="flex h-16 shrink-0 items-center border-b border-sidebar-border px-4">
+      {/* Logo & Top Header */}
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border px-3">
         {!collapsed ? (
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <Link
               to="/pos"
               onClick={onNavigate}
@@ -264,6 +337,16 @@ export function PosSidebar({
           >
             <RetrodLogo collapsed variant="dark" />
           </Link>
+        )}
+        {onToggle && (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground transition cursor-pointer"
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
+          </button>
         )}
       </div>
 
@@ -297,7 +380,7 @@ export function PosSidebar({
               <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-muted" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-[216px]" align="start">
+          <DropdownMenuContent className="w-[242px] ml-3" align="start">
             <DropdownMenuLabel className="text-xs text-sidebar-muted">Select Outlet</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup className="max-h-[300px] overflow-y-auto">
@@ -391,11 +474,120 @@ export function PosSidebar({
       )}
 
       <nav className="mt-2 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3 scrollbar-thin" aria-label="POS navigation">
+        {!collapsed && pinnedNodes.length > 0 && (
+          <div className="mb-3 px-1">
+            <div className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-sidebar-muted">
+              Pinned
+            </div>
+            <ul className="space-y-0.5">
+              {pinnedNodes.map((node, idx) => {
+                const active = isActive(node.to, node.exact);
+                const NodeIcon = node.icon;
+                return (
+                  <li key={`pinned-${node.id}`} className="relative">
+                    <div className="group relative flex items-center gap-1">
+                      <Link
+                        to={node.to}
+                        onClick={onNavigate}
+                        activeOptions={{ exact: Boolean(node.exact) }}
+                        className={cn(
+                          "relative flex-1 rounded-md px-3 py-2 pr-12 text-[13px] font-medium transition flex items-center gap-2.5",
+                          active
+                            ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                            : "text-sidebar-foreground hover:bg-sidebar-hover",
+                        )}
+                        title={node.label}
+                      >
+                        {active && (
+                          <span className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r bg-primary-foreground" />
+                        )}
+                        {NodeIcon ? (
+                          <NodeIcon
+                            className={cn(
+                              "h-[16px] w-[16px] shrink-0 stroke-[1.5]",
+                              active ? "text-primary-foreground" : "text-sidebar-foreground",
+                            )}
+                          />
+                        ) : null}
+                        <span className="truncate">{node.label}</span>
+                      </Link>
+                      <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const next = togglePinnedNavNodeId(node.id);
+                            setPinnedIds(next);
+                            toast.info(`Unpinned ${node.label}`);
+                          }}
+                          className={cn(
+                            "rounded p-1 transition cursor-pointer",
+                            active
+                              ? "text-primary-foreground hover:text-primary-foreground/90"
+                              : "text-primary hover:bg-sidebar-hover",
+                            "opacity-100",
+                          )}
+                          aria-label={`Unpin ${node.label}`}
+                          title="Unpin"
+                        >
+                          <PinOff className="h-3.5 w-3.5" />
+                        </button>
+                        <div className="hidden items-center gap-0.5 group-hover:flex">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              movePinned(idx, idx - 1);
+                            }}
+                            disabled={idx === 0}
+                            className={cn(
+                              "rounded p-1 disabled:opacity-20 cursor-pointer",
+                              active
+                                ? "text-primary-foreground hover:bg-white/10"
+                                : "text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground",
+                            )}
+                            aria-label={`Move ${node.label} up`}
+                            title="Move up"
+                          >
+                            <ArrowUp className="h-3 w-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              movePinned(idx, idx + 1);
+                            }}
+                            disabled={idx === pinnedNodes.length - 1}
+                            className={cn(
+                              "rounded p-1 disabled:opacity-20 cursor-pointer",
+                              active
+                                ? "text-primary-foreground hover:bg-white/10"
+                                : "text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground",
+                            )}
+                            aria-label={`Move ${node.label} down`}
+                            title="Move down"
+                          >
+                            <ArrowDown className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
         {POS_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const hasChildren = Boolean(item.children?.length);
           const groupOpen = Boolean(openGroups[item.id]);
           const activeLeaf = !hasChildren && isActive(item.to, item.exact);
+          const pinned = pinnedIds.includes(item.id);
 
           if (collapsed) {
             const collapsedActive = hasChildren ? isNodeActive(item) : activeLeaf;
@@ -446,27 +638,62 @@ export function PosSidebar({
           }
 
           return (
-            <Link
-              key={item.id}
-              ref={activeLeaf ? activeLinkRef : undefined}
-              to={item.to}
-              onClick={onNavigate}
-              activeOptions={{ exact: Boolean(item.exact) }}
-              className={cn(
-                "flex items-center gap-2.5 rounded-md px-3 py-2 text-[13.5px] font-medium transition-colors",
-                activeLeaf
-                  ? "bg-primary font-semibold text-primary-foreground shadow-xs"
-                  : "text-sidebar-foreground hover:bg-sidebar-hover",
-              )}
-            >
-              <Icon
+            <div key={item.id} className="group relative">
+              <Link
+                ref={activeLeaf ? activeLinkRef : undefined}
+                to={item.to}
+                onClick={onNavigate}
+                activeOptions={{ exact: Boolean(item.exact) }}
                 className={cn(
-                  "h-[18px] w-[18px] shrink-0 stroke-[1.5]",
-                  !activeLeaf && "text-sidebar-foreground",
+                  "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-[13.5px] font-medium transition-colors",
+                  !collapsed && "pr-8",
+                  activeLeaf
+                    ? "bg-primary font-semibold text-primary-foreground shadow-xs"
+                    : "text-sidebar-foreground hover:bg-sidebar-hover",
                 )}
-              />
-              <span className="truncate">{item.label}</span>
-            </Link>
+                title={collapsed ? item.label : undefined}
+              >
+                {activeLeaf && (
+                  <span className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r bg-primary-foreground" />
+                )}
+                <Icon
+                  className={cn(
+                    "h-[18px] w-[18px] shrink-0 stroke-[1.5]",
+                    activeLeaf ? "text-primary-foreground" : "text-sidebar-foreground",
+                  )}
+                />
+                <span className="truncate">{item.label}</span>
+              </Link>
+              {!collapsed && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const next = togglePinnedNavNodeId(item.id);
+                    setPinnedIds(next);
+                    if (next.includes(item.id)) {
+                      toast.success(`Pinned ${item.label} to top`);
+                    } else {
+                      toast.info(`Unpinned ${item.label}`);
+                    }
+                  }}
+                  className={cn(
+                    "absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 transition cursor-pointer",
+                    activeLeaf
+                      ? "text-primary-foreground hover:text-primary-foreground/90"
+                      : pinned
+                        ? "text-primary"
+                        : "text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground",
+                    pinned || activeLeaf ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                  )}
+                  aria-label={pinned ? `Unpin ${item.label}` : `Pin ${item.label}`}
+                  title={pinned ? "Unpin" : "Pin to top"}
+                >
+                  {pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                </button>
+              )}
+            </div>
           );
         })}
       </nav>
@@ -475,29 +702,64 @@ export function PosSidebar({
         {POS_FOOTER_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.to);
+          const pinned = pinnedIds.includes(item.id);
           return (
-            <Link
-              key={item.id}
-              ref={active ? activeLinkRef : undefined}
-              to={item.to}
-              onClick={onNavigate}
-              title={collapsed ? item.label : undefined}
-              className={cn(
-                "flex items-center gap-2.5 rounded-md px-3 py-2 text-[13.5px] font-medium transition-colors",
-                active
-                  ? "bg-primary font-semibold text-primary-foreground shadow-xs"
-                  : "text-sidebar-foreground hover:bg-sidebar-hover",
-                collapsed && "justify-center px-2",
-              )}
-            >
-              <Icon
+            <div key={item.id} className="group relative">
+              <Link
+                ref={active ? activeLinkRef : undefined}
+                to={item.to}
+                onClick={onNavigate}
+                title={collapsed ? item.label : undefined}
                 className={cn(
-                  "h-[18px] w-[18px] shrink-0 stroke-[1.5]",
-                  !active && "text-sidebar-foreground",
+                  "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-[13.5px] font-medium transition-colors",
+                  !collapsed && "pr-8",
+                  active
+                    ? "bg-primary font-semibold text-primary-foreground shadow-xs"
+                    : "text-sidebar-foreground hover:bg-sidebar-hover",
+                  collapsed && "justify-center px-2",
                 )}
-              />
-              {!collapsed && <span className="truncate">{item.label}</span>}
-            </Link>
+              >
+                {active && !collapsed && (
+                  <span className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r bg-primary-foreground" />
+                )}
+                <Icon
+                  className={cn(
+                    "h-[18px] w-[18px] shrink-0 stroke-[1.5]",
+                    active ? "text-primary-foreground" : "text-sidebar-foreground",
+                  )}
+                />
+                {!collapsed && <span className="truncate">{item.label}</span>}
+              </Link>
+              {!collapsed && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const next = togglePinnedNavNodeId(item.id);
+                    setPinnedIds(next);
+                    if (next.includes(item.id)) {
+                      toast.success(`Pinned ${item.label} to top`);
+                    } else {
+                      toast.info(`Unpinned ${item.label}`);
+                    }
+                  }}
+                  className={cn(
+                    "absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 transition cursor-pointer",
+                    active
+                      ? "text-primary-foreground hover:text-primary-foreground/90"
+                      : pinned
+                        ? "text-primary"
+                        : "text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground",
+                    pinned || active ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                  )}
+                  aria-label={pinned ? `Unpin ${item.label}` : `Pin ${item.label}`}
+                  title={pinned ? "Unpin" : "Pin to top"}
+                >
+                  {pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                </button>
+              )}
+            </div>
           );
         })}
       </div>

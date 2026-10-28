@@ -5,8 +5,8 @@ import { PosTopBar } from "@/components/layout/pos/PosTopBar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
-const SIDEBAR_EXPANDED_WIDTH = 240;
-const SIDEBAR_COLLAPSED_WIDTH = 68;
+const SIDEBAR_EXPANDED_WIDTH = 268;
+const SIDEBAR_COLLAPSED_WIDTH = 64;
 
 export function PosShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -42,6 +42,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         <PosSidebar
           collapsed={!isMobile && desktopCollapsed}
           onNavigate={isMobile ? () => setMobileOpen(false) : undefined}
+          onToggle={() => setDesktopCollapsed((prev) => !prev)}
         />
       </div>
 
