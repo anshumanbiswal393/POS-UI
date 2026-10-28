@@ -53,6 +53,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         <div className="print:hidden">
           <PosTopBar
             onOpenMobileNav={isMobile ? () => setMobileOpen(true) : undefined}
+            onToggleSidebar={() => setDesktopCollapsed((c) => !c)}
             sidebarCollapsed={desktopCollapsed}
           />
         </div>

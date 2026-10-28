@@ -338,16 +338,6 @@ export function PosSidebar({
             <RetrodLogo collapsed variant="dark" />
           </Link>
         )}
-        {onToggle && (
-          <button
-            type="button"
-            onClick={onToggle}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground transition cursor-pointer"
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
-          </button>
-        )}
       </div>
 
       {/* Outlet Switcher — same as PMS property switcher */}

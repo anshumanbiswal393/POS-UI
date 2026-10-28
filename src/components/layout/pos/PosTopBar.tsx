@@ -128,8 +128,8 @@ export function PosTopBar({
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-border bg-surface px-3 sm:px-4 lg:px-5 shadow-2xs">
-      {/* Left: Breadcrumbs & mobile toggle */}
-      <div className="flex shrink-0 items-center gap-2 sm:gap-3 min-w-0">
+      {/* Left: Nav toggles & Breadcrumbs */}
+      <div className="flex shrink-0 items-center gap-2 sm:gap-2.5 min-w-0">
         {onOpenMobileNav && (
           <button
             type="button"
@@ -138,6 +138,22 @@ export function PosTopBar({
             className="rounded-md p-1.5 text-text-secondary hover:bg-surface-2 lg:hidden cursor-pointer"
           >
             <Menu className="h-4.5 w-4.5" />
+          </button>
+        )}
+
+        {onToggleSidebar && (
+          <button
+            type="button"
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            onClick={onToggleSidebar}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="hidden lg:flex items-center justify-center rounded-md p-1.5 text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer"
+          >
+            {sidebarCollapsed ? (
+              <PanelLeftOpen className="h-4.5 w-4.5 text-primary" />
+            ) : (
+              <PanelLeftClose className="h-4.5 w-4.5" />
+            )}
           </button>
         )}
 
