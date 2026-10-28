@@ -2,7 +2,7 @@ import { Outlet, createFileRoute, useRouterState } from "@tanstack/react-router"
 import { RawMaterialsManagementView } from "@/components/shared/pos/inventory/views/RawMaterialsManagementView";
 
 export const Route = createFileRoute("/pos/inventory/masters")({
-  head: () => ({ meta: [{ title: "Stock Setup — Retrod POS" }] }),
+  
   component: MastersLayoutRoute,
 });
 

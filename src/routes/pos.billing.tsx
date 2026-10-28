@@ -41,6 +41,6 @@ export const Route = createFileRoute("/pos/billing")({
     editOrder: typeof search.editOrder === "string" ? search.editOrder : undefined,
     settle: typeof search.settle === "string" ? search.settle : undefined,
   }),
-  head: () => ({ meta: [{ title: "Fast Touch Billing — Retrod POS" }] }),
+  
   component: PosBillingManager,
 });

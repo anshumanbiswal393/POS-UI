@@ -102,8 +102,7 @@ export function PosSidebar({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeLinkRef = useRef<HTMLAnchorElement | null>(null);
   const { activeOutlet, outlets, setActiveOutlet } = useOutletContext();
-  const diningOutlets = outlets.filter(isDiningOutlet);
-  const availableOutlets = diningOutlets.length > 0 ? diningOutlets : outlets;
+  const availableOutlets = outlets;
 
   const collectOpenGroups = (path: string) => {
     const initial: Record<string, boolean> = {};
@@ -399,7 +398,7 @@ export function PosSidebar({
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link
-                to="/pos/management/configuration/outlet/list"
+                to="/pos/management/configuration/outlet/add"
                 onClick={onNavigate}
                 className="flex items-center cursor-pointer text-sidebar-muted focus:text-sidebar-foreground py-1.5"
               >
@@ -450,7 +449,7 @@ export function PosSidebar({
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link
-                  to="/pos/management/configuration/outlet/list"
+                  to="/pos/management/configuration/outlet/add"
                   onClick={onNavigate}
                   className="flex items-center cursor-pointer text-sidebar-muted focus:text-sidebar-foreground py-1.5"
                 >

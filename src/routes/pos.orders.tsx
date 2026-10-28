@@ -2,7 +2,7 @@ import { Outlet, createFileRoute, useRouterState } from "@tanstack/react-router"
 import { PosLiveOrdersManager } from "@/components/shared/pos/orders/PosLiveOrdersManager";
 
 export const Route = createFileRoute("/pos/orders")({
-  head: () => ({ meta: [{ title: "Current Orders — Retrod POS" }] }),
+  
   component: OrdersLayout,
 });
 

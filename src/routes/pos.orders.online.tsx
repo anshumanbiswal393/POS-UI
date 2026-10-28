@@ -6,6 +6,6 @@ export const Route = createFileRoute("/pos/orders/online")({
     throw redirect({ to: "/pos/orders" });
   },
   // Online orders temporarily commented out until Zomato/Swiggy integration
-  // head: () => ({ meta: [{ title: "Online Orders — Retrod POS" }] }),
+  // 
   // component: PosOnlineOrdersManager,
 });

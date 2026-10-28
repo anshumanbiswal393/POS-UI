@@ -2,7 +2,7 @@ import { Outlet, createFileRoute, useRouterState } from "@tanstack/react-router"
 import { InventoryDashboardView } from "@/components/shared/pos/inventory/views/InventoryDashboardView";
 
 export const Route = createFileRoute("/pos/inventory")({
-  head: () => ({ meta: [{ title: "Stock Overview — Retrod POS" }] }),
+  
   component: InventoryLayoutRoute,
 });
 

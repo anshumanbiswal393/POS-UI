@@ -2,7 +2,7 @@ import { Outlet, createFileRoute, useRouterState } from "@tanstack/react-router"
 import { ProductionMasterView } from "@/components/shared/pos/inventory/views/ProductionMasterView";
 
 export const Route = createFileRoute("/pos/inventory/production")({
-  head: () => ({ meta: [{ title: "Preparation Setup — Retrod POS" }] }),
+  
   component: ProductionLayoutRoute,
 });
 

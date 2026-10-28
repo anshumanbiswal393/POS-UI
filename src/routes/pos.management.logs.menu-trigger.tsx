@@ -2,6 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MenuTriggerLogsView } from "@/components/shared/pos/management/views/logs/MenuTriggerLogsView";
 
 export const Route = createFileRoute("/pos/management/logs/menu-trigger")({
-  head: () => ({ meta: [{ title: "Menu Trigger Logs — Retrod POS" }] }),
+  
   component: MenuTriggerLogsView,
 });

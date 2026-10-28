@@ -3,7 +3,7 @@ import { PosMenuHeader } from "@/components/shared/pos/menu/PosMenuHeader";
 import { MenuListManagerView } from "@/components/shared/pos/menu/views/MenuListManagerView";
 
 export const Route = createFileRoute("/pos/menu")({
-  head: () => ({ meta: [{ title: "Menu List — Retrod POS" }] }),
+  
   component: MenuLayoutRoute,
 });
 

@@ -3,7 +3,7 @@ import { DayEndSummaryView } from "@/components/shared/pos/reports/views/DayEndS
 import { MainOtherReportsView } from "@/components/shared/pos/reports/views/MainOtherReportsView";
 
 export const Route = createFileRoute("/pos/reports")({
-  head: () => ({ meta: [{ title: "Reports & Graphs — Retrod POS" }] }),
+  
   component: ReportsMainLayoutRoute,
 });
 

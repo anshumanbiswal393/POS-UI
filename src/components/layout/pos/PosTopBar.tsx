@@ -334,14 +334,14 @@ export function PosTopBar({
               className="flex items-center gap-2 rounded-md border border-border bg-surface px-2.5 py-1 hover:bg-surface-2 transition cursor-pointer outline-none"
             >
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary font-bold text-[11px] text-primary-foreground">
-                {user?.initials ?? "RA"}
+                {user?.initials ?? "AD"}
               </div>
               <div className="hidden text-left md:block min-w-0">
                 <div className="text-[12.5px] font-semibold text-text-primary leading-tight truncate max-w-[130px]">
-                  {user?.name ?? "Retrod Admin"}
+                  Admin
                 </div>
                 <div className="text-[10.5px] text-text-secondary leading-tight truncate max-w-[130px]">
-                  {roleText}
+                  Hotel Admin
                 </div>
               </div>
               <ChevronRight className="hidden md:block h-3.5 w-3.5 text-text-disabled shrink-0" />
