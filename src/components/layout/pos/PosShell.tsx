@@ -5,21 +5,19 @@ import { PosTopBar } from "@/components/layout/pos/PosTopBar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
-const SIDEBAR_EXPANDED_WIDTH = 268;
-const SIDEBAR_COLLAPSED_WIDTH = 64;
-
 export function PosShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
   const isMobile = useIsMobile();
 
-  const sidebarWidth = isMobile ? 0 : desktopCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
+  const isSidebarCollapsed = isMobile ? false : desktopCollapsed;
+  const showMobileSidebar = isMobile && mobileOpen;
 
   return (
     <div
       className={cn(
-        "h-dvh w-full overflow-hidden bg-background text-foreground",
-        mobileOpen && isMobile ? "h-screen" : "",
+        "flex min-h-screen w-full bg-background text-foreground",
+        mobileOpen && isMobile ? "h-screen overflow-hidden" : "",
       )}
     >
       {isMobile && mobileOpen && (
@@ -31,34 +29,34 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      {/* Fixed sidebar — stays put while main content scrolls */}
+      {/* Sidebar container — matches PMS layout */}
       <div
         className={cn(
-          "fixed left-0 top-0 z-50 h-dvh transition-all duration-200 print:hidden",
-          isMobile && !mobileOpen ? "-translate-x-full" : "translate-x-0",
+          "z-50 shrink-0 print:hidden",
+          isMobile
+            ? "fixed left-0 top-0 h-screen transition-transform duration-200"
+            : "",
+          isMobile && !showMobileSidebar ? "-translate-x-full" : "translate-x-0",
         )}
-        style={{ width: isMobile ? SIDEBAR_EXPANDED_WIDTH : sidebarWidth }}
       >
         <PosSidebar
-          collapsed={!isMobile && desktopCollapsed}
+          collapsed={isSidebarCollapsed}
           onNavigate={isMobile ? () => setMobileOpen(false) : undefined}
-          onToggle={() => setDesktopCollapsed((prev) => !prev)}
+          onToggle={() =>
+            isMobile ? setMobileOpen(false) : setDesktopCollapsed((c) => !c)
+          }
         />
       </div>
 
-      {/* Content column offset by sidebar width on desktop */}
-      <div
-        className="flex h-dvh min-w-0 flex-col overflow-hidden bg-background text-text-primary transition-all duration-200 print:!m-0 print:!h-auto print:!overflow-visible print:!p-0 print:!w-full print:!min-h-0 print:!bg-white"
-        style={{ marginLeft: sidebarWidth }}
-      >
+      {/* Content column spanning the remaining length/width — matches PMS */}
+      <div className="flex min-w-0 flex-1 flex-col bg-background text-text-primary print:!m-0 print:!h-auto print:!overflow-visible print:!p-0 print:!w-full print:!min-h-0 print:!bg-white">
         <div className="print:hidden">
           <PosTopBar
             onOpenMobileNav={isMobile ? () => setMobileOpen(true) : undefined}
-            onToggleSidebar={() => setDesktopCollapsed((prev) => !prev)}
             sidebarCollapsed={desktopCollapsed}
           />
         </div>
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto p-2.5 sm:p-3 lg:p-3 pb-[env(safe-area-inset-bottom)] print:!m-0 print:!p-0 print:!w-full print:!overflow-visible">
+        <main className="flex-1 min-w-0 p-3 sm:p-4 lg:p-5 pb-[env(safe-area-inset-bottom)] print:!m-0 print:!p-0 print:!w-full print:!overflow-visible">
           {children}
         </main>
       </div>

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   Bell,
+  BookOpen,
   Bug,
   Calendar,
   ChevronDown,
@@ -82,6 +83,7 @@ export function PosTopBar({
   sidebarCollapsed?: boolean;
 }) {
   const navigate = useNavigate();
+  const currentPath = useRouterState({ select: (s) => s.location.pathname });
   const { user, roleLabel, logout } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = usePosNotifications();
 
@@ -100,7 +102,22 @@ export function PosTopBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const roleText = user ? roleLabel(user.role) : "Retrod Admin";
+  const roleText = user ? roleLabel(user.role) : "Retrod Super Admin";
+
+  const getBreadcrumbTitle = (pathname: string) => {
+    if (pathname.includes("/take-order")) return "Take Order";
+    if (pathname.includes("/billing")) return "Billing & Checkout";
+    if (pathname.includes("/orders")) return "Orders";
+    if (pathname.includes("/menu")) return "Food Menu";
+    if (pathname.includes("/inventory")) return "Stock & Inventory";
+    if (pathname.includes("/reports")) return "Reports & Graphs";
+    if (pathname.includes("/management")) return "Management";
+    if (pathname.includes("/settings")) return "Settings";
+    if (pathname.includes("/help")) return "Help & Support";
+    return "Point of Sale";
+  };
+
+  const breadcrumbTitle = getBreadcrumbTitle(currentPath);
 
   const dateOptions = [
     { label: formatTodayLabel(), value: "today" },
@@ -110,76 +127,64 @@ export function PosTopBar({
   ];
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-surface px-3 sm:px-4 lg:px-5 shadow-2xs">
-      {/* Left: nav toggles */}
-      <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-border bg-surface px-3 sm:px-4 lg:px-5 shadow-2xs">
+      {/* Left: Breadcrumbs & mobile toggle */}
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3 min-w-0">
         {onOpenMobileNav && (
           <button
             type="button"
             aria-label="Open navigation"
             onClick={onOpenMobileNav}
-            className="rounded-lg p-1.5 text-text-secondary hover:bg-surface-2 lg:hidden cursor-pointer"
+            className="rounded-md p-1.5 text-text-secondary hover:bg-surface-2 lg:hidden cursor-pointer"
           >
             <Menu className="h-4.5 w-4.5" />
           </button>
         )}
 
-        {onToggleSidebar && (
-          <button
-            type="button"
-            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            onClick={onToggleSidebar}
-            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="hidden lg:flex items-center justify-center rounded-lg p-1.5 text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer"
-          >
-            {sidebarCollapsed ? (
-              <PanelLeftOpen className="h-4.5 w-4.5 text-primary" />
-            ) : (
-              <PanelLeftClose className="h-4.5 w-4.5" />
-            )}
-          </button>
-        )}
+        <nav aria-label="Breadcrumbs" className="flex items-center gap-1.5 text-[12px] sm:text-[13px]">
+          <span className="text-text-secondary whitespace-nowrap">Main Modules</span>
+          <span className="text-text-disabled">/</span>
+          <span className="truncate font-medium text-text-primary max-w-[150px] sm:max-w-none">{breadcrumbTitle}</span>
+        </nav>
       </div>
 
-      {/* Center: search */}
-      <div className="relative min-w-0 flex-1 max-w-xl">
+      {/* Center: Search input */}
+      <div className="relative min-w-0 flex-1 max-w-xs sm:max-w-sm lg:max-w-md">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-disabled" />
         <input
           type="text"
           placeholder="Search orders, tables, rooms, menu..."
           aria-label="Search orders, tables, rooms"
-          className="h-9 w-full rounded-xl border border-border bg-surface-2 pl-9 pr-14 text-[12.5px] text-text-primary placeholder:text-text-disabled focus:border-primary focus:bg-surface focus:outline-hidden transition-all"
+          className="h-9 w-full rounded-md border border-border bg-surface-2/60 pl-9 pr-12 text-[12.5px] text-text-primary placeholder:text-text-disabled focus:border-primary focus:bg-surface focus:outline-hidden transition-all"
         />
-        <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center rounded-md border border-border bg-surface px-1.5 py-0.5 text-[10.5px] font-semibold text-text-disabled">
+        <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center rounded border border-border bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-text-disabled">
           ⌘K
         </kbd>
       </div>
 
-      {/* Right: actions + profile */}
+      {/* Right: Actions + Date + Notifications + User Guide + Profile */}
       <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
         <Link
           to="/pos/billing"
-          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-2.5 text-[12.5px] font-semibold leading-none text-primary-foreground hover:bg-primary-pressed transition cursor-pointer sm:px-3"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-primary px-3 text-[12.5px] font-semibold leading-none text-primary-foreground hover:bg-primary-pressed transition cursor-pointer"
         >
           <Plus className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">New Order</span>
         </Link>
 
-        {/* Date pill (reference-style) */}
+        {/* Date pill */}
         <div className="relative hidden md:block" ref={dateRef}>
           <button
             type="button"
-            onClick={() => {
-              setShowDateMenu((v) => !v);
-            }}
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-surface-2 px-3 text-[12.5px] font-semibold text-text-primary hover:bg-surface transition cursor-pointer"
+            onClick={() => setShowDateMenu((v) => !v)}
+            className="flex h-9 items-center gap-1.5 rounded-md border border-border bg-surface px-3 text-[12.5px] font-medium text-text-primary hover:bg-surface-2 transition cursor-pointer"
           >
             <Calendar className="h-3.5 w-3.5 text-text-secondary" />
             <span className="max-w-[180px] truncate">{dateLabel}</span>
             <ChevronDown className="h-3.5 w-3.5 text-text-disabled" />
           </button>
           {showDateMenu && (
-            <div className="absolute right-0 mt-1.5 w-56 rounded-xl border border-border bg-surface p-1 shadow-lg z-30 animate-in fade-in zoom-in-95">
+            <div className="absolute right-0 mt-1.5 w-56 rounded-md border border-border bg-surface p-1 shadow-lg z-30 animate-in fade-in zoom-in-95">
               {dateOptions.map((opt) => (
                 <button
                   key={opt.value}
@@ -188,7 +193,7 @@ export function PosTopBar({
                     setDateLabel(opt.label);
                     setShowDateMenu(false);
                   }}
-                  className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-[12.5px] transition cursor-pointer ${
+                  className={`flex w-full items-center rounded-md px-3 py-2 text-left text-[12.5px] transition cursor-pointer ${
                     dateLabel === opt.label
                       ? "bg-primary/10 text-primary font-semibold"
                       : "text-text-primary hover:bg-surface-2"
@@ -201,6 +206,7 @@ export function PosTopBar({
           )}
         </div>
 
+        {/* Notifications */}
         <DropdownMenu
           onOpenChange={(open) => {
             if (!open) markAllAsRead();
@@ -211,7 +217,7 @@ export function PosTopBar({
               type="button"
               aria-label="Notifications"
               title="Notifications"
-              className="relative flex h-9 w-9 items-center justify-center rounded-xl text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer outline-none"
+              className="relative flex h-9 w-9 items-center justify-center rounded-md text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer outline-none"
             >
               <Bell
                 className={`h-4.5 w-4.5 ${unreadCount > 0 ? "animate-bell-ring text-primary" : ""}`}
@@ -293,31 +299,41 @@ export function PosTopBar({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <div className="hidden sm:block h-7 w-px bg-border" />
+        {/* User Guide pill */}
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/pos/help" })}
+          className="hidden xl:inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary-tint/60 px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-primary-tint transition cursor-pointer"
+        >
+          <BookOpen className="h-3.5 w-3.5 text-primary" />
+          <span>User Guide</span>
+        </button>
+
+        <div className="hidden sm:block h-6 w-px bg-border" />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-2.5 rounded-xl border border-border bg-surface-2 px-2 py-1.5 hover:bg-surface transition cursor-pointer outline-none"
+              className="flex items-center gap-2 rounded-md border border-border bg-surface px-2.5 py-1 hover:bg-surface-2 transition cursor-pointer outline-none"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-bold text-[11px] text-primary-foreground">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary font-bold text-[11px] text-primary-foreground">
                 {user?.initials ?? "RA"}
               </div>
               <div className="hidden text-left md:block min-w-0">
-                <div className="text-[13px] font-bold text-text-primary leading-tight truncate max-w-[140px]">
+                <div className="text-[12.5px] font-semibold text-text-primary leading-tight truncate max-w-[130px]">
                   {user?.name ?? "Retrod Admin"}
                 </div>
-                <div className="text-[11px] font-semibold text-primary leading-tight truncate max-w-[140px]">
+                <div className="text-[10.5px] text-text-secondary leading-tight truncate max-w-[130px]">
                   {roleText}
                 </div>
               </div>
-              <ChevronRight className="hidden md:block h-4 w-4 text-text-disabled shrink-0" />
+              <ChevronRight className="hidden md:block h-3.5 w-3.5 text-text-disabled shrink-0" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-56 rounded-xl border border-border bg-white p-1.5 text-text-primary shadow-2xl data-[state=closed]:animate-none"
+            className="w-56 rounded-md border border-border bg-white p-1.5 text-text-primary shadow-2xl data-[state=closed]:animate-none"
           >
             <DropdownMenuItem
               onClick={() => navigate({ to: "/pos/settings" })}

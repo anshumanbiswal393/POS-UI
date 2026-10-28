@@ -310,7 +310,7 @@ export function PosSidebar({
   return (
     <aside
       className={cn(
-        "flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200",
+        "sticky top-0 z-30 flex h-screen flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-xs transition-[width] duration-200",
         collapsed ? "w-[64px]" : "w-[268px]",
       )}
     >
