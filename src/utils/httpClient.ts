@@ -15,7 +15,19 @@ const httpClient = axios.create({
 });
 
 httpClient.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    if (typeof window !== "undefined") {
+      try {
+        const activeOutletId = localStorage.getItem("retrod_pos_active_outlet_id");
+        if (activeOutletId && !config.headers["X-Outlet-ID"]) {
+          config.headers["X-Outlet-ID"] = activeOutletId;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return config;
+  },
   (error) => Promise.reject(error),
 );
 

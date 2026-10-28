@@ -1,7 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { OutletFormView } from "@/components/shared/pos/management/views/outlet/OutletFormView";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/pos/management/outlet/kitchen")({
-  head: () => ({ meta: [{ title: "Add New Kitchen — Retrod POS" }] }),
-  component: () => <OutletFormView type="Kitchen" />,
+  component: () => <Navigate to="/pos/management/configuration/outlet/add" replace />,
 });

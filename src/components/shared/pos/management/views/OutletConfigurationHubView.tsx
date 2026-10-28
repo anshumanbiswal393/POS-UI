@@ -9,6 +9,7 @@ import {
   Image,
   Calculator,
   Share2,
+  Plus,
   Printer,
   Users,
   Copy,
@@ -27,6 +28,12 @@ type ConfigCard = {
 };
 
 const outletInfoCards: ConfigCard[] = [
+  {
+    title: "Add Outlet",
+    desc: "Create and register a new dining, takeaway, or bar outlet for this property.",
+    icon: Plus,
+    to: "/pos/management/configuration/outlet/add",
+  },
   {
     title: "Outlet Details",
     desc: "Configure email id, address, Logo of an Outlet.",

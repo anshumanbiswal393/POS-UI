@@ -13,7 +13,8 @@ function roleBadgeClass(role: "HO" | "Kitchen" | "Outlet") {
 }
 
 export function OutletListView() {
-  const { outlets, isLoadingOutlets, refreshOutlets } = useOutletContext();
+  const { outlets, activeOutlet, setActiveOutlet, isLoadingOutlets, refreshOutlets } =
+    useOutletContext();
 
   const rows = useMemo(
     () =>
@@ -27,53 +28,39 @@ export function OutletListView() {
         <div>
           <h2 className="text-[18px] font-bold tracking-tight text-slate-900">Outlet List</h2>
           <p className="mt-0.5 text-[12.5px] text-slate-500 max-w-xl">
-            All Head Offices, dining outlets, and kitchens for this property. Highway Inn demo data
-            stays out of this list. Take Order only uses dining outlets.
+            All dining, takeaway, and bar outlets registered for this property.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link
-            to="/pos/management/outlet/ho"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3.5 py-2 text-[12.5px] font-semibold text-white shadow-xs hover:bg-teal-700 transition"
+            to="/pos/management/configuration/outlet/add"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-[12.5px] font-semibold text-primary-foreground shadow-xs hover:bg-primary-pressed transition cursor-pointer"
           >
-            <Building2 className="h-3.5 w-3.5" />
-            Add HO
-          </Link>
-          <Link
-            to="/pos/management/outlet/kitchen"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-[12.5px] font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
-          >
-            <ChefHat className="h-3.5 w-3.5" />
-            Add Kitchen
+            <Plus className="h-3.5 w-3.5" />
+            Add Outlet
           </Link>
         </div>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
         {isLoadingOutlets ? (
-          <div className="px-4 py-16 text-center text-[13px] text-slate-500">Loading locations…</div>
+          <div className="px-4 py-16 text-center text-[13px] text-slate-500">Loading outlets…</div>
         ) : rows.length === 0 ? (
           <div className="px-4 py-16 text-center space-y-2">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 text-slate-400">
               <Store className="h-6 w-6" />
             </div>
-            <div className="text-[14px] font-bold text-slate-800">No locations yet</div>
+            <div className="text-[14px] font-bold text-slate-800">No outlets registered yet</div>
             <p className="text-[12.5px] text-slate-500 max-w-md mx-auto">
-              Add a Head Office, Kitchen, or use an existing restaurant outlet.
+              Add a new outlet to begin setting up menus, tables, and billing.
             </p>
-            <div className="flex justify-center gap-2 pt-2">
+            <div className="flex justify-center pt-2">
               <Link
-                to="/pos/management/outlet/ho"
-                className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-3 py-1.5 text-[12px] font-semibold text-white"
+                to="/pos/management/configuration/outlet/add"
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-[12.5px] font-semibold text-primary-foreground shadow-xs hover:bg-primary-pressed transition cursor-pointer"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Add HO
-              </Link>
-              <Link
-                to="/pos/management/outlet/kitchen"
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700"
-              >
-                Add Kitchen
+                Add Outlet
               </Link>
             </div>
           </div>
@@ -92,15 +79,22 @@ export function OutletListView() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {rows.map((row: PosOutlet) => {
-                  const role = locationRoleLabel(row);
+                  const isCurrent = activeOutlet?.id === row.id;
                   return (
                     <tr key={row.id} className="hover:bg-slate-50/70">
-                      <td className="px-4 py-3 font-semibold text-slate-900">{row.name}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-900">
+                        <div className="flex items-center gap-2">
+                          <span>{row.name}</span>
+                          {isCurrent && (
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                              Current Active
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-bold ${roleBadgeClass(role)}`}
-                        >
-                          {role}
+                        <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                          {row.cuisine || row.type || "Dine-In Outlet"}
                         </span>
                       </td>
                       <td className="px-4 py-3 font-mono text-slate-600">{row.code}</td>
@@ -116,7 +110,19 @@ export function OutletListView() {
                           {row.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-[12px] text-slate-400">—</td>
+                      <td className="px-4 py-3">
+                        {isCurrent ? (
+                          <span className="text-[12px] font-semibold text-primary">Selected</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setActiveOutlet(row.id)}
+                            className="rounded-md border border-border bg-surface px-2.5 py-1 text-[11.5px] font-medium text-text-primary hover:bg-surface-2 transition cursor-pointer"
+                          >
+                            Switch to this
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}

@@ -108,6 +108,7 @@ import { Route as PosManagementConfigurationOutletCustomerRouteImport } from './
 import { Route as PosManagementConfigurationOutletContactRouteImport } from './routes/pos.management.configuration.outlet.contact'
 import { Route as PosManagementConfigurationOutletConnectedServicesRouteImport } from './routes/pos.management.configuration.outlet.connected-services'
 import { Route as PosManagementConfigurationOutletCalculationsRouteImport } from './routes/pos.management.configuration.outlet.calculations'
+import { Route as PosManagementConfigurationOutletAddRouteImport } from './routes/pos.management.configuration.outlet.add'
 import { Route as PosManagementAccountingPaymentsWalletRouteImport } from './routes/pos.management.accounting.payments.wallet'
 import { Route as PosManagementAccountingPaymentsInformationRouteImport } from './routes/pos.management.accounting.payments.information'
 
@@ -666,6 +667,12 @@ const PosManagementConfigurationOutletCalculationsRoute =
     path: '/calculations',
     getParentRoute: () => PosManagementConfigurationOutletRoute,
   } as any)
+const PosManagementConfigurationOutletAddRoute =
+  PosManagementConfigurationOutletAddRouteImport.update({
+    id: '/add',
+    path: '/add',
+    getParentRoute: () => PosManagementConfigurationOutletRoute,
+  } as any)
 const PosManagementAccountingPaymentsWalletRoute =
   PosManagementAccountingPaymentsWalletRouteImport.update({
     id: '/accounting/payments/wallet',
@@ -769,6 +776,7 @@ export interface FileRoutesByFullPath {
   '/pos/management/marketplace/': typeof PosManagementMarketplaceIndexRoute
   '/pos/management/accounting/payments/information': typeof PosManagementAccountingPaymentsInformationRoute
   '/pos/management/accounting/payments/wallet': typeof PosManagementAccountingPaymentsWalletRoute
+  '/pos/management/configuration/outlet/add': typeof PosManagementConfigurationOutletAddRoute
   '/pos/management/configuration/outlet/calculations': typeof PosManagementConfigurationOutletCalculationsRoute
   '/pos/management/configuration/outlet/connected-services': typeof PosManagementConfigurationOutletConnectedServicesRoute
   '/pos/management/configuration/outlet/contact': typeof PosManagementConfigurationOutletContactRoute
@@ -872,6 +880,7 @@ export interface FileRoutesByTo {
   '/pos/management/marketplace': typeof PosManagementMarketplaceIndexRoute
   '/pos/management/accounting/payments/information': typeof PosManagementAccountingPaymentsInformationRoute
   '/pos/management/accounting/payments/wallet': typeof PosManagementAccountingPaymentsWalletRoute
+  '/pos/management/configuration/outlet/add': typeof PosManagementConfigurationOutletAddRoute
   '/pos/management/configuration/outlet/calculations': typeof PosManagementConfigurationOutletCalculationsRoute
   '/pos/management/configuration/outlet/connected-services': typeof PosManagementConfigurationOutletConnectedServicesRoute
   '/pos/management/configuration/outlet/contact': typeof PosManagementConfigurationOutletContactRoute
@@ -976,6 +985,7 @@ export interface FileRoutesById {
   '/pos/management/marketplace/': typeof PosManagementMarketplaceIndexRoute
   '/pos/management/accounting/payments/information': typeof PosManagementAccountingPaymentsInformationRoute
   '/pos/management/accounting/payments/wallet': typeof PosManagementAccountingPaymentsWalletRoute
+  '/pos/management/configuration/outlet/add': typeof PosManagementConfigurationOutletAddRoute
   '/pos/management/configuration/outlet/calculations': typeof PosManagementConfigurationOutletCalculationsRoute
   '/pos/management/configuration/outlet/connected-services': typeof PosManagementConfigurationOutletConnectedServicesRoute
   '/pos/management/configuration/outlet/contact': typeof PosManagementConfigurationOutletContactRoute
@@ -1081,6 +1091,7 @@ export interface FileRouteTypes {
     | '/pos/management/marketplace/'
     | '/pos/management/accounting/payments/information'
     | '/pos/management/accounting/payments/wallet'
+    | '/pos/management/configuration/outlet/add'
     | '/pos/management/configuration/outlet/calculations'
     | '/pos/management/configuration/outlet/connected-services'
     | '/pos/management/configuration/outlet/contact'
@@ -1184,6 +1195,7 @@ export interface FileRouteTypes {
     | '/pos/management/marketplace'
     | '/pos/management/accounting/payments/information'
     | '/pos/management/accounting/payments/wallet'
+    | '/pos/management/configuration/outlet/add'
     | '/pos/management/configuration/outlet/calculations'
     | '/pos/management/configuration/outlet/connected-services'
     | '/pos/management/configuration/outlet/contact'
@@ -1287,6 +1299,7 @@ export interface FileRouteTypes {
     | '/pos/management/marketplace/'
     | '/pos/management/accounting/payments/information'
     | '/pos/management/accounting/payments/wallet'
+    | '/pos/management/configuration/outlet/add'
     | '/pos/management/configuration/outlet/calculations'
     | '/pos/management/configuration/outlet/connected-services'
     | '/pos/management/configuration/outlet/contact'
@@ -2002,6 +2015,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PosManagementConfigurationOutletCalculationsRouteImport
       parentRoute: typeof PosManagementConfigurationOutletRoute
     }
+    '/pos/management/configuration/outlet/add': {
+      id: '/pos/management/configuration/outlet/add'
+      path: '/add'
+      fullPath: '/pos/management/configuration/outlet/add'
+      preLoaderRoute: typeof PosManagementConfigurationOutletAddRouteImport
+      parentRoute: typeof PosManagementConfigurationOutletRoute
+    }
     '/pos/management/accounting/payments/wallet': {
       id: '/pos/management/accounting/payments/wallet'
       path: '/accounting/payments/wallet'
@@ -2109,6 +2129,7 @@ const PosInventoryRouteWithChildren = PosInventoryRoute._addFileChildren(
 )
 
 interface PosManagementConfigurationOutletRouteChildren {
+  PosManagementConfigurationOutletAddRoute: typeof PosManagementConfigurationOutletAddRoute
   PosManagementConfigurationOutletCalculationsRoute: typeof PosManagementConfigurationOutletCalculationsRoute
   PosManagementConfigurationOutletConnectedServicesRoute: typeof PosManagementConfigurationOutletConnectedServicesRoute
   PosManagementConfigurationOutletContactRoute: typeof PosManagementConfigurationOutletContactRoute
@@ -2125,6 +2146,8 @@ interface PosManagementConfigurationOutletRouteChildren {
 
 const PosManagementConfigurationOutletRouteChildren: PosManagementConfigurationOutletRouteChildren =
   {
+    PosManagementConfigurationOutletAddRoute:
+      PosManagementConfigurationOutletAddRoute,
     PosManagementConfigurationOutletCalculationsRoute:
       PosManagementConfigurationOutletCalculationsRoute,
     PosManagementConfigurationOutletConnectedServicesRoute:

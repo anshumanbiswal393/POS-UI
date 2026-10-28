@@ -336,30 +336,188 @@ export const DEFAULT_OUTLET_CONFIG: OutletConfigState = {
 
 export const OUTLET_CONFIG_STORAGE_KEY = "retrod.pos.outletConfiguration.v1";
 
+import { isHighwayDemoOutlet } from "@/utils/outletId";
+
+export function getCleanOutletConfig(outletId?: string): OutletConfigState {
+  return {
+    details: {
+      outletName: "",
+      alias: "",
+      email: "",
+      logoDataUrl: "",
+      gstin: "",
+      fssai: "",
+      tinNo: "",
+      website: "",
+      cuisine: "",
+      seatingCapacity: "",
+      landmark: "",
+      zipCode: "",
+      fax: "",
+      country: "India",
+      state: "",
+      city: "",
+      timezone: "Asia/Calcutta",
+      address: "",
+      area: "",
+      latitude: "",
+      longitude: "",
+      additionalInfo: "",
+    },
+    contact: {
+      ownerName: "",
+      ownerMobile: "",
+      ownerEmail: "",
+      managerName: "",
+      managerMobile: "",
+      managerEmail: "",
+      accountsName: "",
+      accountsMobile: "",
+      accountsEmail: "",
+      staff: [],
+    },
+    timings: {
+      sameAllDays: "Yes",
+      displayOnBill: "Yes",
+      displayOnline: "No",
+      days: WEEK_DAYS.map((day) => ({
+        day,
+        closed: false,
+        open: "09:00",
+        close: "23:00",
+        lunchStart: "12:00",
+        lunchEnd: "15:00",
+        dinnerStart: "19:00",
+        dinnerEnd: "23:00",
+      })),
+    },
+    payment: {
+      currency: "INR",
+      symbol: "₹",
+      decimalPlaces: "2",
+      symbolPosition: "Before",
+      allowSplitPayment: "Yes",
+      roundOffBills: "Yes",
+      types: [
+        { id: "cash", name: "Cash", enabled: true, isDefault: true, surchargePct: "0" },
+        { id: "upi", name: "UPI", enabled: true, isDefault: false, surchargePct: "0" },
+        { id: "card", name: "Card", enabled: true, isDefault: false, surchargePct: "0" },
+        { id: "wallet", name: "Wallet", enabled: false, isDefault: false, surchargePct: "0" },
+        { id: "credit", name: "Credit / Room Charge", enabled: true, isDefault: false, surchargePct: "0" },
+        { id: "comp", name: "Complimentary", enabled: false, isDefault: false, surchargePct: "0" },
+        { id: "neft", name: "NEFT / Bank", enabled: false, isDefault: false, surchargePct: "0" },
+      ],
+    },
+    invoiceSequences: [
+      { id: "seq-dine", name: "Dine In", orderType: "Dine In", prefix: "INV", nextNumber: "1", padding: "4", suffix: "", active: true },
+      { id: "seq-take", name: "Takeaway", orderType: "Takeaway", prefix: "TK", nextNumber: "1", padding: "4", suffix: "", active: true },
+      { id: "seq-room", name: "Room Service", orderType: "Room Service", prefix: "RS", nextNumber: "1", padding: "4", suffix: "", active: true },
+      { id: "seq-del", name: "Delivery", orderType: "Delivery", prefix: "DL", nextNumber: "1", padding: "4", suffix: "", active: true },
+    ],
+    billingDisplay: {
+      showItemImages: "Yes",
+      showCategoryImages: "Yes",
+      showItemCode: "No",
+      showKotNumber: "Yes",
+      showTaxBreakup: "Yes",
+      showRunningTableAmount: "Yes",
+      showOutOfStock: "No",
+      confirmBeforeSettle: "Yes",
+      menuLayout: "Grid",
+      itemColumns: "4",
+      defaultOrderType: "Dine In",
+      density: "Comfortable",
+      themeAccent: "Teal",
+    },
+    printLogo: {
+      logoDataUrl: "",
+      alignment: "Center",
+      widthMm: "42",
+      printOnBill: "Yes",
+      printOnKot: "No",
+      printOutletName: "Yes",
+      headerText: "",
+      footerText: "Thank you · Visit again",
+    },
+    calculations: {
+      taxInclusive: "No",
+      applyServiceCharge: "No",
+      serviceChargePct: "5",
+      serviceChargeOn: "Dine In only",
+      gstOnServiceCharge: "Yes",
+      applyPackingCharge: "No",
+      packingCharge: "0",
+      gstOnPacking: "Yes",
+      applyDeliveryCharge: "No",
+      deliveryCharge: "0",
+      discountBeforeTax: "Yes",
+      autoRoundOff: "Yes",
+      roundOffMethod: "Nearest",
+    },
+    connectedServices: {
+      pmsRoomService: "No",
+      inventoryConsumption: "Yes",
+      onlineOrdering: "No",
+      aggregatorSync: "No",
+      whatsappBill: "No",
+      smsBill: "No",
+      paymentGateway: "No",
+    },
+    print: {
+      billCopies: "1",
+      kotCopies: "1",
+      paperSize: "80mm",
+      autoPrintOnSettle: "Yes",
+      autoPrintKot: "Yes",
+      printTokenNumber: "Yes",
+      printCustomerCopy: "No",
+      printGstin: "Yes",
+      printFssai: "Yes",
+      printTableNumber: "Yes",
+      printCashierName: "Yes",
+      cutAfterPrint: "Yes",
+    },
+    customer: {
+      mandatoryMobile: "No",
+      mandatoryName: "No",
+      allowGstOnBill: "Yes",
+      enableLoyalty: "No",
+      allowWalkInWithoutCustomer: "Yes",
+      captureAddress: "No",
+      captureBirthday: "No",
+      searchByMobile: "Yes",
+      autoCreateOnBill: "Yes",
+      showLastOrders: "Yes",
+    },
+  };
+}
+
 export function loadOutletConfig(outletId: string): OutletConfigState {
+  const isDemo = isHighwayDemoOutlet(outletId);
+  const baseConfig = isDemo ? DEFAULT_OUTLET_CONFIG : getCleanOutletConfig(outletId);
   try {
     const raw = localStorage.getItem(`${OUTLET_CONFIG_STORAGE_KEY}.${outletId}`);
-    if (!raw) return structuredClone(DEFAULT_OUTLET_CONFIG);
+    if (!raw) return structuredClone(baseConfig);
     const parsed = JSON.parse(raw) as Partial<OutletConfigState>;
     return {
-      ...structuredClone(DEFAULT_OUTLET_CONFIG),
+      ...structuredClone(baseConfig),
       ...parsed,
-      details: { ...DEFAULT_OUTLET_CONFIG.details, ...parsed.details },
-      contact: { ...DEFAULT_OUTLET_CONFIG.contact, ...parsed.contact },
-      timings: { ...DEFAULT_OUTLET_CONFIG.timings, ...parsed.timings },
-      payment: { ...DEFAULT_OUTLET_CONFIG.payment, ...parsed.payment },
-      billingDisplay: { ...DEFAULT_OUTLET_CONFIG.billingDisplay, ...parsed.billingDisplay },
-      printLogo: { ...DEFAULT_OUTLET_CONFIG.printLogo, ...parsed.printLogo },
-      calculations: { ...DEFAULT_OUTLET_CONFIG.calculations, ...parsed.calculations },
-      connectedServices: { ...DEFAULT_OUTLET_CONFIG.connectedServices, ...parsed.connectedServices },
-      print: { ...DEFAULT_OUTLET_CONFIG.print, ...parsed.print },
-      customer: { ...DEFAULT_OUTLET_CONFIG.customer, ...parsed.customer },
+      details: { ...baseConfig.details, ...parsed.details },
+      contact: { ...baseConfig.contact, ...parsed.contact },
+      timings: { ...baseConfig.timings, ...parsed.timings },
+      payment: { ...baseConfig.payment, ...parsed.payment },
+      billingDisplay: { ...baseConfig.billingDisplay, ...parsed.billingDisplay },
+      printLogo: { ...baseConfig.printLogo, ...parsed.printLogo },
+      calculations: { ...baseConfig.calculations, ...parsed.calculations },
+      connectedServices: { ...baseConfig.connectedServices, ...parsed.connectedServices },
+      print: { ...baseConfig.print, ...parsed.print },
+      customer: { ...baseConfig.customer, ...parsed.customer },
       invoiceSequences: parsed.invoiceSequences?.length
         ? parsed.invoiceSequences
-        : DEFAULT_OUTLET_CONFIG.invoiceSequences,
+        : baseConfig.invoiceSequences,
     };
   } catch {
-    return structuredClone(DEFAULT_OUTLET_CONFIG);
+    return structuredClone(baseConfig);
   }
 }
 
@@ -376,26 +534,31 @@ export function saveOutletConfig(outletId: string, state: OutletConfigState) {
 }
 
 export async function syncOutletConfigFromBackend(outletId: string): Promise<OutletConfigState> {
+  const isDemo = isHighwayDemoOutlet(outletId);
+  const baseConfig = isDemo ? DEFAULT_OUTLET_CONFIG : getCleanOutletConfig(outletId);
   try {
     const { posManagementService } = await import("@/services/posManagementService");
     const remote = await posManagementService.getOutletConfig(outletId);
     if (remote && typeof remote === "object") {
+      const current = loadOutletConfig(outletId);
       const merged: OutletConfigState = {
-        ...structuredClone(DEFAULT_OUTLET_CONFIG),
-        ...loadOutletConfig(outletId),
-        details: { ...DEFAULT_OUTLET_CONFIG.details, ...(remote.details as any) },
-        contact: { ...DEFAULT_OUTLET_CONFIG.contact, ...(remote.contact as any) },
-        timings: { ...DEFAULT_OUTLET_CONFIG.timings, ...(remote.timings as any) },
-        payment: { ...DEFAULT_OUTLET_CONFIG.payment, ...(remote.payment as any) },
-        billingDisplay: { ...DEFAULT_OUTLET_CONFIG.billingDisplay, ...(remote.billing_display as any) },
-        printLogo: { ...DEFAULT_OUTLET_CONFIG.printLogo, ...(remote.print_logo as any) },
-        calculations: { ...DEFAULT_OUTLET_CONFIG.calculations, ...(remote.calculations as any) },
-        connectedServices: { ...DEFAULT_OUTLET_CONFIG.connectedServices, ...(remote.connected_services as any) },
-        print: { ...DEFAULT_OUTLET_CONFIG.print, ...(remote.print_settings as any) },
-        customer: { ...DEFAULT_OUTLET_CONFIG.customer, ...(remote.customer_settings as any) },
+        ...structuredClone(baseConfig),
+        ...current,
+        details: { ...baseConfig.details, ...current.details, ...(remote.details as any) },
+        contact: { ...baseConfig.contact, ...current.contact, ...(remote.contact as any) },
+        timings: { ...baseConfig.timings, ...current.timings, ...(remote.timings as any) },
+        payment: { ...baseConfig.payment, ...current.payment, ...(remote.payment as any) },
+        billingDisplay: { ...baseConfig.billingDisplay, ...current.billingDisplay, ...(remote.billing_display as any) },
+        printLogo: { ...baseConfig.printLogo, ...current.printLogo, ...(remote.print_logo as any) },
+        calculations: { ...baseConfig.calculations, ...current.calculations, ...(remote.calculations as any) },
+        connectedServices: { ...baseConfig.connectedServices, ...current.connectedServices, ...(remote.connected_services as any) },
+        print: { ...baseConfig.print, ...current.print, ...(remote.print_settings as any) },
+        customer: { ...baseConfig.customer, ...current.customer, ...(remote.customer_settings as any) },
         invoiceSequences: (remote.invoice_sequences as any)?.length
           ? (remote.invoice_sequences as any)
-          : DEFAULT_OUTLET_CONFIG.invoiceSequences,
+          : current.invoiceSequences?.length
+          ? current.invoiceSequences
+          : baseConfig.invoiceSequences,
       };
       localStorage.setItem(`${OUTLET_CONFIG_STORAGE_KEY}.${outletId}`, JSON.stringify(merged));
       return merged;

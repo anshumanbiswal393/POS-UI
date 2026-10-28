@@ -1,35 +1,19 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { fetchAddressFromPincode } from "@/utils/pincodeLookup";
-import { locationRoleLabel } from "@/utils/outletKind";
-import { isBackendOutletId, isHighwayDemoOutlet } from "@/utils/outletId";
 
-interface OutletFormProps {
-  type: "HO" | "Kitchen";
-}
-
-export function OutletFormView({ type }: OutletFormProps) {
+export function OutletFormView() {
   const navigate = useNavigate();
-  const { createOutletFromForm, outlets } = useOutletContext();
-  const isHo = type === "HO";
-  const diningOutlets = useMemo(
-    () =>
-      outlets.filter(
-        (o) =>
-          isBackendOutletId(o.id) &&
-          !isHighwayDemoOutlet(o.id) &&
-          locationRoleLabel(o) === "Outlet",
-      ),
-    [outlets],
-  );
+  const { createOutletFromForm } = useOutletContext();
 
   const [saving, setSaving] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [outletName, setOutletName] = useState("");
   const [outletAlias, setOutletAlias] = useState("");
+  const [cuisine, setCuisine] = useState("Multi-Cuisine");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [isActive, setIsActive] = useState(true);
@@ -50,9 +34,9 @@ export function OutletFormView({ type }: OutletFormProps) {
     "Angul",
     "Bhubaneswar",
     "Cuttack",
+    "Mumbai",
+    "Bengaluru",
   ]);
-  const [kitchenCode, setKitchenCode] = useState("");
-  const [parentOutletId, setParentOutletId] = useState("");
 
   const lookupFromZip = useCallback(
     async (rawPin?: string) => {
@@ -105,8 +89,8 @@ export function OutletFormView({ type }: OutletFormProps) {
       const created = await createOutletFromForm({
         name: outletName.trim(),
         code: outletAlias.trim() || undefined,
-        outlet_type: isHo ? "HO" : "KITCHEN",
-        formType: type,
+        outlet_type: "PRIMARY",
+        cuisine: cuisine.trim() || "Multi-Cuisine",
         email: email.trim() || undefined,
         phone: phone.trim(),
         ownerMobile: phone.trim(),
@@ -117,13 +101,9 @@ export function OutletFormView({ type }: OutletFormProps) {
         city,
         timezone,
         address: address.trim(),
-        kitchenCode: kitchenCode.trim() || outletAlias.trim(),
-        parentOutletId: parentOutletId || undefined,
         is_active: isActive,
       });
-      toast.success(
-        `${isHo ? "Head Office" : "Central Kitchen"} "${created.name}" saved`,
-      );
+      toast.success(`Outlet "${created.name}" created successfully`);
       void navigate({ to: "/pos/management/configuration/outlet/list" });
     } catch (err: unknown) {
       const message =
@@ -131,7 +111,7 @@ export function OutletFormView({ type }: OutletFormProps) {
           ?.detail ||
         (err as { data?: { code?: string[] } })?.data?.code?.[0] ||
         (err as { message?: string })?.message ||
-        "Failed to create location";
+        "Failed to create outlet";
       toast.error(String(message));
     } finally {
       setSaving(false);
@@ -142,30 +122,28 @@ export function OutletFormView({ type }: OutletFormProps) {
     <div className="w-full space-y-4">
       <div>
         <h2 className="text-[18px] font-bold tracking-tight text-slate-900">
-          {isHo ? "Add Head Office" : "Add Kitchen"}
+          Add New Outlet
         </h2>
         <p className="mt-1 text-[12.5px] text-slate-500 max-w-2xl">
-          {isHo
-            ? "A Head Office is the property admin location. It is not a dining floor and will not appear in Take Order."
-            : "A Kitchen cooks KOTs for a dining outlet. It is not a guest floor and will not appear in Take Order."}
+          Create and configure a new dining or restaurant outlet. The outlet will instantly be selectable across POS and management.
         </p>
       </div>
 
       <div className="w-full rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-6">
         <div className="space-y-4">
           <h3 className="text-[15px] font-bold text-slate-900 border-b border-slate-100 pb-2">
-            Details
+            Outlet Details
           </h3>
 
           <div className="space-y-1.5">
             <label className="text-[12.5px] font-semibold text-slate-800">
-              Name<span className="text-rose-500 font-bold">*</span>
+              Outlet Name<span className="text-rose-500 font-bold">*</span>
             </label>
             <input
               type="text"
               value={outletName}
               onChange={(e) => setOutletName(e.target.value)}
-              placeholder={isHo ? "e.g. Property Head Office" : "e.g. Central Kitchen"}
+              placeholder="e.g. Bayview Restaurant & Lounge"
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-800 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none"
             />
           </div>
@@ -177,10 +155,23 @@ export function OutletFormView({ type }: OutletFormProps) {
                 type="text"
                 value={outletAlias}
                 onChange={(e) => setOutletAlias(e.target.value)}
-                placeholder={isHo ? "e.g. HO-01" : "e.g. CK-01"}
+                placeholder="e.g. BV-01"
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-800 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none"
               />
             </div>
+            <div className="space-y-1.5">
+              <label className="text-[12.5px] font-semibold text-slate-800">Cuisine</label>
+              <input
+                type="text"
+                value={cuisine}
+                onChange={(e) => setCuisine(e.target.value)}
+                placeholder="e.g. Multi-Cuisine, Italian, Cafe"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-800 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[12.5px] font-semibold text-slate-800">
                 Phone<span className="text-rose-500 font-bold">*</span>
@@ -193,20 +184,19 @@ export function OutletFormView({ type }: OutletFormProps) {
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-800 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none"
               />
             </div>
+            <div className="space-y-1.5">
+              <label className="text-[12.5px] font-semibold text-slate-800">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="e.g. contact@outlet.com"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-800 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none"
+              />
+            </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[12.5px] font-semibold text-slate-800">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. office@yourhotel.com"
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-800 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none"
-            />
-          </div>
-
-          <label className="flex items-center gap-2 text-[13px] text-slate-700 cursor-pointer">
+          <label className="flex items-center gap-2 text-[13px] text-slate-700 cursor-pointer pt-1">
             <input
               type="checkbox"
               checked={isActive}
@@ -337,54 +327,11 @@ export function OutletFormView({ type }: OutletFormProps) {
               rows={3}
               value={address}
               onChange={(e) => setAddress(e.target.value)}
+              placeholder="Building, street, landmark details"
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none"
             />
           </div>
         </div>
-
-        {!isHo && (
-          <div className="space-y-4">
-            <h3 className="text-[15px] font-bold text-slate-900 border-b border-slate-100 pb-2">
-              Kitchen
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-[12.5px] font-semibold text-slate-800">Kitchen code</label>
-                <input
-                  type="text"
-                  value={kitchenCode}
-                  onChange={(e) => setKitchenCode(e.target.value)}
-                  placeholder="Internal kitchen code"
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[12.5px] font-semibold text-slate-800">Serves outlet</label>
-                <div className="relative">
-                  <select
-                    value={parentOutletId}
-                    onChange={(e) => setParentOutletId(e.target.value)}
-                    className="w-full appearance-none rounded-lg border border-slate-300 bg-white pl-3 pr-8 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none cursor-pointer"
-                  >
-                    <option value="">Select dining outlet</option>
-                    {diningOutlets.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-2.5 top-3 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-                </div>
-                {diningOutlets.length === 0 ? (
-                  <p className="text-[11.5px] text-slate-500">
-                    No restaurant outlets yet. Existing dining floors such as Grand Pavilion appear
-                    here once they are on this property.
-                  </p>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="border-t border-slate-100 pt-4 flex justify-end gap-2.5">
           <button
@@ -400,7 +347,7 @@ export function OutletFormView({ type }: OutletFormProps) {
             onClick={() => void handleSave()}
             className="rounded-lg bg-teal-600 px-6 py-2 text-[12.5px] font-bold text-white shadow-2xs hover:bg-teal-700 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {saving ? "Saving…" : "Save"}
+            {saving ? "Saving…" : "Save Outlet"}
           </button>
         </div>
       </div>

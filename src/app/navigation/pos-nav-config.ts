@@ -239,18 +239,6 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
                 to: "/pos/management/configuration/outlet",
                 icon: Store,
               },
-              {
-                id: "out-ho",
-                label: "Add New HO",
-                to: "/pos/management/outlet/ho",
-                icon: Building2,
-              },
-              {
-                id: "out-kitchen",
-                label: "Add New Kitchen",
-                to: "/pos/management/outlet/kitchen",
-                icon: ChefHat,
-              },
             ],
           },
           {
