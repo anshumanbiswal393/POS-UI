@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { Building2, ChefHat, Plus, Store } from "lucide-react";
 import { useOutletContext } from "@/context/PosOutletContext";
-import { isBackendOutletId, isHighwayDemoOutlet } from "@/utils/outletId";
+import { deduplicateOutlets, isHighwayInnName } from "@/utils/outletId";
 import { locationRoleLabel } from "@/utils/outletKind";
 import type { PosOutlet } from "@/types/posMenu";
 
@@ -17,9 +17,8 @@ export function OutletListView() {
     useOutletContext();
 
   const rows = useMemo(
-    () =>
-      outlets.filter((o) => !isHighwayDemoOutlet(o.id)),
-    [outlets],
+    () => deduplicateOutlets(outlets, activeOutlet?.id),
+    [outlets, activeOutlet?.id],
   );
 
   return (
@@ -79,7 +78,10 @@ export function OutletListView() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {rows.map((row: PosOutlet) => {
-                  const isCurrent = activeOutlet?.id === row.id;
+                  const isCurrent =
+                    activeOutlet?.id === row.id ||
+                    (isHighwayInnName(activeOutlet?.name, activeOutlet?.code) &&
+                      isHighwayInnName(row.name, row.code));
                   return (
                     <tr key={row.id} className="hover:bg-slate-50/70">
                       <td className="px-4 py-3 font-semibold text-slate-900">

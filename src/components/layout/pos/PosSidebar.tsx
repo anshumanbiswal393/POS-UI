@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -30,6 +30,7 @@ import { RetrodLogo } from "@/components/common";
 import { cn } from "@/lib/utils";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { isDiningOutlet } from "@/utils/outletKind";
+import { deduplicateOutlets, isHighwayInnName } from "@/utils/outletId";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -102,7 +103,10 @@ export function PosSidebar({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeLinkRef = useRef<HTMLAnchorElement | null>(null);
   const { activeOutlet, outlets, setActiveOutlet } = useOutletContext();
-  const availableOutlets = outlets;
+  const availableOutlets = useMemo(
+    () => deduplicateOutlets(outlets, activeOutlet?.id),
+    [outlets, activeOutlet?.id],
+  );
 
   const collectOpenGroups = (path: string) => {
     const initial: Record<string, boolean> = {};
@@ -374,7 +378,10 @@ export function PosSidebar({
             <DropdownMenuSeparator />
             <DropdownMenuGroup className="max-h-[300px] overflow-y-auto">
               {availableOutlets.map((outlet) => {
-                const isSelected = activeOutlet?.id === outlet.id;
+                const isSelected =
+                  activeOutlet?.id === outlet.id ||
+                  (isHighwayInnName(activeOutlet?.name, activeOutlet?.code) &&
+                    isHighwayInnName(outlet.name, outlet.code));
                 return (
                   <DropdownMenuItem
                     key={outlet.id}
@@ -425,7 +432,10 @@ export function PosSidebar({
               <DropdownMenuSeparator />
               <DropdownMenuGroup className="max-h-[300px] overflow-y-auto">
                 {availableOutlets.map((outlet) => {
-                  const isSelected = activeOutlet?.id === outlet.id;
+                  const isSelected =
+                    activeOutlet?.id === outlet.id ||
+                    (isHighwayInnName(activeOutlet?.name, activeOutlet?.code) &&
+                      isHighwayInnName(outlet.name, outlet.code));
                   return (
                     <DropdownMenuItem
                       key={outlet.id}

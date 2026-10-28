@@ -1,6 +1,11 @@
 import httpClient from "@/utils/httpClient";
 import type { PosOutlet } from "@/types/posMenu";
-import { isBackendOutletId, isHighwayInnName } from "@/utils/outletId";
+import {
+  deduplicateOutlets,
+  isBackendOutletId,
+  isHighwayDemoOutlet,
+  isHighwayInnName,
+} from "@/utils/outletId";
 
 export type OutletApiDto = {
   id: string;
@@ -60,7 +65,18 @@ export function getLocalCustomOutlets(): PosOutlet[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_CUSTOM_OUTLETS);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    const deduped = deduplicateOutlets(parsed);
+    if (deduped.length !== parsed.length) {
+      try {
+        localStorage.setItem(STORAGE_KEY_CUSTOM_OUTLETS, JSON.stringify(deduped));
+      } catch {
+        // ignore
+      }
+    }
+    return deduped;
   } catch {
     return [];
   }
@@ -70,8 +86,8 @@ export function saveLocalCustomOutlet(outlet: PosOutlet) {
   if (typeof window === "undefined") return;
   try {
     const current = getLocalCustomOutlets();
-    const filtered = current.filter((o) => o.id !== outlet.id && o.code !== outlet.code);
-    localStorage.setItem(STORAGE_KEY_CUSTOM_OUTLETS, JSON.stringify([outlet, ...filtered]));
+    const updated = deduplicateOutlets([outlet, ...current], outlet.id);
+    localStorage.setItem(STORAGE_KEY_CUSTOM_OUTLETS, JSON.stringify(updated));
   } catch {
     // ignore
   }
@@ -129,7 +145,11 @@ function unwrapList(data: unknown): OutletApiDto[] {
 }
 
 export function findLiveHighwayInn(outlets: PosOutlet[]): PosOutlet | undefined {
-  return outlets.find((o) => isBackendOutletId(o.id) && isHighwayInnName(o.name, o.code));
+  // First prefer a real backend UUID persisted outlet
+  const backend = outlets.find((o) => isBackendOutletId(o.id) && isHighwayInnName(o.name, o.code));
+  if (backend) return backend;
+  // Fall back to any Highway Inn outlet (demo or local)
+  return outlets.find((o) => isHighwayInnName(o.name, o.code) || isHighwayDemoOutlet(o.id));
 }
 
 export const posOutletsService = {
@@ -149,13 +169,8 @@ export const posOutletsService = {
     }
 
     const local = getLocalCustomOutlets();
-    const combined = [...remote];
-    for (const loc of local) {
-      if (!combined.some((o) => o.id === loc.id || (o.name === loc.name && o.code === loc.code))) {
-        combined.push(loc);
-      }
-    }
-    return combined;
+    // Combine remote and local, strictly deduplicating so no outlet appears more than once
+    return deduplicateOutlets([...remote, ...local]);
   },
 
   async createOutlet(payload: CreateOutletPayload): Promise<PosOutlet> {

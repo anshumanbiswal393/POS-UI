@@ -7,7 +7,11 @@ import {
   type CreateOutletPayload,
 } from "@/services/posOutletsService";
 import { firstLiveDiningOutlet } from "@/utils/outletKind";
-import { isHighwayDemoOutlet } from "@/utils/outletId";
+import {
+  deduplicateOutlets,
+  isHighwayDemoOutlet,
+  isHighwayInnName,
+} from "@/utils/outletId";
 
 const STORAGE_KEY_ACTIVE_ID = "retrod_pos_active_outlet_id";
 
@@ -28,28 +32,26 @@ export const INITIAL_OUTLETS: PosOutlet[] = [
   },
 ];
 
-function mergeOutletLists(prev: PosOutlet[], incoming: PosOutlet[]): PosOutlet[] {
-  const liveHighway = findLiveHighwayInn(incoming) || findLiveHighwayInn(prev);
-  const byId = new Map<string, PosOutlet>();
-  if (!liveHighway) {
-    for (const o of INITIAL_OUTLETS) byId.set(o.id, o);
-  }
-  for (const o of prev) {
-    if (liveHighway && isHighwayDemoOutlet(o.id)) continue;
-    byId.set(o.id, o);
-  }
-  for (const o of incoming) {
-    if (isHighwayDemoOutlet(o.id)) continue;
-    byId.set(o.id, { ...byId.get(o.id), ...o });
+function mergeOutletLists(prev: PosOutlet[], incoming: PosOutlet[], activeId?: string): PosOutlet[] {
+  // Combine all incoming and previous outlets
+  const combined = [...incoming, ...prev];
+  // Deduplicate strictly: Highway Inn collapses into 1 entry, other outlets deduplicated by code/name
+  const deduped = deduplicateOutlets(combined, activeId);
+
+  // If no Highway Inn outlet exists, insert default initial outlet
+  if (!deduped.some((o) => isHighwayInnName(o.name, o.code) || isHighwayDemoOutlet(o.id))) {
+    deduped.unshift(INITIAL_OUTLETS[0]);
   }
 
-  const all = [...byId.values()];
-  all.sort((a, b) => {
-    if (findLiveHighwayInn([a]) || isHighwayDemoOutlet(a.id)) return -1;
-    if (findLiveHighwayInn([b]) || isHighwayDemoOutlet(b.id)) return 1;
+  // Highway Inn at the top, then sorted alphabetically by name
+  deduped.sort((a, b) => {
+    const aH = isHighwayInnName(a.name, a.code) || isHighwayDemoOutlet(a.id);
+    const bH = isHighwayInnName(b.name, b.code) || isHighwayDemoOutlet(b.id);
+    if (aH && !bH) return -1;
+    if (!aH && bH) return 1;
     return a.name.localeCompare(b.name);
   });
-  return all;
+  return deduped;
 }
 
 type PosOutletContextType = {
@@ -91,7 +93,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         remote = [highway, ...remote];
       }
       setOutlets((prev) => {
-        const merged = mergeOutletLists(prev, remote);
+        const merged = mergeOutletLists(prev, remote, activeOutletId);
         setActiveOutletId((prevId) => {
           const liveHighway = findLiveHighwayInn(merged);
           const liveDining = firstLiveDiningOutlet(merged);
@@ -104,11 +106,11 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         return merged;
       });
     } catch {
-      setOutlets((prev) => mergeOutletLists(prev, []));
+      setOutlets((prev) => mergeOutletLists(prev, [], activeOutletId));
     } finally {
       setIsLoadingOutlets(false);
     }
-  }, []);
+  }, [activeOutletId]);
 
   useEffect(() => {
     void refreshOutlets();
@@ -139,7 +141,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
 
   const createOutletFromForm = async (payload: CreateOutletPayload) => {
     const created = await posOutletsService.createOutlet(payload);
-    setOutlets((prev) => mergeOutletLists(prev, [created]));
+    setOutlets((prev) => mergeOutletLists(prev, [created], created.id));
     setActiveOutletId(created.id);
     const role =
       payload.formType === "HO" || payload.outlet_type === "HO"

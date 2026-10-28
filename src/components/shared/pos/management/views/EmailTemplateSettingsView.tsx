@@ -30,6 +30,11 @@ import {
   QrCode,
   Image as ImageIcon,
   CheckCircle2,
+  Clock,
+  Users,
+  ArrowUpRight,
+  Award,
+  CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useOutletContext } from "@/context/PosOutletContext";
@@ -95,6 +100,17 @@ const EMAIL_LAYOUT_TEMPLATES: TemplateLayoutConfig[] = [
   },
 ];
 
+const USE_CASES: {
+  id: EmailUseCaseType;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { id: "ebill", label: "E-Bill & Digital Receipts", icon: Receipt },
+  { id: "giftcard", label: "Gift Card & Wallet Balances", icon: Gift },
+  { id: "loyalty", label: "Loyalty Rewards & Offers", icon: Tag },
+  { id: "reservation", label: "Reservation Confirmations", icon: Calendar },
+];
+
 export function EmailTemplateSettingsView() {
   const { activeOutlet } = useOutletContext();
 
@@ -103,6 +119,10 @@ export function EmailTemplateSettingsView() {
 
   // Email Use-Case Tabs
   const [activeUseCase, setActiveUseCase] = useState<EmailUseCaseType>("ebill");
+  const activeUseCaseIndex = Math.max(
+    0,
+    USE_CASES.findIndex((u) => u.id === activeUseCase),
+  );
 
   // Device Preview Mode (Desktop vs Mobile)
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
@@ -145,15 +165,31 @@ export function EmailTemplateSettingsView() {
     switch (tab) {
       case "ebill":
         setSubjectLine(`Your E-Receipt from ${restaurantName} (Order #ORD-8492)`);
+        setGreetingText("Dear Valued Guest, thank you for dining with us today!");
+        setFooterDisclaimer(
+          "This is an official transactional receipt generated via Retrod POS Cloud Systems. For queries or instant support, please reach out directly."
+        );
         break;
       case "giftcard":
         setSubjectLine(`Gift Card Balance & Transaction Update - ${restaurantName}`);
+        setGreetingText("Dear Patron, here is your latest gift card balance and passbook statement.");
+        setFooterDisclaimer(
+          "This gift card is redeemable across all Retrod restaurant outlets. To report loss or balance disputes, contact concierge support."
+        );
         break;
       case "loyalty":
         setSubjectLine(`Congratulations! You earned 150 Retrod Loyalty Points`);
+        setGreetingText("Dear Gold Member, you have earned new loyalty points and unlocked special dining rewards!");
+        setFooterDisclaimer(
+          "Loyalty points can be redeemed on your next dine-in or takeaway billing. Terms and conditions apply."
+        );
         break;
       case "reservation":
         setSubjectLine(`Table Reservation Confirmed for Tonight at ${restaurantName}`);
+        setGreetingText("Dear Guest, your table reservation is confirmed. We look forward to hosting you!");
+        setFooterDisclaimer(
+          "Tables are held for up to 15 minutes past the reserved booking time. Please notify us in advance of any schedule changes."
+        );
         break;
     }
   };
@@ -207,62 +243,49 @@ export function EmailTemplateSettingsView() {
         </div>
       </div>
 
-      {/* 2. Email Use-Case Tabs */}
-      <div className="flex overflow-x-auto border-b border-slate-200 bg-white rounded-xl px-2 py-1 shadow-2xs no-print">
-        <button
-          type="button"
-          onClick={() => handleUseCaseChange("ebill")}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-bold transition cursor-pointer shrink-0 border-b-2 ${
-            activeUseCase === "ebill"
-              ? "border-teal-600 bg-teal-50/60 text-teal-900"
-              : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-          }`}
-        >
-          <Receipt className="h-4 w-4 text-teal-600" />
-          <span>E-Bill & Digital Receipts</span>
-        </button>
+      {/* 2. Email Use-Case Tabs — Theme header color with smooth sliding indicator & evenly aligned tabs */}
+      <div className="relative rounded-xl bg-teal-800 p-1.5 shadow-sm border border-teal-700/60 no-print overflow-hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-4 w-full relative">
+          {/* Animated sliding line indicator for desktop */}
+          <div
+            className="hidden sm:block absolute bottom-0 h-[3px] bg-emerald-400 rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(52,211,153,0.9)] z-20 pointer-events-none"
+            style={{
+              left: `${activeUseCaseIndex * 25}%`,
+              width: "25%",
+            }}
+          />
 
-        <button
-          type="button"
-          onClick={() => handleUseCaseChange("giftcard")}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-bold transition cursor-pointer shrink-0 border-b-2 ${
-            activeUseCase === "giftcard"
-              ? "border-teal-600 bg-teal-50/60 text-teal-900"
-              : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-          }`}
-        >
-          <Gift className="h-4 w-4 text-amber-600" />
-          <span>Gift Card & Wallet Balances</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleUseCaseChange("loyalty")}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-bold transition cursor-pointer shrink-0 border-b-2 ${
-            activeUseCase === "loyalty"
-              ? "border-teal-600 bg-teal-50/60 text-teal-900"
-              : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-          }`}
-        >
-          <Tag className="h-4 w-4 text-purple-600" />
-          <span>Loyalty Rewards & Offers</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleUseCaseChange("reservation")}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-bold transition cursor-pointer shrink-0 border-b-2 ${
-            activeUseCase === "reservation"
-              ? "border-teal-600 bg-teal-50/60 text-teal-900"
-              : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-          }`}
-        >
-          <Calendar className="h-4 w-4 text-blue-600" />
-          <span>Reservation Confirmations</span>
-        </button>
+          {USE_CASES.map((uc) => {
+            const isActive = activeUseCase === uc.id;
+            const Icon = uc.icon;
+            return (
+              <button
+                key={uc.id}
+                type="button"
+                onClick={() => handleUseCaseChange(uc.id)}
+                className={`group relative z-10 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 px-2 sm:px-3 rounded-lg text-[12px] sm:text-[12.5px] lg:text-[13px] transition-all duration-200 cursor-pointer ${
+                  isActive
+                    ? "bg-white/15 text-white font-bold backdrop-blur-xs shadow-xs"
+                    : "text-teal-100/75 hover:text-white hover:bg-white/10 font-medium"
+                }`}
+              >
+                <Icon
+                  className={`h-4 w-4 shrink-0 transition-all duration-200 ${
+                    isActive ? "text-emerald-300 scale-110" : "text-teal-200/70 group-hover:text-teal-100"
+                  }`}
+                />
+                <span className="truncate">{uc.label}</span>
+                {/* Mobile indicator line */}
+                {isActive && (
+                  <span className="sm:hidden absolute bottom-0 left-2 right-2 h-[2.5px] bg-emerald-400 rounded-full shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* 3. Template Architecture Selector (5 Structural Designs) */}
+      {/* 3. Template Architecture Selector (Simple, Clean, Professional Boxes) */}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xs space-y-3 no-print">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
@@ -271,7 +294,7 @@ export function EmailTemplateSettingsView() {
               Select Email Layout Structure & Alignment
             </h3>
             <p className="text-[12px] text-slate-500">
-              Each template provides a distinct architectural layout, alignment hierarchy, and visual styling.
+              Select an architectural email layout format to apply to this template.
             </p>
           </div>
           <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 border border-teal-200/80 px-2.5 py-0.5 rounded-md self-start sm:self-auto">
@@ -279,7 +302,7 @@ export function EmailTemplateSettingsView() {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 pt-1">
           {EMAIL_LAYOUT_TEMPLATES.map((tmpl) => {
             const isSelected = selectedLayout === tmpl.id;
             return (
@@ -290,106 +313,29 @@ export function EmailTemplateSettingsView() {
                   setSelectedLayout(tmpl.id);
                   toast.success(`Switched layout to "${tmpl.name}"`);
                 }}
-                className={`relative rounded-xl border p-3 text-left transition-all duration-150 cursor-pointer flex flex-col justify-between min-h-[160px] group ${
+                className={`group relative flex items-center justify-between rounded-xl px-4 py-3.5 text-left transition-all duration-200 cursor-pointer border ${
                   isSelected
-                    ? "border-teal-600 bg-teal-50/35 shadow-2xs"
-                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60 shadow-2xs"
+                    ? "border-teal-700 bg-teal-50/70 shadow-xs ring-1 ring-teal-700/20 translate-y-[-1px]"
+                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60 hover:shadow-xs"
                 }`}
               >
-                <div>
-                  {/* Top Badge & Checkmark */}
-                  <div className="flex items-center justify-between mb-2">
-                    <span
-                      className={`rounded px-1.5 py-0.5 text-[9.5px] font-semibold border ${
-                        isSelected
-                          ? "bg-teal-100/80 border-teal-200 text-teal-800"
-                          : "bg-slate-100 border-slate-200 text-slate-600"
-                      }`}
-                    >
-                      {tmpl.badge.split("/")[0].trim()}
-                    </span>
-                    {isSelected && (
-                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-teal-600 text-white text-[9px] font-bold shadow-2xs">
-                        ✓
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Structural Skeleton Preview Graphic */}
-                  <div
-                    className={`w-full h-14 rounded-lg border p-1.5 space-y-1 overflow-hidden pointer-events-none mb-2.5 transition-colors ${
-                      isSelected ? "bg-white border-teal-200" : "bg-slate-50 border-slate-200"
-                    }`}
-                  >
-                    {tmpl.id === "centered_modern" && (
-                      <div className="flex flex-col items-center justify-between h-full py-0.5">
-                        <div className="h-2.5 w-2.5 rounded-full bg-teal-600" />
-                        <div className="h-1.5 w-14 bg-teal-100 rounded-xs" />
-                        <div className="h-2 w-16 bg-teal-600/70 rounded-full" />
-                        <div className="h-1 w-20 bg-slate-200 rounded-xs" />
-                      </div>
-                    )}
-
-                    {tmpl.id === "split_corporate" && (
-                      <div className="grid grid-cols-12 gap-1 h-full py-0.5">
-                        <div className="col-span-8 space-y-1">
-                          <div className="h-1.5 w-full bg-slate-800 rounded-xs" />
-                          <div className="h-1 w-3/4 bg-slate-300 rounded-xs" />
-                          <div className="h-1 w-full bg-slate-200 rounded-xs" />
-                        </div>
-                        <div className="col-span-4 bg-slate-100 rounded-xs p-0.5 space-y-0.5 border border-slate-200">
-                          <div className="h-1 w-full bg-slate-400 rounded-xs" />
-                          <div className="h-1.5 w-full bg-slate-800 rounded-xs" />
-                        </div>
-                      </div>
-                    )}
-
-                    {tmpl.id === "luxury_editorial" && (
-                      <div className="border border-amber-400/60 rounded-xs p-1 h-full flex flex-col justify-between text-center items-center bg-amber-50/30">
-                        <div className="h-1.5 w-3.5 bg-amber-700 rounded-xs" />
-                        <div className="h-1 w-14 bg-amber-900 rounded-xs" />
-                        <div className="h-0.5 w-full bg-amber-300" />
-                        <div className="h-1 w-16 bg-amber-800/60 rounded-xs" />
-                      </div>
-                    )}
-
-                    {tmpl.id === "thermal_pos_slip" && (
-                      <div className="font-mono text-[6px] space-y-0.5 h-full flex flex-col justify-between text-slate-500">
-                        <div className="border-b border-dashed border-slate-300 text-center font-bold">
-                          -----------------
-                        </div>
-                        <div className="flex justify-between px-1">
-                          <div className="h-1 w-8 bg-slate-700 rounded-xs" />
-                          <div className="h-1 w-3 bg-slate-700 rounded-xs" />
-                        </div>
-                        <div className="border-t border-dashed border-slate-300 text-center">
-                          -----------------
-                        </div>
-                      </div>
-                    )}
-
-                    {tmpl.id === "visual_showcase" && (
-                      <div className="h-full flex flex-col justify-between">
-                        <div className="h-2.5 w-full bg-orange-500 rounded-xs" />
-                        <div className="grid grid-cols-2 gap-1">
-                          <div className="h-2 bg-slate-200 rounded-xs" />
-                          <div className="h-2 bg-slate-200 rounded-xs" />
-                        </div>
-                        <div className="h-1.5 w-full bg-slate-700 rounded-xs" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div
-                    className={`text-[12.5px] font-bold leading-tight ${
-                      isSelected ? "text-teal-950" : "text-slate-900"
+                <div className="min-w-0 pr-2">
+                  <span
+                    className={`block text-[12.5px] sm:text-[13px] tracking-tight transition-colors line-clamp-2 leading-snug ${
+                      isSelected ? "text-teal-950 font-bold" : "text-slate-700 font-semibold group-hover:text-slate-900"
                     }`}
                   >
                     {tmpl.name}
-                  </div>
-                  <div className="text-[10.5px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                    {tmpl.structureDesc}
-                  </div>
+                  </span>
+                </div>
+                <div
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-all ${
+                    isSelected
+                      ? "bg-teal-700 text-white shadow-xs scale-100"
+                      : "border border-slate-300 text-transparent group-hover:border-slate-400 scale-90 opacity-40"
+                  }`}
+                >
+                  <Check className="h-3 w-3 stroke-[2.5]" />
                 </div>
               </button>
             );
@@ -545,7 +491,12 @@ export function EmailTemplateSettingsView() {
               </div>
 
               <label className="flex items-center justify-between py-1 text-[12px] text-slate-700 cursor-pointer">
-                <span>Show Itemized Order / Tax Summary</span>
+                <span>
+                  {activeUseCase === "ebill" && "Show Itemized Order / Tax Summary"}
+                  {activeUseCase === "giftcard" && "Show Passbook & Card Summary"}
+                  {activeUseCase === "loyalty" && "Show Points Balance & Tier Perks"}
+                  {activeUseCase === "reservation" && "Show Guest & Table Reservation Details"}
+                </span>
                 <input
                   type="checkbox"
                   checked={showTaxBreakup}
@@ -565,7 +516,12 @@ export function EmailTemplateSettingsView() {
               </label>
 
               <label className="flex items-center justify-between py-1 text-[12px] text-slate-700 cursor-pointer">
-                <span>Show Download PDF E-Receipt CTA</span>
+                <span>
+                  {activeUseCase === "ebill" && "Show Download PDF E-Receipt CTA"}
+                  {activeUseCase === "giftcard" && "Show Add Balance / Manage Card CTA"}
+                  {activeUseCase === "loyalty" && "Show Redeem Points & Rewards CTA"}
+                  {activeUseCase === "reservation" && "Show Manage Reservation & Maps CTA"}
+                </span>
                 <input
                   type="checkbox"
                   checked={showDownloadCta}
@@ -661,10 +617,8 @@ export function EmailTemplateSettingsView() {
                     <div className="font-bold text-slate-900 text-[12.5px] truncate">
                       {subjectLine}
                     </div>
-                  </div>
-
-                  {/* ========================================================================= */}
-                  {/* STRUCTURE 1: CENTERED MODERN RECEIPT CARD                                */}
+                  </div>                  {/* ========================================================================= */}
+                  {/* STRUCTURE 1: CENTERED MODERN CARD                                         */}
                   {/* ========================================================================= */}
                   {selectedLayout === "centered_modern" && (
                     <div className={isMobile ? "p-3 sm:p-4" : "p-4 sm:p-6"}>
@@ -694,75 +648,203 @@ export function EmailTemplateSettingsView() {
                           </p>
                         </div>
 
-                        {/* Floating Total Paid Hero Card */}
+                        {/* Floating Hero Card - Dynamic per Use-Case */}
                         <div
                           className={`bg-white rounded-xl shadow-md border border-teal-200/80 space-y-1.5 text-center ${
                             isMobile ? "-mt-4 mx-3 p-3" : "-mt-5 mx-6 p-4"
                           }`}
                         >
-                          <div className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-wider">
-                            <CheckCircle2 className="h-3 w-3" />
-                            Paid & Verified
-                          </div>
-                          <div
-                            className={`font-extrabold text-teal-950 font-mono ${
-                              isMobile ? "text-[22px]" : "text-[26px]"
-                            }`}
-                          >
-                            ₹ 1,816.50
-                          </div>
-                          <p className="text-[10.5px] text-slate-500">
-                            Order #ORD-8492 • Table T-04 • Settled via UPI
-                          </p>
+                          {activeUseCase === "ebill" && (
+                            <>
+                              <div className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-wider">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Paid & Verified
+                              </div>
+                              <div className={`font-extrabold text-teal-950 font-mono ${isMobile ? "text-[22px]" : "text-[26px]"}`}>
+                                ₹ 1,816.50
+                              </div>
+                              <p className="text-[10.5px] text-slate-500">Order #ORD-8492 • Table T-04 • Settled via UPI</p>
+                            </>
+                          )}
+
+                          {activeUseCase === "giftcard" && (
+                            <>
+                              <div className="inline-flex items-center gap-1 bg-teal-50 text-teal-700 border border-teal-200 px-2.5 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-wider">
+                                <Gift className="h-3 w-3" />
+                                Gift Card Active
+                              </div>
+                              <div className={`font-extrabold text-teal-950 font-mono ${isMobile ? "text-[22px]" : "text-[26px]"}`}>
+                                ₹ 3,500.00
+                              </div>
+                              <p className="text-[10.5px] text-slate-500">Available Balance • Card #•••• 8842 • Valid till Dec 2027</p>
+                            </>
+                          )}
+
+                          {activeUseCase === "loyalty" && (
+                            <>
+                              <div className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-wider">
+                                <Crown className="h-3 w-3" />
+                                Gold VIP Member
+                              </div>
+                              <div className={`font-extrabold text-amber-900 font-mono ${isMobile ? "text-[22px]" : "text-[26px]"}`}>
+                                1,450 Points
+                              </div>
+                              <p className="text-[10.5px] text-slate-500">Worth ₹1,450 off your next dining bill • Tier Status: Gold</p>
+                            </>
+                          )}
+
+                          {activeUseCase === "reservation" && (
+                            <>
+                              <div className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-wider">
+                                <Calendar className="h-3 w-3" />
+                                Reservation Confirmed
+                              </div>
+                              <div className={`font-extrabold text-teal-950 ${isMobile ? "text-[18px]" : "text-[21px]"}`}>
+                                Table for 4 Guests
+                              </div>
+                              <p className="text-[10.5px] text-slate-500 font-medium">Tonight, 08:30 PM • Terrace Lounge T-04 • Ref #RES-9842</p>
+                            </>
+                          )}
                         </div>
 
                         {/* Body Content */}
-                        <div
-                          className={`space-y-3.5 text-slate-700 text-left ${
-                            isMobile ? "p-3.5 pt-4 text-[11.5px]" : "p-6 text-[12.5px]"
-                          }`}
-                        >
+                        <div className={`space-y-3.5 text-slate-700 text-left ${isMobile ? "p-3.5 pt-4 text-[11.5px]" : "p-6 text-[12.5px]"}`}>
                           <p className="text-center font-bold text-slate-900 text-[12.5px] sm:text-[13.5px]">
                             {greetingText}
                           </p>
 
+                          {/* Dynamic Body Panel */}
                           {showTaxBreakup && (
                             <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:p-3.5 space-y-2 text-[11px] sm:text-[11.5px]">
-                              <div className="flex justify-between font-bold text-slate-800 border-b border-slate-200 pb-1.5 text-[10.5px] sm:text-[11px] uppercase tracking-wider">
-                                <span>Itemized Dine-In Bill</span>
-                                <span>Amount</span>
-                              </div>
-                              <div className="space-y-1.5">
-                                <div className="flex justify-between items-center text-slate-700">
-                                  <span className="font-medium">2x Murgh Dum Biryani (Handi)</span>
-                                  <span className="font-mono font-semibold text-slate-900 shrink-0 ml-2">
-                                    ₹ 960.00
-                                  </span>
-                                </div>
-                                <div className="flex justify-between items-center text-slate-700">
-                                  <span className="font-medium">1x Paneer Tikka Angare</span>
-                                  <span className="font-mono font-semibold text-slate-900 shrink-0 ml-2">
-                                    ₹ 380.00
-                                  </span>
-                                </div>
-                                <div className="flex justify-between items-center text-slate-700">
-                                  <span className="font-medium">2x Artisanal Berry Mocktail</span>
-                                  <span className="font-mono font-semibold text-slate-900 shrink-0 ml-2">
-                                    ₹ 390.00
-                                  </span>
-                                </div>
-                              </div>
+                              {activeUseCase === "ebill" && (
+                                <>
+                                  <div className="flex justify-between font-bold text-slate-800 border-b border-slate-200 pb-1.5 text-[10.5px] sm:text-[11px] uppercase tracking-wider">
+                                    <span>Itemized Dine-In Bill</span>
+                                    <span>Amount</span>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <div className="flex justify-between items-center text-slate-700">
+                                      <span className="font-medium">2x Murgh Dum Biryani (Handi)</span>
+                                      <span className="font-mono font-semibold text-slate-900 shrink-0 ml-2">₹ 960.00</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-slate-700">
+                                      <span className="font-medium">1x Paneer Tikka Angare</span>
+                                      <span className="font-mono font-semibold text-slate-900 shrink-0 ml-2">₹ 380.00</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-slate-700">
+                                      <span className="font-medium">2x Artisanal Berry Mocktail</span>
+                                      <span className="font-mono font-semibold text-slate-900 shrink-0 ml-2">₹ 390.00</span>
+                                    </div>
+                                  </div>
+                                  <div className="border-t border-slate-200 pt-1.5 space-y-0.5 text-slate-500 text-[10.5px]">
+                                    <div className="flex justify-between">
+                                      <span>Subtotal:</span>
+                                      <span className="font-mono">₹ 1,730.00</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>GST (5%):</span>
+                                      <span className="font-mono">₹ 86.50</span>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
 
-                              <div className="border-t border-slate-200 pt-1.5 space-y-0.5 text-slate-500 text-[10.5px]">
-                                <div className="flex justify-between">
-                                  <span>Subtotal:</span>
-                                  <span className="font-mono">₹ 1,730.00</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>GST (5%):</span>
-                                  <span className="font-mono">₹ 86.50</span>
-                                </div>
-                              </div>
+                              {activeUseCase === "giftcard" && (
+                                <>
+                                  <div className="flex justify-between font-bold text-slate-800 border-b border-slate-200 pb-1.5 text-[10.5px] sm:text-[11px] uppercase tracking-wider">
+                                    <span>Recent Card Transactions</span>
+                                    <span>Amount</span>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <div className="flex justify-between items-center text-slate-700">
+                                      <div className="min-w-0 pr-2">
+                                        <p className="font-medium truncate">Online Wallet Top-Up</p>
+                                        <p className="text-[9.5px] text-slate-400">Oct 28, 2026 • UPI Ref #9842</p>
+                                      </div>
+                                      <span className="font-mono font-bold text-emerald-600 shrink-0">+₹ 2,000.00</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-slate-700">
+                                      <div className="min-w-0 pr-2">
+                                        <p className="font-medium truncate">Dine-in Bill Payment</p>
+                                        <p className="text-[9.5px] text-slate-400">Oct 24, 2026 • Table T-02</p>
+                                      </div>
+                                      <span className="font-mono font-bold text-rose-600 shrink-0">-₹ 1,250.00</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-slate-700">
+                                      <div className="min-w-0 pr-2">
+                                        <p className="font-medium truncate">Welcome Bonus Credit</p>
+                                        <p className="text-[9.5px] text-slate-400">Oct 15, 2026 • Promotional</p>
+                                      </div>
+                                      <span className="font-mono font-bold text-emerald-600 shrink-0">+₹ 500.00</span>
+                                    </div>
+                                  </div>
+                                  <div className="border-t border-slate-200 pt-1.5 flex justify-between text-slate-700 text-[10.5px]">
+                                    <span>Primary Cardholder:</span>
+                                    <span className="font-bold">Mr. Arjun Sharma</span>
+                                  </div>
+                                </>
+                              )}
+
+                              {activeUseCase === "loyalty" && (
+                                <>
+                                  <div className="flex justify-between font-bold text-slate-800 border-b border-slate-200 pb-1.5 text-[10.5px] sm:text-[11px] uppercase tracking-wider">
+                                    <span>Loyalty Breakdown & Perks</span>
+                                    <span>Status</span>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <div className="flex justify-between items-center text-slate-700">
+                                      <span className="font-medium">Points Earned This Visit</span>
+                                      <span className="font-mono font-bold text-amber-700">+150 Points</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-slate-700">
+                                      <span className="font-medium">Current Reward Tier</span>
+                                      <span className="font-bold text-teal-800">Gold VIP (10% Off)</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-slate-700">
+                                      <span className="font-medium">Progress to Platinum</span>
+                                      <span className="font-mono text-slate-600">Spend ₹3,550 more</span>
+                                    </div>
+                                  </div>
+                                  <div className="border-t border-slate-200 pt-1.5 flex items-center justify-between text-[10.5px] bg-amber-50 p-2 rounded-lg border border-amber-200 text-amber-900 font-semibold">
+                                    <span>Active Coupon: <strong className="font-mono font-bold">GOLD15DINE</strong></span>
+                                    <span>Flat 15% OFF</span>
+                                  </div>
+                                </>
+                              )}
+
+                              {activeUseCase === "reservation" && (
+                                <>
+                                  <div className="flex justify-between font-bold text-slate-800 border-b border-slate-200 pb-1.5 text-[10.5px] sm:text-[11px] uppercase tracking-wider">
+                                    <span>Booking & Table Details</span>
+                                    <span>Details</span>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <div className="flex justify-between items-center text-slate-700">
+                                      <span className="text-slate-500">Guest Name:</span>
+                                      <span className="font-bold text-slate-900">Mr. Arjun Sharma</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-slate-700">
+                                      <span className="text-slate-500">Party Size:</span>
+                                      <span className="font-bold text-slate-900">4 Guests (Adults)</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-slate-700">
+                                      <span className="text-slate-500">Date & Time:</span>
+                                      <span className="font-bold text-teal-800">Tonight, Oct 28 at 08:30 PM</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-slate-700">
+                                      <span className="text-slate-500">Reserved Table / Area:</span>
+                                      <span className="font-bold text-slate-900">Terrace Rooftop (Table T-04)</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-slate-700">
+                                      <span className="text-slate-500">Special Notes:</span>
+                                      <span className="italic text-slate-800">Window table preferred (Anniversary)</span>
+                                    </div>
+                                  </div>
+                                  <div className="border-t border-slate-200 pt-1.5 text-[10px] text-slate-500">
+                                    <span>Venue Policy: Table reserved for 15 mins post scheduled arrival. Complimentary valet at Gate 2.</span>
+                                  </div>
+                                </>
+                              )}
                             </div>
                           )}
 
@@ -773,7 +855,10 @@ export function EmailTemplateSettingsView() {
                                 type="button"
                                 className="w-full py-2.5 px-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-[12px] sm:text-[13px] shadow-2xs transition cursor-pointer"
                               >
-                                View & Download Tax Invoice (PDF)
+                                {activeUseCase === "ebill" && "View & Download Tax Invoice (PDF)"}
+                                {activeUseCase === "giftcard" && "Manage Gift Card / Top Up Balance"}
+                                {activeUseCase === "loyalty" && "Redeem Points & Explore Rewards"}
+                                {activeUseCase === "reservation" && "Modify / View Reservation on Map"}
                               </button>
                             </div>
                           )}
@@ -782,16 +867,19 @@ export function EmailTemplateSettingsView() {
                           {showFeedbackRating && (
                             <div className="border-t border-slate-100 pt-2.5 text-center space-y-1">
                               <p className="text-[11px] font-bold text-slate-700">
-                                Rate your dining experience:
+                                {activeUseCase === "reservation"
+                                  ? "Need special dining arrangements or dietary notes?"
+                                  : "Rate your experience with us:"}
                               </p>
-                              <div className="flex justify-center gap-1 text-amber-400">
-                                {[1, 2, 3, 4, 5].map((s) => (
-                                  <Star
-                                    key={s}
-                                    className="h-4 w-4 fill-amber-400 hover:scale-110 transition cursor-pointer"
-                                  />
-                                ))}
-                              </div>
+                              {activeUseCase === "reservation" ? (
+                                <p className="text-[10px] text-teal-700 font-semibold">Call Concierge: {contactNo}</p>
+                              ) : (
+                                <div className="flex justify-center gap-1 text-amber-400">
+                                  {[1, 2, 3, 4, 5].map((s) => (
+                                    <Star key={s} className="h-4 w-4 fill-amber-400 hover:scale-110 transition cursor-pointer" />
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -823,160 +911,314 @@ export function EmailTemplateSettingsView() {
                               <div className="h-6.5 w-6.5 shrink-0 rounded-md bg-indigo-600 flex items-center justify-center font-bold text-white text-[12px]">
                                 R
                               </div>
-                              <h1
-                                className={`font-extrabold uppercase tracking-wide truncate ${
-                                  isMobile ? "text-[14px]" : "text-[17px]"
-                                }`}
-                              >
+                              <h1 className={`font-extrabold uppercase tracking-wide truncate ${isMobile ? "text-[14px]" : "text-[17px]"}`}>
                                 {restaurantName}
                               </h1>
                             </div>
                             <span className="bg-indigo-600 text-white px-2 py-0.5 rounded text-[9px] font-bold uppercase shrink-0">
-                              B2B / E-INVOICE
+                              {activeUseCase === "ebill" && "B2B / E-INVOICE"}
+                              {activeUseCase === "giftcard" && "GIFT STATEMENT"}
+                              {activeUseCase === "loyalty" && "REWARDS LEDGER"}
+                              {activeUseCase === "reservation" && "BOOKING PASS"}
                             </span>
                           </div>
                           <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1.5 border-t border-slate-800">
                             <p className="truncate pr-2">{address}</p>
-                            <p className="font-mono text-slate-300 shrink-0">#INV-2026-8492</p>
+                            <p className="font-mono text-slate-300 shrink-0">
+                              {activeUseCase === "ebill" && "#INV-2026-8492"}
+                              {activeUseCase === "giftcard" && "#GC-8842-LEDGER"}
+                              {activeUseCase === "loyalty" && "#LOY-GOLD-1450"}
+                              {activeUseCase === "reservation" && "#RES-2026-9842"}
+                            </p>
                           </div>
                         </div>
 
                         {/* Body Grid: Stacked vertically in mobile, 2-column split on desktop */}
-                        <div
-                          className={
-                            isMobile
-                              ? "p-3.5 space-y-3.5 text-[11.5px]"
-                              : "p-5 grid grid-cols-12 gap-5 text-[12px]"
-                          }
-                        >
-                          {/* Itemized Bill Section (Full width on mobile, 8 cols on desktop) */}
+                        <div className={isMobile ? "p-3.5 space-y-3.5 text-[11.5px]" : "p-5 grid grid-cols-12 gap-5 text-[12px]"}>
+                          {/* Main Left Section (Full width on mobile, 8 cols on desktop) */}
                           <div className={isMobile ? "space-y-2.5" : "col-span-8 space-y-3"}>
                             <div className="border-b border-slate-200 pb-1.5">
                               <h3 className="font-bold text-slate-900 text-[12.5px] sm:text-[13px]">
-                                Itemized Invoice
+                                {activeUseCase === "ebill" && "Itemized Invoice"}
+                                {activeUseCase === "giftcard" && "Gift Card Passbook & Ledger"}
+                                {activeUseCase === "loyalty" && "Rewards Activity & Available Vouchers"}
+                                {activeUseCase === "reservation" && "Guest Table Reservation Summary"}
                               </h3>
                               <p className="text-[10.5px] text-slate-500 line-clamp-1">{greetingText}</p>
                             </div>
 
-                            <div className="overflow-x-auto rounded-lg border border-slate-200">
-                              <table className="w-full text-left border-collapse text-[11px] sm:text-[11.5px]">
-                                <thead>
-                                  <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 text-[9.5px] font-bold uppercase tracking-wider">
-                                    <th className="py-1.5 px-2.5">Item Description</th>
-                                    <th className="py-1.5 px-1.5 text-center w-9 sm:w-12">Qty</th>
-                                    <th className="py-1.5 px-1.5 text-right w-14 sm:w-16">Rate</th>
-                                    <th className="py-1.5 px-2.5 text-right w-16 sm:w-20">Total</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
-                                  <tr>
-                                    <td className="py-1.5 px-2.5 font-medium text-slate-900 leading-snug">
-                                      Murgh Dum Biryani (Handi)
-                                    </td>
-                                    <td className="py-1.5 px-1.5 text-center text-slate-600">2</td>
-                                    <td className="py-1.5 px-1.5 text-right font-mono text-slate-500">480.00</td>
-                                    <td className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900">
-                                      960.00
-                                    </td>
-                                  </tr>
-                                  <tr>
-                                    <td className="py-1.5 px-2.5 font-medium text-slate-900 leading-snug">
-                                      Paneer Tikka Angare
-                                    </td>
-                                    <td className="py-1.5 px-1.5 text-center text-slate-600">1</td>
-                                    <td className="py-1.5 px-1.5 text-right font-mono text-slate-500">380.00</td>
-                                    <td className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900">
-                                      380.00
-                                    </td>
-                                  </tr>
-                                  <tr>
-                                    <td className="py-1.5 px-2.5 font-medium text-slate-900 leading-snug">
-                                      Artisanal Berry Mocktail
-                                    </td>
-                                    <td className="py-1.5 px-1.5 text-center text-slate-600">2</td>
-                                    <td className="py-1.5 px-1.5 text-right font-mono text-slate-500">195.00</td>
-                                    <td className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900">
-                                      390.00
-                                    </td>
-                                  </tr>
-                                </tbody>
-                              </table>
-                            </div>
+                            {activeUseCase === "ebill" && (
+                              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                                <table className="w-full text-left border-collapse text-[11px] sm:text-[11.5px]">
+                                  <thead>
+                                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 text-[9.5px] font-bold uppercase tracking-wider">
+                                      <th className="py-1.5 px-2.5">Item Description</th>
+                                      <th className="py-1.5 px-1.5 text-center w-9 sm:w-12">Qty</th>
+                                      <th className="py-1.5 px-1.5 text-right w-14 sm:w-16">Rate</th>
+                                      <th className="py-1.5 px-2.5 text-right w-16 sm:w-20">Total</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100 bg-white">
+                                    <tr>
+                                      <td className="py-1.5 px-2.5 font-medium text-slate-900 leading-snug">Murgh Dum Biryani (Handi)</td>
+                                      <td className="py-1.5 px-1.5 text-center text-slate-600">2</td>
+                                      <td className="py-1.5 px-1.5 text-right font-mono text-slate-500">480.00</td>
+                                      <td className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900">960.00</td>
+                                    </tr>
+                                    <tr>
+                                      <td className="py-1.5 px-2.5 font-medium text-slate-900 leading-snug">Paneer Tikka Angare</td>
+                                      <td className="py-1.5 px-1.5 text-center text-slate-600">1</td>
+                                      <td className="py-1.5 px-1.5 text-right font-mono text-slate-500">380.00</td>
+                                      <td className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900">380.00</td>
+                                    </tr>
+                                    <tr>
+                                      <td className="py-1.5 px-2.5 font-medium text-slate-900 leading-snug">Artisanal Berry Mocktail</td>
+                                      <td className="py-1.5 px-1.5 text-center text-slate-600">2</td>
+                                      <td className="py-1.5 px-1.5 text-right font-mono text-slate-500">195.00</td>
+                                      <td className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900">390.00</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+
+                            {activeUseCase === "giftcard" && (
+                              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                                <table className="w-full text-left border-collapse text-[11px] sm:text-[11.5px]">
+                                  <thead>
+                                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 text-[9.5px] font-bold uppercase tracking-wider">
+                                      <th className="py-1.5 px-2.5">Date / Action</th>
+                                      <th className="py-1.5 px-1.5 text-center">Type</th>
+                                      <th className="py-1.5 px-2.5 text-right">Credit / Debit</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100 bg-white">
+                                    <tr>
+                                      <td className="py-2 px-2.5 text-slate-900 font-medium">Oct 28, 2026 • Web Payment Gateway</td>
+                                      <td className="py-2 px-1.5 text-center text-slate-500 text-[10px]">Top-Up</td>
+                                      <td className="py-2 px-2.5 text-right font-mono font-bold text-emerald-600">+₹ 2,000.00</td>
+                                    </tr>
+                                    <tr>
+                                      <td className="py-2 px-2.5 text-slate-900 font-medium">Oct 24, 2026 • Dine-In POS Terminal 02</td>
+                                      <td className="py-2 px-1.5 text-center text-slate-500 text-[10px]">Redeem</td>
+                                      <td className="py-2 px-2.5 text-right font-mono font-bold text-rose-600">-₹ 1,250.00</td>
+                                    </tr>
+                                    <tr>
+                                      <td className="py-2 px-2.5 text-slate-900 font-medium">Oct 15, 2026 • Membership Signup Promo</td>
+                                      <td className="py-2 px-1.5 text-center text-slate-500 text-[10px]">Bonus</td>
+                                      <td className="py-2 px-2.5 text-right font-mono font-bold text-emerald-600">+₹ 500.00</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+
+                            {activeUseCase === "loyalty" && (
+                              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                                <table className="w-full text-left border-collapse text-[11px] sm:text-[11.5px]">
+                                  <thead>
+                                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 text-[9.5px] font-bold uppercase tracking-wider">
+                                      <th className="py-1.5 px-2.5">Activity Description</th>
+                                      <th className="py-1.5 px-1.5 text-center">Reward Type</th>
+                                      <th className="py-1.5 px-2.5 text-right">Points</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100 bg-white">
+                                    <tr>
+                                      <td className="py-2 px-2.5 text-slate-900 font-medium">Dine-in Order #ORD-8492 Billing</td>
+                                      <td className="py-2 px-1.5 text-center text-amber-600 font-bold text-[10px]">Dining Multiplier</td>
+                                      <td className="py-2 px-2.5 text-right font-mono font-bold text-amber-700">+150 Pts</td>
+                                    </tr>
+                                    <tr>
+                                      <td className="py-2 px-2.5 text-slate-900 font-medium">Birthday Dining Perk Unlocked</td>
+                                      <td className="py-2 px-1.5 text-center text-purple-600 font-bold text-[10px]">Free Dessert</td>
+                                      <td className="py-2 px-2.5 text-right font-mono font-bold text-purple-700">Coupon Active</td>
+                                    </tr>
+                                    <tr>
+                                      <td className="py-2 px-2.5 text-slate-900 font-medium">VIP Tier Review Status</td>
+                                      <td className="py-2 px-1.5 text-center text-teal-600 font-bold text-[10px]">Gold Retained</td>
+                                      <td className="py-2 px-2.5 text-right font-mono font-bold text-slate-800">1,450 Total</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+
+                            {activeUseCase === "reservation" && (
+                              <div className="rounded-lg border border-slate-200 p-3.5 space-y-2.5 bg-white">
+                                <div className="grid grid-cols-2 gap-3 text-[11px]">
+                                  <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                                    <span className="text-slate-400 block text-[9.5px] uppercase font-bold">Primary Guest</span>
+                                    <strong className="text-slate-900 text-[12px]">Mr. Arjun Sharma</strong>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">+91 98201 12345</p>
+                                  </div>
+                                  <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                                    <span className="text-slate-400 block text-[9.5px] uppercase font-bold">Seating Arrangement</span>
+                                    <strong className="text-teal-800 text-[12px]">Table T-04 (Terrace)</strong>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">Party of 4 Guests</p>
+                                  </div>
+                                </div>
+                                <div className="p-2.5 rounded-lg bg-teal-50/60 border border-teal-100 text-[11px] space-y-1">
+                                  <div className="flex justify-between font-bold text-teal-950">
+                                    <span>Arrival Window:</span>
+                                    <span>Tonight, Oct 28 at 08:30 PM</span>
+                                  </div>
+                                  <p className="text-[10px] text-teal-800">
+                                    Notes: Window table preferred, celebrating anniversary dinner.
+                                  </p>
+                                </div>
+                              </div>
+                            )}
 
                             {showDownloadCta && (
                               <button
                                 type="button"
                                 className="w-full py-2 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11.5px] transition cursor-pointer"
                               >
-                                Download Official PDF Invoice
+                                {activeUseCase === "ebill" && "Download Official PDF Invoice"}
+                                {activeUseCase === "giftcard" && "Download Full Account Passbook (PDF)"}
+                                {activeUseCase === "loyalty" && "Redeem Points at Next Checkout"}
+                                {activeUseCase === "reservation" && "View Map Directions & Venue Guide"}
                               </button>
                             )}
                           </div>
 
                           {/* Summary & Metadata (Full width below on mobile, 4 cols sidebar on desktop) */}
-                          <div
-                            className={`rounded-xl border border-slate-200 bg-slate-50/90 space-y-2.5 ${
-                              isMobile ? "p-3" : "col-span-4 p-3.5"
-                            }`}
-                          >
+                          <div className={`rounded-xl border border-slate-200 bg-slate-50/90 space-y-2.5 ${isMobile ? "p-3" : "col-span-4 p-3.5"}`}>
                             <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                Transaction Summary
+                                {activeUseCase === "ebill" && "Transaction Summary"}
+                                {activeUseCase === "giftcard" && "Card Information"}
+                                {activeUseCase === "loyalty" && "Member Overview"}
+                                {activeUseCase === "reservation" && "Reservation Details"}
                               </span>
                               <div className="flex items-center gap-1 text-emerald-600 font-bold text-[10px]">
                                 <CheckCircle2 className="h-3 w-3" />
-                                Settled via UPI
+                                {activeUseCase === "ebill" && "Settled via UPI"}
+                                {activeUseCase === "giftcard" && "Card Active"}
+                                {activeUseCase === "loyalty" && "Gold Status"}
+                                {activeUseCase === "reservation" && "Booked"}
                               </div>
                             </div>
 
-                            <div
-                              className={`gap-2 text-[10.5px] text-slate-600 ${
-                                isMobile ? "grid grid-cols-3" : "space-y-1"
-                              }`}
-                            >
-                              <div className={isMobile ? "" : "flex justify-between"}>
-                                <span className={isMobile ? "text-slate-400 block text-[9px]" : ""}>
-                                  Table:
-                                </span>
-                                <strong className="text-slate-800">T-04</strong>
-                              </div>
-                              <div className={isMobile ? "" : "flex justify-between"}>
-                                <span className={isMobile ? "text-slate-400 block text-[9px]" : ""}>
-                                  Server:
-                                </span>
-                                <strong className="text-slate-800">Rajesh K.</strong>
-                              </div>
-                              <div className={isMobile ? "" : "flex justify-between"}>
-                                <span className={isMobile ? "text-slate-400 block text-[9px]" : ""}>
-                                  GSTIN:
-                                </span>
-                                <strong className="font-mono text-slate-800 text-[9.5px]">
-                                  27AABCR8492
-                                </strong>
-                              </div>
-                            </div>
+                            {activeUseCase === "ebill" && (
+                              <>
+                                <div className={`gap-2 text-[10.5px] text-slate-600 ${isMobile ? "grid grid-cols-3" : "space-y-1"}`}>
+                                  <div className={isMobile ? "" : "flex justify-between"}>
+                                    <span className={isMobile ? "text-slate-400 block text-[9px]" : ""}>Table:</span>
+                                    <strong className="text-slate-800">T-04</strong>
+                                  </div>
+                                  <div className={isMobile ? "" : "flex justify-between"}>
+                                    <span className={isMobile ? "text-slate-400 block text-[9px]" : ""}>Server:</span>
+                                    <strong className="text-slate-800">Rajesh K.</strong>
+                                  </div>
+                                  <div className={isMobile ? "" : "flex justify-between"}>
+                                    <span className={isMobile ? "text-slate-400 block text-[9px]" : ""}>GSTIN:</span>
+                                    <strong className="font-mono text-slate-800 text-[9.5px]">27AABCR8492</strong>
+                                  </div>
+                                </div>
+                                <div className="border-t border-slate-200 pt-2 space-y-1 text-[11px]">
+                                  <div className="flex justify-between text-slate-600">
+                                    <span>Subtotal:</span>
+                                    <span className="font-mono">₹ 1,730.00</span>
+                                  </div>
+                                  <div className="flex justify-between text-slate-600">
+                                    <span>GST (5%):</span>
+                                    <span className="font-mono">₹ 86.50</span>
+                                  </div>
+                                  <div className="flex justify-between font-bold text-slate-900 border-t border-slate-300 pt-1 text-[12.5px]">
+                                    <span>Net Paid:</span>
+                                    <span className="font-mono text-indigo-700 font-extrabold">₹ 1,816.50</span>
+                                  </div>
+                                </div>
+                              </>
+                            )}
 
-                            <div className="border-t border-slate-200 pt-2 space-y-1 text-[11px]">
-                              <div className="flex justify-between text-slate-600">
-                                <span>Subtotal:</span>
-                                <span className="font-mono">₹ 1,730.00</span>
-                              </div>
-                              <div className="flex justify-between text-slate-600">
-                                <span>GST (5%):</span>
-                                <span className="font-mono">₹ 86.50</span>
-                              </div>
-                              <div className="flex justify-between font-bold text-slate-900 border-t border-slate-300 pt-1 text-[12.5px]">
-                                <span>Net Paid:</span>
-                                <span className="font-mono text-indigo-700 font-extrabold">
-                                  ₹ 1,816.50
-                                </span>
-                              </div>
-                            </div>
+                            {activeUseCase === "giftcard" && (
+                              <>
+                                <div className={`gap-2 text-[10.5px] text-slate-600 ${isMobile ? "grid grid-cols-3" : "space-y-1"}`}>
+                                  <div className={isMobile ? "" : "flex justify-between"}>
+                                    <span className={isMobile ? "text-slate-400 block text-[9px]" : ""}>Card:</span>
+                                    <strong className="text-slate-800">•••• 8842</strong>
+                                  </div>
+                                  <div className={isMobile ? "" : "flex justify-between"}>
+                                    <span className={isMobile ? "text-slate-400 block text-[9px]" : ""}>Expiry:</span>
+                                    <strong className="text-slate-800">12/2027</strong>
+                                  </div>
+                                  <div className={isMobile ? "" : "flex justify-between"}>
+                                    <span className={isMobile ? "text-slate-400 block text-[9px]" : ""}>Currency:</span>
+                                    <strong className="text-slate-800">INR (₹)</strong>
+                                  </div>
+                                </div>
+                                <div className="border-t border-slate-200 pt-2 space-y-1 text-[11px]">
+                                  <div className="flex justify-between text-slate-600">
+                                    <span>Card Limit:</span>
+                                    <span className="font-mono">₹ 10,000.00</span>
+                                  </div>
+                                  <div className="flex justify-between font-bold text-slate-900 border-t border-slate-300 pt-1 text-[12.5px]">
+                                    <span>Available Bal:</span>
+                                    <span className="font-mono text-emerald-700 font-extrabold">₹ 3,500.00</span>
+                                  </div>
+                                </div>
+                              </>
+                            )}
 
-                            {!isMobile && (
-                              <div className="border-t border-slate-200 pt-2 text-[10px] text-slate-500">
-                                <p>Ref: UPI-9842187</p>
-                              </div>
+                            {activeUseCase === "loyalty" && (
+                              <>
+                                <div className={`gap-2 text-[10.5px] text-slate-600 ${isMobile ? "grid grid-cols-3" : "space-y-1"}`}>
+                                  <div className={isMobile ? "" : "flex justify-between"}>
+                                    <span className={isMobile ? "text-slate-400 block text-[9px]" : ""}>Tier:</span>
+                                    <strong className="text-amber-700 font-bold">Gold VIP</strong>
+                                  </div>
+                                  <div className={isMobile ? "" : "flex justify-between"}>
+                                    <span className={isMobile ? "text-slate-400 block text-[9px]" : ""}>Discount:</span>
+                                    <strong className="text-slate-800">10% Off</strong>
+                                  </div>
+                                  <div className={isMobile ? "" : "flex justify-between"}>
+                                    <span className={isMobile ? "text-slate-400 block text-[9px]" : ""}>Next Tier:</span>
+                                    <strong className="text-slate-800">Platinum</strong>
+                                  </div>
+                                </div>
+                                <div className="border-t border-slate-200 pt-2 space-y-1 text-[11px]">
+                                  <div className="flex justify-between text-slate-600">
+                                    <span>Points Value:</span>
+                                    <span className="font-mono">₹ 1,450.00</span>
+                                  </div>
+                                  <div className="flex justify-between font-bold text-slate-900 border-t border-slate-300 pt-1 text-[12.5px]">
+                                    <span>Available Pts:</span>
+                                    <span className="font-mono text-amber-700 font-extrabold">1,450 Pts</span>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+
+                            {activeUseCase === "reservation" && (
+                              <>
+                                <div className={`gap-2 text-[10.5px] text-slate-600 ${isMobile ? "grid grid-cols-3" : "space-y-1"}`}>
+                                  <div className={isMobile ? "" : "flex justify-between"}>
+                                    <span className={isMobile ? "text-slate-400 block text-[9px]" : ""}>Time:</span>
+                                    <strong className="text-teal-800">08:30 PM</strong>
+                                  </div>
+                                  <div className={isMobile ? "" : "flex justify-between"}>
+                                    <span className={isMobile ? "text-slate-400 block text-[9px]" : ""}>Guests:</span>
+                                    <strong className="text-slate-800">4 Pax</strong>
+                                  </div>
+                                  <div className={isMobile ? "" : "flex justify-between"}>
+                                    <span className={isMobile ? "text-slate-400 block text-[9px]" : ""}>Table:</span>
+                                    <strong className="text-slate-800">T-04</strong>
+                                  </div>
+                                </div>
+                                <div className="border-t border-slate-200 pt-2 space-y-1 text-[11px]">
+                                  <div className="flex justify-between text-slate-600">
+                                    <span>Cover Charge:</span>
+                                    <span className="font-mono text-emerald-600 font-bold">Waived (₹0)</span>
+                                  </div>
+                                  <div className="flex justify-between font-bold text-slate-900 border-t border-slate-300 pt-1 text-[12.5px]">
+                                    <span>Deposit Paid:</span>
+                                    <span className="font-mono text-teal-800 font-extrabold">₹ 500.00</span>
+                                  </div>
+                                </div>
+                              </>
                             )}
                           </div>
                         </div>
@@ -1019,50 +1261,139 @@ export function EmailTemplateSettingsView() {
                           <p className="text-[11px] sm:text-[12px] font-serif italic text-amber-900/80">
                             ~ {brandTagline} ~
                           </p>
-                          <p className="text-[9.5px] text-stone-500 uppercase tracking-widest pt-0.5">
-                            Guest Dining Folio • Order #ORD-8492
+                          <p className="text-[9.5px] text-stone-500 uppercase tracking-widest pt-0.5 font-sans">
+                            {activeUseCase === "ebill" && "Guest Dining Folio • Order #ORD-8492"}
+                            {activeUseCase === "giftcard" && "Bespoke Dining Privilege Card • Passbook #GC-8842"}
+                            {activeUseCase === "loyalty" && "VIP Patron Privileges & Loyalty Rewards"}
+                            {activeUseCase === "reservation" && "Private Dining Table Confirmation • Ref #RES-9842"}
                           </p>
                         </div>
 
                         {/* Letterhead Body */}
                         <div className="py-3.5 space-y-3 text-[11.5px] sm:text-[12.5px] font-serif leading-relaxed">
                           <p className="italic text-[#78350f] font-bold">
-                            Dear Honored Patron,
+                            {activeUseCase === "reservation" ? "Honored Guest Mr. Arjun Sharma," : "Dear Honored Patron,"}
                           </p>
                           <p className="text-stone-700">
-                            It was our absolute pleasure hosting you at {restaurantName}. We hope each course met your expectations for exceptional culinary craftsmanship.
+                            {activeUseCase === "ebill" &&
+                              `It was our absolute pleasure hosting you at ${restaurantName}. We hope each course met your expectations for exceptional culinary craftsmanship.`}
+                            {activeUseCase === "giftcard" &&
+                              `We are delighted to present your current Retrod Dining Privilege Card ledger. Your card is ready for seamless redemptions across our luxury outlets.`}
+                            {activeUseCase === "loyalty" &&
+                              `As one of our most valued patrons, your loyalty inspires our culinary creations. Here is your current VIP privilege portfolio.`}
+                            {activeUseCase === "reservation" &&
+                              `Our culinary brigade and service staff are honored to prepare for your reception at ${restaurantName}. Your private table is reserved as requested.`}
                           </p>
 
-                          {/* Course Breakdown */}
+                          {/* Dynamic Content Panel */}
                           <div className="border-y border-[#b45309]/30 py-2.5 space-y-2">
-                            <div className="text-[10.5px] uppercase tracking-wider font-sans font-bold text-[#92400e] text-center">
-                              Curated Dining Bill
-                            </div>
-                            <div className="space-y-1.5 text-[11.5px]">
-                              <div className="flex justify-between items-center">
-                                <span>2x Murgh Dum Biryani (Royal Handi)</span>
-                                <span className="font-mono font-bold text-stone-900 shrink-0 ml-2">
-                                  ₹ 960.00
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span>1x Paneer Tikka Angare</span>
-                                <span className="font-mono font-bold text-stone-900 shrink-0 ml-2">
-                                  ₹ 380.00
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span>2x Artisanal Berry Mocktail Punch</span>
-                                <span className="font-mono font-bold text-stone-900 shrink-0 ml-2">
-                                  ₹ 390.00
-                                </span>
-                              </div>
-                            </div>
+                            {activeUseCase === "ebill" && (
+                              <>
+                                <div className="text-[10.5px] uppercase tracking-wider font-sans font-bold text-[#92400e] text-center">
+                                  Curated Dining Bill
+                                </div>
+                                <div className="space-y-1.5 text-[11.5px]">
+                                  <div className="flex justify-between items-center">
+                                    <span>2x Murgh Dum Biryani (Royal Handi)</span>
+                                    <span className="font-mono font-bold text-stone-900 shrink-0 ml-2">₹ 960.00</span>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span>1x Paneer Tikka Angare</span>
+                                    <span className="font-mono font-bold text-stone-900 shrink-0 ml-2">₹ 380.00</span>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span>2x Artisanal Berry Mocktail Punch</span>
+                                    <span className="font-mono font-bold text-stone-900 shrink-0 ml-2">₹ 390.00</span>
+                                  </div>
+                                </div>
+                                <div className="border-t border-dashed border-[#b45309]/30 pt-2 flex justify-between font-sans font-bold text-[13px] sm:text-[14px] text-[#78350f]">
+                                  <span>Grand Total Paid:</span>
+                                  <span className="font-mono text-[#92400e]">₹ 1,816.50</span>
+                                </div>
+                              </>
+                            )}
 
-                            <div className="border-t border-dashed border-[#b45309]/30 pt-2 flex justify-between font-sans font-bold text-[13px] sm:text-[14px] text-[#78350f]">
-                              <span>Grand Total Paid:</span>
-                              <span className="font-mono text-[#92400e]">₹ 1,816.50</span>
-                            </div>
+                            {activeUseCase === "giftcard" && (
+                              <>
+                                <div className="text-[10.5px] uppercase tracking-wider font-sans font-bold text-[#92400e] text-center">
+                                  Privilege Card Portfolio
+                                </div>
+                                <div className="space-y-1.5 text-[11.5px]">
+                                  <div className="flex justify-between items-center">
+                                    <span>Registered Patron Name</span>
+                                    <span className="font-bold text-stone-900">Mr. Arjun Sharma</span>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span>Card Identifier</span>
+                                    <span className="font-mono font-bold text-stone-900">RETROD-CARD-8842</span>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span>Valid Through</span>
+                                    <span className="font-mono text-stone-700">December 31, 2027</span>
+                                  </div>
+                                </div>
+                                <div className="border-t border-dashed border-[#b45309]/30 pt-2 flex justify-between font-sans font-bold text-[13px] sm:text-[14px] text-[#78350f]">
+                                  <span>Available Card Balance:</span>
+                                  <span className="font-mono text-[#92400e]">₹ 3,500.00</span>
+                                </div>
+                              </>
+                            )}
+
+                            {activeUseCase === "loyalty" && (
+                              <>
+                                <div className="text-[10.5px] uppercase tracking-wider font-sans font-bold text-[#92400e] text-center">
+                                  Patron Loyalty & Tier Honors
+                                </div>
+                                <div className="space-y-1.5 text-[11.5px]">
+                                  <div className="flex justify-between items-center">
+                                    <span>Patron Membership Tier</span>
+                                    <span className="font-bold text-[#92400e]">Royal Gold Circle</span>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span>Accumulated Dining Points</span>
+                                    <span className="font-mono font-bold text-stone-900">1,450 Privilege Points</span>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span>Complimentary Welcome Course</span>
+                                    <span className="italic text-stone-800">Artisanal Truffle Soufflé</span>
+                                  </div>
+                                </div>
+                                <div className="border-t border-dashed border-[#b45309]/30 pt-2 flex justify-between font-sans font-bold text-[13px] sm:text-[14px] text-[#78350f]">
+                                  <span>Total Privilege Value:</span>
+                                  <span className="font-mono text-[#92400e]">₹ 1,450.00 Credit</span>
+                                </div>
+                              </>
+                            )}
+
+                            {activeUseCase === "reservation" && (
+                              <>
+                                <div className="text-[10.5px] uppercase tracking-wider font-sans font-bold text-[#92400e] text-center">
+                                  Table Reservation Confirmation
+                                </div>
+                                <div className="space-y-1.5 text-[11.5px]">
+                                  <div className="flex justify-between items-center">
+                                    <span>Seating Area Reserved</span>
+                                    <span className="font-bold text-stone-900">Royal Terrace Lounge (Table T-04)</span>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span>Reserved Schedule</span>
+                                    <span className="font-bold text-[#92400e]">Tonight, Oct 28 at 08:30 PM</span>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span>Attending Guests</span>
+                                    <span className="font-mono text-stone-900">4 Honored Patrons</span>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span>Special Occasion</span>
+                                    <span className="italic text-stone-800">Wedding Anniversary Dinner</span>
+                                  </div>
+                                </div>
+                                <div className="border-t border-dashed border-[#b45309]/30 pt-2 flex justify-between font-sans font-bold text-[13px] sm:text-[14px] text-[#78350f]">
+                                  <span>Table Status:</span>
+                                  <span className="text-emerald-700 font-bold uppercase tracking-wider">Reserved & Guaranteed</span>
+                                </div>
+                              </>
+                            )}
                           </div>
 
                           {showDownloadCta && (
@@ -1071,7 +1402,10 @@ export function EmailTemplateSettingsView() {
                                 type="button"
                                 className="w-full sm:w-auto px-6 py-2 rounded-xl bg-[#78350f] hover:bg-[#92400e] text-amber-50 font-sans font-bold text-[12px] transition cursor-pointer shadow-2xs"
                               >
-                                Download Official Dining Receipt
+                                {activeUseCase === "ebill" && "Download Official Dining Receipt"}
+                                {activeUseCase === "giftcard" && "Manage Privilege Card Passbook"}
+                                {activeUseCase === "loyalty" && "Redeem VIP Circle Privileges"}
+                                {activeUseCase === "reservation" && "View Formal Table Reservation Folio"}
                               </button>
                             </div>
                           )}
@@ -1079,9 +1413,7 @@ export function EmailTemplateSettingsView() {
                           {/* Executive Sign-off */}
                           <div
                             className={`pt-2.5 border-t border-[#b45309]/20 text-[10.5px] italic text-stone-600 ${
-                              isMobile
-                                ? "flex flex-col gap-2 text-left"
-                                : "flex justify-between items-end"
+                              isMobile ? "flex flex-col gap-2 text-left" : "flex justify-between items-end"
                             }`}
                           >
                             <div>
@@ -1089,15 +1421,9 @@ export function EmailTemplateSettingsView() {
                               <p className="font-bold text-[#78350f] font-serif">Executive Culinary Team</p>
                               <p>{restaurantName}</p>
                             </div>
-                            <div
-                              className={
-                                isMobile
-                                  ? "text-left text-[9.5px] font-sans text-stone-500"
-                                  : "text-right text-[10px] font-sans text-stone-500"
-                              }
-                            >
+                            <div className={isMobile ? "text-left text-[9.5px] font-sans text-stone-500" : "text-right text-[10px] font-sans text-stone-500"}>
                               <p className="truncate">{address}</p>
-                              <p>Reservations: {contactNo}</p>
+                              <p>Reservations & Concierge: {contactNo}</p>
                             </div>
                           </div>
                         </div>
@@ -1109,18 +1435,10 @@ export function EmailTemplateSettingsView() {
                   {/* STRUCTURE 4: 80MM POS THERMAL TEAR-OFF SLIP                               */}
                   {/* ========================================================================= */}
                   {selectedLayout === "thermal_pos_slip" && (
-                    <div
-                      className={
-                        isMobile
-                          ? "p-3 sm:p-4 flex justify-center"
-                          : "p-4 sm:p-6 flex justify-center"
-                      }
-                    >
+                    <div className={isMobile ? "p-3 sm:p-4 flex justify-center" : "p-4 sm:p-6 flex justify-center"}>
                       <div
                         className={`bg-white rounded-lg shadow-md border-2 border-dashed border-slate-300 font-mono text-slate-900 w-full space-y-2 ${
-                          isMobile
-                            ? "p-3.5 text-[10.5px] max-w-[340px]"
-                            : "p-5 text-[11px] max-w-[360px]"
+                          isMobile ? "p-3.5 text-[10.5px] max-w-[340px]" : "p-5 text-[11px] max-w-[360px]"
                         }`}
                       >
                         {/* Top Tear Off Effect */}
@@ -1136,66 +1454,185 @@ export function EmailTemplateSettingsView() {
                           <p className="text-[9.5px] text-slate-600">
                             GSTIN: 27AABCR8492Q1ZV • TEL: {contactNo}
                           </p>
-                          <div className="pt-1 text-[9.5px] font-bold border-t border-slate-200 mt-1">
-                            TAX INVOICE / DIGITAL RECEIPT
+                          <div className="pt-1 text-[9.5px] font-bold border-t border-slate-200 mt-1 uppercase">
+                            {activeUseCase === "ebill" && "TAX INVOICE / DIGITAL RECEIPT"}
+                            {activeUseCase === "giftcard" && "GIFT CARD BALANCE SLIP"}
+                            {activeUseCase === "loyalty" && "REWARDS SUMMARY RECEIPT"}
+                            {activeUseCase === "reservation" && "TABLE BOOKING SLIP"}
                           </div>
                         </div>
 
-                        {/* Order Meta */}
+                        {/* Order / Token Meta */}
                         <div className="border-t border-b border-slate-300 py-1 text-[9.5px] space-y-0.5">
                           <div className="flex justify-between">
-                            <span>BILL NO: #8492</span>
-                            <span>DATE: 07/09/2026</span>
+                            <span>
+                              {activeUseCase === "ebill" && "BILL NO: #8492"}
+                              {activeUseCase === "giftcard" && "CARD NO: #8842"}
+                              {activeUseCase === "loyalty" && "MEMBER: #GOLD-145"}
+                              {activeUseCase === "reservation" && "BOOKING NO: #9842"}
+                            </span>
+                            <span>DATE: 28/10/2026</span>
                           </div>
                           <div className="flex justify-between">
                             <span>TABLE: T-04</span>
-                            <span>TIME: 13:20:14</span>
+                            <span>
+                              {activeUseCase === "reservation" ? "RESERVE TIME: 20:30" : "TIME: 13:20:14"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
-                            <span>SERVER: RAJESH K.</span>
+                            <span>GUEST: ARJUN SHARMA</span>
                             <span>PAX: 4</span>
                           </div>
                         </div>
 
-                        {/* Dot Leader Items */}
-                        <div className="space-y-1 py-1 text-[10px] sm:text-[10.5px]">
-                          <div className="flex justify-between font-bold border-b border-slate-200 pb-0.5 text-[9.5px]">
-                            <span>ITEM DESCRIPTION</span>
-                            <span>AMOUNT</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>2x MURGH DUM BIRYANI</span>
-                            <span className="font-bold">960.00</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>1x PANEER TIKKA ANGARE</span>
-                            <span className="font-bold">380.00</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>2x ARTISANAL BERRY MOCK</span>
-                            <span className="font-bold">390.00</span>
-                          </div>
-                        </div>
+                        {/* Middle Content */}
+                        {activeUseCase === "ebill" && (
+                          <>
+                            <div className="space-y-1 py-1 text-[10px] sm:text-[10.5px]">
+                              <div className="flex justify-between font-bold border-b border-slate-200 pb-0.5 text-[9.5px]">
+                                <span>ITEM DESCRIPTION</span>
+                                <span>AMOUNT</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>2x MURGH DUM BIRYANI</span>
+                                <span className="font-bold">960.00</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>1x PANEER TIKKA ANGARE</span>
+                                <span className="font-bold">380.00</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>2x ARTISANAL BERRY MOCK</span>
+                                <span className="font-bold">390.00</span>
+                              </div>
+                            </div>
+                            <div className="border-t-2 border-slate-900 pt-1.5 space-y-0.5 text-[10.5px]">
+                              <div className="flex justify-between">
+                                <span>SUBTOTAL:</span>
+                                <span>1,730.00</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>CGST (2.5%):</span>
+                                <span>43.25</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>SGST (2.5%):</span>
+                                <span>43.25</span>
+                              </div>
+                              <div className="flex justify-between font-black text-[12.5px] border-t border-slate-400 pt-1">
+                                <span>TOTAL PAID:</span>
+                                <span>₹ 1,816.50</span>
+                              </div>
+                            </div>
+                          </>
+                        )}
 
-                        {/* Totals */}
-                        <div className="border-t-2 border-slate-900 pt-1.5 space-y-0.5 text-[10.5px]">
-                          <div className="flex justify-between">
-                            <span>SUBTOTAL:</span>
-                            <span>1,730.00</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>CGST (2.5%):</span>
-                            <span>43.25</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>SGST (2.5%):</span>
-                            <span>43.25</span>
-                          </div>
-                          <div className="flex justify-between font-black text-[12.5px] border-t border-slate-400 pt-1">
-                            <span>TOTAL PAID:</span>
-                            <span>₹ 1,816.50</span>
-                          </div>
-                        </div>
+                        {activeUseCase === "giftcard" && (
+                          <>
+                            <div className="space-y-1 py-1 text-[10px] sm:text-[10.5px]">
+                              <div className="flex justify-between font-bold border-b border-slate-200 pb-0.5 text-[9.5px]">
+                                <span>RECENT TRANSACTIONS</span>
+                                <span>AMOUNT</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>TOP-UP ONLINE (OCT 28)</span>
+                                <span className="font-bold">+2,000.00</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>DINE-IN REDEEM (OCT 24)</span>
+                                <span className="font-bold">-1,250.00</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>SIGNUP BONUS (OCT 15)</span>
+                                <span className="font-bold">+500.00</span>
+                              </div>
+                            </div>
+                            <div className="border-t-2 border-slate-900 pt-1.5 space-y-0.5 text-[10.5px]">
+                              <div className="flex justify-between">
+                                <span>CARD STATUS:</span>
+                                <span>ACTIVE</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>EXPIRY DATE:</span>
+                                <span>31/12/2027</span>
+                              </div>
+                              <div className="flex justify-between font-black text-[12.5px] border-t border-slate-400 pt-1">
+                                <span>AVAILABLE BALANCE:</span>
+                                <span>₹ 3,500.00</span>
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        {activeUseCase === "loyalty" && (
+                          <>
+                            <div className="space-y-1 py-1 text-[10px] sm:text-[10.5px]">
+                              <div className="flex justify-between font-bold border-b border-slate-200 pb-0.5 text-[9.5px]">
+                                <span>POINTS ACTIVITY</span>
+                                <span>POINTS</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>LAST VISIT BILL</span>
+                                <span className="font-bold">+150 PTS</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>ACTIVE COUPON</span>
+                                <span className="font-bold">15% OFF</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>MEMBERSHIP TIER</span>
+                                <span className="font-bold">GOLD VIP</span>
+                              </div>
+                            </div>
+                            <div className="border-t-2 border-slate-900 pt-1.5 space-y-0.5 text-[10.5px]">
+                              <div className="flex justify-between">
+                                <span>REDEMPTION VALUE:</span>
+                                <span>₹ 1,450.00</span>
+                              </div>
+                              <div className="flex justify-between font-black text-[12.5px] border-t border-slate-400 pt-1">
+                                <span>TOTAL POINTS:</span>
+                                <span>1,450 PTS</span>
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        {activeUseCase === "reservation" && (
+                          <>
+                            <div className="space-y-1 py-1 text-[10px] sm:text-[10.5px]">
+                              <div className="flex justify-between font-bold border-b border-slate-200 pb-0.5 text-[9.5px]">
+                                <span>RESERVATION DETAILS</span>
+                                <span>CONFIRMED</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>SECTION:</span>
+                                <span className="font-bold">TERRACE ROOFTOP</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>TABLE NUMBER:</span>
+                                <span className="font-bold">T-04</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>PARTY SIZE:</span>
+                                <span className="font-bold">4 GUESTS</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>SPECIAL REQUEST:</span>
+                                <span>ANNIVERSARY</span>
+                              </div>
+                            </div>
+                            <div className="border-t-2 border-slate-900 pt-1.5 space-y-0.5 text-[10.5px]">
+                              <div className="flex justify-between">
+                                <span>ADVANCE DEPOSIT:</span>
+                                <span>500.00</span>
+                              </div>
+                              <div className="flex justify-between font-black text-[12.5px] border-t border-slate-400 pt-1">
+                                <span>RESERVATION STATUS:</span>
+                                <span>CONFIRMED</span>
+                              </div>
+                            </div>
+                          </>
+                        )}
 
                         {/* Scannable Barcode & QR Simulation */}
                         <div className="pt-2 text-center space-y-1">
@@ -1204,14 +1641,20 @@ export function EmailTemplateSettingsView() {
                               ||| | |||| || ||| |||| | ||
                             </div>
                           </div>
-                          <p className="text-[9px] text-slate-500">PAID VIA UPI REF: 9842187</p>
+                          <p className="text-[9px] text-slate-500">
+                            {activeUseCase === "reservation"
+                              ? "SHOW THIS SLIP AT HOST DESK UPON ARRIVAL"
+                              : "SYSTEM GENERATED RECEIPT • REF: 9842187"}
+                          </p>
                         </div>
 
                         {/* Bottom Tear Off Effect */}
                         <div className="text-center text-slate-400 text-[10px] tracking-widest pt-1 select-none">
                           - - - - - - - - - - - - - - - - - - - -
                         </div>
-                        <p className="text-center font-bold text-[9.5px]">THANK YOU! VISIT AGAIN</p>
+                        <p className="text-center font-bold text-[9.5px]">
+                          {activeUseCase === "reservation" ? "WE LOOK FORWARD TO SERVING YOU" : "THANK YOU! VISIT AGAIN"}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -1231,13 +1674,12 @@ export function EmailTemplateSettingsView() {
                           <div className="flex justify-between items-start gap-2">
                             <div className="min-w-0 flex-1">
                               <span className="bg-white/20 backdrop-blur-xs px-2 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider inline-block">
-                                Culinary E-Receipt
+                                {activeUseCase === "ebill" && "Culinary E-Receipt"}
+                                {activeUseCase === "giftcard" && "Gift Card Passbook"}
+                                {activeUseCase === "loyalty" && "VIP Loyalty Rewards"}
+                                {activeUseCase === "reservation" && "Table Reservation Pass"}
                               </span>
-                              <h1
-                                className={`font-black uppercase mt-1 truncate ${
-                                  isMobile ? "text-[16px]" : "text-[22px]"
-                                }`}
-                              >
+                              <h1 className={`font-black uppercase mt-1 truncate ${isMobile ? "text-[16px]" : "text-[22px]"}`}>
                                 {restaurantName}
                               </h1>
                               <p className="text-[11px] text-orange-100 opacity-90 line-clamp-1">
@@ -1263,84 +1705,163 @@ export function EmailTemplateSettingsView() {
                         >
                           <div className="flex items-center gap-1.5 min-w-0">
                             <Sparkles className="h-4 w-4 text-amber-200 shrink-0" />
-                            <span className="truncate">Next-Visit Reward Unlocked!</span>
+                            <span className="truncate">
+                              {activeUseCase === "ebill" && "Next-Visit Reward Unlocked!"}
+                              {activeUseCase === "giftcard" && "Bonus Credit on Top-Ups Above ₹1,000"}
+                              {activeUseCase === "loyalty" && "Exclusive Gold VIP Reward Active!"}
+                              {activeUseCase === "reservation" && "Complimentary Chef's Amuse-Bouche on Arrival"}
+                            </span>
                           </div>
                           <span className="bg-white text-orange-950 font-mono px-2 py-0.5 rounded font-black text-[10.5px] shrink-0 ml-2">
-                            RETROD100
+                            {activeUseCase === "ebill" && "RETROD100"}
+                            {activeUseCase === "giftcard" && "TOPUP10"}
+                            {activeUseCase === "loyalty" && "GOLD15"}
+                            {activeUseCase === "reservation" && "WELCOMEVIP"}
                           </span>
                         </div>
 
-                        {/* Dish Showcase Grid: 1 col on mobile, 2 cols on desktop */}
-                        <div
-                          className={`space-y-3.5 text-slate-700 ${
-                            isMobile ? "p-3.5 text-[11.5px]" : "p-5 text-[12px]"
-                          }`}
-                        >
+                        {/* Dish / Details Showcase Grid */}
+                        <div className={`space-y-3.5 text-slate-700 ${isMobile ? "p-3.5 text-[11.5px]" : "p-5 text-[12px]"}`}>
                           <div className="flex justify-between items-center border-b border-orange-100 pb-2">
                             <div>
                               <h3 className="font-bold text-slate-900 text-[12.5px] sm:text-[13px]">
-                                Dine-In Summary
+                                {activeUseCase === "ebill" && "Dine-In Summary"}
+                                {activeUseCase === "giftcard" && "Card Balance Overview"}
+                                {activeUseCase === "loyalty" && "Loyalty Member Perks"}
+                                {activeUseCase === "reservation" && "Reservation Itinerary"}
                               </h3>
-                              <p className="text-[10.5px] text-slate-500">Order #ORD-8492 • Table T-04</p>
+                              <p className="text-[10.5px] text-slate-500">
+                                {activeUseCase === "ebill" && "Order #ORD-8492 • Table T-04"}
+                                {activeUseCase === "giftcard" && "Card #•••• 8842 • Mr. Arjun Sharma"}
+                                {activeUseCase === "loyalty" && "Gold Member • Tier Valid 1 Year"}
+                                {activeUseCase === "reservation" && "Tonight, 08:30 PM • 4 Guests"}
+                              </p>
                             </div>
                             <span className="font-bold text-[13.5px] sm:text-[14px] text-orange-700 font-mono">
-                              ₹ 1,816.50
+                              {activeUseCase === "ebill" && "₹ 1,816.50"}
+                              {activeUseCase === "giftcard" && "₹ 3,500.00"}
+                              {activeUseCase === "loyalty" && "1,450 Points"}
+                              {activeUseCase === "reservation" && "Table T-04"}
                             </span>
                           </div>
 
-                          <div
-                            className={
-                              isMobile ? "grid grid-cols-1 gap-2" : "grid grid-cols-2 gap-2.5"
-                            }
-                          >
-                            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-orange-50/50 border border-orange-100">
-                              <div className="h-9 w-9 rounded-lg bg-orange-200/80 flex items-center justify-center text-orange-800 shrink-0 font-bold text-[9.5px]">
-                                FOOD
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="font-bold text-slate-900 text-[11.5px] truncate">
-                                  Murgh Dum Biryani
+                          {/* 2-Card Showcase Highlights */}
+                          {activeUseCase === "ebill" && (
+                            <div className={isMobile ? "grid grid-cols-1 gap-2" : "grid grid-cols-2 gap-2.5"}>
+                              <div className="flex items-center gap-2.5 p-2 rounded-xl bg-orange-50/50 border border-orange-100">
+                                <div className="h-9 w-9 rounded-lg bg-orange-200/80 flex items-center justify-center text-orange-800 shrink-0 font-bold text-[9.5px]">
+                                  FOOD
                                 </div>
-                                <div className="text-[10px] text-slate-500 font-mono">
-                                  2x @ ₹480 = ₹960.00
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-bold text-slate-900 text-[11.5px] truncate">Murgh Dum Biryani</div>
+                                  <div className="text-[10px] text-slate-500 font-mono">2x @ ₹480 = ₹960.00</div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2.5 p-2 rounded-xl bg-orange-50/50 border border-orange-100">
+                                <div className="h-9 w-9 rounded-lg bg-orange-200/80 flex items-center justify-center text-orange-800 shrink-0 font-bold text-[9.5px]">
+                                  FOOD
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-bold text-slate-900 text-[11.5px] truncate">Paneer Tikka Angare</div>
+                                  <div className="text-[10px] text-slate-500 font-mono">1x @ ₹380 = ₹380.00</div>
                                 </div>
                               </div>
                             </div>
+                          )}
 
-                            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-orange-50/50 border border-orange-100">
-                              <div className="h-9 w-9 rounded-lg bg-orange-200/80 flex items-center justify-center text-orange-800 shrink-0 font-bold text-[9.5px]">
-                                FOOD
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="font-bold text-slate-900 text-[11.5px] truncate">
-                                  Paneer Tikka Angare
+                          {activeUseCase === "giftcard" && (
+                            <div className={isMobile ? "grid grid-cols-1 gap-2" : "grid grid-cols-2 gap-2.5"}>
+                              <div className="flex items-center gap-2.5 p-2 rounded-xl bg-teal-50/50 border border-teal-100">
+                                <div className="h-9 w-9 rounded-lg bg-teal-200/80 flex items-center justify-center text-teal-800 shrink-0 font-bold text-[9.5px]">
+                                  CARD
                                 </div>
-                                <div className="text-[10px] text-slate-500 font-mono">
-                                  1x @ ₹380 = ₹380.00
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-bold text-slate-900 text-[11.5px] truncate">Available Balance</div>
+                                  <div className="text-[10px] text-teal-700 font-mono font-bold">₹ 3,500.00 (Ready)</div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2.5 p-2 rounded-xl bg-orange-50/50 border border-orange-100">
+                                <div className="h-9 w-9 rounded-lg bg-orange-200/80 flex items-center justify-center text-orange-800 shrink-0 font-bold text-[9.5px]">
+                                  EXPIRY
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-bold text-slate-900 text-[11.5px] truncate">Valid Till Dec 2027</div>
+                                  <div className="text-[10px] text-slate-500">Universal Outlet Pass</div>
                                 </div>
                               </div>
                             </div>
-                          </div>
+                          )}
+
+                          {activeUseCase === "loyalty" && (
+                            <div className={isMobile ? "grid grid-cols-1 gap-2" : "grid grid-cols-2 gap-2.5"}>
+                              <div className="flex items-center gap-2.5 p-2 rounded-xl bg-amber-50/50 border border-amber-100">
+                                <div className="h-9 w-9 rounded-lg bg-amber-200/80 flex items-center justify-center text-amber-800 shrink-0 font-bold text-[9.5px]">
+                                  TIER
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-bold text-slate-900 text-[11.5px] truncate">Gold VIP Status</div>
+                                  <div className="text-[10px] text-amber-700 font-bold">Flat 10% Off All Dining</div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2.5 p-2 rounded-xl bg-purple-50/50 border border-purple-100">
+                                <div className="h-9 w-9 rounded-lg bg-purple-200/80 flex items-center justify-center text-purple-800 shrink-0 font-bold text-[9.5px]">
+                                  PERK
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-bold text-slate-900 text-[11.5px] truncate">Free Chef Dessert</div>
+                                  <div className="text-[10px] text-purple-700 font-semibold">Active on Next Visit</div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeUseCase === "reservation" && (
+                            <div className={isMobile ? "grid grid-cols-1 gap-2" : "grid grid-cols-2 gap-2.5"}>
+                              <div className="flex items-center gap-2.5 p-2 rounded-xl bg-teal-50/50 border border-teal-100">
+                                <div className="h-9 w-9 rounded-lg bg-teal-200/80 flex items-center justify-center text-teal-800 shrink-0 font-bold text-[9.5px]">
+                                  TABLE
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-bold text-slate-900 text-[11.5px] truncate">Terrace Lounge T-04</div>
+                                  <div className="text-[10px] text-slate-500">4 Guests (Adults)</div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2.5 p-2 rounded-xl bg-emerald-50/50 border border-emerald-100">
+                                <div className="h-9 w-9 rounded-lg bg-emerald-200/80 flex items-center justify-center text-emerald-800 shrink-0 font-bold text-[9.5px]">
+                                  TIME
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-bold text-slate-900 text-[11.5px] truncate">Tonight, 08:30 PM</div>
+                                  <div className="text-[10px] text-emerald-700 font-bold">Confirmed & Guaranteed</div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
                           {showDownloadCta && (
                             <button
                               type="button"
                               className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-bold text-[12px] shadow-2xs transition cursor-pointer"
                             >
-                              Download Full E-Bill & Tax Breakdown
+                              {activeUseCase === "ebill" && "Download Full E-Bill & Tax Breakdown"}
+                              {activeUseCase === "giftcard" && "Manage Gift Card & Top-Up Wallet"}
+                              {activeUseCase === "loyalty" && "Claim Loyalty Rewards & Coupons"}
+                              {activeUseCase === "reservation" && "Manage Reservation & Driving Route"}
                             </button>
                           )}
 
                           {showFeedbackRating && (
                             <div className="p-2.5 rounded-xl bg-amber-50/60 border border-amber-200 text-center space-y-1">
                               <p className="font-bold text-amber-950 text-[10.5px]">
-                                How was your food & hospitality?
+                                {activeUseCase === "reservation" ? "Looking forward to your visit!" : "How was your food & hospitality?"}
                               </p>
-                              <div className="flex justify-center gap-1.5 text-amber-500">
-                                {[1, 2, 3, 4, 5].map((s) => (
-                                  <Star key={s} className="h-4 w-4 fill-amber-400 cursor-pointer" />
-                                ))}
-                              </div>
+                              {activeUseCase !== "reservation" && (
+                                <div className="flex justify-center gap-1.5 text-amber-500">
+                                  {[1, 2, 3, 4, 5].map((s) => (
+                                    <Star key={s} className="h-4 w-4 fill-amber-400 cursor-pointer" />
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
