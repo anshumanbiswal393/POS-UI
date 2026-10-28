@@ -49,11 +49,14 @@ jobs:
           ssh -p ${{ secrets.VM_PORT }} $SSH_OPTS ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
             'set -euo pipefail
              cd /opt/retrod/POS-UI
-             docker compose build --progress=plain pos-ui
+             (docker compose build --progress=plain pos-ui || (sleep 5 && docker compose build --progress=plain pos-ui) || (sleep 10 && docker compose build --progress=plain pos-ui))
              docker compose up -d --force-recreate pos-ui
              docker image prune -f'
 
       - name: Sync deploy branch to main
         if: github.ref == 'refs/heads/main'
         run: |
-          git push origin HEAD:refs/heads/deploy --force
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:refs/heads/deploy --force
+
