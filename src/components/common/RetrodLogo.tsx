@@ -1,6 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import logoImg from "@/assets/retrod-logo-tight.png";
+import logoImg from "@/assets/logo.png";
 
 export interface RetrodLogoProps {
   className?: string;
@@ -31,7 +31,7 @@ export function RetrodLogo({
 
   const heightClasses = {
     sm: "h-6 max-h-6",
-    md: "h-8 max-h-8",
+    md: "h-7 max-h-7",
     lg: "h-11 max-h-11",
   }[size];
 

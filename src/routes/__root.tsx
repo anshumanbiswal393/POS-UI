@@ -69,13 +69,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Retrod POS" },
+      { title: "Retrod | POS" },
       {
         name: "description",
         content: "Restaurant point of sale — dashboard, orders, menu, inventory, and more.",
       },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "icon", type: "image/jpeg", href: "/favicon.jpeg" },
+      { rel: "shortcut icon", type: "image/jpeg", href: "/favicon.jpeg" },
+      { rel: "apple-touch-icon", href: "/favicon.jpeg" },
+      { rel: "stylesheet", href: appCss },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -87,6 +92,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
+        <title>Retrod | POS</title>
+        <link rel="icon" type="image/jpeg" href="/favicon.jpeg" />
+        <link rel="shortcut icon" type="image/jpeg" href="/favicon.jpeg" />
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
@@ -117,10 +125,15 @@ function AuthGate() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
     applyTheme(readSavedTheme());
   }, []);
+
+  useEffect(() => {
+    document.title = "Retrod | POS";
+  }, [pathname]);
 
   return (
     <QueryProvider client={queryClient}>
