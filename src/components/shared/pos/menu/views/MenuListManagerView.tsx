@@ -25,6 +25,47 @@ import { MenuCategoryManagerModal } from "../modals/MenuCategoryManagerModal";
 import { toast } from "sonner";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 
+function MenuImageCell({
+  item,
+  onManageImages,
+}: {
+  item: MenuItem;
+  onManageImages: (item: MenuItem) => void;
+}) {
+  const [loadError, setLoadError] = useState(false);
+  const primaryImg = item.images?.find((i) => i.isPrimary) || item.images?.[0];
+  const isStaleBlob = Boolean(primaryImg?.url && primaryImg.url.startsWith("blob:"));
+  const canShowImg = Boolean(primaryImg?.url && !isStaleBlob && !loadError);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onManageImages(item)}
+      className="relative h-10 w-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 hover:border-teal-500 transition cursor-pointer group/img shrink-0 mx-auto block"
+      title="Click to manage photos"
+    >
+      {canShowImg ? (
+        <img
+          src={primaryImg!.url}
+          alt=""
+          onError={() => setLoadError(true)}
+          className="h-full w-full object-cover group-hover/img:scale-105 transition"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-slate-400">
+          <ImageIcon className="h-4 w-4" />
+        </div>
+      )}
+
+      {item.images && item.images.length > 1 && (
+        <span className="absolute bottom-0.5 right-0.5 rounded bg-black/75 px-1 text-[8.5px] font-bold text-white leading-tight">
+          +{item.images.length - 1}
+        </span>
+      )}
+    </button>
+  );
+}
+
 export function MenuListManagerView() {
   const { activeOutlet } = useOutletContext();
   const { data: menuItems = [], isLoading, refetch, isFetching } = useMenuItems(activeOutlet.id);
@@ -149,35 +190,9 @@ export function MenuListManagerView() {
       minWidth: 72,
       width: 72,
       align: "center",
-      cell: ({ row }) => {
-        const primaryImg = row.images?.find((i) => i.isPrimary) || row.images?.[0];
-        return (
-          <button
-            type="button"
-            onClick={() => handleOpenImages(row)}
-            className="relative h-10 w-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 hover:border-teal-500 transition cursor-pointer group/img shrink-0 mx-auto block"
-            title="Click to manage photos"
-          >
-            {primaryImg ? (
-              <img
-                src={primaryImg.url}
-                alt={row.name}
-                className="h-full w-full object-cover group-hover/img:scale-105 transition"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-slate-400">
-                <ImageIcon className="h-4 w-4" />
-              </div>
-            )}
-
-            {row.images && row.images.length > 1 && (
-              <span className="absolute bottom-0.5 right-0.5 rounded bg-black/75 px-1 text-[8.5px] font-bold text-white leading-tight">
-                +{row.images.length - 1}
-              </span>
-            )}
-          </button>
-        );
-      },
+      cell: ({ row }) => (
+        <MenuImageCell item={row} onManageImages={handleOpenImages} />
+      ),
     },
     {
       id: "name",

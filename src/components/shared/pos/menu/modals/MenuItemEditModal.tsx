@@ -20,6 +20,7 @@ import {
   PosCreatePanel,
   PosCreateSubmitButton,
 } from "@/components/layout/pos/PosCreatePanel";
+import { fileToDataUrl } from "@/utils/imageUtils";
 
 const MAX_FILE_SIZE_MB = 5;
 const ALLOWED_EXTENSIONS = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
@@ -95,7 +96,7 @@ export function MenuItemEditModal({
     }
   }, [isOpen, item, category, categoryOptions]);
 
-  const handleFiles = (files: FileList | File[]) => {
+  const handleFiles = async (files: FileList | File[]) => {
     const validFiles: File[] = [];
     const fileArray = Array.from(files);
 
@@ -116,11 +117,11 @@ export function MenuItemEditModal({
     setIsUploading(true);
     setUploadProgress(25);
 
-    setTimeout(() => {
-      setUploadProgress(75);
-      setTimeout(() => {
-        const newImages: MenuItemImage[] = validFiles.map((file, idx) => {
-          const objectUrl = URL.createObjectURL(file);
+    try {
+      const newImages: MenuItemImage[] = await Promise.all(
+        validFiles.map(async (file, idx) => {
+          setUploadProgress((prev) => Math.min(prev + 20, 85));
+          const persistentUrl = await fileToDataUrl(file);
           const sizeKb = (file.size / 1024).toFixed(0);
           const formattedSize =
             file.size > 1024 * 1024
@@ -128,42 +129,46 @@ export function MenuItemEditModal({
               : `${sizeKb} KB`;
 
           return {
-            id: `img-${Date.now()}-${idx}`,
-            url: objectUrl,
+            id: `img-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+            url: persistentUrl,
             name: file.name,
             isPrimary: images.length === 0 && idx === 0,
             size: formattedSize,
             type: file.type || "image/jpeg",
             uploadedAt: "Just now",
           };
+        }),
+      );
+
+      setUploadProgress(100);
+
+      if (replaceIndexRef.current !== null && newImages.length > 0) {
+        const idx = replaceIndexRef.current;
+        const wasPrimary = images[idx]?.isPrimary;
+        const replacement = { ...newImages[0], isPrimary: wasPrimary };
+        setImages((prev) => {
+          const copy = [...prev];
+          copy[idx] = replacement;
+          return copy;
         });
-
-        if (replaceIndexRef.current !== null && newImages.length > 0) {
-          const idx = replaceIndexRef.current;
-          const wasPrimary = images[idx]?.isPrimary;
-          const replacement = { ...newImages[0], isPrimary: wasPrimary };
-          setImages((prev) => {
-            const copy = [...prev];
-            copy[idx] = replacement;
-            return copy;
-          });
-          replaceIndexRef.current = null;
-          toast.success("Image replaced successfully");
-        } else {
-          setImages((prev) => {
-            const hasPrimary = prev.some((i) => i.isPrimary);
-            if (!hasPrimary && newImages.length > 0) {
-              newImages[0].isPrimary = true;
-            }
-            return [...prev, ...newImages];
-          });
-          toast.success(`Added ${newImages.length} image(s)`);
-        }
-
-        setIsUploading(false);
-        setUploadProgress(0);
-      }, 400);
-    }, 400);
+        replaceIndexRef.current = null;
+        toast.success("Image replaced successfully");
+      } else {
+        setImages((prev) => {
+          const hasPrimary = prev.some((i) => i.isPrimary);
+          if (!hasPrimary && newImages.length > 0) {
+            newImages[0].isPrimary = true;
+          }
+          return [...prev, ...newImages];
+        });
+        toast.success(`Added ${newImages.length} image(s)`);
+      }
+    } catch {
+      toast.error("Failed to process image file(s)");
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   const handleSetPrimary = (id: string) => {

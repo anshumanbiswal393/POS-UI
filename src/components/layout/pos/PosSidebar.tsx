@@ -20,6 +20,46 @@ function collectLinks(items: Array<{ to?: string; children?: PosNavChild[] }>) {
 collectLinks(POS_NAV_ITEMS);
 collectLinks(POS_FOOTER_NAV_ITEMS);
 
+type NavNode = PosNavItem | PosNavChild;
+
+const { siblingsMap, descendantsMap } = (() => {
+  const siblingsMap = new Map<string, string[]>();
+  const descendantsMap = new Map<string, string[]>();
+
+  function collectDescendants(node: NavNode): string[] {
+    const list: string[] = [];
+    if (node.children?.length) {
+      for (const child of node.children) {
+        if (child.children?.length) {
+          list.push(child.id);
+          list.push(...collectDescendants(child));
+        }
+      }
+    }
+    return list;
+  }
+
+  function traverse(nodes: NavNode[]) {
+    const expandableInThisLevel = nodes
+      .filter((n) => Boolean(n.children?.length))
+      .map((n) => n.id);
+
+    for (const node of nodes) {
+      if (node.children?.length) {
+        siblingsMap.set(
+          node.id,
+          expandableInThisLevel.filter((id) => id !== node.id),
+        );
+        descendantsMap.set(node.id, collectDescendants(node));
+        traverse(node.children);
+      }
+    }
+  }
+
+  traverse(POS_NAV_ITEMS);
+  return { siblingsMap, descendantsMap };
+})();
+
 export function PosSidebar({
   collapsed,
   onNavigate,
@@ -52,7 +92,7 @@ export function PosSidebar({
   );
 
   useEffect(() => {
-    setOpenGroups((prev) => ({ ...prev, ...collectOpenGroups(pathname) }));
+    setOpenGroups(collectOpenGroups(pathname));
   }, [pathname]);
 
   useEffect(() => {
@@ -86,7 +126,33 @@ export function PosSidebar({
   };
 
   const toggleGroup = (id: string) => {
-    setOpenGroups((s) => ({ ...s, [id]: !s[id] }));
+    setOpenGroups((prev) => {
+      const willOpen = !prev[id];
+      const next = { ...prev };
+
+      if (!willOpen) {
+        next[id] = false;
+        const descendants = descendantsMap.get(id) || [];
+        for (const descId of descendants) {
+          next[descId] = false;
+        }
+        return next;
+      }
+
+      next[id] = true;
+
+      // Close all same-lined (sibling) folders and their descendants
+      const siblings = siblingsMap.get(id) || [];
+      for (const sibId of siblings) {
+        next[sibId] = false;
+        const sibDescendants = descendantsMap.get(sibId) || [];
+        for (const descId of sibDescendants) {
+          next[descId] = false;
+        }
+      }
+
+      return next;
+    });
   };
 
   const renderNode = (node: PosNavChild, depth: number): ReactNode => {

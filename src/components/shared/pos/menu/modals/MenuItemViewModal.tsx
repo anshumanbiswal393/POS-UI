@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { X, Image as ImageIcon, CheckCircle2, XCircle, Star, Edit2 } from "lucide-react";
 import type { MenuItem } from "@/types/posMenu";
 
@@ -12,9 +13,14 @@ export function MenuItemViewModal({
   item: MenuItem | null;
   onEdit: (item: MenuItem) => void;
 }) {
+  const [primaryError, setPrimaryError] = useState(false);
+  const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
+
   if (!isOpen || !item) return null;
 
   const primaryImage = item.images.find((i) => i.isPrimary) || item.images[0];
+  const isStaleBlob = Boolean(primaryImage?.url && primaryImage.url.startsWith("blob:"));
+  const canShowPrimary = Boolean(primaryImage?.url && !isStaleBlob && !primaryError);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
@@ -52,10 +58,11 @@ export function MenuItemViewModal({
           {/* Primary Photo & Thumbnail Strip */}
           <div className="space-y-2">
             <div className="relative h-56 w-full rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
-              {primaryImage ? (
+              {canShowPrimary ? (
                 <img
-                  src={primaryImage.url}
+                  src={primaryImage!.url}
                   alt={item.name}
+                  onError={() => setPrimaryError(true)}
                   className="h-full w-full object-cover"
                 />
               ) : (
@@ -69,16 +76,27 @@ export function MenuItemViewModal({
             {/* Gallery Thumbnails */}
             {item.images.length > 1 && (
               <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                {item.images.map((img) => (
-                  <div
-                    key={img.id}
-                    className={`relative h-16 w-16 shrink-0 rounded-lg overflow-hidden border ${
-                      img.isPrimary ? "border-teal-600 ring-2 ring-teal-500/30" : "border-slate-200"
-                    }`}
-                  >
-                    <img src={img.url} alt={img.name} className="h-full w-full object-cover" />
-                  </div>
-                ))}
+                {item.images.map((img) => {
+                  const isThumbBlob = img.url.startsWith("blob:");
+                  const isThumbBroken = brokenImages[img.id];
+                  if (isThumbBlob || isThumbBroken) return null;
+
+                  return (
+                    <div
+                      key={img.id}
+                      className={`relative h-16 w-16 shrink-0 rounded-lg overflow-hidden border ${
+                        img.isPrimary ? "border-teal-600 ring-2 ring-teal-500/30" : "border-slate-200"
+                      }`}
+                    >
+                      <img
+                        src={img.url}
+                        alt={img.name}
+                        onError={() => setBrokenImages((prev) => ({ ...prev, [img.id]: true }))}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

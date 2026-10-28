@@ -22,6 +22,7 @@ import {
   useSetPrimaryImage,
 } from "@/hooks/queries/usePosMenu";
 import { toast } from "sonner";
+import { fileToDataUrl } from "@/utils/imageUtils";
 
 const MAX_FILE_SIZE_MB = 10;
 const ALLOWED_EXTENSIONS = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/gif", "image/avif"];
@@ -75,31 +76,24 @@ export function ItemImageManagerModal({
       try {
         const existingCount = item.images?.length ?? 0;
         const newImages: MenuItemImage[] = await Promise.all(
-          validFiles.map(
-            (file, idx) =>
-              new Promise<MenuItemImage>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                  const sizeKb = (file.size / 1024).toFixed(0);
-                  const formattedSize =
-                    file.size > 1024 * 1024
-                      ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-                      : `${sizeKb} KB`;
+          validFiles.map(async (file, idx) => {
+            const persistentUrl = await fileToDataUrl(file);
+            const sizeKb = (file.size / 1024).toFixed(0);
+            const formattedSize =
+              file.size > 1024 * 1024
+                ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+                : `${sizeKb} KB`;
 
-                  resolve({
-                    id: `img-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
-                    url: String(reader.result || ""),
-                    name: file.name,
-                    isPrimary: existingCount === 0 && idx === 0,
-                    size: formattedSize,
-                    type: file.type || "image/jpeg",
-                    uploadedAt: "Just now",
-                  });
-                };
-                reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
-                reader.readAsDataURL(file);
-              }),
-          ),
+            return {
+              id: `img-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+              url: persistentUrl,
+              name: file.name,
+              isPrimary: existingCount === 0 && idx === 0,
+              size: formattedSize,
+              type: file.type || "image/jpeg",
+              uploadedAt: "Just now",
+            };
+          }),
         );
 
         addImagesMutation.mutate(
