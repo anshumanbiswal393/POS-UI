@@ -14,8 +14,6 @@ import {
   ScrollText,
   ShieldCheck,
   Sparkles,
-  Store,
-  Check,
   Plus,
   Settings,
   PanelLeftClose,
@@ -28,9 +26,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
-import { DINING_OUTLET_KINDS, normalizeOutletKind } from "@/utils/outletKind";
 import { useAuth } from "@/hooks/useAuth";
-import { useOutletContext } from "@/context/PosOutletContext";
 import {
   formatNotificationTime,
   usePosNotifications,
@@ -87,21 +83,15 @@ export function PosTopBar({
 }) {
   const navigate = useNavigate();
   const { user, roleLabel, logout } = useAuth();
-  const { activeOutlet, outlets, setActiveOutlet } = useOutletContext();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = usePosNotifications();
 
-  const [showOutletMenu, setShowOutletMenu] = useState(false);
   const [showDateMenu, setShowDateMenu] = useState(false);
   const [dateLabel, setDateLabel] = useState(formatTodayLabel);
-  const outletRef = useRef<HTMLDivElement>(null);
   const dateRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
-      if (outletRef.current && !outletRef.current.contains(target)) {
-        setShowOutletMenu(false);
-      }
       if (dateRef.current && !dateRef.current.contains(target)) {
         setShowDateMenu(false);
       }
@@ -110,9 +100,6 @@ export function PosTopBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const diningOutlets = outlets.filter(isDiningOutlet);
-  const primaryOutlets = diningOutlets.filter((o) => o.type === "Primary Outlet");
-  const virtualOutlets = diningOutlets.filter((o) => o.type === "Virtual Outlet");
   const roleText = user ? roleLabel(user.role) : "Retrod Admin";
 
   const dateOptions = [
@@ -184,7 +171,6 @@ export function PosTopBar({
             type="button"
             onClick={() => {
               setShowDateMenu((v) => !v);
-              setShowOutletMenu(false);
             }}
             className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-surface-2 px-3 text-[12.5px] font-semibold text-text-primary hover:bg-surface transition cursor-pointer"
           >
@@ -211,126 +197,6 @@ export function PosTopBar({
                   {opt.label}
                 </button>
               ))}
-            </div>
-          )}
-        </div>
-
-        {/* Outlet switcher — compact, same pill language as date */}
-        <div className="relative" ref={outletRef}>
-          <button
-            type="button"
-            onClick={() => {
-              setShowOutletMenu((v) => !v);
-              setShowDateMenu(false);
-            }}
-            className="flex h-9 max-w-[200px] items-center gap-1.5 rounded-xl border border-border bg-surface-2 px-2.5 text-[12.5px] font-semibold text-text-primary hover:bg-surface transition cursor-pointer"
-            title={`Active: ${activeOutlet.name}`}
-          >
-            <ActiveOutletIcon className="h-3.5 w-3.5 text-primary shrink-0" />
-            <span className="truncate">{activeOutlet.name}</span>
-            <ChevronDown className="h-3.5 w-3.5 text-text-disabled shrink-0" />
-          </button>
-
-          {showOutletMenu && (
-            <div className="absolute right-0 mt-1.5 w-80 rounded-xl border border-border bg-surface p-1.5 shadow-xl z-30 animate-in fade-in zoom-in-95">
-              <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-text-disabled">
-                  Switch Outlet
-                </span>
-                <span className="text-[11px] font-medium text-primary">{outlets.length} Total</span>
-              </div>
-
-              <div className="max-h-80 overflow-y-auto py-1 space-y-1">
-                <div className="px-2 pt-1 pb-0.5 text-[10.5px] font-semibold text-text-disabled uppercase tracking-wider">
-                  Primary Outlet
-                </div>
-                {primaryOutlets.map((outlet) => {
-                  const isSelected = activeOutlet.id === outlet.id;
-                  return (
-                    <button
-                      key={outlet.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveOutlet(outlet.id);
-                        setShowOutletMenu(false);
-                      }}
-                      className={`flex w-full items-start justify-between gap-2 rounded-lg px-3 py-2 text-left transition cursor-pointer ${
-                        isSelected
-                          ? "bg-primary/10 border border-primary/20 text-text-primary font-semibold"
-                          : "hover:bg-surface-2 text-text-primary"
-                      }`}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <span className="truncate text-[13px] font-bold block">{outlet.name}</span>
-                        <div className="flex items-center gap-2 mt-0.5 text-[11px] text-text-secondary">
-                          <span className="font-mono text-[10.5px] bg-surface-2 px-1 rounded">
-                            {outlet.code}
-                          </span>
-                          <span>•</span>
-                          <span>{outlet.cuisine}</span>
-                        </div>
-                      </div>
-                      {isSelected && <Check className="h-4 w-4 text-primary stroke-[2.5] shrink-0" />}
-                    </button>
-                  );
-                })}
-
-                {virtualOutlets.length > 0 && (
-                  <>
-                    <div className="px-2 pt-2.5 pb-0.5 text-[10.5px] font-semibold text-text-disabled uppercase tracking-wider border-t border-border">
-                      Virtual Outlets
-                    </div>
-                    {virtualOutlets.map((outlet) => {
-                      const isSelected = activeOutlet.id === outlet.id;
-                      return (
-                        <button
-                          key={outlet.id}
-                          type="button"
-                          onClick={() => {
-                            setActiveOutlet(outlet.id);
-                            setShowOutletMenu(false);
-                          }}
-                          className={`flex w-full items-start justify-between gap-2 rounded-lg px-3 py-2 text-left transition cursor-pointer ${
-                            isSelected
-                              ? "bg-primary/10 border border-primary/20 text-text-primary font-semibold"
-                              : "hover:bg-surface-2 text-text-primary"
-                          }`}
-                        >
-                          <div className="min-w-0 flex-1">
-                            <span className="truncate text-[12.5px] font-semibold block">
-                              {outlet.name}
-                            </span>
-                            <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-text-secondary">
-                              <span className="font-mono text-[10px] bg-surface-2 px-1 rounded">
-                                {outlet.code}
-                              </span>
-                              <span>•</span>
-                              <span className="truncate">{outlet.cuisine}</span>
-                            </div>
-                          </div>
-                          {isSelected && (
-                            <Check className="h-4 w-4 text-primary stroke-[2.5] shrink-0" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </>
-                )}
-              </div>
-
-              <div className="pt-1.5 border-t border-border">
-                <Link
-                  to="/pos/settings"
-                  onClick={() => setShowOutletMenu(false)}
-                  className="flex items-center justify-between rounded-lg px-3 py-2 text-[12px] font-semibold text-primary hover:bg-primary-tint transition"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Settings className="h-3.5 w-3.5" />
-                    Manage Outlets
-                  </span>
-                  <Plus className="h-3.5 w-3.5" />
-                </Link>
-              </div>
             </div>
           )}
         </div>

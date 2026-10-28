@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Plus, Store } from "lucide-react";
 import {
   POS_NAV_ITEMS,
   POS_FOOTER_NAV_ITEMS,
@@ -9,6 +9,17 @@ import {
 } from "@/app/navigation/pos-nav-config";
 import { RetrodLogo } from "@/components/common";
 import { cn } from "@/lib/utils";
+import { useOutletContext } from "@/context/PosOutletContext";
+import { isDiningOutlet } from "@/utils/outletKind";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const ALL_NAV_LINKS: string[] = [];
 function collectLinks(items: Array<{ to?: string; children?: PosNavChild[] }>) {
@@ -69,6 +80,9 @@ export function PosSidebar({
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeLinkRef = useRef<HTMLAnchorElement | null>(null);
+  const { activeOutlet, outlets, setActiveOutlet } = useOutletContext();
+  const diningOutlets = outlets.filter(isDiningOutlet);
+  const availableOutlets = diningOutlets.length > 0 ? diningOutlets : outlets;
 
   const collectOpenGroups = (path: string) => {
     const initial: Record<string, boolean> = {};
@@ -253,7 +267,130 @@ export function PosSidebar({
         )}
       </div>
 
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3 scrollbar-thin" aria-label="POS navigation">
+      {/* Outlet Switcher — same as PMS property switcher */}
+      {!collapsed ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="mx-3 mt-3 flex items-center justify-between rounded-lg border border-sidebar-border bg-sidebar-hover/40 px-3 py-2 text-left transition hover:bg-sidebar-hover outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+              title={`Active: ${activeOutlet?.name || "Choose Outlet"}`}
+            >
+              <div className="min-w-0 flex-1 pr-1">
+                <div className="truncate text-[13px] font-semibold text-sidebar-foreground">
+                  {activeOutlet?.name || "Choose Outlet"}
+                </div>
+                <div className="flex items-center gap-1 text-[11px] text-sidebar-muted">
+                  <span className="truncate">
+                    {activeOutlet?.city || activeOutlet?.cuisine || "Dine-In"}
+                  </span>
+                  <span className="opacity-50">·</span>
+                  <span className="shrink-0">
+                    {activeOutlet?.type === "Virtual Outlet" ? "Virtual" : "Primary"}
+                  </span>
+                  <span className="opacity-50">·</span>
+                  <span className="shrink-0">
+                    {availableOutlets.length} {availableOutlets.length === 1 ? "outlet" : "outlets"}
+                  </span>
+                </div>
+              </div>
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-muted" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-[216px]" align="start">
+            <DropdownMenuLabel className="text-xs text-sidebar-muted">Select Outlet</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup className="max-h-[300px] overflow-y-auto">
+              {availableOutlets.map((outlet) => {
+                const isSelected = activeOutlet?.id === outlet.id;
+                return (
+                  <DropdownMenuItem
+                    key={outlet.id}
+                    onClick={() => {
+                      setActiveOutlet(outlet.id);
+                      onNavigate?.();
+                    }}
+                    className="flex items-center justify-between cursor-pointer py-2"
+                  >
+                    <div className="flex flex-col gap-0.5 min-w-0 pr-2">
+                      <span className="text-[13px] font-medium truncate">{outlet.name}</span>
+                      <span className="text-[11px] text-muted-foreground truncate">
+                        {outlet.cuisine || outlet.type}
+                      </span>
+                    </div>
+                    {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link
+                to="/pos/management/configuration/outlet/list"
+                onClick={onNavigate}
+                className="flex items-center cursor-pointer text-sidebar-muted focus:text-sidebar-foreground py-1.5"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                <span className="text-[13px] font-medium">Add New Outlet</span>
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <div className="pt-3 flex justify-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-sidebar-border bg-sidebar-hover/40 text-sidebar-foreground transition hover:bg-sidebar-hover outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+                title={`Active: ${activeOutlet?.name || "Choose Outlet"}`}
+              >
+                <Store className="h-4 w-4 text-primary" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="start" className="w-[240px]">
+              <DropdownMenuLabel className="text-xs text-sidebar-muted">Select Outlet</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup className="max-h-[300px] overflow-y-auto">
+                {availableOutlets.map((outlet) => {
+                  const isSelected = activeOutlet?.id === outlet.id;
+                  return (
+                    <DropdownMenuItem
+                      key={outlet.id}
+                      onClick={() => {
+                        setActiveOutlet(outlet.id);
+                        onNavigate?.();
+                      }}
+                      className="flex items-center justify-between cursor-pointer py-2"
+                    >
+                      <div className="flex flex-col gap-0.5 min-w-0 pr-2">
+                        <span className="text-[13px] font-medium truncate">{outlet.name}</span>
+                        <span className="text-[11px] text-muted-foreground truncate">
+                          {outlet.cuisine || outlet.type}
+                        </span>
+                      </div>
+                      {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link
+                  to="/pos/management/configuration/outlet/list"
+                  onClick={onNavigate}
+                  className="flex items-center cursor-pointer text-sidebar-muted focus:text-sidebar-foreground py-1.5"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  <span className="text-[13px] font-medium">Add New Outlet</span>
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+
+      <nav className="mt-2 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3 scrollbar-thin" aria-label="POS navigation">
         {POS_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const hasChildren = Boolean(item.children?.length);
