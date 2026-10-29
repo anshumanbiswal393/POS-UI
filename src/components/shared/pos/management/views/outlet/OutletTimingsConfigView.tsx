@@ -4,7 +4,7 @@ import {
   FieldLabel,
   YesNoRadios,
 } from "@/components/shared/pos/management/outlet-config/ConfigPageShell";
-import { useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
+import { useDraftOnChange, useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
 import type { DayTiming } from "@/components/shared/pos/management/outlet-config/outletConfigStore";
 
 function TimeInput({
@@ -28,8 +28,9 @@ function TimeInput({
 }
 
 export function OutletTimingsConfigView() {
-  const { config, persist } = useOutletConfig();
+  const { config, persist, saveDraft, outletId } = useOutletConfig();
   const [form, setForm] = useState(config.timings);
+  useDraftOnChange("timings", form, (c, f) => ({ ...c, timings: f }), saveDraft, outletId);
 
   const patchDay = (day: string, patch: Partial<DayTiming>) => {
     setForm((prev) => ({
@@ -48,7 +49,7 @@ export function OutletTimingsConfigView() {
     }));
   };
 
-  const handleSave = () => persist({ ...config, timings: form }, "Outlet timings saved");
+  const handleSave = () => persist({ ...config, timings: form }, "Outlet timings saved", "timings");
 
   const templateDay = form.days[0];
 
@@ -57,6 +58,7 @@ export function OutletTimingsConfigView() {
       title="Outlet Timings"
       subtitle="Configure closing hours, lunch & dinner timings, and where they are displayed."
       onSave={handleSave}
+      stepId="timings"
     >
       <div className="space-y-6">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">

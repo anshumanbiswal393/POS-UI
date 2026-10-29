@@ -58,13 +58,7 @@ export interface PurchaseVendor {
 const LOCAL_STORAGE_PURCHASES_KEY = "retrod_pos_unified_purchases_v2";
 const LOCAL_STORAGE_VENDORS_KEY = "retrod_pos_unified_vendors";
 
-export const DEFAULT_VENDORS: PurchaseVendor[] = [
-  { id: "v-1", name: "Metro Cash & Carry", phone: "+91 98200 12345", category: "Groceries & Dry Goods", contactPerson: "Vikram Patel", gstin: "27AABCM1234F1Z5" },
-  { id: "v-2", name: "Royal Dairy Suppliers", phone: "+91 98200 54321", category: "Dairy & Milk", contactPerson: "Suresh Yadav", gstin: "27AADCR5678B1Z2" },
-  { id: "v-3", name: "Fresh Farm Greens & Veggies", phone: "+91 98300 11223", category: "Fresh Produce", contactPerson: "Ramesh Kumar", gstin: "27AACCF9012K1Z9" },
-  { id: "v-4", name: "Classic Spirits & Beverages", phone: "+91 98400 99887", category: "Beverages & Liquor", contactPerson: "Anand Shah", gstin: "27AABCS3456L1Z4" },
-  { id: "v-5", name: "Supreme Poultry & Meat", phone: "+91 98500 44556", category: "Meat & Poultry", contactPerson: "Mohd. Aslam", gstin: "27AAECS7890M1Z8" },
-];
+export const DEFAULT_VENDORS: PurchaseVendor[] = [];
 
 export const DEFAULT_PURCHASES: UnifiedPurchaseDto[] = [];
 
@@ -97,7 +91,10 @@ function getStoredVendors(): PurchaseVendor[] {
     const raw = localStorage.getItem(LOCAL_STORAGE_VENDORS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const dummyIds = new Set(["v-1", "v-2", "v-3", "v-4", "v-5"]);
+        return parsed.filter((v: PurchaseVendor) => !dummyIds.has(v.id));
+      }
     }
   } catch (err) {
     console.error("Failed to read vendors from localStorage", err);
@@ -125,12 +122,19 @@ export const posPurchasesService = {
         "/api/pos/stock/vendors/",
         { params: { search } },
       );
-      if (res?.data?.vendors && res.data.vendors.length > 0) {
+      if (res?.data?.vendors) {
         saveStoredVendors(res.data.vendors);
-        return res.data.vendors;
+        let list = res.data.vendors;
+        if (search) {
+          const q = search.toLowerCase();
+          list = list.filter(
+            (v) => v.name.toLowerCase().includes(q) || v.category.toLowerCase().includes(q),
+          );
+        }
+        return list;
       }
     } catch {
-      // Fallback
+      // Fall through to stored vendors created in this browser
     }
 
     let list = getStoredVendors();

@@ -6,11 +6,19 @@ import {
   FieldLabel,
   TextInput,
 } from "@/components/shared/pos/management/outlet-config/ConfigPageShell";
-import { useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
+import { useDraftOnChange, useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
 
 export function OutletDetailsConfigView() {
-  const { config, persist } = useOutletConfig();
-  const [form, setForm] = useState(config.details);
+  const { outlet, config, persist, saveDraft, outletId } = useOutletConfig();
+  const [form, setForm] = useState(() => ({
+    ...config.details,
+    outletName: config.details.outletName || outlet.name || "",
+    alias: config.details.alias || outlet.code || "",
+    email: config.details.email || outlet.email || "",
+    address: config.details.address || outlet.address || "",
+    cuisine: config.details.cuisine || outlet.cuisine || "",
+  }));
+  useDraftOnChange("details", form, (c, f) => ({ ...c, details: f }), saveDraft, outletId);
 
   const update = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -32,7 +40,7 @@ export function OutletDetailsConfigView() {
       toast.error("Outlet name, email and address are required");
       return;
     }
-    persist({ ...config, details: form }, "Outlet details saved");
+    return persist({ ...config, details: form }, "Outlet details saved", "details");
   };
 
   return (
@@ -40,6 +48,7 @@ export function OutletDetailsConfigView() {
       title="Outlet Details"
       subtitle="Configure email id, address, and logo of an outlet."
       onSave={handleSave}
+      stepId="details"
     >
       <div className="space-y-8">
         <section className="space-y-4">

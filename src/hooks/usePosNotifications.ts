@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useStockAlerts } from "@/hooks/queries/usePosInventory";
-import { useKotOrders } from "@/hooks/queries/usePosOrders";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { isBackendOutletId } from "@/utils/outletId";
+import { KOT_READY_EVENT, listKotReadyNotices } from "@/lib/posReadyNotifications";
 
 export type PosNotificationCategory =
   | "ORDER"
@@ -24,48 +24,7 @@ export type PosNotification = {
 
 const READ_KEY = "retrod.pos.notifications.read.v1";
 
-const SEED: Array<Omit<PosNotification, "isRead">> = [
-  {
-    id: "pos-n1",
-    title: "New dine-in order",
-    message: "Table B23 · 2 items · ₹1,240 placed at the main counter.",
-    category: "ORDER",
-    createdAt: Date.now() - 2 * 60 * 1000,
-    link: "/pos/orders",
-  },
-  {
-    id: "pos-n2",
-    title: "Kitchen order ready",
-    message: "KOT #1 — Tandoori Chicken (Half) is ready for pickup.",
-    category: "KOT",
-    createdAt: Date.now() - 8 * 60 * 1000,
-    link: "/pos/kot",
-  },
-  {
-    id: "pos-n3",
-    title: "Pending settlement",
-    message: "Table B24 has an unpaid bill of ₹520 waiting at billing.",
-    category: "PAYMENT",
-    createdAt: Date.now() - 18 * 60 * 1000,
-    link: "/pos/settlement",
-  },
-  {
-    id: "pos-n5",
-    title: "Pickup order confirmed",
-    message: "Online pickup #RET-9040 is confirmed and waiting in kitchen.",
-    category: "ONLINE",
-    createdAt: Date.now() - 3 * 60 * 60 * 1000,
-    link: "/pos/orders",
-  },
-  {
-    id: "pos-n6",
-    title: "Day-end reminder",
-    message: "Close the shift and print the day-end summary before logout.",
-    category: "SYSTEM",
-    createdAt: Date.now() - 6 * 60 * 60 * 1000,
-    link: "/pos/reports/day-end",
-  },
-];
+const SEED: Array<Omit<PosNotification, "isRead">> = [];
 
 function readStoredIds(): Set<string> {
   if (typeof window === "undefined") return new Set();
@@ -95,11 +54,11 @@ export function formatNotificationTime(createdAt: number) {
 
 export function usePosNotifications() {
   const { data: stockAlerts = [] } = useStockAlerts();
-  const { data: kotData } = useKotOrders();
   const { activeOutlet } = useOutletContext();
   const liveOutlet = isBackendOutletId(activeOutlet?.id);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const [hydrated, setHydrated] = useState(false);
+  const [readyTick, setReadyTick] = useState(0);
 
   useEffect(() => {
     setReadIds(readStoredIds());
@@ -110,6 +69,12 @@ export function usePosNotifications() {
     if (!hydrated) return;
     writeStoredIds(readIds);
   }, [hydrated, readIds]);
+
+  useEffect(() => {
+    const onReady = () => setReadyTick((n) => n + 1);
+    window.addEventListener(KOT_READY_EVENT, onReady);
+    return () => window.removeEventListener(KOT_READY_EVENT, onReady);
+  }, []);
 
   const notifications = useMemo<PosNotification[]>(() => {
     const seed = liveOutlet ? [] : SEED.filter((item) => item.category !== "STOCK");
@@ -122,27 +87,19 @@ export function usePosNotifications() {
       link: alert.link || "/pos/inventory/available-stock",
       isRead: readIds.has(alert.id),
     }));
-    const kotReady: PosNotification[] = liveOutlet
-      ? (kotData?.records || [])
-          .filter((kot) => kot.status === "Prepared")
-          .map((kot) => {
-            const id = `kot-ready-${kot.id}`;
-            const orderRef = kot.orderNumber ? `Order #${kot.orderNumber}` : `Order KOT #${kot.kotId}`;
-            return {
-              id,
-              title: `${orderRef} is ready`,
-              message: `${orderRef} (${kot.customerName || "Dine In"}) is ready to serve.`,
-              category: "KOT" as const,
-              createdAt: kot.readyTimestamp || kot.createdTimestamp || Date.now(),
-              link: "/pos/orders",
-              isRead: readIds.has(id),
-            };
-          })
-      : [];
+    const kotReady: PosNotification[] = listKotReadyNotices(activeOutlet?.id).map((note) => ({
+      id: note.id,
+      title: note.title,
+      message: note.message,
+      category: "KOT" as const,
+      createdAt: note.createdAt,
+      link: "/pos/settlement",
+      isRead: readIds.has(note.id),
+    }));
     return [...alerts, ...kotReady, ...seed.map((item) => ({ ...item, isRead: readIds.has(item.id) }))].sort(
       (a, b) => b.createdAt - a.createdAt,
     );
-  }, [readIds, stockAlerts, liveOutlet, kotData]);
+  }, [readIds, stockAlerts, liveOutlet, activeOutlet?.id, readyTick]);
 
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.isRead).length,
@@ -163,13 +120,11 @@ export function usePosNotifications() {
       const next = new Set(prev);
       SEED.forEach((item) => next.add(item.id));
       stockAlerts.forEach((item) => next.add(item.id));
-      (kotData?.records || [])
-        .filter((kot) => kot.status === "Prepared")
-        .forEach((kot) => next.add(`kot-ready-${kot.id}`));
+      listKotReadyNotices(activeOutlet?.id).forEach((note) => next.add(note.id));
       if (next.size === prev.size) return prev;
       return next;
     });
-  }, [stockAlerts, kotData]);
+  }, [stockAlerts, activeOutlet?.id, readyTick]);
 
   return { notifications, unreadCount, markAsRead, markAllAsRead };
 }

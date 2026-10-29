@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfigPageShell } from "@/components/shared/pos/management/outlet-config/ConfigPageShell";
-import { useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
+import { useDraftOnChange, useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
 import type { InvoiceSequenceRow } from "@/components/shared/pos/management/outlet-config/outletConfigStore";
 
 function preview(row: InvoiceSequenceRow) {
@@ -13,8 +13,15 @@ function preview(row: InvoiceSequenceRow) {
 }
 
 export function InvoiceSequenceConfigView() {
-  const { config, persist } = useOutletConfig();
+  const { config, persist, saveDraft, outletId } = useOutletConfig();
   const [rows, setRows] = useState(config.invoiceSequences);
+  useDraftOnChange(
+    "invoice-sequence",
+    rows,
+    (c, f) => ({ ...c, invoiceSequences: f }),
+    saveDraft,
+    outletId,
+  );
 
   const patch = (id: string, next: Partial<InvoiceSequenceRow>) => {
     setRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...next } : row)));
@@ -25,7 +32,7 @@ export function InvoiceSequenceConfigView() {
       toast.error("Each sequence needs a name and prefix");
       return;
     }
-    persist({ ...config, invoiceSequences: rows }, "Invoice sequences saved");
+    return persist({ ...config, invoiceSequences: rows }, "Invoice sequences saved", "invoice-sequence");
   };
 
   return (
@@ -33,6 +40,7 @@ export function InvoiceSequenceConfigView() {
       title="Invoice Sequence"
       subtitle="Configure multiple invoice sequences by order type."
       onSave={handleSave}
+      stepId="invoice-sequence"
     >
       <div className="space-y-4">
         <div className="flex justify-end">

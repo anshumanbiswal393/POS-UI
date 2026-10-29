@@ -3,20 +3,18 @@ import {
   Trash2,
   Plus,
   Minus,
-  QrCode,
-  Banknote,
   FileText,
   Printer,
   PauseCircle,
   Gift,
-  CheckCircle2,
+  IndianRupee,
+  BedDouble,
   ChevronDown,
   StickyNote,
 } from "lucide-react";
 import type {
   BillingCartItem,
   BillingOrderType,
-  BillingPaymentMethod,
   CustomerProfile,
 } from "@/types/posBilling";
 import { getPosTaxSettings } from "@/lib/posTaxSettings";
@@ -39,7 +37,9 @@ type BillingCartRegisterProps = {
   onClearCart: () => void;
   onHoldBill: () => void;
   onPrintKot: () => void;
-  onSettleBill: (paymentMethod: BillingPaymentMethod, tenderedAmount: number) => void;
+  onPayNow: () => void;
+  onAddToRoomFolio?: () => void;
+  busyAction?: "hold" | "kot" | "pay" | "folio" | null;
   selectedCustomer: CustomerProfile | null;
   onSelectCustomer: (customer: CustomerProfile | null) => void;
 };
@@ -51,7 +51,7 @@ export function BillingCartRegister({
   roomNumber,
   guestCount,
   billNumber,
-  captainName,
+  captainName: _captainName,
   specialNote,
   onSpecialNoteChange,
   onUpdateCartQty,
@@ -60,7 +60,9 @@ export function BillingCartRegister({
   onClearCart,
   onHoldBill,
   onPrintKot,
-  onSettleBill,
+  onPayNow,
+  onAddToRoomFolio,
+  busyAction = null,
   selectedCustomer,
   onSelectCustomer,
 }: BillingCartRegisterProps) {
@@ -71,7 +73,6 @@ export function BillingCartRegister({
     [specialNotes],
   );
 
-  const [paymentMethod, setPaymentMethod] = useState<BillingPaymentMethod>("cash");
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountRate: number } | null>(
     null,
@@ -80,7 +81,6 @@ export function BillingCartRegister({
   const [taxSettings, setTaxSettings] = useState(() => getPosTaxSettings());
   const [customerName, setCustomerName] = useState(selectedCustomer?.name ?? "");
   const [customerNumber, setCustomerNumber] = useState(selectedCustomer?.phone ?? "");
-  const [cashTendered, setCashTendered] = useState<number | null>(null);
   const [presetNoteId, setPresetNoteId] = useState("");
 
   useEffect(() => {
@@ -137,20 +137,6 @@ export function BillingCartRegister({
   const grandTotal = Math.round(rawTotal);
   const roundOff = Number((grandTotal - rawTotal).toFixed(2));
 
-  // Cash preset amounts
-  const cashPresets = useMemo(() => {
-    if (grandTotal <= 0) return [];
-    const presets = [grandTotal];
-    if (grandTotal < 500) presets.push(500);
-    if (grandTotal < 1000) presets.push(1000);
-    if (grandTotal < 2000) presets.push(2000);
-    if (grandTotal >= 2000) presets.push(Math.ceil(grandTotal / 500) * 500);
-    return Array.from(new Set(presets));
-  }, [grandTotal]);
-
-  const effectiveTendered = cashTendered !== null ? cashTendered : grandTotal;
-  const changeDue = Math.max(0, effectiveTendered - grandTotal);
-
   const handleApplyCoupon = () => {
     if (!couponCode.trim()) return;
     const upper = couponCode.toUpperCase().trim();
@@ -169,14 +155,8 @@ export function BillingCartRegister({
     }
   };
 
-  const paymentOptions: {
-    id: BillingPaymentMethod;
-    label: string;
-    icon: React.ElementType;
-  }[] = [
-    { id: "cash", label: "Cash", icon: Banknote },
-    { id: "upi", label: "UPI", icon: QrCode },
-  ];
+  const actionsDisabled = cartItems.length === 0 || Boolean(busyAction);
+  const showRoomFolio = orderType === "room_service" && Boolean(onAddToRoomFolio);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs flex flex-col h-full max-h-full overflow-hidden">
@@ -203,9 +183,6 @@ export function BillingCartRegister({
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="text-[10.5px] text-slate-400">
-            Steward: <strong className="text-slate-200">{captainName}</strong>
-          </span>
           {cartItems.length > 0 && (
             <button
               type="button"
@@ -517,92 +494,51 @@ export function BillingCartRegister({
         </div>
       </div>
 
-      {/* 5. Payment Tender Mode Selector (Slim) */}
-      <div className="px-3 py-2 bg-white border-t border-slate-200 space-y-1.5 shrink-0">
-        <div className="grid grid-cols-2 gap-1.5">
-          {paymentOptions.map((opt) => {
-            const Icon = opt.icon;
-            const isSelected = paymentMethod === opt.id;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => setPaymentMethod(opt.id)}
-                className={`flex flex-row items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border text-[11px] font-bold transition cursor-pointer ${
-                  isSelected
-                    ? "bg-primary text-primary-foreground border-primary shadow-2xs"
-                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                }`}
-              >
-                <Icon
-                  className={`h-3.5 w-3.5 ${isSelected ? "text-primary-foreground" : "text-slate-600"}`}
-                />
-                <span>{opt.label}</span>
-              </button>
-            );
-          })}
+      {/* 5. Action Footer */}
+      <div className="p-2.5 bg-slate-100 border-t border-slate-200 space-y-1.5 shrink-0">
+        <div className="grid grid-cols-3 gap-1.5">
+          <button
+            type="button"
+            onClick={onHoldBill}
+            disabled={actionsDisabled}
+            className="flex items-center justify-center gap-1 py-2.5 px-1 rounded-lg bg-orange-300 hover:bg-orange-400 text-orange-950 text-[11px] font-bold transition disabled:opacity-40 cursor-pointer shadow-2xs"
+          >
+            <PauseCircle className="h-3.5 w-3.5" />
+            <span>{busyAction === "hold" ? "Holding…" : "HOLD"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onPrintKot}
+            disabled={actionsDisabled}
+            className="flex items-center justify-center gap-1 py-2.5 px-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] font-bold transition disabled:opacity-40 cursor-pointer shadow-2xs"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            <span>{busyAction === "kot" ? "Sending…" : "KOT"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onPayNow}
+            disabled={actionsDisabled}
+            className="flex items-center justify-center gap-1 py-2.5 px-1 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-[11px] font-bold transition disabled:opacity-40 cursor-pointer shadow-2xs"
+          >
+            <IndianRupee className="h-3.5 w-3.5" />
+            <span>{busyAction === "pay" ? "Paying…" : "PAY NOW"}</span>
+          </button>
         </div>
 
-        {/* Cash Tender Presets & Change Due calculator */}
-        {paymentMethod === "cash" && grandTotal > 0 && (
-          <div className="bg-amber-50/60 border border-amber-200/80 rounded-lg px-2 py-1 space-y-1 text-xs">
-            <div className="flex items-center justify-between text-[10.5px] text-amber-900 font-semibold">
-              <span>Quick Cash:</span>
-              <span>
-                Change Return: <strong className="text-emerald-700">₹{changeDue}</strong>
-              </span>
-            </div>
-            <div className="flex items-center gap-1 overflow-x-auto">
-              {cashPresets.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setCashTendered(preset)}
-                  className={`px-1.5 py-0.2 rounded text-[11px] font-bold border transition cursor-pointer ${
-                    effectiveTendered === preset
-                      ? "bg-amber-600 text-white border-amber-600"
-                      : "bg-white text-slate-800 border-slate-200 hover:bg-amber-100"
-                  }`}
-                >
-                  ₹{preset}
-                </button>
-              ))}
-            </div>
-          </div>
+        {showRoomFolio && (
+          <button
+            type="button"
+            onClick={onAddToRoomFolio}
+            disabled={actionsDisabled || !roomNumber}
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg bg-white border border-teal-700 text-teal-800 hover:bg-teal-50 text-[11.5px] font-bold transition disabled:opacity-40 cursor-pointer shadow-2xs"
+          >
+            <BedDouble className="h-3.5 w-3.5" />
+            <span>{busyAction === "folio" ? "Posting…" : "Add to Room Folio"}</span>
+          </button>
         )}
-      </div>
-
-      {/* 6. Action Footer */}
-      <div className="p-2.5 bg-slate-100 border-t border-slate-200 grid grid-cols-4 gap-1.5 shrink-0">
-        <button
-          type="button"
-          onClick={onHoldBill}
-          disabled={cartItems.length === 0}
-          className="flex items-center justify-center gap-1 py-2 px-1 rounded-lg bg-white border border-slate-300 hover:bg-amber-50 hover:border-amber-300 text-slate-700 text-[10.5px] font-bold transition disabled:opacity-40 cursor-pointer shadow-2xs"
-        >
-          <PauseCircle className="h-3.5 w-3.5 text-amber-600" />
-          <span>Hold [F4]</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={onPrintKot}
-          disabled={cartItems.length === 0}
-          className="flex items-center justify-center gap-1 py-2 px-1 rounded-lg bg-white border border-slate-300 hover:bg-blue-50 hover:border-blue-300 text-slate-700 text-[10.5px] font-bold transition disabled:opacity-40 cursor-pointer shadow-2xs"
-        >
-          <Printer className="h-3.5 w-3.5 text-blue-600" />
-          <span>KOT [F8]</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onSettleBill(paymentMethod, effectiveTendered)}
-          disabled={cartItems.length === 0}
-          className="col-span-2 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold transition disabled:opacity-40 cursor-pointer shadow-xs active:scale-[0.99]"
-        >
-          <CheckCircle2 className="h-4 w-4" />
-          <span>Submit [F10]</span>
-        </button>
       </div>
     </div>
   );

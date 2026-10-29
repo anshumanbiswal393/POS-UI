@@ -22,6 +22,21 @@ export function isHighwayInnName(name?: string | null, code?: string | null): bo
   return c === "HI-MAIN" || n.includes("HIGHWAY INN");
 }
 
+/**
+ * Known dummy/test outlets that must never be displayed or retained in the database/UI.
+ */
+export function isDummyOutlet(name?: string | null, code?: string | null): boolean {
+  const n = (name || "").toLowerCase().trim();
+  const c = (code || "").toLowerCase().trim();
+  if (c === "test-1" || n === "test") return true;
+  if (c === "brfix1" || n.includes("browser fix")) return true;
+  if (c === "curlho1" || n.includes("curl test")) return true;
+  if (c === "olui-ho" || n.includes("outlet list ui")) return true;
+  if (c === "sgc-01" || n.includes("seaside")) return true;
+  if (c === "sky-roof" || n.includes("skyline")) return true;
+  return false;
+}
+
 export function getOutletDedupKey(outlet: PosOutlet): string {
   if (isHighwayInnName(outlet.name, outlet.code) || isHighwayDemoOutlet(outlet.id)) {
     return "highway-inn";
@@ -36,6 +51,7 @@ export function getOutletDedupKey(outlet: PosOutlet): string {
 /**
  * Deduplicate a list of outlets ensuring each unique physical/virtual outlet
  * is maintained only ONCE.
+ * - Filters out known dummy outlets.
  * - Highway Inn always collapses into a single entry (preferring real backend UUID if present).
  * - Other outlets are deduplicated by unique code or normalized name.
  */
@@ -44,6 +60,7 @@ export function deduplicateOutlets(outlets: PosOutlet[], activeId?: string): Pos
 
   for (const o of outlets) {
     if (!o || !o.id) continue;
+    if (isDummyOutlet(o.name, o.code)) continue;
     const key = getOutletDedupKey(o);
     const existing = byKey.get(key);
 

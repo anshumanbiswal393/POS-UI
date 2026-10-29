@@ -1,21 +1,37 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ConfigPageShell,
   OptionRadios,
   SettingRow,
   YesNoRadios,
 } from "@/components/shared/pos/management/outlet-config/ConfigPageShell";
-import { useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
+import { useDraftOnChange, useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
 
 export function BillingDisplayConfigView() {
-  const { config, persist } = useOutletConfig();
+  const { config, persist, saveDraft, outletId } = useOutletConfig();
   const [form, setForm] = useState(config.billingDisplay);
+  const [hardware, setHardware] = useState(config.print);
+  const displayDraft = useMemo(() => ({ display: form, hardware }), [form, hardware]);
+  useDraftOnChange(
+    "display",
+    displayDraft,
+    (c, f) => ({ ...c, billingDisplay: f.display, print: f.hardware }),
+    saveDraft,
+    outletId,
+  );
 
   return (
     <ConfigPageShell
-      title="Display"
-      subtitle="Configure the billing screen display, look & values."
-      onSave={() => persist({ ...config, billingDisplay: form }, "Billing display saved")}
+      title="Billing Screen & Hardware Settings"
+      subtitle="Configure display settings, POS hardware and devices."
+      onSave={() =>
+        persist(
+          { ...config, billingDisplay: form, print: hardware },
+          "Billing screen & hardware settings saved",
+          "display",
+        )
+      }
+      stepId="display"
     >
       <SettingRow label="Menu layout on the billing screen">
         <OptionRadios
@@ -118,6 +134,38 @@ export function BillingDisplayConfigView() {
           value={form.themeAccent}
           options={["Teal", "Slate"]}
           onChange={(v) => setForm((p) => ({ ...p, themeAccent: v as typeof form.themeAccent }))}
+        />
+      </SettingRow>
+      <h3 className="border-b border-slate-100 pb-2 pt-4 text-[15px] font-bold text-slate-900">
+        POS Hardware & Devices
+      </h3>
+      <SettingRow label="Paper size">
+        <OptionRadios
+          name="paperSize"
+          value={hardware.paperSize}
+          options={["80mm", "58mm", "A4"]}
+          onChange={(v) => setHardware((p) => ({ ...p, paperSize: v as typeof p.paperSize }))}
+        />
+      </SettingRow>
+      <SettingRow label="Auto print bill on settle?">
+        <YesNoRadios
+          name="autoPrintOnSettle"
+          value={hardware.autoPrintOnSettle}
+          onChange={(v) => setHardware((p) => ({ ...p, autoPrintOnSettle: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Auto print KOT when items are sent to kitchen?">
+        <YesNoRadios
+          name="autoPrintKot"
+          value={hardware.autoPrintKot}
+          onChange={(v) => setHardware((p) => ({ ...p, autoPrintKot: v }))}
+        />
+      </SettingRow>
+      <SettingRow label="Cut paper after print?">
+        <YesNoRadios
+          name="cutAfterPrint"
+          value={hardware.cutAfterPrint}
+          onChange={(v) => setHardware((p) => ({ ...p, cutAfterPrint: v }))}
         />
       </SettingRow>
     </ConfigPageShell>

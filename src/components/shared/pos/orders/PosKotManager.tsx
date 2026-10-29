@@ -1,18 +1,17 @@
 import { useState, useMemo, useEffect } from "react";
 import { ChefHat, Clock, CheckCircle2, Flame, Printer } from "lucide-react";
-import {
-  useKotOrders,
-  useMarkKotPreparedMutation,
-  useMarkKotServedMutation,
-} from "@/hooks/queries/usePosOrders";
+import { useKotOrders, useMarkKotPreparedMutation } from "@/hooks/queries/usePosOrders";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { printKotTicket } from "@/utils/printKotTicket";
+import { useOutletContext } from "@/context/PosOutletContext";
+import { kotStartMs, pushKotReadyNotice } from "@/lib/posReadyNotifications";
 
 type KdsTicket = {
   id: string;
   kotId: number;
   orderId?: string;
+  orderNumber?: string;
   status?: string;
   orderType: string;
   customerName: string;
@@ -57,7 +56,9 @@ function timerTone(elapsedMs: number) {
 }
 
 export function PosKotManager() {
+  const { activeOutlet } = useOutletContext();
   const [now, setNow] = useState(() => Date.now());
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
@@ -65,21 +66,27 @@ export function PosKotManager() {
 
   const { data: kotData, refetch } = useKotOrders();
   const markPreparedMutation = useMarkKotPreparedMutation();
-  const markServedMutation = useMarkKotServedMutation();
 
   useEffect(() => {
     const id = setInterval(() => refetch(), 4000);
     return () => clearInterval(id);
   }, [refetch]);
 
-  // Kitchen queue: active preparation tickets (Ready/Prepared removes from KOT screen)
+  // Kitchen queue: Ready removes the ticket immediately (and from the API cook queue)
   const tickets: KdsTicket[] = useMemo(() => {
     return (kotData?.records || [])
-      .filter((k) => k.status !== "Served" && k.status !== "Prepared" && (k as any).status !== "Cancelled")
+      .filter(
+        (k) =>
+          !dismissedIds.has(k.id) &&
+          k.status !== "Served" &&
+          k.status !== "Prepared" &&
+          (k as any).status !== "Cancelled",
+      )
       .map((k) => ({
         id: k.id,
         kotId: k.kotId,
         orderId: k.orderId,
+        orderNumber: k.orderNumber,
         status: k.status,
         orderType: k.orderType,
         customerName: k.customerName,
@@ -87,21 +94,39 @@ export function PosKotManager() {
         items: k.items,
         itemCount: k.itemCount,
         createdAt: k.createdAt,
-        createdTimestamp: k.createdTimestamp ?? Date.now(),
+        createdTimestamp: kotStartMs(k.createdTimestamp, k.createdAt),
         isModified: k.isModified,
       }))
       .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-  }, [kotData]);
+  }, [kotData, dismissedIds]);
 
   const handleMarkReady = (kot: KdsTicket) => {
+    setDismissedIds((prev) => new Set(prev).add(kot.id));
+    const orderRef = kot.orderNumber ? `Order ${kot.orderNumber}` : `KOT #${kot.kotId}`;
+    pushKotReadyNotice({
+      id: `kot-ready-${kot.id}`,
+      outletId: activeOutlet?.id,
+      kotId: kot.kotId,
+      orderNumber: kot.orderNumber,
+      title: `${orderRef} is ready`,
+      message: `${kot.orderType}${kot.customerName && kot.customerName !== "--" ? ` · ${kot.customerName}` : ""} · ${kot.itemsText || "items"} ready to serve.`,
+      createdAt: Date.now(),
+    });
+    toast.success(`${orderRef} is ready`, {
+      description: "Waiter notified · ticket left Kitchen Orders",
+    });
     markPreparedMutation.mutate(
       { ticketId: kot.id, kotId: kot.kotId },
       {
         onSuccess: () => {
-          toast.success(`KOT #${kot.kotId} ready — notify waiter`);
           refetch();
         },
         onError: (err: any) => {
+          setDismissedIds((prev) => {
+            const next = new Set(prev);
+            next.delete(kot.id);
+            return next;
+          });
           const detail =
             err?.data?.ticket ||
             err?.data?.order ||
@@ -114,20 +139,6 @@ export function PosKotManager() {
         },
       },
     );
-  };
-
-  const handleMarkServed = (kot: KdsTicket) => {
-    if (/^[0-9a-f-]{36}$/i.test(kot.id)) {
-      markServedMutation.mutate(kot.id, {
-        onSuccess: () => {
-          toast.success(`KOT #${kot.kotId} served`);
-          refetch();
-        },
-        onError: () => toast.error("Failed to mark served"),
-      });
-      return;
-    }
-    handleMarkReady(kot);
   };
 
   const handlePrintKot = (kot: KdsTicket) => {
@@ -165,7 +176,7 @@ export function PosKotManager() {
               </span>
             </div>
             <p className="text-[11.5px] text-text-secondary">
-              FCFS · timer orange at 10m · red at 15m · Ready notifies waiter · Serve clears the card
+              FCFS · timer orange at 10m · red at 15m · Ready leaves KOT and notifies waiter
             </p>
           </div>
         </div>
@@ -192,9 +203,8 @@ export function PosKotManager() {
                 kot={kot}
                 now={now}
                 onReady={() => handleMarkReady(kot)}
-                onServe={() => handleMarkServed(kot)}
                 onPrint={() => handlePrintKot(kot)}
-                isBusy={markPreparedMutation.isPending || markServedMutation.isPending}
+                isBusy={markPreparedMutation.isPending}
               />
             ))}
           </div>
@@ -208,18 +218,15 @@ function KdsOrderCard({
   kot,
   now,
   onReady,
-  onServe,
   onPrint,
   isBusy,
 }: {
   kot: KdsTicket;
   now: number;
   onReady: () => void;
-  onServe: () => void;
   onPrint: () => void;
   isBusy?: boolean;
 }) {
-  const isReady = kot.status === "Prepared";
   const elapsedMs = Math.max(0, now - kot.createdTimestamp);
   const tone = timerTone(elapsedMs);
   const lines = parseItemLines(kot);
@@ -309,11 +316,11 @@ function KdsOrderCard({
         <button
           type="button"
           disabled={isBusy}
-          onClick={isReady ? onServe : onReady}
+          onClick={onReady}
           className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-bold text-primary-foreground hover:bg-primary/90 active:scale-[0.99] disabled:opacity-60 cursor-pointer"
         >
           <CheckCircle2 className="h-3.5 w-3.5" />
-          {isReady ? "Serve" : "Ready"}
+          Ready
         </button>
       </div>
     </article>

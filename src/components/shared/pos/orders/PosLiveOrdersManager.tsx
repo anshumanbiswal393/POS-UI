@@ -37,9 +37,9 @@ export function PosLiveOrdersManager() {
   const [activeTab, setActiveTab] = useState<
     "gantt_timeline" | "running_orders" | "running_tables"
   >("gantt_timeline");
-  const [timelineFilter, setTimelineFilter] = useState<"all" | "dine_in" | "pickup" | "delivery">(
-    "all",
-  );
+  const [timelineFilter, setTimelineFilter] = useState<
+    "all" | "dine_in" | "pickup" | "room_service"
+  >("all");
   const [stageFilter, setStageFilter] = useState<string>("all");
   const { data, refetch, isFetching } = useLiveOrders();
   const { data: timelineOrders = [], refetch: refetchTimeline } = useCurrentOrdersTimeline();
@@ -99,6 +99,11 @@ export function PosLiveOrdersManager() {
   const handleAdvanceStage = (ord: LiveTimelineOrder, e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (ord.currentStage === "placed") {
+      if (ord.isSettled || ord.type === "room_service") {
+        navigate({ to: "/pos/kot" });
+        toast.success("Kitchen Display — tap Ready when the order is cooked");
+        return;
+      }
       advanceStageMutation.mutate(ord.id || ord.orderNumber, {
         onSuccess: () => {
           toast.success(`${ord.orderNumber} → Prepared`);
@@ -149,8 +154,8 @@ export function PosLiveOrdersManager() {
 
   const filteredTimelineOrders = useMemo(() => {
     return timelineOrders.filter((ord) => {
-      const typeKey =
-        ord.type === "takeaway" ? "pickup" : ord.type === "room_service" ? "dine_in" : ord.type;
+      if (ord.held) return false;
+      const typeKey = ord.type === "takeaway" ? "pickup" : ord.type;
       if (timelineFilter !== "all" && typeKey !== timelineFilter) return false;
       if (stageFilter !== "all" && ord.currentStage !== stageFilter) return false;
       return true;
@@ -217,7 +222,7 @@ export function PosLiveOrdersManager() {
               }`}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
-              <span>Tables ({data?.runningTables.length ?? 3})</span>
+              <span>Tables ({data?.runningTables.length ?? 0})</span>
             </button>
           </div>
 
@@ -272,9 +277,9 @@ export function PosLiveOrdersManager() {
             <ChefHat className="h-3.5 w-3.5 text-slate-600" />
           </div>
           <div className="mt-0.5 text-[20px] font-black text-slate-900">
-            {pending.inPreparation.count + 2}
+            {pending.inPreparation.count}
           </div>
-          <div className="text-[10.5px] text-slate-500">Avg prep time: 18m</div>
+          <div className="text-[10.5px] text-slate-500">Tickets currently cooking</div>
         </div>
 
         <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
@@ -283,9 +288,9 @@ export function PosLiveOrdersManager() {
             <Utensils className="h-3.5 w-3.5 text-slate-600" />
           </div>
           <div className="mt-0.5 text-[20px] font-black text-slate-900">
-            {data?.runningTables.length ?? 3} / 16
+            {data?.runningTables.length ?? 0}
           </div>
-          <div className="text-[10.5px] text-teal-700 font-medium">19% Floor Occupancy</div>
+          <div className="text-[10.5px] text-teal-700 font-medium">Occupied tables now</div>
         </div>
       </div>
 
@@ -298,18 +303,25 @@ export function PosLiveOrdersManager() {
               <span className="text-[11.5px] font-bold text-slate-700 flex items-center gap-1 mr-1">
                 <Filter className="h-3 w-3" /> Type:
               </span>
-              {(["all", "dine_in", "pickup", "delivery"] as const).map((type) => (
+              {(
+                [
+                  { id: "all", label: "All" },
+                  { id: "dine_in", label: "Dine In" },
+                  { id: "pickup", label: "Pickup" },
+                  { id: "room_service", label: "Room" },
+                ] as const
+              ).map((type) => (
                 <button
-                  key={type}
+                  key={type.id}
                   type="button"
-                  onClick={() => setTimelineFilter(type)}
-                  className={`rounded-md px-2.5 py-1 text-[11px] font-bold capitalize transition cursor-pointer border ${
-                    timelineFilter === type
+                  onClick={() => setTimelineFilter(type.id)}
+                  className={`rounded-md px-2.5 py-1 text-[11px] font-bold transition cursor-pointer border ${
+                    timelineFilter === type.id
                       ? "bg-teal-700 text-white border-teal-700 shadow-2xs"
                       : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  {type.replace("_", " ")}
+                  {type.label}
                 </button>
               ))}
             </div>
@@ -481,7 +493,7 @@ export function PosLiveOrdersManager() {
                             onClick={(e) => handleAdvanceStage(ord, e)}
                             className="inline-flex h-7 items-center gap-1 rounded-lg bg-teal-700 px-2.5 text-[11px] font-bold text-white hover:bg-teal-800 cursor-pointer"
                           >
-                            Prepared
+                            {ord.isSettled || ord.type === "room_service" ? "Kitchen" : "Prepared"}
                             <ArrowRight className="h-3 w-3" />
                           </button>
                         ) : (
@@ -700,7 +712,7 @@ export function PosLiveOrdersManager() {
               </p>
             </div>
             <span className="rounded border border-slate-300 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-700">
-              {data?.runningTables.length ?? 3} Active Tables
+              {data?.runningTables.length ?? 0} Active Tables
             </span>
           </div>
 
@@ -828,7 +840,11 @@ export function PosLiveOrdersManager() {
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 <span>
-                  {selectedTimelineOrder.currentStage === "placed" ? "Prepared" : "Settle"}
+                  {selectedTimelineOrder.currentStage === "placed"
+                    ? selectedTimelineOrder.isSettled || selectedTimelineOrder.type === "room_service"
+                      ? "Kitchen"
+                      : "Prepared"
+                    : "Settle"}
                 </span>
               </button>
               <button

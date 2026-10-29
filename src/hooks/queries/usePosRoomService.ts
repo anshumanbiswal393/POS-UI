@@ -28,6 +28,7 @@ export function useHotelRooms(floor?: RoomFloor) {
       outletId: activeOutlet?.id,
       propertyId: activeOutlet?.propertyId,
       tenantId: activeOutlet?.tenantId,
+      highwayDemo: false,
     });
   }, [activeOutlet?.id, activeOutlet?.propertyId, activeOutlet?.tenantId]);
   return useQuery({
@@ -37,6 +38,7 @@ export function useHotelRooms(floor?: RoomFloor) {
         outletId: activeOutlet?.id,
         propertyId: activeOutlet?.propertyId,
         tenantId: activeOutlet?.tenantId,
+        highwayDemo: false,
       });
       return posRoomService.getRooms(floor);
     },

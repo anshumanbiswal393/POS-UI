@@ -8,11 +8,12 @@ import {
   TextInput,
   YesNoRadios,
 } from "@/components/shared/pos/management/outlet-config/ConfigPageShell";
-import { useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
+import { useDraftOnChange, useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
 
 export function PrintLogoConfigView() {
-  const { config, persist } = useOutletConfig();
+  const { config, persist, saveDraft, outletId } = useOutletConfig();
   const [form, setForm] = useState(config.printLogo);
+  useDraftOnChange("print-logo", form, (c, f) => ({ ...c, printLogo: f }), saveDraft, outletId);
   const alignClass =
     form.alignment === "Left" ? "text-left" : form.alignment === "Right" ? "text-right" : "text-center";
 
@@ -20,7 +21,8 @@ export function PrintLogoConfigView() {
     <ConfigPageShell
       title="Set Your Print Logo"
       subtitle="Logo to print at your desktop point of sale."
-      onSave={() => persist({ ...config, printLogo: form }, "Print logo saved")}
+      onSave={() => persist({ ...config, printLogo: form }, "Print logo saved", "print-logo")}
+      stepId="print-logo"
     >
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
         <div>

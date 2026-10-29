@@ -36,6 +36,7 @@ import {
   Smartphone,
   UserCog,
   Coins,
+  PlusCircle,
 } from "lucide-react";
 
 export type PosNavChild = {
@@ -232,6 +233,12 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
                 label: "Outlet List",
                 to: "/pos/management/configuration/outlet/list",
                 icon: List,
+              },
+              {
+                id: "cfg-outlet-add",
+                label: "+ Add Outlet",
+                to: "/pos/management/configuration/outlet/add",
+                icon: PlusCircle,
               },
               {
                 id: "cfg-outlet-setup",

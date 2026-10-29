@@ -12,6 +12,9 @@ export type OccupiedRoomOption = {
   guestName?: string;
   guestPhone?: string;
   pax?: number;
+  roomUnitId?: string;
+  reservationId?: string;
+  folioId?: string;
 };
 
 type BillingHeaderProps = {

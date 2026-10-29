@@ -59,6 +59,23 @@ export interface RoomServiceOrder {
   notes?: string;
 }
 
+export interface RoomFolioOrderItem {
+  name: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface RoomFolioOrder {
+  id: string;
+  orderNumber: string;
+  totalAmount: number;
+  itemsSummary: string;
+  items: RoomFolioOrderItem[];
+  createdAt: string;
+  paymentMode: string;
+  status: string;
+}
+
 export interface HotelRoom {
   id: string;
   roomNumber: string;
@@ -71,6 +88,8 @@ export interface HotelRoom {
   roomUnitId?: string;
   reservationId?: string;
   folioId?: string;
+  folioOrders?: RoomFolioOrder[];
+  posChargeTotal?: number;
 }
 
 export interface RoomServiceKpis {

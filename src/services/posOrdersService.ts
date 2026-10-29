@@ -11,6 +11,7 @@ import {
   liveKotReady,
   liveKotServed,
   liveSettleDue,
+  liveSettleOrder,
 } from "./posOrderLive";
 import type {
   LiveOrderSummaryApiDto,
@@ -99,15 +100,9 @@ export async function getLiveOrdersSummary(outletId?: string): Promise<LiveOrder
   if (isBackendOutletId(outletId)) {
     const live = await liveGetLiveSummary(outletId);
     if (live) return live;
+    throw new Error("Could not load live orders from the database");
   }
-  if (typeof window === "undefined") return getInitialLiveOrdersData();
-  try {
-    const res = await httpClient.get<LiveOrderSummaryApiDto>("/api/pos/orders/live");
-    if (res.data) return mapLiveOrdersDto(res.data);
-    return getInitialLiveOrdersData();
-  } catch {
-    return getInitialLiveOrdersData();
-  }
+  return getInitialLiveOrdersData();
 }
 
 // ==========================================
@@ -455,6 +450,13 @@ export interface CurrentOrderRecord {
   items: CurrentOrderLineItem[];
   orderNote?: string;
   subtotal: number;
+  isSettled?: boolean;
+  held?: boolean;
+  heldCart?: unknown;
+  roomNumber?: string;
+  folioId?: string;
+  reservationId?: string;
+  roomUnitId?: string;
 }
 
 let currentOrdersStore: CurrentOrderRecord[] = [];
@@ -564,163 +566,8 @@ export interface CreateDineInOrderInput {
   markSettled?: boolean;
 }
 
-export function createDineInOrder(input: CreateDineInOrderInput): {
-  orderNumber: string;
-  kotId: number;
-} {
-  const orderNumber = `ORD-${orderCounter++}`;
-  const kotId = kotCounter++;
-  const now = new Date();
-  const dateStr = now.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-  const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const fullDateTime = `${dateStr} ${now.toLocaleTimeString()}`;
-
-  const itemsSummaryText = [
-    ...input.items.map(
-      (i) => `${i.name}${i.selectedVariantName ? ` (${i.selectedVariantName})` : ""} × ${i.quantity}`,
-    ),
-    input.orderNote?.trim() ? `Note: ${input.orderNote.trim()}` : null,
-  ]
-    .filter(Boolean)
-    .join(", ");
-  const totalItemCount = input.items.reduce((s, i) => s + i.quantity, 0);
-  const tableLabelClean = input.tableNumber.replace("Table #", "").replace("Table ", "");
-
-  // Open checks stay on Current Orders in Preparation until payment
-  if (!input.markSettled) {
-    liveOrdersStore = {
-      ...liveOrdersStore,
-      runningOrders: {
-        ...liveOrdersStore.runningOrders,
-        totalOrders: liveOrdersStore.runningOrders.totalOrders + 1,
-        totalAmount: liveOrdersStore.runningOrders.totalAmount + input.grandTotal,
-        dineIn: {
-          count: liveOrdersStore.runningOrders.dineIn.count + 1,
-          amount: liveOrdersStore.runningOrders.dineIn.amount + input.grandTotal,
-        },
-      },
-      pendingOrders: {
-        ...liveOrdersStore.pendingOrders,
-        totalOrders: liveOrdersStore.pendingOrders.totalOrders + 1,
-        totalAmount: liveOrdersStore.pendingOrders.totalAmount + input.grandTotal,
-        inPreparation: {
-          count: liveOrdersStore.pendingOrders.inPreparation.count + 1,
-          amount: liveOrdersStore.pendingOrders.inPreparation.amount + input.grandTotal,
-        },
-      },
-      runningTables: [
-        {
-          id: input.tableId,
-          tableNumber: tableLabelClean,
-          section: input.section || "Main Dining",
-          capacity: input.pax || 4,
-          occupancy: input.pax || 2,
-          orderNumber,
-          amount: input.grandTotal,
-          elapsedMinutes: 1,
-          status: "running",
-        },
-        ...liveOrdersStore.runningTables,
-      ],
-    };
-
-    currentOrdersStore = [
-      {
-        id: `live-${orderNumber.toLowerCase()}`,
-        orderNumber,
-        type: "dine_in",
-        typeLabel: "Dine In",
-        source: `Table ${tableLabelClean}${input.section ? ` (${input.section})` : ""}`,
-        customerName: input.guestName || "Walk-in Guest",
-        customerPhone: input.guestPhone || "--",
-        tableOrRoom: tableLabelClean,
-        tableId: input.tableId,
-        section: input.section || "Main Dining",
-        waiterName: input.waiterName || "Captain",
-        pax: input.pax || 2,
-        itemsSummary: itemsSummaryText,
-        amount: input.grandTotal,
-        amountFormatted: formatINR(input.grandTotal),
-        startTime: timeStr,
-        createdTimestamp: now.getTime(),
-        elapsedMinutes: 1,
-        estDurationMinutes: 35,
-        currentStage: "placed",
-        stageLabel: "Placed (In Kitchen)",
-        subtotal: input.subtotal,
-        orderNote: input.orderNote,
-        items: input.items.map((i) => ({
-          id: i.id,
-          name: i.name,
-          quantity: i.quantity,
-          price: i.price,
-          selectedVariantName: i.selectedVariantName,
-          notes: i.notes,
-          code: i.code,
-          category: i.category,
-          diet: i.diet,
-        })),
-      },
-      ...currentOrdersStore,
-    ];
-
-    // KOT → Preparing (FCFS)
-    const newKotRecord = {
-      id: `kot-${kotId}`,
-      kotId,
-      orderType: `Dine In (${input.tableNumber})`,
-      customerName: input.guestName || "--",
-      customerPhone: input.guestPhone || "--",
-      itemCount: totalItemCount,
-      itemsText: itemsSummaryText,
-      items: input.items.map((i) => ({
-        name: i.name + (i.selectedVariantName ? ` (${i.selectedVariantName})` : ""),
-        quantity: i.quantity,
-        notes: i.notes,
-      })),
-      status: "Not Prepared" as const,
-      billPrintDate: null,
-      completeDuration: null,
-      createdAt: fullDateTime,
-      createdTimestamp: now.getTime(),
-      isModified: false,
-    };
-
-    kotOrdersStore = {
-      ...kotOrdersStore,
-      totalCount: kotOrdersStore.totalCount + 1,
-      records: [newKotRecord, ...kotOrdersStore.records],
-    };
-  }
-
-  // Order History row (Printed while open; Settled when paid immediately)
-  const newAllOrderRecord = {
-    id: `ord-${orderNumber.toLowerCase()}`,
-    orderNo: orderNumber.replace("ORD-", ""),
-    orderType: "dine_in" as const,
-    orderTypeDisplay: `Dine In (${input.tableNumber}) (${input.section || "Main Dining"})`,
-    customerName: input.guestName || "Walk-in Guest",
-    customerPhone: input.guestPhone || "--",
-    assignTo: input.waiterName || "Captain",
-    itemsSummary: itemsSummaryText,
-    myAmount: input.subtotal,
-    taxAmount: Math.round(input.grandTotal - input.subtotal),
-    discountAmount: 0.0,
-    grandTotal: input.grandTotal,
-    paymentMode: (input.paymentMode || "Due") as "Cash" | "Card" | "UPI" | "Room Charge" | "Split" | "Due",
-    status: input.markSettled ? ("Settled" as const) : ("Printed" as const),
-    createdAt: fullDateTime,
-    isOnlineOrder: false,
-  };
-
-  allOrdersStore = {
-    ...allOrdersStore,
-    totalCount: allOrdersStore.totalCount + 1,
-    grandTotal: allOrdersStore.grandTotal + input.grandTotal,
-    records: [newAllOrderRecord, ...allOrdersStore.records],
-  };
-
-  return { orderNumber, kotId };
+export function createDineInOrder(_input: CreateDineInOrderInput): never {
+  throw new Error("Orders must be saved in the database. Choose a real outlet first.");
 }
 
 /** Mark an existing Order History row Settled after billing payment; leave Current Orders */
@@ -763,6 +610,8 @@ export function markOrderSettledInHistory(
 export interface DueBill {
   id: string;
   billNo: string;
+  orderId?: string;
+  orderNumber?: string;
   orderType: string;
   tableOrRoom: string;
   tableId?: string;
@@ -952,10 +801,23 @@ export async function settleDueBillLive(
   billId: string,
   paymentMode: "Cash" | "Card" | "UPI" | "Room Charge" | "Split",
   paidAmount?: number,
+  orderId?: string,
 ) {
+  const mode = paymentMode.toUpperCase().replace(" ", "_");
+  if (mode === "ROOM_CHARGE" && orderId && /^[0-9a-f-]{36}$/i.test(orderId)) {
+    const settled = await liveSettleOrder(orderId, {
+      paymentMode: "ROOM_CHARGE",
+      tenderedAmount: paidAmount,
+      idempotencyKey: `due-folio-${billId}-${Date.now()}`,
+    });
+    return {
+      settledBill: { status: "Settled", dueAmount: 0, orderId, ...settled },
+      archivedOrder: settled,
+    };
+  }
   if (/^[0-9a-f-]{36}$/i.test(billId) || billId.startsWith("BILL-") || billId.startsWith("due-")) {
     try {
-      const raw = await liveSettleDue(billId, paymentMode.toUpperCase().replace(" ", "_"), paidAmount || 0);
+      const raw = await liveSettleDue(billId, mode, paidAmount || 0);
       const settledBill = raw?.settledBill || raw;
       return {
         settledBill,

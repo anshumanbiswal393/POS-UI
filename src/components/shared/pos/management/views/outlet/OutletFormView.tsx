@@ -103,8 +103,9 @@ export function OutletFormView() {
         address: address.trim(),
         is_active: isActive,
       });
-      toast.success(`Outlet "${created.name}" created successfully`);
-      void navigate({ to: "/pos/management/configuration/outlet/list" });
+      toast.success(`Outlet "${created.name}" registered successfully!`);
+      // Redirect directly to the setup hub for the newly created outlet
+      window.location.href = `/pos/management/configuration/outlet?outletId=${encodeURIComponent(created.id)}`;
     } catch (err: unknown) {
       const message =
         (err as { message?: string; data?: { detail?: string; code?: string[] } })?.data

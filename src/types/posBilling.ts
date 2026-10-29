@@ -73,10 +73,15 @@ export type BillingPaymentMethod = "cash" | "upi" | "card" | "room_post" | "spli
 
 export type HeldBill = {
   id: string;
+  linkedOrderId?: string;
   billNumber: string;
   orderType: BillingOrderType;
   tableNumber?: string;
+  tableId?: string;
   roomNumber?: string;
+  roomUnitId?: string;
+  reservationId?: string;
+  folioId?: string;
   customerName?: string;
   customerPhone?: string;
   guestCount: number;

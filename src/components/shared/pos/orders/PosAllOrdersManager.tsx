@@ -27,6 +27,24 @@ import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { exportToExcel } from "@/utils/exportUtils";
 import { toast } from "sonner";
 
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function orderStatusClass(status: string) {
+  const key = (status || "").toLowerCase();
+  if (key === "settled" || key === "completed") {
+    return "bg-emerald-50 text-emerald-800 border-emerald-200";
+  }
+  if (key === "cancelled") {
+    return "bg-rose-50 text-rose-800 border-rose-200";
+  }
+  if (key === "printed" || key === "running") {
+    return "bg-amber-50 text-amber-800 border-amber-200";
+  }
+  return "bg-slate-50 text-slate-700 border-slate-200";
+}
+
 export function PosAllOrdersManager() {
   const [activeTab, setActiveTab] = useState<"order" | "advance_order">("order");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
@@ -35,8 +53,8 @@ export function PosAllOrdersManager() {
   const [showMoreFilters, setShowMoreFilters] = useState(false);
 
   // Filter input form state
-  const [startDate, setStartDate] = useState("2026-08-19");
-  const [endDate, setEndDate] = useState("2026-09-02");
+  const [startDate, setStartDate] = useState(todayIso);
+  const [endDate, setEndDate] = useState(todayIso);
   const [orderType, setOrderType] = useState("All Order Type");
   const [orderIdInput, setOrderIdInput] = useState("");
   const [customerNameInput, setCustomerNameInput] = useState("");
@@ -45,8 +63,8 @@ export function PosAllOrdersManager() {
   const [statusInput, setStatusInput] = useState("All");
   // Applied filter state triggered by "Search" button
   const [appliedFilters, setAppliedFilters] = useState({
-    startDate: "2026-08-19",
-    endDate: "2026-09-02",
+    startDate: todayIso(),
+    endDate: todayIso(),
     orderType: "All Order Type",
     orderId: "",
     customerName: "",

@@ -113,17 +113,29 @@ export function OutletListView() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {isCurrent ? (
-                          <span className="text-[12px] font-semibold text-primary">Selected</span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setActiveOutlet(row.id)}
-                            className="rounded-md border border-border bg-surface px-2.5 py-1 text-[11.5px] font-medium text-text-primary hover:bg-surface-2 transition cursor-pointer"
+                        <div className="flex items-center gap-1.5">
+                          <Link
+                            to={`/pos/management/configuration/outlet/details?outletId=${encodeURIComponent(row.id)}`}
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
                           >
-                            Switch to this
-                          </button>
-                        )}
+                            Edit Details
+                          </Link>
+                          <Link
+                            to={`/pos/management/configuration/outlet?outletId=${encodeURIComponent(row.id)}`}
+                            className="inline-flex items-center gap-1 rounded-md border border-teal-300 bg-teal-50 px-2.5 py-1 text-[11px] font-bold text-teal-800 hover:bg-teal-100 transition cursor-pointer"
+                          >
+                            Setup Hub
+                          </Link>
+                          {!isCurrent && (
+                            <button
+                              type="button"
+                              onClick={() => setActiveOutlet(row.id)}
+                              className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                            >
+                              Activate
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

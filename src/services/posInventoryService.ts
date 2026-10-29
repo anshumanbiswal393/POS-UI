@@ -12,13 +12,7 @@ import type {
   InventorySettings,
 } from "@/types/posInventory";
 
-const initialVendors: InventoryVendor[] = [
-  { id: "v-1", name: "Metro Cash & Carry", phone: "+91 98200 12345", category: "Groceries & Dry Goods" },
-  { id: "v-2", name: "Royal Dairy Suppliers", phone: "+91 98200 54321", category: "Dairy & Milk" },
-  { id: "v-3", name: "Fresh Farm Greens & Veggies", phone: "+91 98300 11223", category: "Fresh Produce" },
-  { id: "v-4", name: "Classic Spirits & Beverages", phone: "+91 98400 99887", category: "Beverages & Liquor" },
-  { id: "v-5", name: "Supreme Poultry & Meat", phone: "+91 98500 44556", category: "Meat & Poultry" },
-];
+const initialVendors: InventoryVendor[] = [];
 
 const STOCK_STORE_KEY = "retrod_pos_stock_items_v1";
 const MOVEMENT_STORE_KEY = "retrod_pos_stock_movements_v1";
@@ -124,7 +118,20 @@ function mapStock(raw: Partial<StockItem> & { id: string }): StockItem {
 }
 
 export const posInventoryService = {
-  getVendors: async (): Promise<InventoryVendor[]> => [...vendorsStore],
+  getVendors: async (outletId?: string): Promise<InventoryVendor[]> => {
+    if (isBackendOutletId(outletId)) {
+      try {
+        const res = await httpClient.get<{ success: boolean; vendors?: InventoryVendor[] }>(
+          "/api/pos/stock/vendors/",
+          { params: scopeParams(outletId) },
+        );
+        return res.data.vendors || [];
+      } catch {
+        return [];
+      }
+    }
+    return [...vendorsStore];
+  },
 
   getPurchases: async (outletId?: string): Promise<StockPurchaseRecord[]> => {
     if (isBackendOutletId(outletId)) {

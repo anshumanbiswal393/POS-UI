@@ -6,17 +6,19 @@ import {
   TextInput,
   YesNoRadios,
 } from "@/components/shared/pos/management/outlet-config/ConfigPageShell";
-import { useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
+import { useDraftOnChange, useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
 
 export function PrintConfigView() {
-  const { config, persist } = useOutletConfig();
+  const { config, persist, saveDraft, outletId } = useOutletConfig();
   const [form, setForm] = useState(config.print);
+  useDraftOnChange("print", form, (c, f) => ({ ...c, print: f }), saveDraft, outletId);
 
   return (
     <ConfigPageShell
       title="Print"
       subtitle="Configure the print settings of the Bill and KOT."
-      onSave={() => persist({ ...config, print: form }, "Print settings saved")}
+      onSave={() => persist({ ...config, print: form }, "Print settings saved", "print")}
+      stepId="print"
     >
       <SettingRow label="Number of bill copies">
         <div className="max-w-xs">

@@ -4,17 +4,19 @@ import {
   SettingRow,
   YesNoRadios,
 } from "@/components/shared/pos/management/outlet-config/ConfigPageShell";
-import { useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
+import { useDraftOnChange, useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
 
 export function CustomerConfigView() {
-  const { config, persist } = useOutletConfig();
+  const { config, persist, saveDraft, outletId } = useOutletConfig();
   const [form, setForm] = useState(config.customer);
+  useDraftOnChange("customer", form, (c, f) => ({ ...c, customer: f }), saveDraft, outletId);
 
   return (
     <ConfigPageShell
       title="Customer"
       subtitle="Configure the billing screen and it's component."
-      onSave={() => persist({ ...config, customer: form }, "Customer settings saved")}
+      onSave={() => persist({ ...config, customer: form }, "Customer settings saved", "customer")}
+      stepId="customer"
     >
       <SettingRow label="Make customer mobile mandatory on billing?">
         <YesNoRadios

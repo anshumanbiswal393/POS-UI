@@ -104,8 +104,11 @@ export function useDueBills() {
   return useQuery({
     queryKey: ["pos", "orders", "due-bills", outletId],
     queryFn: () => getDueBills(outletId),
+    enabled: Boolean(outletId),
     staleTime: 1000 * 5,
-    refetchInterval: 1000 * 15,
+    refetchInterval: (query) => (query.state.status === "error" ? 1000 * 5 : 1000 * 15),
+    refetchOnMount: "always",
+    retry: 2,
   });
 }
 
@@ -120,6 +123,13 @@ export function useMarkKotPreparedMutation() {
       return markKotPrepared(kotId);
     },
     onSuccess: () => {
+      queryClient.setQueriesData({ queryKey: ["pos", "orders", "kot"] }, (old: { records?: Array<{ id: string; status?: string }> } | undefined) => {
+        if (!old?.records) return old;
+        return {
+          ...old,
+          records: old.records.filter((r) => r.status !== "Prepared" && r.status !== "Served"),
+        };
+      });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "current-timeline"] });
@@ -146,12 +156,23 @@ export function useSettleDueBillMutation() {
       billId,
       paymentMode,
       paidAmount,
+      orderId,
     }: {
       billId: string;
       paymentMode: "Cash" | "Card" | "UPI" | "Room Charge" | "Split";
       paidAmount?: number;
-    }) => settleDueBillLive(billId, paymentMode, paidAmount),
-    onSuccess: () => {
+      orderId?: string;
+    }) => settleDueBillLive(billId, paymentMode, paidAmount, orderId),
+    onSuccess: (data, vars) => {
+      const settled = (data as { settledBill?: { status?: string; dueAmount?: number } })?.settledBill;
+      const fullyPaid =
+        String(settled?.status || "").toLowerCase() === "settled" || Number(settled?.dueAmount ?? 0) === 0;
+      if (fullyPaid) {
+        queryClient.setQueriesData({ queryKey: ["pos", "orders", "due-bills"] }, (old) => {
+          if (!Array.isArray(old)) return old;
+          return old.filter((b: { id?: string; billNo?: string }) => b.id !== vars.billId && b.billNo !== vars.billId);
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "due-bills"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "all"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });

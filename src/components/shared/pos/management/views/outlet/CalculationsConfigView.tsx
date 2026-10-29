@@ -6,17 +6,19 @@ import {
   TextInput,
   YesNoRadios,
 } from "@/components/shared/pos/management/outlet-config/ConfigPageShell";
-import { useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
+import { useDraftOnChange, useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
 
 export function CalculationsConfigView() {
-  const { config, persist } = useOutletConfig();
+  const { config, persist, saveDraft, outletId } = useOutletConfig();
   const [form, setForm] = useState(config.calculations);
+  useDraftOnChange("calculations", form, (c, f) => ({ ...c, calculations: f }), saveDraft, outletId);
 
   return (
     <ConfigPageShell
       title="Calculations"
       subtitle="Configure how invoice gets calculate."
-      onSave={() => persist({ ...config, calculations: form }, "Calculation settings saved")}
+      onSave={() => persist({ ...config, calculations: form }, "Calculation settings saved", "calculations")}
+      stepId="calculations"
     >
       <SettingRow
         label="Are menu prices tax inclusive?"

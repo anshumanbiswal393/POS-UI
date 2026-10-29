@@ -53,6 +53,11 @@ export type LiveOrderPayload = {
   discountAmount?: number;
   grandTotal?: number;
   sendKot?: boolean;
+  markSettled?: boolean;
+  paymentMode?: string;
+  held?: boolean;
+  heldCart?: unknown;
+  meta?: Record<string, unknown>;
   items: Array<{
     id?: string;
     menuItemId?: string;
@@ -120,6 +125,7 @@ export function mapSerializedOrderToCurrent(o: Record<string, any>) {
   const stageRaw = String(o.currentStage || o.status || "placed").toLowerCase();
   const currentStage =
     stageRaw === "prepared" || stageRaw === "settled" ? (stageRaw as "prepared" | "settled") : "placed";
+  const isSettled = String(o.status || "").toUpperCase() === "SETTLED";
   return {
     id: String(o.id),
     orderNumber: o.orderNumber || o.order_number || "",
@@ -142,8 +148,15 @@ export function mapSerializedOrderToCurrent(o: Record<string, any>) {
     estDurationMinutes: Number(o.estDurationMinutes || 35),
     currentStage,
     stageLabel: o.stageLabel || "",
+    isSettled,
     orderNote: o.orderNote || "",
     subtotal: Number(o.subtotal || 0),
+    held: Boolean(o.held || o.meta?.held),
+    heldCart: o.meta?.heldCart,
+    roomNumber: o.roomNumber || "",
+    folioId: o.folioId || "",
+    reservationId: o.reservationId || "",
+    roomUnitId: o.roomUnitId || "",
     items: ((o.items || []) as Array<Record<string, any>>).map((i) => ({
       id: i.menuItemId || i.id,
       name: i.name,
@@ -298,6 +311,8 @@ function toOrderWriteBody(payload: Partial<LiveOrderPayload>) {
     ...payload,
     outletId: payload.outletId,
     outlet_id: payload.outletId,
+    orderType: payload.orderType,
+    order_type: payload.orderType,
     tableId: asUuid(payload.tableId),
     table_id: asUuid(payload.tableId),
     roomUnitId: asUuid(payload.roomUnitId),
@@ -308,6 +323,13 @@ function toOrderWriteBody(payload: Partial<LiveOrderPayload>) {
     folio_id: asUuid(payload.folioId),
     sendKot: payload.sendKot,
     send_kot: payload.sendKot,
+    markSettled: payload.markSettled,
+    held: payload.held,
+    heldCart: payload.heldCart,
+    meta: payload.meta,
+    mark_settled: payload.markSettled,
+    paymentMode: payload.paymentMode,
+    payment_mode: payload.paymentMode,
     items: undefined,
   });
   if (payload.items) {
@@ -322,6 +344,15 @@ function toOrderWriteBody(payload: Partial<LiveOrderPayload>) {
   if (payload.sendKot !== undefined) {
     body.sendKot = payload.sendKot;
     body.send_kot = payload.sendKot;
+  }
+  if (payload.held !== undefined) {
+    body.held = payload.held;
+  }
+  if (payload.heldCart !== undefined) {
+    body.heldCart = payload.heldCart;
+  }
+  if (payload.meta !== undefined) {
+    body.meta = payload.meta;
   }
   return body;
 }
@@ -360,6 +391,11 @@ export async function liveSettleOrder(
 
 export async function liveAdvanceOrder(orderId: string) {
   const res = await httpClient.post(API_ENDPOINTS.ORDERS.ADVANCE(orderId), {});
+  return res.data;
+}
+
+export async function liveCancelOrder(orderId: string, note = "Discarded held check") {
+  const res = await httpClient.delete(API_ENDPOINTS.ORDERS.BY_ID(orderId), { data: { note } });
   return res.data;
 }
 

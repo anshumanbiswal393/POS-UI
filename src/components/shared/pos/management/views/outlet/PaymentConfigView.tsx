@@ -6,18 +6,19 @@ import {
   TextInput,
   YesNoRadios,
 } from "@/components/shared/pos/management/outlet-config/ConfigPageShell";
-import { useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
+import { useDraftOnChange, useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
 
 export function PaymentConfigView() {
-  const { config, persist } = useOutletConfig();
+  const { config, persist, saveDraft, outletId } = useOutletConfig();
   const [form, setForm] = useState(config.payment);
+  useDraftOnChange("payment", form, (c, f) => ({ ...c, payment: f }), saveDraft, outletId);
 
   const handleSave = () => {
     if (!form.types.some((t) => t.enabled)) {
       toast.error("Enable at least one payment type");
       return;
     }
-    persist({ ...config, payment: form }, "Payment configuration saved");
+    return persist({ ...config, payment: form }, "Payment configuration saved", "payment");
   };
 
   return (
@@ -25,6 +26,7 @@ export function PaymentConfigView() {
       title="Payment"
       subtitle="Configure currency and payment types available at this outlet."
       onSave={handleSave}
+      stepId="payment"
     >
       <div className="space-y-6">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">

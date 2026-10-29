@@ -3,6 +3,7 @@ import type { PosOutlet } from "@/types/posMenu";
 import {
   deduplicateOutlets,
   isBackendOutletId,
+  isDummyOutlet,
   isHighwayDemoOutlet,
   isHighwayInnName,
 } from "@/utils/outletId";
@@ -68,7 +69,8 @@ export function getLocalCustomOutlets(): PosOutlet[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    const deduped = deduplicateOutlets(parsed);
+    const clean = parsed.filter((o) => !isDummyOutlet(o?.name, o?.code));
+    const deduped = deduplicateOutlets(clean);
     if (deduped.length !== parsed.length) {
       try {
         localStorage.setItem(STORAGE_KEY_CUSTOM_OUTLETS, JSON.stringify(deduped));
@@ -163,14 +165,31 @@ export const posOutletsService = {
           page_size: 200,
         },
       });
-      remote = unwrapList(res.data).map(mapOutletApiToPosOutlet);
+      remote = unwrapList(res.data)
+        .map(mapOutletApiToPosOutlet)
+        .filter((o) => !isDummyOutlet(o.name, o.code));
     } catch {
       // Remote fetch failed or offline
     }
 
-    const local = getLocalCustomOutlets();
-    // Combine remote and local, strictly deduplicating so no outlet appears more than once
-    return deduplicateOutlets([...remote, ...local]);
+    const local = getLocalCustomOutlets().filter((o) => !isDummyOutlet(o.name, o.code));
+    // If backend returns outlets, backend is the authoritative source.
+    // Only keep unsaved local offline drafts (starting with outlet-local-).
+    const localDrafts =
+      remote.length > 0
+        ? local.filter(
+            (o) =>
+              o.id.startsWith("outlet-local-") &&
+              !remote.some(
+                (r) =>
+                  r.id === o.id ||
+                  (r.code && r.code === o.code) ||
+                  r.name.toLowerCase() === o.name.toLowerCase(),
+              ),
+          )
+        : local;
+
+    return deduplicateOutlets([...remote, ...localDrafts]).filter((o) => !isDummyOutlet(o.name, o.code));
   },
 
   async createOutlet(payload: CreateOutletPayload): Promise<PosOutlet> {
@@ -262,6 +281,57 @@ export const posOutletsService = {
       saveLocalCustomOutlet(localCreated);
       return localCreated;
     }
+  },
+
+  async updateOutlet(id: string, payload: Partial<CreateOutletPayload> & { name?: string; cuisine?: string; phone?: string; email?: string; address?: string; status?: "Active" | "Inactive" }): Promise<PosOutlet | null> {
+    const isBackend = isBackendOutletId(id);
+    let updatedOutlet: PosOutlet | null = null;
+
+    if (isBackend) {
+      try {
+        const body: Record<string, unknown> = {};
+        if (payload.name) body.name = payload.name;
+        if (payload.code) body.code = payload.code;
+        if (payload.cuisine) body.cuisine = payload.cuisine;
+        if (payload.email) body.email = payload.email;
+        if (payload.phone) body.phone = payload.phone;
+        if (payload.address) {
+          body.meta_settings = { address: payload.address };
+        }
+        if (payload.status) {
+          body.is_active = payload.status === "Active";
+        }
+        const res = await httpClient.patch<OutletApiDto>(`/api/pos/outlets/${id}/`, body, { timeout: 15_000 });
+        updatedOutlet = mapOutletApiToPosOutlet(res.data);
+      } catch {
+        // Backend update timed out or failed, will fall back to local update
+      }
+    }
+
+    // Always update local cache as well
+    try {
+      const current = getLocalCustomOutlets();
+      const existing = current.find((o) => o.id === id);
+      if (existing) {
+        const next: PosOutlet = {
+          ...existing,
+          ...(payload.name && { name: payload.name }),
+          ...(payload.code && { code: payload.code }),
+          ...(payload.cuisine && { cuisine: payload.cuisine }),
+          ...(payload.email && { email: payload.email }),
+          ...(payload.phone && { contact: payload.phone }),
+          ...(payload.address && { address: payload.address }),
+          ...(payload.status && { status: payload.status }),
+        };
+        const updatedList = current.map((o) => (o.id === id ? next : o));
+        localStorage.setItem(STORAGE_KEY_CUSTOM_OUTLETS, JSON.stringify(updatedList));
+        if (!updatedOutlet) updatedOutlet = next;
+      }
+    } catch {
+      // ignore
+    }
+
+    return updatedOutlet;
   },
 
   /** Find or create the live Highway Inn dining floor so tables persist like any other outlet. */

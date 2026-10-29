@@ -16,6 +16,10 @@ export interface POSOutletConfigPayload {
   connected_services?: Record<string, unknown>;
   print_settings?: Record<string, unknown>;
   customer_settings?: Record<string, unknown>;
+  service_mode?: Record<string, unknown>;
+  integrations?: Record<string, unknown>;
+  billing_preferences?: Record<string, unknown>;
+  step_status?: Record<string, unknown>;
 }
 
 export interface POSSubOrderTypeDto {

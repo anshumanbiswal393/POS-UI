@@ -13,20 +13,19 @@ export const POS_AREAS_QUERY_KEY = ["pos", "dining-areas"];
 function useOutletScopedTables() {
   const { activeOutlet } = useOutletContext();
   const outletId = activeOutlet?.id || "";
-
   useEffect(() => {
-    setTablesOutletScope(outletId || null);
+    setTablesOutletScope(outletId || null, false);
   }, [outletId]);
 
-  return outletId;
+  return { outletId, highwayDemo: false };
 }
 
 export function useDiningAreas() {
-  const outletId = useOutletScopedTables();
+  const { outletId, highwayDemo } = useOutletScopedTables();
   return useQuery({
-    queryKey: [...POS_AREAS_QUERY_KEY, outletId],
+    queryKey: [...POS_AREAS_QUERY_KEY, outletId, highwayDemo],
     queryFn: () => {
-      setTablesOutletScope(outletId);
+      setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.getAreas();
     },
     staleTime: 1000 * 60,
@@ -35,11 +34,11 @@ export function useDiningAreas() {
 }
 
 export function useAddAreaMutation() {
-  const outletId = useOutletScopedTables();
+  const { outletId, highwayDemo } = useOutletScopedTables();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (areaName: string) => {
-      setTablesOutletScope(outletId);
+      setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.addArea(areaName);
     },
     onSuccess: () => {
@@ -59,7 +58,7 @@ export function useAddAreaMutation() {
 }
 
 export function useAddTableMutation() {
-  const outletId = useOutletScopedTables();
+  const { outletId, highwayDemo } = useOutletScopedTables();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: {
@@ -68,7 +67,7 @@ export function useAddTableMutation() {
       area: string;
       shape?: "rectangle" | "square" | "circle";
     }) => {
-      setTablesOutletScope(outletId);
+      setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.addTable(input);
     },
     onSuccess: () => {
@@ -88,11 +87,11 @@ export function useAddTableMutation() {
 }
 
 export function usePosTables(area?: DiningArea) {
-  const outletId = useOutletScopedTables();
+  const { outletId, highwayDemo } = useOutletScopedTables();
   return useQuery({
-    queryKey: [...POS_TABLES_QUERY_KEY, outletId, area],
+    queryKey: [...POS_TABLES_QUERY_KEY, outletId, area, highwayDemo],
     queryFn: () => {
-      setTablesOutletScope(outletId);
+      setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.getTables(area);
     },
     staleTime: 1000 * 10,
@@ -101,11 +100,11 @@ export function usePosTables(area?: DiningArea) {
 }
 
 export function usePosReservations() {
-  const outletId = useOutletScopedTables();
+  const { outletId, highwayDemo } = useOutletScopedTables();
   return useQuery({
     queryKey: [...POS_RESERVATIONS_QUERY_KEY, outletId],
     queryFn: () => {
-      setTablesOutletScope(outletId);
+      setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.getReservations();
     },
     staleTime: 1000 * 10,
@@ -114,11 +113,11 @@ export function usePosReservations() {
 }
 
 export function usePosTableStats(area?: DiningArea) {
-  const outletId = useOutletScopedTables();
+  const { outletId, highwayDemo } = useOutletScopedTables();
   return useQuery({
-    queryKey: [...POS_TABLE_STATS_QUERY_KEY, outletId, area],
+    queryKey: [...POS_TABLE_STATS_QUERY_KEY, outletId, area, highwayDemo],
     queryFn: () => {
-      setTablesOutletScope(outletId);
+      setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.getStats(area);
     },
     staleTime: 1000 * 10,
@@ -127,11 +126,11 @@ export function usePosTableStats(area?: DiningArea) {
 }
 
 export function useSeatGuestsMutation() {
-  const outletId = useOutletScopedTables();
+  const { outletId, highwayDemo } = useOutletScopedTables();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ tableId, reservationId }: { tableId: string; reservationId?: string }) => {
-      setTablesOutletScope(outletId);
+      setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.seatGuests(tableId, reservationId);
     },
     onSuccess: () => {
@@ -143,11 +142,11 @@ export function useSeatGuestsMutation() {
 }
 
 export function useCancelReservationMutation() {
-  const outletId = useOutletScopedTables();
+  const { outletId, highwayDemo } = useOutletScopedTables();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (reservationId: string) => {
-      setTablesOutletScope(outletId);
+      setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.cancelReservation(reservationId);
     },
     onSuccess: () => {
@@ -158,11 +157,11 @@ export function useCancelReservationMutation() {
 }
 
 export function useVacateTableMutation() {
-  const outletId = useOutletScopedTables();
+  const { outletId, highwayDemo } = useOutletScopedTables();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (tableId: string) => {
-      setTablesOutletScope(outletId);
+      setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.vacateTable(tableId);
     },
     onSuccess: () => {
@@ -174,11 +173,11 @@ export function useVacateTableMutation() {
 }
 
 export function useAddReservationMutation() {
-  const outletId = useOutletScopedTables();
+  const { outletId, highwayDemo } = useOutletScopedTables();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: Omit<ReservationItem, "id" | "createdAt" | "status">) => {
-      setTablesOutletScope(outletId);
+      setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.addReservation(data);
     },
     onSuccess: () => {
@@ -190,11 +189,11 @@ export function useAddReservationMutation() {
 }
 
 export function useCreateTableOrderMutation() {
-  const outletId = useOutletScopedTables();
+  const { outletId, highwayDemo } = useOutletScopedTables();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: Parameters<typeof posTablesService.createTableOrder>[0]) => {
-      setTablesOutletScope(outletId);
+      setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.createTableOrder(data);
     },
     onSuccess: () => {
@@ -217,11 +216,11 @@ export function useCreateTableOrderMutation() {
 }
 
 export function useUpdateTableOrderMutation() {
-  const outletId = useOutletScopedTables();
+  const { outletId, highwayDemo } = useOutletScopedTables();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: Parameters<typeof posTablesService.updateTableOrder>[0]) => {
-      setTablesOutletScope(outletId);
+      setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.updateTableOrder(data);
     },
     onSuccess: () => {

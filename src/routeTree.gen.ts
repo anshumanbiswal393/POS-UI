@@ -97,17 +97,20 @@ import { Route as PosInventoryMastersRawMaterialsRouteImport } from './routes/po
 import { Route as PosInventoryMastersPurchasePaymentsRouteImport } from './routes/pos.inventory.masters.purchase-payments'
 import { Route as PosInventoryMastersInvoiceTemplatesRouteImport } from './routes/pos.inventory.masters.invoice-templates'
 import { Route as PosManagementConfigurationOutletTimingsRouteImport } from './routes/pos.management.configuration.outlet.timings'
+import { Route as PosManagementConfigurationOutletServiceModeRouteImport } from './routes/pos.management.configuration.outlet.service-mode'
 import { Route as PosManagementConfigurationOutletPrintLogoRouteImport } from './routes/pos.management.configuration.outlet.print-logo'
 import { Route as PosManagementConfigurationOutletPrintRouteImport } from './routes/pos.management.configuration.outlet.print'
 import { Route as PosManagementConfigurationOutletPaymentRouteImport } from './routes/pos.management.configuration.outlet.payment'
 import { Route as PosManagementConfigurationOutletListRouteImport } from './routes/pos.management.configuration.outlet.list'
 import { Route as PosManagementConfigurationOutletInvoiceSequenceRouteImport } from './routes/pos.management.configuration.outlet.invoice-sequence'
+import { Route as PosManagementConfigurationOutletIntegrationsRouteImport } from './routes/pos.management.configuration.outlet.integrations'
 import { Route as PosManagementConfigurationOutletDisplayRouteImport } from './routes/pos.management.configuration.outlet.display'
 import { Route as PosManagementConfigurationOutletDetailsRouteImport } from './routes/pos.management.configuration.outlet.details'
 import { Route as PosManagementConfigurationOutletCustomerRouteImport } from './routes/pos.management.configuration.outlet.customer'
 import { Route as PosManagementConfigurationOutletContactRouteImport } from './routes/pos.management.configuration.outlet.contact'
 import { Route as PosManagementConfigurationOutletConnectedServicesRouteImport } from './routes/pos.management.configuration.outlet.connected-services'
 import { Route as PosManagementConfigurationOutletCalculationsRouteImport } from './routes/pos.management.configuration.outlet.calculations'
+import { Route as PosManagementConfigurationOutletBillingPreferencesRouteImport } from './routes/pos.management.configuration.outlet.billing-preferences'
 import { Route as PosManagementConfigurationOutletAddRouteImport } from './routes/pos.management.configuration.outlet.add'
 import { Route as PosManagementAccountingPaymentsWalletRouteImport } from './routes/pos.management.accounting.payments.wallet'
 import { Route as PosManagementAccountingPaymentsInformationRouteImport } from './routes/pos.management.accounting.payments.information'
@@ -601,6 +604,12 @@ const PosManagementConfigurationOutletTimingsRoute =
     path: '/timings',
     getParentRoute: () => PosManagementConfigurationOutletRoute,
   } as any)
+const PosManagementConfigurationOutletServiceModeRoute =
+  PosManagementConfigurationOutletServiceModeRouteImport.update({
+    id: '/service-mode',
+    path: '/service-mode',
+    getParentRoute: () => PosManagementConfigurationOutletRoute,
+  } as any)
 const PosManagementConfigurationOutletPrintLogoRoute =
   PosManagementConfigurationOutletPrintLogoRouteImport.update({
     id: '/print-logo',
@@ -629,6 +638,12 @@ const PosManagementConfigurationOutletInvoiceSequenceRoute =
   PosManagementConfigurationOutletInvoiceSequenceRouteImport.update({
     id: '/invoice-sequence',
     path: '/invoice-sequence',
+    getParentRoute: () => PosManagementConfigurationOutletRoute,
+  } as any)
+const PosManagementConfigurationOutletIntegrationsRoute =
+  PosManagementConfigurationOutletIntegrationsRouteImport.update({
+    id: '/integrations',
+    path: '/integrations',
     getParentRoute: () => PosManagementConfigurationOutletRoute,
   } as any)
 const PosManagementConfigurationOutletDisplayRoute =
@@ -665,6 +680,12 @@ const PosManagementConfigurationOutletCalculationsRoute =
   PosManagementConfigurationOutletCalculationsRouteImport.update({
     id: '/calculations',
     path: '/calculations',
+    getParentRoute: () => PosManagementConfigurationOutletRoute,
+  } as any)
+const PosManagementConfigurationOutletBillingPreferencesRoute =
+  PosManagementConfigurationOutletBillingPreferencesRouteImport.update({
+    id: '/billing-preferences',
+    path: '/billing-preferences',
     getParentRoute: () => PosManagementConfigurationOutletRoute,
   } as any)
 const PosManagementConfigurationOutletAddRoute =
@@ -777,17 +798,20 @@ export interface FileRoutesByFullPath {
   '/pos/management/accounting/payments/information': typeof PosManagementAccountingPaymentsInformationRoute
   '/pos/management/accounting/payments/wallet': typeof PosManagementAccountingPaymentsWalletRoute
   '/pos/management/configuration/outlet/add': typeof PosManagementConfigurationOutletAddRoute
+  '/pos/management/configuration/outlet/billing-preferences': typeof PosManagementConfigurationOutletBillingPreferencesRoute
   '/pos/management/configuration/outlet/calculations': typeof PosManagementConfigurationOutletCalculationsRoute
   '/pos/management/configuration/outlet/connected-services': typeof PosManagementConfigurationOutletConnectedServicesRoute
   '/pos/management/configuration/outlet/contact': typeof PosManagementConfigurationOutletContactRoute
   '/pos/management/configuration/outlet/customer': typeof PosManagementConfigurationOutletCustomerRoute
   '/pos/management/configuration/outlet/details': typeof PosManagementConfigurationOutletDetailsRoute
   '/pos/management/configuration/outlet/display': typeof PosManagementConfigurationOutletDisplayRoute
+  '/pos/management/configuration/outlet/integrations': typeof PosManagementConfigurationOutletIntegrationsRoute
   '/pos/management/configuration/outlet/invoice-sequence': typeof PosManagementConfigurationOutletInvoiceSequenceRoute
   '/pos/management/configuration/outlet/list': typeof PosManagementConfigurationOutletListRoute
   '/pos/management/configuration/outlet/payment': typeof PosManagementConfigurationOutletPaymentRoute
   '/pos/management/configuration/outlet/print': typeof PosManagementConfigurationOutletPrintRoute
   '/pos/management/configuration/outlet/print-logo': typeof PosManagementConfigurationOutletPrintLogoRoute
+  '/pos/management/configuration/outlet/service-mode': typeof PosManagementConfigurationOutletServiceModeRoute
   '/pos/management/configuration/outlet/timings': typeof PosManagementConfigurationOutletTimingsRoute
 }
 export interface FileRoutesByTo {
@@ -881,17 +905,20 @@ export interface FileRoutesByTo {
   '/pos/management/accounting/payments/information': typeof PosManagementAccountingPaymentsInformationRoute
   '/pos/management/accounting/payments/wallet': typeof PosManagementAccountingPaymentsWalletRoute
   '/pos/management/configuration/outlet/add': typeof PosManagementConfigurationOutletAddRoute
+  '/pos/management/configuration/outlet/billing-preferences': typeof PosManagementConfigurationOutletBillingPreferencesRoute
   '/pos/management/configuration/outlet/calculations': typeof PosManagementConfigurationOutletCalculationsRoute
   '/pos/management/configuration/outlet/connected-services': typeof PosManagementConfigurationOutletConnectedServicesRoute
   '/pos/management/configuration/outlet/contact': typeof PosManagementConfigurationOutletContactRoute
   '/pos/management/configuration/outlet/customer': typeof PosManagementConfigurationOutletCustomerRoute
   '/pos/management/configuration/outlet/details': typeof PosManagementConfigurationOutletDetailsRoute
   '/pos/management/configuration/outlet/display': typeof PosManagementConfigurationOutletDisplayRoute
+  '/pos/management/configuration/outlet/integrations': typeof PosManagementConfigurationOutletIntegrationsRoute
   '/pos/management/configuration/outlet/invoice-sequence': typeof PosManagementConfigurationOutletInvoiceSequenceRoute
   '/pos/management/configuration/outlet/list': typeof PosManagementConfigurationOutletListRoute
   '/pos/management/configuration/outlet/payment': typeof PosManagementConfigurationOutletPaymentRoute
   '/pos/management/configuration/outlet/print': typeof PosManagementConfigurationOutletPrintRoute
   '/pos/management/configuration/outlet/print-logo': typeof PosManagementConfigurationOutletPrintLogoRoute
+  '/pos/management/configuration/outlet/service-mode': typeof PosManagementConfigurationOutletServiceModeRoute
   '/pos/management/configuration/outlet/timings': typeof PosManagementConfigurationOutletTimingsRoute
 }
 export interface FileRoutesById {
@@ -986,17 +1013,20 @@ export interface FileRoutesById {
   '/pos/management/accounting/payments/information': typeof PosManagementAccountingPaymentsInformationRoute
   '/pos/management/accounting/payments/wallet': typeof PosManagementAccountingPaymentsWalletRoute
   '/pos/management/configuration/outlet/add': typeof PosManagementConfigurationOutletAddRoute
+  '/pos/management/configuration/outlet/billing-preferences': typeof PosManagementConfigurationOutletBillingPreferencesRoute
   '/pos/management/configuration/outlet/calculations': typeof PosManagementConfigurationOutletCalculationsRoute
   '/pos/management/configuration/outlet/connected-services': typeof PosManagementConfigurationOutletConnectedServicesRoute
   '/pos/management/configuration/outlet/contact': typeof PosManagementConfigurationOutletContactRoute
   '/pos/management/configuration/outlet/customer': typeof PosManagementConfigurationOutletCustomerRoute
   '/pos/management/configuration/outlet/details': typeof PosManagementConfigurationOutletDetailsRoute
   '/pos/management/configuration/outlet/display': typeof PosManagementConfigurationOutletDisplayRoute
+  '/pos/management/configuration/outlet/integrations': typeof PosManagementConfigurationOutletIntegrationsRoute
   '/pos/management/configuration/outlet/invoice-sequence': typeof PosManagementConfigurationOutletInvoiceSequenceRoute
   '/pos/management/configuration/outlet/list': typeof PosManagementConfigurationOutletListRoute
   '/pos/management/configuration/outlet/payment': typeof PosManagementConfigurationOutletPaymentRoute
   '/pos/management/configuration/outlet/print': typeof PosManagementConfigurationOutletPrintRoute
   '/pos/management/configuration/outlet/print-logo': typeof PosManagementConfigurationOutletPrintLogoRoute
+  '/pos/management/configuration/outlet/service-mode': typeof PosManagementConfigurationOutletServiceModeRoute
   '/pos/management/configuration/outlet/timings': typeof PosManagementConfigurationOutletTimingsRoute
 }
 export interface FileRouteTypes {
@@ -1092,17 +1122,20 @@ export interface FileRouteTypes {
     | '/pos/management/accounting/payments/information'
     | '/pos/management/accounting/payments/wallet'
     | '/pos/management/configuration/outlet/add'
+    | '/pos/management/configuration/outlet/billing-preferences'
     | '/pos/management/configuration/outlet/calculations'
     | '/pos/management/configuration/outlet/connected-services'
     | '/pos/management/configuration/outlet/contact'
     | '/pos/management/configuration/outlet/customer'
     | '/pos/management/configuration/outlet/details'
     | '/pos/management/configuration/outlet/display'
+    | '/pos/management/configuration/outlet/integrations'
     | '/pos/management/configuration/outlet/invoice-sequence'
     | '/pos/management/configuration/outlet/list'
     | '/pos/management/configuration/outlet/payment'
     | '/pos/management/configuration/outlet/print'
     | '/pos/management/configuration/outlet/print-logo'
+    | '/pos/management/configuration/outlet/service-mode'
     | '/pos/management/configuration/outlet/timings'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1196,17 +1229,20 @@ export interface FileRouteTypes {
     | '/pos/management/accounting/payments/information'
     | '/pos/management/accounting/payments/wallet'
     | '/pos/management/configuration/outlet/add'
+    | '/pos/management/configuration/outlet/billing-preferences'
     | '/pos/management/configuration/outlet/calculations'
     | '/pos/management/configuration/outlet/connected-services'
     | '/pos/management/configuration/outlet/contact'
     | '/pos/management/configuration/outlet/customer'
     | '/pos/management/configuration/outlet/details'
     | '/pos/management/configuration/outlet/display'
+    | '/pos/management/configuration/outlet/integrations'
     | '/pos/management/configuration/outlet/invoice-sequence'
     | '/pos/management/configuration/outlet/list'
     | '/pos/management/configuration/outlet/payment'
     | '/pos/management/configuration/outlet/print'
     | '/pos/management/configuration/outlet/print-logo'
+    | '/pos/management/configuration/outlet/service-mode'
     | '/pos/management/configuration/outlet/timings'
   id:
     | '__root__'
@@ -1300,17 +1336,20 @@ export interface FileRouteTypes {
     | '/pos/management/accounting/payments/information'
     | '/pos/management/accounting/payments/wallet'
     | '/pos/management/configuration/outlet/add'
+    | '/pos/management/configuration/outlet/billing-preferences'
     | '/pos/management/configuration/outlet/calculations'
     | '/pos/management/configuration/outlet/connected-services'
     | '/pos/management/configuration/outlet/contact'
     | '/pos/management/configuration/outlet/customer'
     | '/pos/management/configuration/outlet/details'
     | '/pos/management/configuration/outlet/display'
+    | '/pos/management/configuration/outlet/integrations'
     | '/pos/management/configuration/outlet/invoice-sequence'
     | '/pos/management/configuration/outlet/list'
     | '/pos/management/configuration/outlet/payment'
     | '/pos/management/configuration/outlet/print'
     | '/pos/management/configuration/outlet/print-logo'
+    | '/pos/management/configuration/outlet/service-mode'
     | '/pos/management/configuration/outlet/timings'
   fileRoutesById: FileRoutesById
 }
@@ -1938,6 +1977,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PosManagementConfigurationOutletTimingsRouteImport
       parentRoute: typeof PosManagementConfigurationOutletRoute
     }
+    '/pos/management/configuration/outlet/service-mode': {
+      id: '/pos/management/configuration/outlet/service-mode'
+      path: '/service-mode'
+      fullPath: '/pos/management/configuration/outlet/service-mode'
+      preLoaderRoute: typeof PosManagementConfigurationOutletServiceModeRouteImport
+      parentRoute: typeof PosManagementConfigurationOutletRoute
+    }
     '/pos/management/configuration/outlet/print-logo': {
       id: '/pos/management/configuration/outlet/print-logo'
       path: '/print-logo'
@@ -1971,6 +2017,13 @@ declare module '@tanstack/react-router' {
       path: '/invoice-sequence'
       fullPath: '/pos/management/configuration/outlet/invoice-sequence'
       preLoaderRoute: typeof PosManagementConfigurationOutletInvoiceSequenceRouteImport
+      parentRoute: typeof PosManagementConfigurationOutletRoute
+    }
+    '/pos/management/configuration/outlet/integrations': {
+      id: '/pos/management/configuration/outlet/integrations'
+      path: '/integrations'
+      fullPath: '/pos/management/configuration/outlet/integrations'
+      preLoaderRoute: typeof PosManagementConfigurationOutletIntegrationsRouteImport
       parentRoute: typeof PosManagementConfigurationOutletRoute
     }
     '/pos/management/configuration/outlet/display': {
@@ -2013,6 +2066,13 @@ declare module '@tanstack/react-router' {
       path: '/calculations'
       fullPath: '/pos/management/configuration/outlet/calculations'
       preLoaderRoute: typeof PosManagementConfigurationOutletCalculationsRouteImport
+      parentRoute: typeof PosManagementConfigurationOutletRoute
+    }
+    '/pos/management/configuration/outlet/billing-preferences': {
+      id: '/pos/management/configuration/outlet/billing-preferences'
+      path: '/billing-preferences'
+      fullPath: '/pos/management/configuration/outlet/billing-preferences'
+      preLoaderRoute: typeof PosManagementConfigurationOutletBillingPreferencesRouteImport
       parentRoute: typeof PosManagementConfigurationOutletRoute
     }
     '/pos/management/configuration/outlet/add': {
@@ -2130,17 +2190,20 @@ const PosInventoryRouteWithChildren = PosInventoryRoute._addFileChildren(
 
 interface PosManagementConfigurationOutletRouteChildren {
   PosManagementConfigurationOutletAddRoute: typeof PosManagementConfigurationOutletAddRoute
+  PosManagementConfigurationOutletBillingPreferencesRoute: typeof PosManagementConfigurationOutletBillingPreferencesRoute
   PosManagementConfigurationOutletCalculationsRoute: typeof PosManagementConfigurationOutletCalculationsRoute
   PosManagementConfigurationOutletConnectedServicesRoute: typeof PosManagementConfigurationOutletConnectedServicesRoute
   PosManagementConfigurationOutletContactRoute: typeof PosManagementConfigurationOutletContactRoute
   PosManagementConfigurationOutletCustomerRoute: typeof PosManagementConfigurationOutletCustomerRoute
   PosManagementConfigurationOutletDetailsRoute: typeof PosManagementConfigurationOutletDetailsRoute
   PosManagementConfigurationOutletDisplayRoute: typeof PosManagementConfigurationOutletDisplayRoute
+  PosManagementConfigurationOutletIntegrationsRoute: typeof PosManagementConfigurationOutletIntegrationsRoute
   PosManagementConfigurationOutletInvoiceSequenceRoute: typeof PosManagementConfigurationOutletInvoiceSequenceRoute
   PosManagementConfigurationOutletListRoute: typeof PosManagementConfigurationOutletListRoute
   PosManagementConfigurationOutletPaymentRoute: typeof PosManagementConfigurationOutletPaymentRoute
   PosManagementConfigurationOutletPrintRoute: typeof PosManagementConfigurationOutletPrintRoute
   PosManagementConfigurationOutletPrintLogoRoute: typeof PosManagementConfigurationOutletPrintLogoRoute
+  PosManagementConfigurationOutletServiceModeRoute: typeof PosManagementConfigurationOutletServiceModeRoute
   PosManagementConfigurationOutletTimingsRoute: typeof PosManagementConfigurationOutletTimingsRoute
 }
 
@@ -2148,6 +2211,8 @@ const PosManagementConfigurationOutletRouteChildren: PosManagementConfigurationO
   {
     PosManagementConfigurationOutletAddRoute:
       PosManagementConfigurationOutletAddRoute,
+    PosManagementConfigurationOutletBillingPreferencesRoute:
+      PosManagementConfigurationOutletBillingPreferencesRoute,
     PosManagementConfigurationOutletCalculationsRoute:
       PosManagementConfigurationOutletCalculationsRoute,
     PosManagementConfigurationOutletConnectedServicesRoute:
@@ -2160,6 +2225,8 @@ const PosManagementConfigurationOutletRouteChildren: PosManagementConfigurationO
       PosManagementConfigurationOutletDetailsRoute,
     PosManagementConfigurationOutletDisplayRoute:
       PosManagementConfigurationOutletDisplayRoute,
+    PosManagementConfigurationOutletIntegrationsRoute:
+      PosManagementConfigurationOutletIntegrationsRoute,
     PosManagementConfigurationOutletInvoiceSequenceRoute:
       PosManagementConfigurationOutletInvoiceSequenceRoute,
     PosManagementConfigurationOutletListRoute:
@@ -2170,6 +2237,8 @@ const PosManagementConfigurationOutletRouteChildren: PosManagementConfigurationO
       PosManagementConfigurationOutletPrintRoute,
     PosManagementConfigurationOutletPrintLogoRoute:
       PosManagementConfigurationOutletPrintLogoRoute,
+    PosManagementConfigurationOutletServiceModeRoute:
+      PosManagementConfigurationOutletServiceModeRoute,
     PosManagementConfigurationOutletTimingsRoute:
       PosManagementConfigurationOutletTimingsRoute,
   }

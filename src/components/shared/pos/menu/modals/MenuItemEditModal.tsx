@@ -249,8 +249,14 @@ export function MenuItemEditModal({
             toast.success(`Updated "${name}" successfully`);
             onClose();
           },
-          onError: () => {
-            toast.error("Failed to update item");
+          onError: (err: unknown) => {
+            const detail = (err as { response?: { data?: unknown } })?.response?.data;
+            const message =
+              (typeof detail === "string" && detail) ||
+              (typeof (detail as { detail?: string })?.detail === "string" &&
+                (detail as { detail: string }).detail) ||
+              "Failed to update item";
+            toast.error(message);
           },
         },
       );
@@ -260,8 +266,14 @@ export function MenuItemEditModal({
           toast.success(`Created "${name}" in menu`);
           onClose();
         },
-        onError: () => {
-          toast.error("Failed to create item");
+        onError: (err: unknown) => {
+          const detail = (err as { response?: { data?: Record<string, unknown> } })?.response?.data;
+          const first =
+            detail &&
+            Object.values(detail)
+              .flatMap((v) => (Array.isArray(v) ? v : [v]))
+              .find((v) => typeof v === "string");
+          toast.error((typeof first === "string" && first) || "Failed to create item");
         },
       });
     }

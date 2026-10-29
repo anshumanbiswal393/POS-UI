@@ -33,9 +33,10 @@ function invalidateStock(queryClient: ReturnType<typeof useQueryClient>) {
 }
 
 export function useInventoryVendors() {
+  const { activeOutlet } = useOutletContext();
   return useQuery({
-    queryKey: INVENTORY_QUERY_KEYS.vendors,
-    queryFn: posInventoryService.getVendors,
+    queryKey: [...INVENTORY_QUERY_KEYS.vendors, activeOutlet?.id],
+    queryFn: () => posInventoryService.getVendors(activeOutlet?.id),
   });
 }
 

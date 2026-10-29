@@ -29,7 +29,11 @@ export function useBillingMenuItems(outletId?: string) {
     queryKey: ["pos", "billing", "menu", outletId || "all"] as const,
     queryFn: async (): Promise<MenuItem[]> => {
       if (live && outletId) {
-        return (await liveGetBillingMenu(outletId)) as MenuItem[];
+        try {
+          return (await liveGetBillingMenu(outletId)) as MenuItem[];
+        } catch {
+          return [];
+        }
       }
       return posMenuService.getMenuItems(outletId);
     },

@@ -52,7 +52,7 @@ export function PosDueSettlementManager() {
   const [settlementMode, setSettlementMode] = useState<PayMode>("Cash");
   const [settlementAmount, setSettlementAmount] = useState("");
 
-  const { data: dueBills = [] } = useDueBills();
+  const { data: dueBills = [], isLoading, isError, error, refetch } = useDueBills();
   const settleMutation = useSettleDueBillMutation();
 
   const totalOpenDues = useMemo(
@@ -265,13 +265,14 @@ export function PosDueSettlementManager() {
     const settleAmt = parseFloat(settlementAmount) || selectedBill.dueAmount;
     // Map Wallet → Split for existing service type (stored as other)
     const modeForApi =
-      settlementMode === "Wallet" ? ("Split" as const) : settlementMode;
+      settlementMode === "Wallet" ? ("Cash" as const) : settlementMode;
 
     settleMutation.mutate(
       {
         billId: selectedBill.id,
         paymentMode: modeForApi,
         paidAmount: settleAmt,
+        orderId: selectedBill.orderId,
       },
       {
         onSuccess: (data: any) => {
@@ -553,12 +554,29 @@ export function PosDueSettlementManager() {
         </div>
       </div>
 
+      {isError ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12.5px] text-rose-800">
+          Could not load pending payments
+          {typeof (error as { message?: string })?.message === "string"
+            ? ` · ${(error as { message: string }).message}`
+            : ""}
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="ml-2 font-bold text-rose-900 underline cursor-pointer"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+
       <PosDataGrid
         data={filteredRecords}
         columns={dueColumns}
         storageKey="pos-due-settlement"
         itemName="bills"
         themeVariant="primary"
+        loading={isLoading && dueBills.length === 0}
         columnVisibility={columnVisibility}
         onColumnVisibilityChange={handleColumnVisibilityChange}
       />

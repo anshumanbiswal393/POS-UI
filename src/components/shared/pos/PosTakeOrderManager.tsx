@@ -32,6 +32,7 @@ import { NewReservationModal } from "./tables/NewReservationModal";
 import { RoomOrderCategoryGridView } from "./roomService/RoomOrderCategoryGridView";
 import { RoomOrderDetailSlide } from "./roomService/RoomOrderDetailSlide";
 import { RoomOrderWizardModal, type HeldRoomOrder } from "./roomService/RoomOrderWizardModal";
+import { RoomFolioOrderSlide } from "./roomService/RoomFolioOrderSlide";
 import { AddItemsToOrderModal } from "./roomService/AddItemsToOrderModal";
 import type { DiningArea, RestaurantTable, ReservationItem, TableShape } from "@/types/posTables";
 import type {
@@ -85,6 +86,7 @@ export function PosTakeOrderManager() {
   const [heldRoomOrders, setHeldRoomOrders] = useState<HeldRoomOrder[]>([]);
   const [activeHeldOrder, setActiveHeldOrder] = useState<HeldRoomOrder | null>(null);
   const [isAddItemsModalOpen, setIsAddItemsModalOpen] = useState(false);
+  const [folioPreviewRoom, setFolioPreviewRoom] = useState<HotelRoom | null>(null);
 
   // Room queries & mutations
   const { data: roomOrders = [], refetch: refetchRoomOrders } = useRoomServiceOrders();
@@ -352,6 +354,7 @@ export function PosTakeOrderManager() {
             rooms={hotelRooms}
             heldOrders={heldRoomOrders}
             onSelectRoom={handleSelectRoom}
+            onViewRoomOrders={(room) => setFolioPreviewRoom(room)}
             onResumeHeldOrder={handleResumeHeldOrder}
             onCancelHeldOrder={handleCancelHeldOrder}
           />
@@ -475,6 +478,12 @@ export function PosTakeOrderManager() {
         heldOrder={activeHeldOrder}
         onConfirmOrder={handleConfirmRoomOrder}
         onHoldOrder={handleHoldRoomOrder}
+      />
+
+      <RoomFolioOrderSlide
+        isOpen={Boolean(folioPreviewRoom)}
+        onClose={() => setFolioPreviewRoom(null)}
+        room={folioPreviewRoom}
       />
 
       {/* 8. Add Items to Room Order Modal */}

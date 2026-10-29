@@ -270,22 +270,25 @@ function unwrapList<T>(data: unknown): T[] {
 function toMenuItemWritePayload(item: Partial<MenuItem> & { outletId?: string }) {
   const itemType =
     item.itemType === "Non-Veg" ? "NON_VEG" : item.itemType === "Egg" ? "EGG" : "VEG";
+  const categoryId = isBackendOutletId(item.categoryId) ? item.categoryId : undefined;
+  const taxProfileId = isBackendOutletId(item.taxProfileId) ? item.taxProfileId : undefined;
   return {
     outlet: item.outletId,
     outletId: item.outletId,
-    category: item.categoryId || item.category,
-    categoryId: item.categoryId,
+    category: categoryId || item.category || undefined,
+    categoryId: categoryId || undefined,
     code: item.code,
     name: item.name,
-    online_display_name: item.onlineDisplayName,
-    onlineDisplayName: item.onlineDisplayName,
+    online_display_name: item.onlineDisplayName || item.name || undefined,
+    onlineDisplayName: item.onlineDisplayName || item.name || undefined,
     item_type: itemType,
     itemType: item.itemType,
     price: item.price,
-    taxRate: item.taxRate,
-    tax_profile: item.taxProfileId,
+    taxRate: item.taxRate ?? 5,
+    tax_profile: taxProfileId || undefined,
+    taxProfileId: taxProfileId || undefined,
     status: item.status === "Inactive" ? "INACTIVE" : "ACTIVE",
-    description: item.description,
+    description: item.description || "",
     images: item.images || [],
     base_menu: item.baseMenu,
     baseMenu: item.baseMenu,

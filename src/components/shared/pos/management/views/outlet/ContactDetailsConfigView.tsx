@@ -6,7 +6,7 @@ import {
   FieldLabel,
   TextInput,
 } from "@/components/shared/pos/management/outlet-config/ConfigPageShell";
-import { useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
+import { useDraftOnChange, useOutletConfig } from "@/components/shared/pos/management/outlet-config/useOutletConfig";
 import type { StaffContact } from "@/components/shared/pos/management/outlet-config/outletConfigStore";
 
 function ContactBlock({
@@ -48,8 +48,9 @@ function ContactBlock({
 }
 
 export function ContactDetailsConfigView() {
-  const { config, persist } = useOutletConfig();
+  const { config, persist, saveDraft, outletId } = useOutletConfig();
   const [form, setForm] = useState(config.contact);
+  useDraftOnChange("contact", form, (c, f) => ({ ...c, contact: f }), saveDraft, outletId);
 
   const update = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -67,7 +68,7 @@ export function ContactDetailsConfigView() {
       toast.error("Owner name and mobile are required");
       return;
     }
-    persist({ ...config, contact: form }, "Contact details saved");
+    return persist({ ...config, contact: form }, "Contact details saved", "contact");
   };
 
   return (
@@ -75,6 +76,7 @@ export function ContactDetailsConfigView() {
       title="Contact Details"
       subtitle="Configure contact details of you and your staff to be reached by the Retrod team."
       onSave={handleSave}
+      stepId="contact"
     >
       <div className="space-y-4">
         <ContactBlock
