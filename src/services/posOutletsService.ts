@@ -172,7 +172,11 @@ export const posOutletsService = {
       // Remote fetch failed or offline
     }
 
-    const local = getLocalCustomOutlets().filter((o) => !isDummyOutlet(o.name, o.code));
+    const local = getLocalCustomOutlets().filter((o) => {
+      if (isDummyOutlet(o.name, o.code)) return false;
+      if (params?.propertyId && o.propertyId && o.propertyId !== params.propertyId) return false;
+      return true;
+    });
     // If backend returns outlets, backend is the authoritative source.
     // Only keep unsaved local offline drafts (starting with outlet-local-).
     const localDrafts =
@@ -335,23 +339,7 @@ export const posOutletsService = {
   },
 
   /** Find or create the live Highway Inn dining floor so tables persist like any other outlet. */
-  async ensureHighwayInnOutlet(existing: PosOutlet[]): Promise<PosOutlet | null> {
-    const found = findLiveHighwayInn(existing);
-    if (found) return found;
-    try {
-      return await posOutletsService.createOutlet({
-        name: "HIGHWAY INN BAR & RESTAURANT",
-        code: "HI-MAIN",
-        outlet_type: "PRIMARY",
-        cuisine: "Multi-Cuisine & Bar",
-        phone: "+91 98765 43210",
-        address: "National Highway 48, Mumbai - Pune Expressway, Sector 4",
-        additionalInfo: "Main flagship dining, bar lounge, banquet, and room service counter.",
-        is_active: true,
-      });
-    } catch {
-      const retry = await posOutletsService.listOutlets();
-      return findLiveHighwayInn(retry) || null;
-    }
+  async ensureHighwayInnOutlet(_existing: PosOutlet[]): Promise<PosOutlet | null> {
+    return null;
   },
 };

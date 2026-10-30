@@ -30,7 +30,7 @@ import { RetrodLogo } from "@/components/common";
 import { cn } from "@/lib/utils";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { isDiningOutlet } from "@/utils/outletKind";
-import { deduplicateOutlets, isHighwayInnName } from "@/utils/outletId";
+import { deduplicateOutlets } from "@/utils/outletId";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -378,10 +378,7 @@ export function PosSidebar({
             <DropdownMenuSeparator />
             <DropdownMenuGroup className="max-h-[300px] overflow-y-auto">
               {availableOutlets.map((outlet) => {
-                const isSelected =
-                  activeOutlet?.id === outlet.id ||
-                  (isHighwayInnName(activeOutlet?.name, activeOutlet?.code) &&
-                    isHighwayInnName(outlet.name, outlet.code));
+                const isSelected = activeOutlet?.id === outlet.id;
                 return (
                   <DropdownMenuItem
                     key={outlet.id}
@@ -432,10 +429,7 @@ export function PosSidebar({
               <DropdownMenuSeparator />
               <DropdownMenuGroup className="max-h-[300px] overflow-y-auto">
                 {availableOutlets.map((outlet) => {
-                  const isSelected =
-                    activeOutlet?.id === outlet.id ||
-                    (isHighwayInnName(activeOutlet?.name, activeOutlet?.code) &&
-                      isHighwayInnName(outlet.name, outlet.code));
+                  const isSelected = activeOutlet?.id === outlet.id;
                   return (
                     <DropdownMenuItem
                       key={outlet.id}

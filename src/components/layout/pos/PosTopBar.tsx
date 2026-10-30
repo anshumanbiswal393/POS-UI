@@ -29,6 +29,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useOutletContext } from "@/context/PosOutletContext";
 import {
   formatNotificationTime,
   usePosNotifications,
@@ -86,6 +87,7 @@ export function PosTopBar({
   const navigate = useNavigate();
   const currentPath = useRouterState({ select: (s) => s.location.pathname });
   const { user, roleLabel, logout } = useAuth();
+  const { activeOutlet } = useOutletContext();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = usePosNotifications();
 
   const [showDateMenu, setShowDateMenu] = useState(false);
@@ -334,15 +336,23 @@ export function PosTopBar({
               type="button"
               className="flex items-center gap-2 rounded-md border border-border bg-surface px-2.5 py-1 hover:bg-surface-2 transition cursor-pointer outline-none"
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary font-bold text-[11px] text-primary-foreground">
-                {user?.initials ?? "AD"}
-              </div>
-              <div className="hidden text-left md:block min-w-0">
-                <div className="text-[12.5px] font-semibold text-text-primary leading-tight truncate max-w-[130px]">
-                  Admin
+              {user?.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user?.name || "User"}
+                  className="h-7 w-7 rounded-full object-cover shrink-0 border border-primary/20"
+                />
+              ) : (
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary font-bold text-[11px] text-primary-foreground shrink-0">
+                  {user?.initials || "U"}
                 </div>
-                <div className="text-[10.5px] text-text-secondary leading-tight truncate max-w-[130px]">
-                  Hotel Admin
+              )}
+              <div className="hidden text-left md:block min-w-0">
+                <div className="text-[12.5px] font-semibold text-text-primary leading-tight truncate max-w-[130px]" title={user?.name || "User"}>
+                  {user?.name || "User"}
+                </div>
+                <div className="text-[10.5px] text-text-secondary leading-tight truncate max-w-[130px]" title={user?.role_name || (user ? roleLabel(user.role) : "Staff")}>
+                  {user?.role_name || (user ? roleLabel(user.role) : "Staff")}
                 </div>
               </div>
               <ChevronRight className="hidden md:block h-3.5 w-3.5 text-text-disabled shrink-0" />
@@ -352,6 +362,15 @@ export function PosTopBar({
             align="end"
             className="w-56 rounded-md border border-border bg-white p-1.5 text-text-primary shadow-2xl data-[state=closed]:animate-none"
           >
+            <div className="px-2.5 py-2 border-b border-border mb-1">
+              <div className="font-semibold text-[13px] text-text-primary truncate">{user?.name || "User"}</div>
+              <div className="text-[11px] text-text-secondary truncate">{user?.email}</div>
+              {(activeOutlet?.name || user?.property) && (
+                <div className="text-[10.5px] text-primary truncate mt-0.5 font-medium">
+                  {activeOutlet?.name || user?.property}
+                </div>
+              )}
+            </div>
             <DropdownMenuItem
               onClick={() => navigate({ to: "/pos/settings" })}
               className="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium"
