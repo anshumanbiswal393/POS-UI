@@ -11,7 +11,7 @@ export function useAuth(): AuthCtx {
 }
 
 interface CanProps {
-  perm: Permission;
+  perm: Permission | string;
   children: ReactNode;
   fallback?: ReactNode;
 }
