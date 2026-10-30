@@ -97,7 +97,16 @@ function loadCachedUsers(): AppUser[] {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AppUser | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem(LS_USER);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  });
   const [users, setUsers] = useState<AppUser[]>(loadCachedUsers);
+
   useEffect(() => {
     if (user) {
       setUsers((prev) => {
@@ -109,15 +118,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     }
   }, [user]);
-
-  const [user, setUser] = useState<AppUser | null>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      const raw = localStorage.getItem(LS_USER);
-      if (raw) return JSON.parse(raw);
-    } catch {}
-    return null;
-  });
   const [loading, setLoading] = useState<boolean>(true);
   const [auditEvents, setAuditEvents] = useState<AuthAuditEvent[]>([]);
   const [entitlements, setEntitlements] = useState<TenantEntitlements>(DEFAULT_ENTITLEMENTS);
