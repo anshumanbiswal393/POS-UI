@@ -213,8 +213,13 @@ export interface POSCashierShiftDto {
 export interface POSManagementLogDto {
   id: string;
   outlet: string;
+  outlet_name?: string;
   log_type: string;
-  message: string;
+  event_title?: string;
+  message?: string;
+  actor_name?: string;
+  reference_id?: string;
+  details?: Record<string, any>;
   metadata?: Record<string, unknown>;
   created_at: string;
 }
@@ -248,11 +253,17 @@ export interface POSMarketplaceIntegrationDto {
 export interface POSAuditTrailDto {
   id: string;
   outlet: string;
+  outlet_name?: string;
   actor_name: string;
+  actor_user?: number | null;
   action: string;
   entity_type: string;
   entity_id?: string;
   description: string;
+  ip_address?: string;
+  device_name?: string;
+  metadata?: Record<string, any>;
+  timestamp?: string;
   created_at: string;
 }
 
@@ -594,6 +605,21 @@ export const posManagementService = {
   },
 
   // ── 14. Logs, Audit & Support ─────────────────────────────
+  async recordManagementLog(outletId: string, payload: {
+    log_type: string;
+    event_title: string;
+    actor_name?: string;
+    reference_id?: string;
+    details?: Record<string, any>;
+  }): Promise<POSManagementLogDto> {
+    const res = await httpClient.post(`/api/pos/management/logs/?outlet_id=${outletId}`, {
+      ...payload,
+      outlet: outletId,
+    });
+    return res.data;
+  },
+
+  
   async getManagementLogs(outletId: string, logType?: string): Promise<POSManagementLogDto[]> {
     const url = logType
       ? `/api/pos/management/logs/?outlet_id=${outletId}&log_type=${logType}`

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   ToggleLeft,
   ToggleRight,
@@ -6,9 +6,12 @@ import {
   Layers,
   Clock,
   Filter,
-  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
+import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
+import { useOutletContext } from "@/context/PosOutletContext";
+import posManagementService, { type POSManagementLogDto } from "@/services/posManagementService";
 
 interface ItemLogEntry {
   id: string;
@@ -17,88 +20,63 @@ interface ItemLogEntry {
   category: string;
   channels: string[];
   action: "TURNED_OFF" | "TURNED_ON";
-  reason: "Out of Raw Material" | "Kitchen Rush Throttle" | "Chef Discretion" | "Restocked";
+  reason: string;
   operator: string;
-  autoTurnOnTime?: string;
 }
 
-const INITIAL_LOGS: ItemLogEntry[] = [
-  {
-    id: "itm-001",
-    timestamp: "2026-10-09 09:42:10",
-    itemName: "Paneer Butter Masala",
-    category: "Main Course",
-    channels: ["Retrod Store", "Zomato", "Swiggy"],
-    action: "TURNED_OFF",
-    reason: "Out of Raw Material",
-    operator: "Chef Vikas (Kitchen)",
-    autoTurnOnTime: "Next Day 09:00 AM",
-  },
-  {
-    id: "itm-002",
-    timestamp: "2026-10-09 09:15:00",
-    itemName: "Cold Coffee with Ice Cream",
-    category: "Beverages",
-    channels: ["Swiggy"],
-    action: "TURNED_ON",
-    reason: "Restocked",
-    operator: "Sunil Verma (Cashier)",
-  },
-  {
-    id: "itm-003",
-    timestamp: "2026-10-08 21:30:12",
-    itemName: "Chicken Biryani (Dum Handi)",
-    category: "Biryani & Rice",
-    channels: ["Retrod Store", "Zomato"],
-    action: "TURNED_OFF",
-    reason: "Kitchen Rush Throttle",
-    operator: "Ayush Mishra (Store Manager)",
-    autoTurnOnTime: "1 hr auto reset",
-  },
-  {
-    id: "itm-004",
-    timestamp: "2026-10-08 20:05:40",
-    itemName: "Tandoori Roti (Butter)",
-    category: "Breads",
-    channels: ["All Channels"],
-    action: "TURNED_OFF",
-    reason: "Chef Discretion",
-    operator: "Chef Vikas (Kitchen)",
-  },
-  {
-    id: "itm-005",
-    timestamp: "2026-10-08 19:10:22",
-    itemName: "Gulab Jamun with Rabri",
-    category: "Desserts",
-    channels: ["Retrod Store", "Swiggy", "Zomato"],
-    action: "TURNED_ON",
-    reason: "Restocked",
-    operator: "Sunil Verma (Cashier)",
-  },
-  {
-    id: "itm-006",
-    timestamp: "2026-10-08 16:20:10",
-    itemName: "Virgin Mojito",
-    category: "Beverages",
-    channels: ["Zomato"],
-    action: "TURNED_OFF",
-    reason: "Out of Raw Material",
-    operator: "Ayush Mishra (Store Manager)",
-  },
-];
-
 export function OnlineItemLogsView() {
-  const [logs] = useState<ItemLogEntry[]>(INITIAL_LOGS);
-  const [categoryFilter, setCategoryFilter] = useState("All");
+  const { activeOutlet } = useOutletContext();
+  const [logs, setLogs] = useState<ItemLogEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [actionFilter, setActionFilter] = useState("All");
+
+  const fetchLogs = useCallback(async () => {
+    if (!activeOutlet?.id) return;
+    setIsLoading(true);
+    try {
+      const data = await posManagementService.getManagementLogs(activeOutlet.id, "ONLINE_ITEMS");
+      const mapped: ItemLogEntry[] = data.map((log: POSManagementLogDto) => {
+        const isOff = (log.details?.status as string)?.toLowerCase().includes("out") ||
+          log.event_title.toLowerCase().includes("unavailable") ||
+          log.event_title.toLowerCase().includes("inactive");
+
+        return {
+          id: log.id,
+          timestamp: log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "",
+          itemName: (log.details?.itemName as string) || log.event_title.split(" ")[0] || "Menu Item",
+          category: (log.details?.category as string) || "Food Menu",
+          channels: [(log.details?.platform as string) || "Retrod Store"],
+          action: isOff ? "TURNED_OFF" : "TURNED_ON",
+          reason: (log.details?.reason as string) || log.event_title || "Item stock toggled",
+          operator: (log.details?.operator as string) || log.actor_name || "Store Manager",
+        };
+      });
+      setLogs(mapped);
+    } catch (err) {
+      console.error("Failed to load online items logs:", err);
+      toast.error("Failed to load online item logs from server");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeOutlet?.id]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
-      if (categoryFilter !== "All" && log.category !== categoryFilter) return false;
-      if (actionFilter !== "All" && log.action !== actionFilter) return false;
+      if (actionFilter === "TURNED_OFF" && log.action !== "TURNED_OFF") return false;
+      if (actionFilter === "TURNED_ON" && log.action !== "TURNED_ON") return false;
       return true;
     });
-  }, [logs, categoryFilter, actionFilter]);
+  }, [logs, actionFilter]);
+
+  const stats = useMemo(() => {
+    const turnedOffCount = logs.filter((l) => l.action === "TURNED_OFF").length;
+    const turnedOnCount = logs.filter((l) => l.action === "TURNED_ON").length;
+    return { turnedOffCount, turnedOnCount, count: logs.length };
+  }, [logs]);
 
   const columns: PosDataGridColumn<ItemLogEntry>[] = [
     {
@@ -106,9 +84,9 @@ export function OnlineItemLogsView() {
       header: "Timestamp",
       accessorKey: "timestamp",
       sortable: true,
-      defaultWidth: 155,
+      defaultWidth: 165,
       render: (_, r) => (
-        <span className="font-mono text-[12px] text-slate-700 font-medium">{r.timestamp}</span>
+        <span className="font-mono text-[12px] text-slate-600 font-medium">{r.timestamp}</span>
       ),
     },
     {
@@ -116,48 +94,48 @@ export function OnlineItemLogsView() {
       header: "Menu Item",
       accessorKey: "itemName",
       sortable: true,
-      defaultWidth: 220,
+      defaultWidth: 180,
       render: (_, r) => (
         <div>
-          <div className="font-bold text-[13px] text-slate-900">{r.itemName}</div>
-          <div className="text-[11px] text-slate-500 font-semibold">{r.category}</div>
+          <div className="font-bold text-[12.5px] text-slate-900">{r.itemName}</div>
+          <div className="text-[10.5px] text-slate-500">{r.category}</div>
         </div>
       ),
     },
     {
       id: "action",
-      header: "Toggle State",
+      header: "Availability Action",
       accessorKey: "action",
       sortable: true,
-      defaultWidth: 150,
-      render: (_, r) => (
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] font-bold border ${
-            r.action === "TURNED_ON"
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-              : "bg-rose-50 text-rose-700 border-rose-200"
-          }`}
-        >
-          {r.action === "TURNED_ON" ? (
+      defaultWidth: 160,
+      render: (_, r) => {
+        if (r.action === "TURNED_OFF") {
+          return (
+            <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-[11px] font-bold text-rose-700">
+              <ToggleLeft className="h-3.5 w-3.5" />
+              Turned OFF (86'd)
+            </span>
+          );
+        }
+        return (
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
             <ToggleRight className="h-3.5 w-3.5" />
-          ) : (
-            <ToggleLeft className="h-3.5 w-3.5" />
-          )}
-          {r.action === "TURNED_ON" ? "Turned ON (Available)" : "Turned OFF (OOS)"}
-        </span>
-      ),
+            Turned ON (Active)
+          </span>
+        );
+      },
     },
     {
       id: "channels",
-      header: "Applicable Channels",
+      header: "Affected Channels",
       accessorKey: "channels",
-      defaultWidth: 190,
+      defaultWidth: 165,
       render: (_, r) => (
         <div className="flex flex-wrap gap-1">
-          {r.channels.map((ch) => (
+          {r.channels.map((ch, idx) => (
             <span
-              key={ch}
-              className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-700 border border-slate-200"
+              key={idx}
+              className="rounded bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-semibold text-slate-700"
             >
               {ch}
             </span>
@@ -167,27 +145,22 @@ export function OnlineItemLogsView() {
     },
     {
       id: "reason",
-      header: "Reason & Auto Reset",
+      header: "Reason / Trigger",
       accessorKey: "reason",
-      defaultWidth: 220,
+      defaultWidth: 230,
       render: (_, r) => (
-        <div>
-          <span className="font-medium text-[12px] text-slate-800">{r.reason}</span>
-          {r.autoTurnOnTime && (
-            <div className="text-[11px] text-amber-700 flex items-center gap-1 font-medium mt-0.5">
-              <Clock className="h-3 w-3" /> Auto On: {r.autoTurnOnTime}
-            </div>
-          )}
+        <div className="text-[12px] text-slate-700 truncate" title={r.reason}>
+          {r.reason}
         </div>
       ),
     },
     {
       id: "operator",
-      header: "Toggled By",
+      header: "Operator",
       accessorKey: "operator",
-      defaultWidth: 170,
+      defaultWidth: 160,
       render: (_, r) => (
-        <div className="text-[12px] text-slate-600 font-semibold">{r.operator}</div>
+        <div className="text-[12px] text-slate-800 font-semibold">{r.operator}</div>
       ),
     },
   ];
@@ -195,52 +168,64 @@ export function OnlineItemLogsView() {
   return (
     <div className="space-y-5 w-full">
       {/* Header */}
-      <div>
-        <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-          <UtensilsCrossed className="h-5 w-5 text-teal-600" />
-          Online Item On/Off Logs
-        </h2>
-        <p className="text-[12.5px] text-slate-500">
-          Audit history of menu items marked out of stock or reactivated across online ordering channels.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <UtensilsCrossed className="h-5 w-5 text-teal-600" />
+            Online Item On / Off Availability Logs
+          </h2>
+          <p className="text-[12.5px] text-slate-500">
+            Real-time server records for {activeOutlet?.name || "Active Outlet"} item 86-ing and channel stock status.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={fetchLogs}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-[12.5px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-xs disabled:opacity-50"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          Refresh Logs
+        </button>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Currently Out of Stock</span>
-            <AlertTriangle className="h-4 w-4 text-rose-500" />
+            <span>Total Item Actions</span>
+            <Layers className="h-4 w-4 text-teal-600" />
           </div>
-          <div className="mt-2 text-[22px] font-black text-rose-600">3 Items</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">Across delivery channels</div>
+          <div className="mt-2 text-[22px] font-black text-slate-900">{stats.count}</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Recorded stock events</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Toggles Today</span>
-            <ToggleRight className="h-4 w-4 text-teal-600" />
+            <span>Turned OFF (86'd)</span>
+            <ToggleLeft className="h-4 w-4 text-rose-500" />
           </div>
-          <div className="mt-2 text-[22px] font-black text-slate-900">2 Actions</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">1 OOS, 1 Restocked</div>
+          <div className="mt-2 text-[22px] font-black text-rose-600">{stats.turnedOffCount}</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Out of stock actions</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Auto-Reset Scheduled</span>
-            <Clock className="h-4 w-4 text-amber-500" />
+            <span>Turned ON (Restocked)</span>
+            <ToggleRight className="h-4 w-4 text-emerald-500" />
           </div>
-          <div className="mt-2 text-[22px] font-black text-slate-900">1 Item</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">Resets on next business day</div>
+          <div className="mt-2 text-[22px] font-black text-emerald-600">{stats.turnedOnCount}</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Restocked activations</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Top OOS Category</span>
-            <Layers className="h-4 w-4 text-indigo-500" />
+            <span>Aggregators Synced</span>
+            <Clock className="h-4 w-4 text-indigo-500" />
           </div>
-          <div className="mt-2 text-[18px] font-black text-slate-900">Main Course</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">Raw material stockout</div>
+          <div className="mt-2 text-[22px] font-black text-indigo-600">Swiggy & Zomato</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Live menu push</div>
         </div>
       </div>
 
@@ -248,28 +233,15 @@ export function OnlineItemLogsView() {
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
         <div className="flex items-center gap-1.5 text-[12px] font-bold text-slate-700">
           <Filter className="h-3.5 w-3.5 text-slate-400" />
-          Filters:
+          Filter Action:
         </div>
-
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[12px] font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500"
-        >
-          <option value="All">All Categories</option>
-          <option value="Main Course">Main Course</option>
-          <option value="Beverages">Beverages</option>
-          <option value="Biryani & Rice">Biryani & Rice</option>
-          <option value="Breads">Breads</option>
-          <option value="Desserts">Desserts</option>
-        </select>
 
         <select
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
           className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[12px] font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500"
         >
-          <option value="All">All Actions</option>
+          <option value="All">All Item Actions</option>
           <option value="TURNED_OFF">Turned OFF (Out of Stock)</option>
           <option value="TURNED_ON">Turned ON (Available)</option>
         </select>
@@ -282,8 +254,11 @@ export function OnlineItemLogsView() {
         keyField="id"
         pageSize={10}
         showToolbar
-        searchPlaceholder="Search menu items, category, or reason..."
+        searchPlaceholder="Search items by name, category, or reason..."
+        emptyMessage="No online item availability changes recorded yet for this outlet."
       />
     </div>
   );
 }
+
+export default OnlineItemLogsView;

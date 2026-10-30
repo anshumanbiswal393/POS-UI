@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Bell,
   MessageSquare,
@@ -8,122 +8,91 @@ import {
   Clock,
   AlertCircle,
   Filter,
+  RefreshCw,
 } from "lucide-react";
+import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
+import { useOutletContext } from "@/context/PosOutletContext";
+import posManagementService, { type POSManagementLogDto } from "@/services/posManagementService";
 
 interface NotificationLogEntry {
   id: string;
   msgId: string;
   timestamp: string;
-  channel: "WhatsApp" | "SMS" | "Push Notification" | "Email";
+  channel: string;
   recipient: string;
-  templateType: "Bill E-Receipt" | "Order Confirmation" | "OTP Verification" | "KOT Kitchen Alert" | "Customer Feedback";
+  templateType: string;
   orderRef?: string;
   status: "Delivered" | "Read" | "Pending" | "Failed";
   gatewayResponse: string;
 }
 
-const INITIAL_LOGS: NotificationLogEntry[] = [
-  {
-    id: "notif-001",
-    msgId: "WA-904128",
-    timestamp: "2026-10-09 09:35:12",
-    channel: "WhatsApp",
-    recipient: "+91 98765 43210 (Rahul K.)",
-    templateType: "Bill E-Receipt",
-    orderRef: "#RET-9041",
-    status: "Read",
-    gatewayResponse: "Delivered & Read (Meta Cloud API)",
-  },
-  {
-    id: "notif-002",
-    msgId: "SMS-110291",
-    timestamp: "2026-10-09 09:35:10",
-    channel: "SMS",
-    recipient: "+91 98765 43210 (Rahul K.)",
-    templateType: "Bill E-Receipt",
-    orderRef: "#RET-9041",
-    status: "Delivered",
-    gatewayResponse: "Delivered by Airtel DLT route",
-  },
-  {
-    id: "notif-003",
-    msgId: "PSH-339180",
-    timestamp: "2026-10-09 09:20:00",
-    channel: "Push Notification",
-    recipient: "Captain Tab #2 (Ramesh)",
-    templateType: "KOT Kitchen Alert",
-    orderRef: "#KOT-882",
-    status: "Delivered",
-    gatewayResponse: "Firebase FCM Broadcast Success",
-  },
-  {
-    id: "notif-004",
-    msgId: "WA-904127",
-    timestamp: "2026-10-09 09:10:45",
-    channel: "WhatsApp",
-    recipient: "+91 91234 56789 (Meera S.)",
-    templateType: "Order Confirmation",
-    orderRef: "#RET-9040",
-    status: "Delivered",
-    gatewayResponse: "Delivered (Meta Cloud API)",
-  },
-  {
-    id: "notif-005",
-    msgId: "SMS-110290",
-    timestamp: "2026-10-09 08:50:22",
-    channel: "SMS",
-    recipient: "+91 99887 76655 (Aman)",
-    templateType: "OTP Verification",
-    status: "Delivered",
-    gatewayResponse: "Delivered via DLT FastRoute",
-  },
-  {
-    id: "notif-006",
-    msgId: "WA-904126",
-    timestamp: "2026-10-08 22:30:10",
-    channel: "WhatsApp",
-    recipient: "+91 94000 11223 (Guest)",
-    templateType: "Customer Feedback",
-    orderRef: "#RET-9038",
-    status: "Failed",
-    gatewayResponse: "Error 131026: Customer opted out of marketing/service messages",
-  },
-  {
-    id: "notif-007",
-    msgId: "EML-55210",
-    timestamp: "2026-10-08 21:00:00",
-    channel: "Email",
-    recipient: "finance@retrod-hospitality.com",
-    templateType: "Bill E-Receipt",
-    orderRef: "#RET-CORP-441",
-    status: "Delivered",
-    gatewayResponse: "SMTP 250 OK: Queued for delivery",
-  },
-];
-
 export function NotificationsLogsView() {
-  const [logs] = useState<NotificationLogEntry[]>(INITIAL_LOGS);
+  const { activeOutlet } = useOutletContext();
+  const [logs, setLogs] = useState<NotificationLogEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [channelFilter, setChannelFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
+
+  const fetchLogs = useCallback(async () => {
+    if (!activeOutlet?.id) return;
+    setIsLoading(true);
+    try {
+      const data = await posManagementService.getManagementLogs(activeOutlet.id, "NOTIFICATIONS");
+      const mapped: NotificationLogEntry[] = data.map((log: POSManagementLogDto) => {
+        let st: "Delivered" | "Read" | "Pending" | "Failed" = "Delivered";
+        const rawStatus = (log.details?.status as string)?.toLowerCase();
+        if (rawStatus === "read") st = "Read";
+        else if (rawStatus === "pending") st = "Pending";
+        else if (rawStatus === "failed") st = "Failed";
+
+        return {
+          id: log.id,
+          msgId: log.reference_id || `MSG-${log.id.slice(0, 8).toUpperCase()}`,
+          timestamp: log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "",
+          channel: (log.details?.channel as string) || "WhatsApp",
+          recipient: (log.details?.recipient as string) || (log.details?.target_email as string) || log.actor_name || "Customer",
+          templateType: (log.details?.templateType as string) || (log.details?.subject as string) || "Bill E-Receipt",
+          orderRef: (log.details?.orderRef as string) || (log.reference_id ? `#${log.reference_id.slice(0, 8)}` : "Direct"),
+          status: st,
+          gatewayResponse: (log.details?.gatewayResponse as string) || log.event_title || "Dispatched successfully",
+        };
+      });
+      setLogs(mapped);
+    } catch (err) {
+      console.error("Failed to load notifications logs:", err);
+      toast.error("Failed to load notification logs from server");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeOutlet?.id]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
       if (channelFilter !== "All" && log.channel !== channelFilter) return false;
-      if (statusFilter !== "All" && log.status !== statusFilter) return false;
       return true;
     });
-  }, [logs, channelFilter, statusFilter]);
+  }, [logs, channelFilter]);
+
+  const stats = useMemo(() => {
+    const delivered = logs.filter((l) => l.status === "Delivered" || l.status === "Read").length;
+    const read = logs.filter((l) => l.status === "Read").length;
+    const failed = logs.filter((l) => l.status === "Failed").length;
+    return { delivered, read, failed, total: logs.length };
+  }, [logs]);
 
   const columns: PosDataGridColumn<NotificationLogEntry>[] = [
     {
       id: "msgId",
-      header: "Dispatch ID",
+      header: "Message ID",
       accessorKey: "msgId",
       sortable: true,
       defaultWidth: 140,
       render: (_, r) => (
-        <span className="font-mono text-[12px] font-bold text-slate-800">{r.msgId}</span>
+        <span className="font-mono text-[12px] font-bold text-teal-700">{r.msgId}</span>
       ),
     },
     {
@@ -131,7 +100,7 @@ export function NotificationsLogsView() {
       header: "Timestamp",
       accessorKey: "timestamp",
       sortable: true,
-      defaultWidth: 155,
+      defaultWidth: 165,
       render: (_, r) => (
         <span className="font-mono text-[12px] text-slate-600 font-medium">{r.timestamp}</span>
       ),
@@ -141,54 +110,46 @@ export function NotificationsLogsView() {
       header: "Channel",
       accessorKey: "channel",
       sortable: true,
-      defaultWidth: 160,
-      render: (_, r) => {
-        let icon = <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />;
-        let style = "bg-emerald-50 text-emerald-800 border-emerald-200";
-        if (r.channel === "SMS") {
-          icon = <Smartphone className="h-3.5 w-3.5 text-blue-600" />;
-          style = "bg-blue-50 text-blue-800 border-blue-200";
-        }
-        if (r.channel === "Push Notification") {
-          icon = <Bell className="h-3.5 w-3.5 text-indigo-600" />;
-          style = "bg-indigo-50 text-indigo-800 border-indigo-200";
-        }
-        if (r.channel === "Email") {
-          icon = <Mail className="h-3.5 w-3.5 text-purple-600" />;
-          style = "bg-purple-50 text-purple-800 border-purple-200";
-        }
-        return (
-          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] font-bold border ${style}`}>
-            {icon}
-            {r.channel}
-          </span>
-        );
-      },
+      defaultWidth: 130,
+      render: (_, r) => (
+        <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-800">
+          {r.channel.toLowerCase().includes("whatsapp") && <Smartphone className="h-3.5 w-3.5 text-emerald-600" />}
+          {r.channel.toLowerCase().includes("sms") && <MessageSquare className="h-3.5 w-3.5 text-sky-600" />}
+          {r.channel.toLowerCase().includes("email") && <Mail className="h-3.5 w-3.5 text-indigo-600" />}
+          {r.channel}
+        </span>
+      ),
     },
     {
       id: "recipient",
-      header: "Recipient / Destination",
+      header: "Recipient / Contact",
       accessorKey: "recipient",
-      defaultWidth: 220,
+      defaultWidth: 180,
       render: (_, r) => (
-        <div className="font-semibold text-[12px] text-slate-900 truncate">{r.recipient}</div>
+        <div className="text-[12px] text-slate-900 font-medium truncate" title={r.recipient}>
+          {r.recipient}
+        </div>
       ),
     },
     {
       id: "templateType",
-      header: "Template & Order",
+      header: "Template / Purpose",
       accessorKey: "templateType",
       sortable: true,
-      defaultWidth: 190,
+      defaultWidth: 165,
       render: (_, r) => (
-        <div>
-          <div className="font-medium text-[12px] text-slate-800">{r.templateType}</div>
-          {r.orderRef && (
-            <span className="font-mono text-[11px] text-teal-700 bg-teal-50 px-1.5 py-0.2 rounded border border-teal-200">
-              {r.orderRef}
-            </span>
-          )}
-        </div>
+        <span className="inline-block rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+          {r.templateType}
+        </span>
+      ),
+    },
+    {
+      id: "orderRef",
+      header: "Order Ref",
+      accessorKey: "orderRef",
+      defaultWidth: 120,
+      render: (_, r) => (
+        <span className="font-mono text-[11.5px] font-bold text-slate-600">{r.orderRef || "—"}</span>
       ),
     },
     {
@@ -196,23 +157,36 @@ export function NotificationsLogsView() {
       header: "Delivery Status",
       accessorKey: "status",
       sortable: true,
-      defaultWidth: 140,
+      defaultWidth: 130,
       render: (_, r) => {
-        let style = "bg-slate-100 text-slate-700 border-slate-200";
-        if (r.status === "Read") style = "bg-teal-50 text-teal-800 border-teal-200 font-bold";
-        if (r.status === "Delivered") style = "bg-emerald-50 text-emerald-800 border-emerald-200 font-semibold";
-        if (r.status === "Pending") style = "bg-amber-50 text-amber-800 border-amber-200";
-        if (r.status === "Failed") style = "bg-rose-50 text-rose-800 border-rose-200 font-bold";
-        return (
-          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] border ${style}`}>
-            {r.status === "Read" || r.status === "Delivered" ? (
+        if (r.status === "Read") {
+          return (
+            <span className="inline-flex items-center gap-1 text-[11.5px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
               <CheckCheck className="h-3 w-3" />
-            ) : r.status === "Failed" ? (
+              Read
+            </span>
+          );
+        }
+        if (r.status === "Delivered") {
+          return (
+            <span className="inline-flex items-center gap-1 text-[11.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              <CheckCheck className="h-3 w-3" />
+              Delivered
+            </span>
+          );
+        }
+        if (r.status === "Failed") {
+          return (
+            <span className="inline-flex items-center gap-1 text-[11.5px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
               <AlertCircle className="h-3 w-3" />
-            ) : (
-              <Clock className="h-3 w-3" />
-            )}
-            {r.status}
+              Failed
+            </span>
+          );
+        }
+        return (
+          <span className="inline-flex items-center gap-1 text-[11.5px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+            <Clock className="h-3 w-3" />
+            Pending
           </span>
         );
       },
@@ -221,9 +195,9 @@ export function NotificationsLogsView() {
       id: "gatewayResponse",
       header: "Gateway Response",
       accessorKey: "gatewayResponse",
-      defaultWidth: 250,
+      defaultWidth: 220,
       render: (_, r) => (
-        <span className="text-[11.5px] text-slate-500 font-mono truncate block" title={r.gatewayResponse}>
+        <span className="text-[11px] text-slate-500 font-mono truncate block" title={r.gatewayResponse}>
           {r.gatewayResponse}
         </span>
       ),
@@ -233,25 +207,55 @@ export function NotificationsLogsView() {
   return (
     <div className="space-y-5 w-full">
       {/* Header */}
-      <div>
-        <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-          <Bell className="h-5 w-5 text-teal-600" />
-          Notification Dispatch Logs
-        </h2>
-        <p className="text-[12.5px] text-slate-500">
-          Delivery tracking for digital bill receipts, WhatsApp confirmations, customer OTPs, and kitchen alert notifications.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <Bell className="h-5 w-5 text-teal-600" />
+            Customer Notification Logs
+          </h2>
+          <p className="text-[12.5px] text-slate-500">
+            Real-time server records for {activeOutlet?.name || "Active Outlet"} WhatsApp bills, SMS receipts, and alerts.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={fetchLogs}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-[12.5px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-xs disabled:opacity-50"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          Refresh Logs
+        </button>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Sent Today</span>
+            <span>Total Dispatched</span>
             <Bell className="h-4 w-4 text-teal-600" />
           </div>
-          <div className="mt-2 text-[22px] font-black text-slate-900">482 Messages</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">Across all gateways</div>
+          <div className="mt-2 text-[22px] font-black text-slate-900">{stats.total}</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Recorded notifications</div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
+            <span>Delivered</span>
+            <CheckCheck className="h-4 w-4 text-emerald-500" />
+          </div>
+          <div className="mt-2 text-[22px] font-black text-emerald-600">{stats.delivered}</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Gateway confirmed</div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
+            <span>Read By Guests</span>
+            <Smartphone className="h-4 w-4 text-sky-500" />
+          </div>
+          <div className="mt-2 text-[22px] font-black text-sky-600">{stats.read}</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Customer viewed receipt</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
@@ -259,26 +263,10 @@ export function NotificationsLogsView() {
             <span>Delivery Rate</span>
             <CheckCheck className="h-4 w-4 text-emerald-500" />
           </div>
-          <div className="mt-2 text-[22px] font-black text-emerald-600">98.4%</div>
-          <div className="mt-1 text-[11px] text-emerald-600 font-semibold">Healthy gateway SLA</div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>WhatsApp Receipts</span>
-            <MessageSquare className="h-4 w-4 text-emerald-600" />
+          <div className="mt-2 text-[22px] font-black text-emerald-600">
+            {stats.total > 0 ? `${Math.round((stats.delivered / stats.total) * 100)}%` : "—"}
           </div>
-          <div className="mt-2 text-[22px] font-black text-slate-900">320 Sent</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">84% Read by customers</div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Failed Dispatches</span>
-            <AlertCircle className="h-4 w-4 text-rose-500" />
-          </div>
-          <div className="mt-2 text-[22px] font-black text-rose-600">3 Failed</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">Customer opted out</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Success reliability</div>
         </div>
       </div>
 
@@ -286,7 +274,7 @@ export function NotificationsLogsView() {
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
         <div className="flex items-center gap-1.5 text-[12px] font-bold text-slate-700">
           <Filter className="h-3.5 w-3.5 text-slate-400" />
-          Filters:
+          Filter Channel:
         </div>
 
         <select
@@ -297,20 +285,7 @@ export function NotificationsLogsView() {
           <option value="All">All Channels</option>
           <option value="WhatsApp">WhatsApp</option>
           <option value="SMS">SMS</option>
-          <option value="Push Notification">Push Notification</option>
           <option value="Email">Email</option>
-        </select>
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[12px] font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500"
-        >
-          <option value="All">All Statuses</option>
-          <option value="Delivered">Delivered</option>
-          <option value="Read">Read</option>
-          <option value="Pending">Pending</option>
-          <option value="Failed">Failed</option>
         </select>
       </div>
 
@@ -321,8 +296,11 @@ export function NotificationsLogsView() {
         keyField="id"
         pageSize={10}
         showToolbar
-        searchPlaceholder="Search recipients, message IDs, or orders..."
+        searchPlaceholder="Search notifications by recipient or message ID..."
+        emptyMessage="No customer notification logs recorded yet for this outlet."
       />
     </div>
   );
 }
+
+export default NotificationsLogsView;

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Send,
   CheckCircle2,
@@ -7,82 +7,70 @@ import {
   Sparkles,
   AlertCircle,
   Filter,
+  RefreshCw,
 } from "lucide-react";
+import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
+import { useOutletContext } from "@/context/PosOutletContext";
+import posManagementService, { type POSManagementLogDto } from "@/services/posManagementService";
 
 interface MenuTriggerLogEntry {
   id: string;
   syncId: string;
   timestamp: string;
   platforms: string[];
-  triggerType: "Price Revision" | "New Item Publish" | "Tax Rate Update" | "Combo Discount" | "Category Sort";
+  triggerType: string;
   itemsAffectedCount: number;
   status: "Success" | "Queued" | "Failed";
   operator: string;
   details: string;
 }
 
-const INITIAL_LOGS: MenuTriggerLogEntry[] = [
-  {
-    id: "mt-001",
-    syncId: "SYNC-2026-904",
-    timestamp: "2026-10-09 09:10:00",
-    platforms: ["Swiggy", "Zomato", "Retrod Store"],
-    triggerType: "Price Revision",
-    itemsAffectedCount: 8,
-    status: "Success",
-    operator: "Ayush Mishra (Store Manager)",
-    details: "Pushed 5% weekend price revision on Tandoori platters and Starters.",
-  },
-  {
-    id: "mt-002",
-    syncId: "SYNC-2026-903",
-    timestamp: "2026-10-09 08:30:15",
-    platforms: ["Retrod Store"],
-    triggerType: "New Item Publish",
-    itemsAffectedCount: 2,
-    status: "Success",
-    operator: "Chef Vikas / Manager",
-    details: "Published seasonal dessert 'Kesar Pista Kulfi' and 'Rabri Jalebi Bowl'.",
-  },
-  {
-    id: "mt-003",
-    syncId: "SYNC-2026-902",
-    timestamp: "2026-10-08 21:00:10",
-    platforms: ["Swiggy", "Zomato"],
-    triggerType: "Combo Discount",
-    itemsAffectedCount: 5,
-    status: "Success",
-    operator: "Ayush Mishra (Store Manager)",
-    details: "Pushed 'Dinner for 2' 20% discount combo pricing for night delivery.",
-  },
-  {
-    id: "mt-004",
-    syncId: "SYNC-2026-901",
-    timestamp: "2026-10-08 16:15:00",
-    platforms: ["All Outlets & Aggregators"],
-    triggerType: "Tax Rate Update",
-    itemsAffectedCount: 142,
-    status: "Success",
-    operator: "System Admin (Audit)",
-    details: "Verified 5% GST structure across all food items; zero alcohol tax exception.",
-  },
-  {
-    id: "mt-005",
-    syncId: "SYNC-2026-900",
-    timestamp: "2026-10-07 18:20:45",
-    platforms: ["Zomato"],
-    triggerType: "Category Sort",
-    itemsAffectedCount: 12,
-    status: "Success",
-    operator: "Priya Sharma (Captain)",
-    details: "Re-ordered 'Chef Specials' to the top category position.",
-  },
-];
-
 export function MenuTriggerLogsView() {
-  const [logs] = useState<MenuTriggerLogEntry[]>(INITIAL_LOGS);
+  const { activeOutlet } = useOutletContext();
+  const [logs, setLogs] = useState<MenuTriggerLogEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [typeFilter, setTypeFilter] = useState("All");
+
+  const fetchLogs = useCallback(async () => {
+    if (!activeOutlet?.id) return;
+    setIsLoading(true);
+    try {
+      const data = await posManagementService.getManagementLogs(activeOutlet.id, "MENU_TRIGGER");
+      const mapped: MenuTriggerLogEntry[] = data.map((log: POSManagementLogDto) => {
+        let st: "Success" | "Queued" | "Failed" = "Success";
+        const rawStatus = (log.details?.status as string)?.toLowerCase();
+        if (rawStatus === "queued") st = "Queued";
+        else if (rawStatus === "failed") st = "Failed";
+
+        const platforms = Array.isArray(log.details?.platforms)
+          ? log.details.platforms
+          : ["Retrod Store"];
+
+        return {
+          id: log.id,
+          syncId: log.reference_id || `SYNC-${log.id.slice(0, 8).toUpperCase()}`,
+          timestamp: log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "",
+          platforms,
+          triggerType: (log.details?.triggerType as string) || "Price Revision",
+          itemsAffectedCount: Number(log.details?.itemsAffectedCount || 1),
+          status: st,
+          operator: (log.details?.operator as string) || log.actor_name || "Management Admin",
+          details: (log.details?.details as string) || log.event_title || "Menu sync triggered",
+        };
+      });
+      setLogs(mapped);
+    } catch (err) {
+      console.error("Failed to load menu trigger logs:", err);
+      toast.error("Failed to load menu trigger logs from server");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeOutlet?.id]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
@@ -91,15 +79,21 @@ export function MenuTriggerLogsView() {
     });
   }, [logs, typeFilter]);
 
+  const stats = useMemo(() => {
+    const successCount = logs.filter((l) => l.status === "Success").length;
+    const itemsTotal = logs.reduce((sum, l) => sum + (l.itemsAffectedCount || 0), 0);
+    return { successCount, itemsTotal, count: logs.length };
+  }, [logs]);
+
   const columns: PosDataGridColumn<MenuTriggerLogEntry>[] = [
     {
       id: "syncId",
-      header: "Sync ID",
+      header: "Sync Ref",
       accessorKey: "syncId",
       sortable: true,
-      defaultWidth: 145,
+      defaultWidth: 140,
       render: (_, r) => (
-        <span className="font-mono text-[12px] font-bold text-slate-800">{r.syncId}</span>
+        <span className="font-mono text-[12px] font-bold text-teal-700">{r.syncId}</span>
       ),
     },
     {
@@ -107,35 +101,34 @@ export function MenuTriggerLogsView() {
       header: "Timestamp",
       accessorKey: "timestamp",
       sortable: true,
-      defaultWidth: 155,
+      defaultWidth: 165,
       render: (_, r) => (
         <span className="font-mono text-[12px] text-slate-600 font-medium">{r.timestamp}</span>
       ),
     },
     {
       id: "triggerType",
-      header: "Trigger Action",
+      header: "Trigger Type",
       accessorKey: "triggerType",
       sortable: true,
-      defaultWidth: 170,
+      defaultWidth: 165,
       render: (_, r) => (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-0.5 text-[11.5px] font-bold text-teal-800 border border-teal-200">
-          <Sparkles className="h-3 w-3 text-teal-600" />
+        <span className="inline-block rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-800">
           {r.triggerType}
         </span>
       ),
     },
     {
       id: "platforms",
-      header: "Target Platforms",
+      header: "Target Channels",
       accessorKey: "platforms",
-      defaultWidth: 190,
+      defaultWidth: 170,
       render: (_, r) => (
         <div className="flex flex-wrap gap-1">
-          {r.platforms.map((p) => (
+          {r.platforms.map((p, idx) => (
             <span
-              key={p}
-              className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-700 border border-slate-200"
+              key={idx}
+              className="rounded bg-teal-50 px-1.5 py-0.5 text-[10.5px] font-bold text-teal-700 border border-teal-200"
             >
               {p}
             </span>
@@ -145,47 +138,65 @@ export function MenuTriggerLogsView() {
     },
     {
       id: "itemsAffectedCount",
-      header: "Items Pushed",
+      header: "Items Count",
       accessorKey: "itemsAffectedCount",
       sortable: true,
-      defaultWidth: 130,
+      defaultWidth: 110,
       render: (_, r) => (
-        <span className="font-mono font-bold text-[12px] text-slate-800">
-          {r.itemsAffectedCount} Items
+        <span className="font-mono text-[12px] font-bold text-slate-800">
+          {r.itemsAffectedCount} item{r.itemsAffectedCount === 1 ? "" : "s"}
         </span>
       ),
     },
     {
       id: "status",
-      header: "Sync Status",
+      header: "Push Status",
       accessorKey: "status",
       sortable: true,
-      defaultWidth: 130,
+      defaultWidth: 120,
+      render: (_, r) => {
+        if (r.status === "Success") {
+          return (
+            <span className="inline-flex items-center gap-1 text-[11.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              <CheckCircle2 className="h-3 w-3" />
+              Success
+            </span>
+          );
+        }
+        if (r.status === "Queued") {
+          return (
+            <span className="inline-flex items-center gap-1 text-[11.5px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+              <Clock className="h-3 w-3" />
+              Queued
+            </span>
+          );
+        }
+        return (
+          <span className="inline-flex items-center gap-1 text-[11.5px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+            <AlertCircle className="h-3 w-3" />
+            Failed
+          </span>
+        );
+      },
+    },
+    {
+      id: "operator",
+      header: "Authorized By",
+      accessorKey: "operator",
+      defaultWidth: 160,
       render: (_, r) => (
-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
-          <CheckCircle2 className="h-3 w-3" />
-          {r.status}
-        </span>
+        <div className="text-[12px] text-slate-800 font-semibold">{r.operator}</div>
       ),
     },
     {
       id: "details",
-      header: "Trigger Notes",
+      header: "Trigger Details",
       accessorKey: "details",
-      defaultWidth: 260,
+      defaultWidth: 240,
       render: (_, r) => (
-        <div className="text-[12px] text-slate-700 font-medium truncate max-w-sm" title={r.details}>
+        <div className="text-[11.5px] text-slate-600 truncate" title={r.details}>
           {r.details}
         </div>
-      ),
-    },
-    {
-      id: "operator",
-      header: "Published By",
-      accessorKey: "operator",
-      defaultWidth: 180,
-      render: (_, r) => (
-        <div className="text-[12px] text-slate-600 font-semibold">{r.operator}</div>
       ),
     },
   ];
@@ -193,52 +204,66 @@ export function MenuTriggerLogsView() {
   return (
     <div className="space-y-5 w-full">
       {/* Header */}
-      <div>
-        <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-          <Send className="h-5 w-5 text-teal-600" />
-          Menu Trigger & Sync Logs
-        </h2>
-        <p className="text-[12.5px] text-slate-500">
-          Track menu updates, pricing changes, tax revisions, and catalog synchronizations pushed to online aggregators and POS terminals.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <Send className="h-5 w-5 text-teal-600" />
+            Menu Catalog Trigger & Sync Logs
+          </h2>
+          <p className="text-[12.5px] text-slate-500">
+            Real-time server records for {activeOutlet?.name || "Active Outlet"} price revisions, item publishing, and aggregator updates.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={fetchLogs}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-[12.5px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-xs disabled:opacity-50"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          Refresh Logs
+        </button>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Syncs Today</span>
-            <Send className="h-4 w-4 text-teal-600" />
-          </div>
-          <div className="mt-2 text-[22px] font-black text-slate-900">2 Published</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">Prices & New items</div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Total Items Synced</span>
-            <Layers className="h-4 w-4 text-indigo-500" />
-          </div>
-          <div className="mt-2 text-[22px] font-black text-slate-900">10 Items</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">Across 3 platforms</div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Sync Success Rate</span>
+            <span>Successful Syncs</span>
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           </div>
-          <div className="mt-2 text-[22px] font-black text-emerald-600">100%</div>
-          <div className="mt-1 text-[11px] text-emerald-600 font-semibold">0 API timeouts</div>
+          <div className="mt-2 text-[22px] font-black text-slate-900">{stats.successCount}</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Platform updates published</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Last Push Time</span>
-            <Clock className="h-4 w-4 text-amber-500" />
+            <span>Items Affected</span>
+            <Layers className="h-4 w-4 text-teal-600" />
           </div>
-          <div className="mt-2 text-[18px] font-black text-slate-900 truncate">09:10 AM</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">By Ayush Mishra</div>
+          <div className="mt-2 text-[22px] font-black text-teal-600">{stats.itemsTotal}</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Menu items synchronized</div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
+            <span>Total Triggers</span>
+            <Send className="h-4 w-4 text-indigo-500" />
+          </div>
+          <div className="mt-2 text-[22px] font-black text-indigo-600">{stats.count}</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Server logged events</div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
+            <span>Sync Reliability</span>
+            <Sparkles className="h-4 w-4 text-emerald-500" />
+          </div>
+          <div className="mt-2 text-[22px] font-black text-emerald-600">
+            {stats.count > 0 ? `${Math.round((stats.successCount / stats.count) * 100)}%` : "—"}
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Direct API webhook sync</div>
         </div>
       </div>
 
@@ -254,12 +279,13 @@ export function MenuTriggerLogsView() {
           onChange={(e) => setTypeFilter(e.target.value)}
           className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[12px] font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500"
         >
-          <option value="All">All Actions</option>
+          <option value="All">All Trigger Types</option>
           <option value="Price Revision">Price Revision</option>
           <option value="New Item Publish">New Item Publish</option>
           <option value="Tax Rate Update">Tax Rate Update</option>
-          <option value="Combo Discount">Combo Discount</option>
           <option value="Category Sort">Category Sort</option>
+          <option value="Item Toggle">Item Toggle</option>
+          <option value="Channel Publish">Channel Publish</option>
         </select>
       </div>
 
@@ -270,8 +296,11 @@ export function MenuTriggerLogsView() {
         keyField="id"
         pageSize={10}
         showToolbar
-        searchPlaceholder="Search sync actions, platforms, or operators..."
+        searchPlaceholder="Search menu sync slips or items affected..."
+        emptyMessage="No menu triggers or item price changes recorded yet for this outlet."
       />
     </div>
   );
 }
+
+export default MenuTriggerLogsView;

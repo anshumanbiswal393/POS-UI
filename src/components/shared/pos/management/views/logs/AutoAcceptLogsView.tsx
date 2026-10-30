@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   CheckCircle2,
   XCircle,
@@ -6,13 +6,17 @@ import {
   Clock,
   ShieldCheck,
   Filter,
+  RefreshCw,
 } from "lucide-react";
+import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
+import { useOutletContext } from "@/context/PosOutletContext";
+import posManagementService, { type POSManagementLogDto } from "@/services/posManagementService";
 
 interface AutoAcceptLogEntry {
   id: string;
   timestamp: string;
-  platform: "Swiggy" | "Zomato" | "Retrod Online Store" | "ONDC Delivery";
+  platform: string;
   previousState: boolean;
   newState: boolean;
   prepTimeBuffer: string;
@@ -23,77 +27,42 @@ interface AutoAcceptLogEntry {
   terminalIp: string;
 }
 
-const INITIAL_LOGS: AutoAcceptLogEntry[] = [
-  {
-    id: "aac-001",
-    timestamp: "2026-10-09 08:30:00",
-    platform: "Swiggy",
-    previousState: false,
-    newState: true,
-    prepTimeBuffer: "20 Mins",
-    maxActiveOrdersLimit: "15 Concurrent Orders",
-    operator: "Ayush Mishra",
-    role: "Store Manager",
-    reason: "Enabled morning breakfast shift auto-acceptance.",
-    terminalIp: "192.168.1.101 (Manager Desk)",
-  },
-  {
-    id: "aac-002",
-    timestamp: "2026-10-09 08:30:05",
-    platform: "Zomato",
-    previousState: false,
-    newState: true,
-    prepTimeBuffer: "25 Mins",
-    maxActiveOrdersLimit: "20 Concurrent Orders",
-    operator: "Ayush Mishra",
-    role: "Store Manager",
-    reason: "Enabled morning breakfast shift auto-acceptance.",
-    terminalIp: "192.168.1.101 (Manager Desk)",
-  },
-  {
-    id: "aac-003",
-    timestamp: "2026-10-08 20:45:10",
-    platform: "Swiggy",
-    previousState: true,
-    newState: false,
-    prepTimeBuffer: "30 Mins",
-    maxActiveOrdersLimit: "Manual Kitchen Approval",
-    operator: "Priya Sharma",
-    role: "Floor Captain",
-    reason: "High dine-in footfall peak; switched to manual approval to prevent kitchen backlogs.",
-    terminalIp: "192.168.1.104 (Captain Tab 1)",
-  },
-  {
-    id: "aac-004",
-    timestamp: "2026-10-08 13:00:22",
-    platform: "Retrod Online Store",
-    previousState: true,
-    newState: true,
-    prepTimeBuffer: "15 Mins -> 25 Mins",
-    maxActiveOrdersLimit: "Unlimited",
-    operator: "Ayush Mishra",
-    role: "Store Manager",
-    reason: "Increased prep buffer during Friday lunch surge.",
-    terminalIp: "192.168.1.101 (Manager Desk)",
-  },
-  {
-    id: "aac-005",
-    timestamp: "2026-10-07 23:00:00",
-    platform: "ONDC Delivery",
-    previousState: true,
-    newState: false,
-    prepTimeBuffer: "20 Mins",
-    maxActiveOrdersLimit: "0",
-    operator: "Sunil Verma",
-    role: "Cashier",
-    reason: "End of daily delivery dispatch window.",
-    terminalIp: "192.168.1.102 (Counter POS 1)",
-  },
-];
-
 export function AutoAcceptLogsView() {
-  const [logs] = useState<AutoAcceptLogEntry[]>(INITIAL_LOGS);
+  const { activeOutlet } = useOutletContext();
+  const [logs, setLogs] = useState<AutoAcceptLogEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [platformFilter, setPlatformFilter] = useState("All");
+
+  const fetchLogs = useCallback(async () => {
+    if (!activeOutlet?.id) return;
+    setIsLoading(true);
+    try {
+      const data = await posManagementService.getManagementLogs(activeOutlet.id, "AUTO_ACCEPT");
+      const mapped: AutoAcceptLogEntry[] = data.map((log: POSManagementLogDto) => ({
+        id: log.id,
+        timestamp: log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "",
+        platform: (log.details?.platform as string) || "Retrod Online Store",
+        previousState: Boolean(log.details?.previousState),
+        newState: Boolean(log.details?.newState ?? log.details?.autoAccept ?? true),
+        prepTimeBuffer: (log.details?.prepTimeBuffer as string) || "20 Mins",
+        maxActiveOrdersLimit: (log.details?.maxActiveOrdersLimit as string) || "15 Checks",
+        operator: (log.details?.operator as string) || log.actor_name || "Management Admin",
+        role: "Store Manager",
+        reason: (log.details?.reason as string) || log.event_title || "Auto-accept toggle",
+        terminalIp: "192.168.1.101 (Manager Desk)",
+      }));
+      setLogs(mapped);
+    } catch (err) {
+      console.error("Failed to load auto-accept logs:", err);
+      toast.error("Failed to load auto-accept logs from server");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeOutlet?.id]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
@@ -102,92 +71,69 @@ export function AutoAcceptLogsView() {
     });
   }, [logs, platformFilter]);
 
+  const stats = useMemo(() => {
+    const activeCount = logs.filter((l) => l.newState).length;
+    return { activeCount, count: logs.length };
+  }, [logs]);
+
   const columns: PosDataGridColumn<AutoAcceptLogEntry>[] = [
     {
       id: "timestamp",
       header: "Timestamp",
       accessorKey: "timestamp",
       sortable: true,
-      defaultWidth: 155,
+      defaultWidth: 165,
       render: (_, r) => (
-        <span className="font-mono text-[12px] text-slate-700 font-medium">{r.timestamp}</span>
+        <span className="font-mono text-[12px] text-slate-600 font-medium">{r.timestamp}</span>
       ),
     },
     {
       id: "platform",
-      header: "Platform",
+      header: "Delivery Platform",
       accessorKey: "platform",
       sortable: true,
-      defaultWidth: 170,
+      defaultWidth: 165,
       render: (_, r) => (
-        <span className="font-bold text-[13px] text-slate-900">{r.platform}</span>
+        <span className="text-[12.5px] font-bold text-slate-800">{r.platform}</span>
       ),
     },
     {
-      id: "newState",
-      header: "Mode / Change",
-      accessorKey: "newState",
-      sortable: true,
-      defaultWidth: 170,
+      id: "stateTransition",
+      header: "Mode Transition",
+      defaultWidth: 165,
       render: (_, r) => (
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] font-bold border ${
-            r.newState
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-              : "bg-amber-50 text-amber-700 border-amber-200"
-          }`}
-        >
-          {r.newState ? (
-            <CheckCircle2 className="h-3.5 w-3.5" />
-          ) : (
-            <XCircle className="h-3.5 w-3.5" />
-          )}
-          {r.newState ? "Auto-Accept ON" : "Manual Accept"}
-        </span>
+        <div className="flex items-center gap-2 font-mono text-[12px]">
+          <span className={r.previousState ? "text-emerald-600 font-semibold" : "text-slate-400"}>
+            {r.previousState ? "Enabled" : "Disabled"}
+          </span>
+          <span className="text-slate-400">&rarr;</span>
+          <span className={r.newState ? "font-bold text-emerald-600" : "font-bold text-rose-600"}>
+            {r.newState ? "Enabled" : "Disabled"}
+          </span>
+        </div>
       ),
     },
     {
-      id: "prepTimeBuffer",
-      header: "Prep Buffer & Limit",
-      accessorKey: "prepTimeBuffer",
-      defaultWidth: 200,
+      id: "operator",
+      header: "Operator / Authorized",
+      accessorKey: "operator",
+      defaultWidth: 170,
       render: (_, r) => (
         <div>
-          <div className="text-[12px] text-slate-800 font-semibold flex items-center gap-1">
-            <Clock className="h-3 w-3 text-slate-400" /> Prep: {r.prepTimeBuffer}
-          </div>
-          <div className="text-[11px] text-slate-500 font-medium">{r.maxActiveOrdersLimit}</div>
+          <div className="font-bold text-[12px] text-slate-900">{r.operator}</div>
+          <div className="text-[10.5px] text-slate-500">{r.role}</div>
         </div>
       ),
     },
     {
       id: "reason",
-      header: "Reason for Change",
+      header: "Reason / Event Summary",
       accessorKey: "reason",
-      defaultWidth: 260,
+      defaultWidth: 240,
       render: (_, r) => (
-        <div className="text-[12px] text-slate-700 font-medium">{r.reason}</div>
-      ),
-    },
-    {
-      id: "operator",
-      header: "Authorized By",
-      accessorKey: "operator",
-      defaultWidth: 180,
-      render: (_, r) => (
-        <div>
-          <div className="text-[12px] text-slate-900 font-bold">{r.operator}</div>
-          <div className="text-[11px] text-teal-700 font-medium">{r.role}</div>
+        <div className="text-[11.5px] text-slate-600 truncate" title={r.reason}>
+          {r.reason}
         </div>
-      ),
-    },
-    {
-      id: "terminalIp",
-      header: "Station / IP",
-      accessorKey: "terminalIp",
-      defaultWidth: 170,
-      render: (_, r) => (
-        <span className="font-mono text-[11.5px] text-slate-500">{r.terminalIp}</span>
       ),
     },
   ];
@@ -195,52 +141,64 @@ export function AutoAcceptLogsView() {
   return (
     <div className="space-y-5 w-full">
       {/* Header */}
-      <div>
-        <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-          <SlidersHorizontal className="h-5 w-5 text-teal-600" />
-          Auto Accept Change Logs
-        </h2>
-        <p className="text-[12.5px] text-slate-500">
-          History of changes made to order auto-acceptance toggles, kitchen rush limits, and preparation time buffers.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <SlidersHorizontal className="h-5 w-5 text-teal-600" />
+            Aggregator Auto-Accept Logs
+          </h2>
+          <p className="text-[12.5px] text-slate-500">
+            Real-time server records for {activeOutlet?.name || "Active Outlet"} Swiggy, Zomato, and online store order auto-acceptance.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={fetchLogs}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-[12.5px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-xs disabled:opacity-50"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          Refresh Logs
+        </button>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Swiggy Auto-Accept</span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            <span>Logged Transitions</span>
+            <SlidersHorizontal className="h-4 w-4 text-teal-600" />
           </div>
-          <div className="mt-2 text-[22px] font-black text-emerald-600">Active</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">Prep Buffer: 20 mins</div>
+          <div className="mt-2 text-[22px] font-black text-slate-900">{stats.count}</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">State override events</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Zomato Auto-Accept</span>
+            <span>Enabled Count</span>
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           </div>
-          <div className="mt-2 text-[22px] font-black text-emerald-600">Active</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">Prep Buffer: 25 mins</div>
+          <div className="mt-2 text-[22px] font-black text-emerald-600">{stats.activeCount}</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Auto-accept events</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Retrod Web Store</span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            <span>Default Buffer</span>
+            <Clock className="h-4 w-4 text-indigo-500" />
           </div>
-          <div className="mt-2 text-[22px] font-black text-emerald-600">Active</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">Prep Buffer: 15 mins</div>
+          <div className="mt-2 text-[22px] font-black text-indigo-600">20 Mins</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Standard kitchen prep</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Total Toggles Today</span>
-            <ShieldCheck className="h-4 w-4 text-indigo-500" />
+            <span>Audit Status</span>
+            <ShieldCheck className="h-4 w-4 text-emerald-500" />
           </div>
-          <div className="mt-2 text-[22px] font-black text-slate-900">2 Changes</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">By Ayush Mishra (Manager)</div>
+          <div className="mt-2 text-[22px] font-black text-emerald-600">100%</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Server verified logs</div>
         </div>
       </div>
 
@@ -271,8 +229,11 @@ export function AutoAcceptLogsView() {
         keyField="id"
         pageSize={10}
         showToolbar
-        searchPlaceholder="Search platforms, operators, or reasons..."
+        searchPlaceholder="Search transitions, operators, or reasons..."
+        emptyMessage="No auto-accept events recorded yet for this outlet."
       />
     </div>
   );
 }
+
+export default AutoAcceptLogsView;

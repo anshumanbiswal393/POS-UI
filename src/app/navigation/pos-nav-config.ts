@@ -365,20 +365,6 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
           },
         ],
       },
-      {
-        id: "explore-products-group",
-        label: "Explore Products",
-        icon: Store,
-        children: [
-          { id: "prod-marketplace", label: "Marketplace", to: "/pos/management/marketplace", icon: Store },
-          {
-            id: "prod-marketplace-setting",
-            label: "Marketplace Setting",
-            to: "/pos/management/marketplace/settings",
-            icon: Settings,
-          },
-        ],
-      },
       { id: "mgmt-audit", label: "Audit Trail", to: "/pos/management/audit-trail", icon: ScrollText },
       { id: "mgmt-data", label: "Data Management", to: "/pos/management/data-management", icon: FileText },
       { id: "mgmt-device", label: "Device Mapping", to: "/pos/management/device-mapping", icon: Settings2 },

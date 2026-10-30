@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Clock,
   Calendar,
@@ -7,15 +7,19 @@ import {
   Moon,
   Sun,
   Filter,
+  RefreshCw,
 } from "lucide-react";
+import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
+import { useOutletContext } from "@/context/PosOutletContext";
+import posManagementService, { type POSManagementLogDto } from "@/services/posManagementService";
 
 interface ClosingHourLogEntry {
   id: string;
   logId: string;
   timestamp: string;
-  section: "Dine-In" | "Delivery & Takeaway" | "Bar / Lounge" | "Entire Outlet";
-  eventType: "Extended Night Hours" | "Early Closure" | "Holiday Schedule" | "Emergency Shutdown" | "Regular Timing Shift";
+  section: string;
+  eventType: string;
   effectiveFrom: string;
   effectiveTo: string;
   reason: string;
@@ -23,79 +27,54 @@ interface ClosingHourLogEntry {
   customerNoticeSent: boolean;
 }
 
-const INITIAL_LOGS: ClosingHourLogEntry[] = [
-  {
-    id: "chl-001",
-    logId: "TIM-2026-401",
-    timestamp: "2026-10-08 22:00:00",
-    section: "Dine-In",
-    eventType: "Extended Night Hours",
-    effectiveFrom: "2026-10-08 23:00",
-    effectiveTo: "2026-10-09 01:00",
-    reason: "Private corporate dining party extended booking (Table T-01 to T-05).",
-    authorizedBy: "Ayush Mishra (Store Manager)",
-    customerNoticeSent: true,
-  },
-  {
-    id: "chl-002",
-    logId: "TIM-2026-400",
-    timestamp: "2026-10-05 14:00:00",
-    section: "Entire Outlet",
-    eventType: "Early Closure",
-    effectiveFrom: "2026-10-05 21:00",
-    effectiveTo: "2026-10-05 23:30",
-    reason: "Scheduled monthly kitchen deep-cleaning & fumigation.",
-    authorizedBy: "Ayush Mishra (Store Manager)",
-    customerNoticeSent: true,
-  },
-  {
-    id: "chl-003",
-    logId: "TIM-2026-399",
-    timestamp: "2026-10-01 10:00:00",
-    section: "Delivery & Takeaway",
-    eventType: "Holiday Schedule",
-    effectiveFrom: "2026-10-02 08:00",
-    effectiveTo: "2026-10-02 23:59",
-    reason: "National Holiday (Gandhi Jayanti) special day-long service schedule.",
-    authorizedBy: "System Admin",
-    customerNoticeSent: false,
-  },
-  {
-    id: "chl-004",
-    logId: "TIM-2026-398",
-    timestamp: "2026-09-24 16:30:10",
-    section: "Bar / Lounge",
-    eventType: "Emergency Shutdown",
-    effectiveFrom: "2026-09-24 16:30",
-    effectiveTo: "2026-09-24 18:00",
-    reason: "City power grid maintenance; switched temporarily to essential generator load.",
-    authorizedBy: "Priya Sharma (Captain)",
-    customerNoticeSent: false,
-  },
-  {
-    id: "chl-005",
-    logId: "TIM-2026-397",
-    timestamp: "2026-09-15 11:00:00",
-    section: "Entire Outlet",
-    eventType: "Regular Timing Shift",
-    effectiveFrom: "2026-09-15 00:00",
-    effectiveTo: "Permanent",
-    reason: "Updated weekday lunch hours to start from 11:30 AM instead of 12:00 PM.",
-    authorizedBy: "Ayush Mishra (Store Manager)",
-    customerNoticeSent: true,
-  },
-];
-
 export function ClosingHourLogsView() {
-  const [logs] = useState<ClosingHourLogEntry[]>(INITIAL_LOGS);
-  const [eventFilter, setEventFilter] = useState("All");
+  const { activeOutlet } = useOutletContext();
+  const [logs, setLogs] = useState<ClosingHourLogEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [eventTypeFilter, setEventTypeFilter] = useState("All");
+
+  const fetchLogs = useCallback(async () => {
+    if (!activeOutlet?.id) return;
+    setIsLoading(true);
+    try {
+      const data = await posManagementService.getManagementLogs(activeOutlet.id, "CLOSING_HOURS");
+      const mapped: ClosingHourLogEntry[] = data.map((log: POSManagementLogDto) => ({
+        id: log.id,
+        logId: log.reference_id || `TIM-${log.id.slice(0, 8).toUpperCase()}`,
+        timestamp: log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "",
+        section: (log.details?.section as string) || "Entire Outlet",
+        eventType: (log.details?.eventType as string) || "Regular Timing Shift",
+        effectiveFrom: (log.details?.effectiveFrom as string) || (log.created_at ? new Date(log.created_at).toLocaleDateString("en-IN") : ""),
+        effectiveTo: (log.details?.effectiveTo as string) || "Active Schedule",
+        reason: (log.details?.reason as string) || log.event_title || "Outlet operating hours update",
+        authorizedBy: (log.details?.authorizedBy as string) || log.actor_name || "Management Admin",
+        customerNoticeSent: Boolean(log.details?.customerNoticeSent),
+      }));
+      setLogs(mapped);
+    } catch (err) {
+      console.error("Failed to load closing hour logs:", err);
+      toast.error("Failed to load closing hour logs from server");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeOutlet?.id]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
-      if (eventFilter !== "All" && log.eventType !== eventFilter) return false;
+      if (eventTypeFilter !== "All" && log.eventType !== eventTypeFilter) return false;
       return true;
     });
-  }, [logs, eventFilter]);
+  }, [logs, eventTypeFilter]);
+
+  const stats = useMemo(() => {
+    const extendedCount = logs.filter((l) => l.eventType.toLowerCase().includes("extended")).length;
+    const earlyCount = logs.filter((l) => l.eventType.toLowerCase().includes("early")).length;
+    return { extendedCount, earlyCount, count: logs.length };
+  }, [logs]);
 
   const columns: PosDataGridColumn<ClosingHourLogEntry>[] = [
     {
@@ -105,107 +84,69 @@ export function ClosingHourLogsView() {
       sortable: true,
       defaultWidth: 140,
       render: (_, r) => (
-        <span className="font-mono text-[12px] font-bold text-slate-800">{r.logId}</span>
+        <span className="font-mono text-[12px] font-bold text-teal-700">{r.logId}</span>
       ),
     },
     {
       id: "timestamp",
-      header: "Recorded At",
+      header: "Timestamp",
       accessorKey: "timestamp",
       sortable: true,
-      defaultWidth: 155,
+      defaultWidth: 165,
       render: (_, r) => (
         <span className="font-mono text-[12px] text-slate-600 font-medium">{r.timestamp}</span>
       ),
     },
     {
       id: "section",
-      header: "Outlet Section",
+      header: "Dining / Bar Section",
       accessorKey: "section",
       sortable: true,
-      defaultWidth: 160,
+      defaultWidth: 170,
       render: (_, r) => (
-        <span className="font-bold text-[12.5px] text-slate-900">{r.section}</span>
+        <span className="text-[12.5px] font-semibold text-slate-900">{r.section}</span>
       ),
     },
     {
       id: "eventType",
-      header: "Timing Adjustment",
+      header: "Override Nature",
       accessorKey: "eventType",
       sortable: true,
       defaultWidth: 180,
-      render: (_, r) => {
-        let style = "bg-slate-100 text-slate-700 border-slate-200";
-        if (r.eventType === "Extended Night Hours")
-          style = "bg-indigo-50 text-indigo-800 border-indigo-200 font-bold";
-        if (r.eventType === "Early Closure")
-          style = "bg-amber-50 text-amber-800 border-amber-200 font-bold";
-        if (r.eventType === "Emergency Shutdown")
-          style = "bg-rose-50 text-rose-800 border-rose-200 font-black";
-        if (r.eventType === "Holiday Schedule")
-          style = "bg-emerald-50 text-emerald-800 border-emerald-200 font-bold";
-        return (
-          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] border ${style}`}>
-            {r.eventType === "Extended Night Hours" ? (
-              <Moon className="h-3 w-3" />
-            ) : r.eventType === "Early Closure" ? (
-              <Clock className="h-3 w-3" />
-            ) : (
-              <Sun className="h-3 w-3" />
-            )}
-            {r.eventType}
-          </span>
-        );
-      },
+      render: (_, r) => (
+        <span className="inline-block rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-800">
+          {r.eventType}
+        </span>
+      ),
     },
     {
-      id: "effectiveWindow",
-      header: "Effective Duration",
-      defaultWidth: 200,
+      id: "effectivePeriod",
+      header: "Effective Period",
+      defaultWidth: 190,
       render: (_, r) => (
-        <div className="text-[12px] text-slate-700">
-          <div className="font-mono text-[11.5px] font-medium text-slate-900">
-            {r.effectiveFrom}
-          </div>
-          <div className="font-mono text-[11px] text-slate-500">to {r.effectiveTo}</div>
+        <div className="font-mono text-[11.5px] text-slate-700 font-medium">
+          {r.effectiveFrom} &rarr; {r.effectiveTo}
         </div>
       ),
     },
     {
       id: "reason",
-      header: "Operational Reason",
+      header: "Reason / Authorization Note",
       accessorKey: "reason",
-      defaultWidth: 260,
+      defaultWidth: 230,
       render: (_, r) => (
-        <div className="text-[12px] text-slate-700 font-medium truncate max-w-sm" title={r.reason}>
+        <div className="text-[12px] text-slate-600 truncate" title={r.reason}>
           {r.reason}
         </div>
       ),
     },
     {
       id: "authorizedBy",
-      header: "Manager Auth",
+      header: "Authorized By",
       accessorKey: "authorizedBy",
-      defaultWidth: 180,
+      defaultWidth: 160,
       render: (_, r) => (
-        <div className="text-[12px] text-slate-600 font-semibold">{r.authorizedBy}</div>
-      ),
-    },
-    {
-      id: "customerNoticeSent",
-      header: "Customer Alert",
-      accessorKey: "customerNoticeSent",
-      defaultWidth: 120,
-      render: (_, r) => (
-        <span
-          className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${
-            r.customerNoticeSent
-              ? "bg-teal-50 text-teal-800"
-              : "bg-slate-100 text-slate-500"
-          }`}
-        >
-          {r.customerNoticeSent ? "Notified" : "Internal Only"}
-        </span>
+        <div className="text-[12px] text-slate-800 font-semibold">{r.authorizedBy}</div>
       ),
     },
   ];
@@ -213,34 +154,46 @@ export function ClosingHourLogsView() {
   return (
     <div className="space-y-5 w-full">
       {/* Header */}
-      <div>
-        <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-          <Clock className="h-5 w-5 text-teal-600" />
-          Closing Hour & Shift Timing Logs
-        </h2>
-        <p className="text-[12.5px] text-slate-500">
-          Audit log of changes to operational store hours, early closures, extended party hours, and emergency shutdowns.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <Clock className="h-5 w-5 text-teal-600" />
+            Closing Hours & Schedule Override Logs
+          </h2>
+          <p className="text-[12.5px] text-slate-500">
+            Real-time server records for {activeOutlet?.name || "Active Outlet"} operating timings, holiday schedules, and early closures.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={fetchLogs}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-[12.5px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-xs disabled:opacity-50"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          Refresh Logs
+        </button>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Operating Status</span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            <span>Schedule Updates</span>
+            <Calendar className="h-4 w-4 text-teal-600" />
           </div>
-          <div className="mt-2 text-[22px] font-black text-emerald-600">Open Normal</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">Until 11:30 PM tonight</div>
+          <div className="mt-2 text-[22px] font-black text-slate-900">{stats.count}</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Recorded shifts & saves</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Extended Shifts</span>
+            <span>Night Extensions</span>
             <Moon className="h-4 w-4 text-indigo-500" />
           </div>
-          <div className="mt-2 text-[22px] font-black text-slate-900">1 This Week</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">Corporate dinner (+2 hrs)</div>
+          <div className="mt-2 text-[22px] font-black text-indigo-600">{stats.extendedCount}</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Late night operations</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
@@ -248,17 +201,17 @@ export function ClosingHourLogsView() {
             <span>Early Closures</span>
             <AlertTriangle className="h-4 w-4 text-amber-500" />
           </div>
-          <div className="mt-2 text-[22px] font-black text-slate-900">1 This Month</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">Scheduled deep cleaning</div>
+          <div className="mt-2 text-[22px] font-black text-amber-600">{stats.earlyCount}</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Maintenance / special off</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 text-[12px] font-semibold">
-            <span>Upcoming Holiday</span>
-            <Calendar className="h-4 w-4 text-teal-600" />
+            <span>Operating Status</span>
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           </div>
-          <div className="mt-2 text-[18px] font-black text-slate-900 truncate">Diwali Festival</div>
-          <div className="mt-1 text-[11px] text-slate-500 font-medium">Schedule configured</div>
+          <div className="mt-2 text-[22px] font-black text-emerald-600">Active</div>
+          <div className="mt-1 text-[11px] text-slate-500 font-medium">Regular store timings</div>
         </div>
       </div>
 
@@ -266,20 +219,19 @@ export function ClosingHourLogsView() {
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
         <div className="flex items-center gap-1.5 text-[12px] font-bold text-slate-700">
           <Filter className="h-3.5 w-3.5 text-slate-400" />
-          Filter Event:
+          Filter Type:
         </div>
 
         <select
-          value={eventFilter}
-          onChange={(e) => setEventFilter(e.target.value)}
+          value={eventTypeFilter}
+          onChange={(e) => setEventTypeFilter(e.target.value)}
           className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[12px] font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500"
         >
-          <option value="All">All Events</option>
+          <option value="All">All Schedule Types</option>
+          <option value="Regular Timing Shift">Regular Timing Shift</option>
           <option value="Extended Night Hours">Extended Night Hours</option>
           <option value="Early Closure">Early Closure</option>
           <option value="Holiday Schedule">Holiday Schedule</option>
-          <option value="Emergency Shutdown">Emergency Shutdown</option>
-          <option value="Regular Timing Shift">Regular Timing Shift</option>
         </select>
       </div>
 
@@ -290,8 +242,11 @@ export function ClosingHourLogsView() {
         keyField="id"
         pageSize={10}
         showToolbar
-        searchPlaceholder="Search timing logs, sections, or reasons..."
+        searchPlaceholder="Search schedule shifts or authorization notes..."
+        emptyMessage="No closing hour or schedule overrides recorded yet for this outlet."
       />
     </div>
   );
 }
+
+export default ClosingHourLogsView;
