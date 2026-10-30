@@ -15,7 +15,7 @@ export function mapBackendUserToAppUser(
   backendPermissions: string[] = [],
 ): AppUser {
   let role: Role | string = backendUser?.role || "front_desk_agent";
-  let propertyName = "Retrod Bistro & Cafe · Connaught Place";
+  let propertyName = "Main Property";
 
   if (backendUser && (backendUser.role === "super_admin" || backendUser.is_superuser)) {
     role = "super_admin";
@@ -27,7 +27,9 @@ export function mapBackendUserToAppUser(
   }
 
   const initials = (backendUser?.name || "User")
-    .split(" ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
     .map((s: string) => s[0])
     .slice(0, 2)
     .join("")
@@ -40,10 +42,26 @@ export function mapBackendUserToAppUser(
   }));
 
   if (mappedProperties.length > 0) {
-    propertyName = mappedProperties[0].name;
+    const storedPropId =
+      typeof window !== "undefined"
+        ? localStorage.getItem("retrod:active-property-id") ||
+          localStorage.getItem("retrod_property_id")
+        : null;
+    const matched = storedPropId
+      ? mappedProperties.find((p) => p.id === storedPropId)
+      : null;
+    propertyName = matched ? matched.name : mappedProperties[0].name;
   } else if (role === "super_admin") {
     propertyName = "Retrod Global HQ";
   }
+
+  const avatar =
+    backendUser?.avatar_url ||
+    backendUser?.avatarUrl ||
+    backendUser?.avatar ||
+    backendUser?.profile_picture ||
+    backendUser?.profile_photo ||
+    undefined;
 
   return {
     id: String(backendUser?.id || "u0"),
@@ -58,7 +76,7 @@ export function mapBackendUserToAppUser(
     phone: backendUser?.phone,
     properties: mappedProperties,
     permissions: backendPermissions || [],
-    avatarUrl: backendUser?.avatar_url,
+    avatarUrl: avatar,
     tenant_subdomain: backendUser?.tenant_subdomain,
     is_superuser: backendUser?.is_superuser,
     subscription_plan: backendUser?.subscription_plan,

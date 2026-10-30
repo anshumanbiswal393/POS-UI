@@ -1,6 +1,6 @@
 import axios from "axios";
 import { BASEURL } from "@/config/variables";
-import { getStoredAccessToken, getStoredSubdomain } from "@/utils/cookieAuth";
+import { getStoredAccessToken, getStoredSubdomain, getStoredPropertyId } from "@/utils/cookieAuth";
 import { authApi } from "@/services/auth-api";
 
 /**
@@ -35,7 +35,10 @@ httpClient.interceptors.request.use(
           config.headers["X-Outlet-ID"] = activeOutletId;
         }
 
-        const activePropertyId = localStorage.getItem("retrod:active-property-id");
+        const activePropertyId =
+          localStorage.getItem("retrod:active-property-id") ||
+          localStorage.getItem("retrod_property_id") ||
+          getStoredPropertyId();
         if (activePropertyId && !config.headers["X-Property-ID"]) {
           config.headers["X-Property-ID"] = activePropertyId;
         }

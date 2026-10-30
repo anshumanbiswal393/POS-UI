@@ -55,38 +55,7 @@ export interface AuthAuditEvent {
   detail?: string;
 }
 
-const SEED_USERS: AppUser[] = [
-  {
-    id: "u0",
-    name: "Retrod Admin",
-    email: "admin@retrod.in",
-    role: "super_admin",
-    initials: "RA",
-    active: true,
-    property: "Retrod Bistro & Cafe · Connaught Place",
-    lastActive: "Just now",
-  },
-  {
-    id: "u1",
-    name: "Aarav Sharma",
-    email: "aarav@retrod.in",
-    role: "owner",
-    initials: "AS",
-    active: true,
-    property: "Retrod Bistro & Cafe · Connaught Place",
-    lastActive: "Just now",
-  },
-  {
-    id: "u2",
-    name: "Vikram Patel",
-    email: "vikram@retrod.in",
-    role: "general_manager",
-    initials: "VP",
-    active: true,
-    property: "Retrod Bistro & Cafe · Connaught Place",
-    lastActive: "5 min ago",
-  },
-];
+const SEED_USERS: AppUser[] = [];
 
 const DEFAULT_ENTITLEMENTS: TenantEntitlements = {
   tenantId: "retrod-pos-tenant",
@@ -114,19 +83,33 @@ const DEFAULT_ENTITLEMENTS: TenantEntitlements = {
 };
 
 function loadCachedUsers(): AppUser[] {
-  if (typeof window === "undefined") return SEED_USERS;
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(LS_USERS);
-    if (!raw) return SEED_USERS;
+    if (!raw) return [];
     const parsed = JSON.parse(raw) as AppUser[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : SEED_USERS;
+    return Array.isArray(parsed)
+      ? parsed.filter((u) => !["u0", "u1", "u2"].includes(u.id))
+      : [];
   } catch {
-    return SEED_USERS;
+    return [];
   }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = useState<AppUser[]>(SEED_USERS);
+  const [users, setUsers] = useState<AppUser[]>(loadCachedUsers);
+  useEffect(() => {
+    if (user) {
+      setUsers((prev) => {
+        const clean = prev.filter((u) => !["u0", "u1", "u2"].includes(u.id));
+        if (!clean.some((u) => u.id === user.id)) {
+          return [user, ...clean];
+        }
+        return clean.map((u) => (u.id === user.id ? user : u));
+      });
+    }
+  }, [user]);
+
   const [user, setUser] = useState<AppUser | null>(() => {
     if (typeof window === "undefined") return null;
     try {

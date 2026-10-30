@@ -97,7 +97,14 @@ export function PosSettingsScreen() {
   const licenseKey = `LIC-POS-${outletCode.replace(/[^A-Z0-9]/gi, "").toUpperCase()}-2026`;
   const planLabel = PLAN_LABEL[entitlements?.plan] ?? "Growth Plan";
   const othersOnPos = useMemo(
-    () => (users ?? []).filter((entry) => entry.active && entry.id !== user?.id),
+    () =>
+      (users ?? []).filter(
+        (entry) =>
+          entry.active &&
+          entry.id !== user?.id &&
+          !["u0", "u1", "u2"].includes(entry.id) &&
+          !entry.email?.includes("@retrod.in"),
+      ),
     [users, user?.id],
   );
 
@@ -187,9 +194,17 @@ export function PosSettingsScreen() {
             </div>
 
             <div className="mb-5 flex items-center gap-4 rounded-xl border border-border bg-surface-2/40 p-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary/20 bg-primary/10 text-lg font-extrabold text-primary">
-                {user?.initials ?? "RA"}
-              </div>
+              {user?.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user?.name || "Profile"}
+                  className="h-16 w-16 rounded-full object-cover border-2 border-primary/20 shrink-0"
+                />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary/20 bg-primary/10 text-lg font-extrabold text-primary shrink-0">
+                  {user?.initials ?? "U"}
+                </div>
+              )}
               <div>
                 <div className="text-[13px] font-bold text-text-primary">Profile Picture</div>
                 <div className="mt-1 text-[12px] font-semibold text-primary">Signed in on this POS</div>
@@ -245,7 +260,7 @@ export function PosSettingsScreen() {
                 </span>
                 <input
                   readOnly
-                  value={formatRoleLabel(user ? roleLabel(user.role) : "Staff")}
+                  value={user?.role_name || formatRoleLabel(user ? roleLabel(user.role) : "Staff")}
                   className="w-full cursor-not-allowed rounded-md border border-border bg-surface-2 px-3 py-2 text-[13px] font-medium text-text-secondary outline-none"
                 />
               </label>
@@ -266,14 +281,24 @@ export function PosSettingsScreen() {
                 <h2 className="text-[16px] font-bold text-text-primary">Currently using this POS</h2>
               </div>
               <div className="flex items-center gap-3 rounded-lg border border-primary/15 bg-primary/5 p-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-primary-foreground">
-                  {user?.initials ?? "RA"}
-                </div>
+                {user?.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user?.name || "User"}
+                    className="h-11 w-11 rounded-full object-cover shrink-0"
+                  />
+                ) : (
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-primary-foreground shrink-0">
+                    {user?.initials ?? "U"}
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[14px] font-bold text-text-primary">{user?.name ?? "POS User"}</div>
-                  <div className="text-[12px] font-semibold text-primary">{user ? roleLabel(user.role) : "Staff"}</div>
+                  <div className="text-[12px] font-semibold text-primary">
+                    {user?.role_name || (user ? roleLabel(user.role) : "Staff")}
+                  </div>
                   <div className="truncate text-[11px] text-text-secondary">
-                    {activeOutlet.name} · {user?.lastActive ?? "Just now"}
+                    {activeOutlet?.name || user?.property || "Main Outlet"} · {user?.lastActive ?? "Active now"}
                   </div>
                 </div>
                 <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
@@ -307,7 +332,7 @@ export function PosSettingsScreen() {
                   <div>
                     <span className="block text-[11px] font-medium uppercase text-text-secondary">Subscription Plan</span>
                     <span className="mt-0.5 block text-[14px] font-extrabold text-primary">
-                      {planLabel}
+                      {user?.subscription_plan || planLabel}
                     </span>
                   </div>
                   <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
@@ -317,12 +342,14 @@ export function PosSettingsScreen() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-lg border border-border bg-surface-2/40 p-3">
                     <span className="block text-[11px] text-text-secondary">Expiration Date</span>
-                    <span className="mt-1 block text-[13px] font-semibold text-text-primary">2026-11-11</span>
+                    <span className="mt-1 block text-[13px] font-semibold text-text-primary">
+                      {user?.subscription_expiry || "Active (Annual License)"}
+                    </span>
                   </div>
                   <div className="rounded-lg border border-border bg-surface-2/40 p-3">
                     <span className="block text-[11px] text-text-secondary">Outlet</span>
                     <span className="mt-1 block truncate font-mono text-[13px] font-semibold text-text-primary">
-                      {outletCode.toLowerCase()}
+                      {activeOutlet?.name || activeOutlet?.code || "Primary Outlet"}
                     </span>
                   </div>
                 </div>
@@ -330,7 +357,7 @@ export function PosSettingsScreen() {
                   <span className="block text-[11px] text-text-secondary">License Key</span>
                   <div className="mt-1.5 flex items-center justify-between gap-2">
                     <span className="rounded border border-border bg-surface px-2.5 py-1 font-mono text-[12px] font-semibold text-text-primary">
-                      {licenseKey}
+                      {user?.license_key || licenseKey}
                     </span>
                     <button
                       type="button"

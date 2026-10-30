@@ -101,6 +101,15 @@ export function getStoredRefreshToken(): string | null {
 /**
  * Retrieves the active tenant subdomain.
  */
+export function getStoredPropertyId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const ls = localStorage.getItem(LS_PROPERTY_ID) || localStorage.getItem("retrod:active-property-id");
+    if (ls) return ls;
+  } catch {}
+  return getDomainCookie(COOKIE_PROPERTY_ID);
+}
+
 export function getStoredSubdomain(): string {
   if (typeof window === "undefined") return "grandpalace";
   try {
@@ -157,6 +166,8 @@ export function syncAuthSession(
         role: user.role,
         role_name: user.role_name,
         tenant_subdomain: user.tenant_subdomain,
+        avatarUrl: user.avatarUrl || user.avatar_url,
+        initials: user.initials,
       };
       setDomainCookie(COOKIE_USER, JSON.stringify(basicUser));
     } catch {}
