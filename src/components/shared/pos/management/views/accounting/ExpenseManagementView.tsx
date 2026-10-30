@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useOutletContext } from "@/context/PosOutletContext";
+import posManagementService from "@/services/posManagementService";
 import {
   Plus,
   Search,
@@ -50,45 +52,18 @@ interface ListingItem {
   notes?: string;
 }
 
-const INITIAL_EXPENSES: ListingItem[] = [
-  { id: "e-1", title: "Advance Salary to Kitchen Staff", type: "Expense", totalReported: 15000.0, paidTo: "Chef Ramesh", paymentMode: "Bank Transfer", date: "24 Sep 2026", refNo: "SAL-98210" },
-  { id: "e-2", title: "Advertisement & Social Media Campaign", type: "Expense", totalReported: 4500.0, paidTo: "Meta Ads", paymentMode: "Credit Card", date: "25 Sep 2026", refNo: "TXN-89201" },
-  { id: "e-3", title: "Delivery Rider Fuel Allowance", type: "Expense", totalReported: 2400.0, paidTo: "Rider Fleet (4 riders)", paymentMode: "Cash Drawer Float", date: "26 Sep 2026" },
-  { id: "e-4", title: "Electricity & Utility Surcharge", type: "Expense", totalReported: 18200.0, paidTo: "TPCODL", paymentMode: "Bank Transfer", date: "20 Sep 2026", refNo: "EL-89410" },
-  { id: "e-5", title: "Commercial LPG Gas Cylinders", type: "Expense", totalReported: 8900.0, paidTo: "Indane Gas Agency", paymentMode: "UPI", date: "22 Sep 2026", refNo: "UPI/260922/ind" },
-  { id: "e-6", title: "Daily Fresh Vegetables & Groceries", type: "Expense", totalReported: 32400.0, paidTo: "Local Mandi Supply", paymentMode: "Cash Drawer Float", date: "27 Sep 2026" },
-  { id: "e-7", title: "High-Speed Internet & POS Line", type: "Expense", totalReported: 1899.0, paidTo: "Airtel Fiber", paymentMode: "UPI", date: "15 Sep 2026" },
-  { id: "e-8", title: "Kitchen Hood Maintenance & Filter Wash", type: "Expense", totalReported: 3500.0, paidTo: "CoolVent Services", paymentMode: "Cash Drawer Float", date: "18 Sep 2026" },
-];
+const INITIAL_EXPENSES: any[] = [];
 
-const INITIAL_WITHDRAWALS: ListingItem[] = [
-  { id: "w-1", title: "Cash Deposited in Bank", type: "Withdrawal", totalReported: 85000.0, paidTo: "HDFC Current Account", paymentMode: "Bank Transfer", date: "25 Sep 2026", refNo: "DEP-98210" },
-  { id: "w-2", title: "Drawings by Owner", type: "Withdrawal", totalReported: 20000.0, paidTo: "Ayush Mishra", paymentMode: "Bank Transfer", date: "22 Sep 2026", refNo: "OWN-49210" },
-  { id: "w-3", title: "Direct Settlement to Seafood Supplier", type: "Withdrawal", totalReported: 12500.0, paidTo: "Puri Coastal Fisheries", paymentMode: "UPI", date: "26 Sep 2026", refNo: "UPI/260926/fish" },
-];
+const INITIAL_WITHDRAWALS: any[] = [];
 
-const INITIAL_TOPUPS: ListingItem[] = [
-  { id: "ct-1", title: "Float From Store Manager", type: "Cash Top-Up", totalReported: 10000.0, paidTo: "Desk 1 Float", paymentMode: "Cash Drawer Float", date: "24 Sep 2026" },
-  { id: "ct-2", title: "Emergency Cash Infusion from Owner", type: "Cash Top-Up", totalReported: 25000.0, paidTo: "Main Safe Float", paymentMode: "Cash Drawer Float", date: "20 Sep 2026" },
-];
+const INITIAL_TOPUPS: any[] = [];
 
-const INITIAL_MASTERS: MasterItem[] = [
-  { id: "em-1", title: "Advance Salary", category: "Expense", status: true, createdDate: "24 May 2026" },
-  { id: "em-2", title: "Advertisement & Promotions", category: "Expense", status: true, createdDate: "24 May 2026" },
-  { id: "em-3", title: "Kitchen Maintenance & Repairs", category: "Expense", status: true, createdDate: "24 May 2026" },
-  { id: "em-4", title: "Mineral Water Can Supplies", category: "Expense", status: true, createdDate: "24 May 2026" },
-  { id: "em-5", title: "Daily Mandi Groceries", category: "Expense", status: true, createdDate: "24 May 2026" },
-  { id: "em-6", title: "Commercial LPG Gas", category: "Expense", status: true, createdDate: "24 May 2026" },
-  { id: "wm-1", title: "Cash Deposited in Bank", category: "Withdrawal", status: true, createdDate: "24 May 2026" },
-  { id: "wm-2", title: "To Owner / Drawings", category: "Withdrawal", status: true, createdDate: "24 May 2026" },
-  { id: "wm-3", title: "To Supplier", category: "Withdrawal", status: true, createdDate: "24 May 2026" },
-  { id: "cm-1", title: "Float From Manager", category: "Cash Top-Up", status: true, createdDate: "24 May 2026" },
-  { id: "cm-2", title: "From Owner Infusion", category: "Cash Top-Up", status: true, createdDate: "24 May 2026" },
-];
+const INITIAL_MASTERS: any[] = [];
 
 const PAYMENT_MODES = ["Cash Drawer Float", "UPI", "Bank Transfer", "Credit Card"];
 
 export function ExpenseManagementView() {
+  const { activeOutlet } = useOutletContext();
   const [activeTab, setActiveTab] = useState<
     | "expense_listing"
     | "expense_master"
@@ -99,6 +74,24 @@ export function ExpenseManagementView() {
   >("expense_listing");
 
   const [expenses, setExpenses] = useState<ListingItem[]>(INITIAL_EXPENSES);
+
+  useEffect(() => {
+    if (!activeOutlet?.id) return;
+    posManagementService.getExpenses(activeOutlet.id).then((res) => {
+      setExpenses(
+        (res || []).map((e) => ({
+          id: e.id,
+          title: e.notes || e.category,
+          type: "Expense",
+          totalReported: parseFloat(e.amount) || 0,
+          paidTo: e.payee_name,
+          paymentMode: (e.payment_mode as any) || "Cash Drawer Float",
+          date: e.expense_date ? new Date(e.expense_date).toLocaleDateString("en-IN") : "",
+          refNo: e.expense_number,
+        }))
+      );
+    }).catch(() => {});
+  }, [activeOutlet?.id]);
   const [withdrawals, setWithdrawals] = useState<ListingItem[]>(INITIAL_WITHDRAWALS);
   const [topups, setTopups] = useState<ListingItem[]>(INITIAL_TOPUPS);
   const [masters, setMasters] = useState<MasterItem[]>(INITIAL_MASTERS);

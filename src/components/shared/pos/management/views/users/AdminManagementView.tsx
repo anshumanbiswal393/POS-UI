@@ -17,38 +17,7 @@ export interface AdminUser {
 }
 
 export function AdminManagementView() {
-  const [admins, setAdmins] = useState<AdminUser[]>([
-    {
-      id: "adm-1",
-      name: "Tofan",
-      email: "raotofan53@gmail.com",
-      type: "Restaurant User",
-      outlet: "HIGHWAY INN BAR & RESTAURANT",
-      phone: "9876501122",
-      status: "Active",
-      createdDate: "20 Jun 2026",
-    },
-    {
-      id: "adm-2",
-      name: "Kailash",
-      email: "restobar019@gmail.com",
-      type: "Restaurant User",
-      outlet: "HIGHWAY INN BAR & RESTAURANT",
-      phone: "9876503344",
-      status: "Active",
-      createdDate: "12 Oct 2026",
-    },
-    {
-      id: "adm-3",
-      name: "Amitabh Verma",
-      email: "amitabh@retrodpos.com",
-      type: "Franchise Owner",
-      outlet: "All Outlets",
-      phone: "9876505566",
-      status: "Active",
-      createdDate: "05 Jan 2026",
-    },
-  ]);
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);

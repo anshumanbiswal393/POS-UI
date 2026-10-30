@@ -45,71 +45,7 @@ export interface UtilityBill {
   notes?: string;
 }
 
-const INITIAL_BILLS: UtilityBill[] = [
-  {
-    id: "ub-1",
-    billType: "Electricity",
-    providerName: "TP Central Odisha Distribution (TPCODL)",
-    consumerNumber: "EL-ANG-8920194",
-    billingPeriod: "Aug 2026",
-    dueDate: "15 Sep 2026",
-    amount: 18450.0,
-    status: "Paid",
-    paidDate: "12 Sep 2026",
-    paymentMode: "Bank Transfer",
-    txnRef: "HDFC9821049102",
-    notes: "Main Restaurant Kitchen & Dining AC Meter",
-  },
-  {
-    id: "ub-2",
-    billType: "Commercial Gas",
-    providerName: "Indane Commercial LPG Cylinders",
-    consumerNumber: "IND-COM-49210",
-    billingPeriod: "Aug 2026",
-    dueDate: "20 Sep 2026",
-    amount: 12600.0,
-    status: "Paid",
-    paidDate: "18 Sep 2026",
-    paymentMode: "UPI",
-    txnRef: "UPI/2609180291/gpay",
-    notes: "8x 19kg Commercial Cylinders Delivery",
-  },
-  {
-    id: "ub-3",
-    billType: "Internet & Broadband",
-    providerName: "Airtel Xstream Fiber POS Line",
-    consumerNumber: "0674-2983109",
-    billingPeriod: "Sep 2026",
-    dueDate: "28 Sep 2026",
-    amount: 2359.0,
-    status: "Pending",
-    notes: "300 Mbps Static IP Line for POS and Cloud Sync",
-  },
-  {
-    id: "ub-4",
-    billType: "Water Supply",
-    providerName: "Angul Municipal Water Board (PHED)",
-    consumerNumber: "WTR-ANG-10928",
-    billingPeriod: "Jul-Aug 2026",
-    dueDate: "05 Sep 2026",
-    amount: 3400.0,
-    status: "Paid",
-    paidDate: "04 Sep 2026",
-    paymentMode: "Auto-Debit",
-    txnRef: "ACH-982104-WTR",
-  },
-  {
-    id: "ub-5",
-    billType: "Waste Management",
-    providerName: "GreenClean Commercial Disposal Services",
-    consumerNumber: "GC-04829",
-    billingPeriod: "Sep 2026",
-    dueDate: "02 Oct 2026",
-    amount: 1800.0,
-    status: "Pending",
-    notes: "Daily wet & dry kitchen waste disposal",
-  },
-];
+const INITIAL_BILLS: UtilityBill[] = [];
 
 const UTILITY_TYPES = [
   "Electricity",

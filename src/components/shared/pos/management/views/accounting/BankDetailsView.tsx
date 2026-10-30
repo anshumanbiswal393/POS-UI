@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useOutletContext } from "@/context/PosOutletContext";
+import posManagementService from "@/services/posManagementService";
 import {
   Building2,
   Plus,
@@ -38,21 +40,7 @@ export interface BankAccount {
   addedAt: string;
 }
 
-const INITIAL_ACCOUNTS: BankAccount[] = [
-  {
-    id: "bank-1",
-    bankName: "HDFC Bank",
-    accountHolderName: "Retrod Hospitality Pvt Ltd",
-    accountNumber: "50200084924821",
-    ifscCode: "HDFC0001248",
-    accountType: "Current A/C",
-    branchName: "Indiranagar 100ft Road, Bengaluru",
-    isPrimary: true,
-    status: "Verified",
-    upiVpa: "retrodhospitality@hdfcbank",
-    addedAt: "12 Jan 2026",
-  },
-];
+const INITIAL_ACCOUNTS: BankAccount[] = [];
 
 const POPULAR_BANKS = [
   "HDFC Bank",
@@ -81,7 +69,29 @@ function maskAccountNumber(acc: string): string {
 }
 
 export function BankDetailsView() {
+  const { activeOutlet } = useOutletContext();
   const [accounts, setAccounts] = useState<BankAccount[]>(INITIAL_ACCOUNTS);
+
+  useEffect(() => {
+    if (!activeOutlet?.id) return;
+    posManagementService.getBankAccounts(activeOutlet.id).then((res) => {
+      setAccounts(
+        (res || []).map((b) => ({
+          id: b.id,
+          bankName: b.bank_name,
+          accountHolderName: b.account_name,
+          accountNumber: b.account_number,
+          ifscCode: b.ifsc_code,
+          accountType: "Current A/C",
+          branchName: b.branch_name,
+          isPrimary: b.is_primary,
+          status: b.status === "ACTIVE" || b.status === "VERIFIED" ? "Verified" : "Pending Verification",
+          upiVpa: b.upi_vpa,
+          addedAt: "Registered",
+        }))
+      );
+    }).catch(() => {});
+  }, [activeOutlet?.id]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);

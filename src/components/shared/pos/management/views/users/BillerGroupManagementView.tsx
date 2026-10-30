@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useOutletContext } from "@/context/PosOutletContext";
+import posManagementService from "@/services/posManagementService";
 import { Plus, Users, Edit2, Trash2, ShieldCheck, Search, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AddGroupModal, type GroupFormData } from "./AddGroupModal";
@@ -27,29 +29,23 @@ const DEFAULT_BILLER_PERMISSIONS = [
 ];
 
 export function BillerGroupManagementView() {
-  const [groups, setGroups] = useState<BillerGroup[]>([
-    {
-      id: "bg-1",
-      name: "Main Counter Cashiers",
-      count: 2,
-      permissions: "Billing, KOT, Settlement, Due Collection",
-      description: "Counter billing operators handling primary cash and digital transactions.",
-    },
-    {
-      id: "bg-2",
-      name: "Floor Captains",
-      count: 8,
-      permissions: "Table Transfer, KOT Punch, Discount Request",
-      description: "Floor stewards and station supervisors for dining area guest management.",
-    },
-    {
-      id: "bg-3",
-      name: "Order Acceptance Dispatchers",
-      count: 1,
-      permissions: "Aggregator Food Delivery Accept/Reject",
-      description: "Dedicated kitchen display and 3rd party food portal managers.",
-    },
-  ]);
+  const { activeOutlet } = useOutletContext();
+  const [groups, setGroups] = useState<BillerGroup[]>([]);
+
+  useEffect(() => {
+    if (!activeOutlet?.id) return;
+    posManagementService.getBillerGroups(activeOutlet.id).then((res) => {
+      setGroups(
+        (res || []).map((g) => ({
+          id: g.id,
+          name: g.name,
+          count: g.staff_count || 0,
+          permissions: "Billing, KOT, Settlement",
+          description: g.description,
+        }))
+      );
+    }).catch(() => {});
+  }, [activeOutlet?.id]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);

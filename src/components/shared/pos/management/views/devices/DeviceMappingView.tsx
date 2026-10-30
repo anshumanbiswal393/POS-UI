@@ -13,48 +13,7 @@ interface DeviceItem {
 }
 
 export function DeviceMappingView() {
-  const [devices, setDevices] = useState<DeviceItem[]>([
-    {
-      id: "dev-1",
-      name: "Billing Terminal 1 (Windows POS)",
-      type: "Desktop",
-      ip: "192.168.1.101",
-      status: "Online",
-      pairedDate: "12 May 2026",
-    },
-    {
-      id: "dev-2",
-      name: "Captain Tablet 1 (Samsung Tab A9)",
-      type: "Tablet",
-      ip: "192.168.1.115",
-      status: "Online",
-      pairedDate: "18 May 2026",
-    },
-    {
-      id: "dev-3",
-      name: "Captain Tablet 2 (iPad 9th Gen)",
-      type: "Tablet",
-      ip: "192.168.1.118",
-      status: "Online",
-      pairedDate: "20 May 2026",
-    },
-    {
-      id: "dev-4",
-      name: "Kitchen Display System (KDS Screen)",
-      type: "Display",
-      ip: "192.168.1.130",
-      status: "Online",
-      pairedDate: "01 Jun 2026",
-    },
-    {
-      id: "dev-5",
-      name: "Bar Counter KDS Screen",
-      type: "Display",
-      ip: "192.168.1.132",
-      status: "Online",
-      pairedDate: "14 Jun 2026",
-    },
-  ]);
+  const [devices, setDevices] = useState<DeviceItem[]>([]);
 
   const [pageSize, setPageSize] = useState(10);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);

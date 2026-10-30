@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useOutletContext } from "@/context/PosOutletContext";
+import posManagementService from "@/services/posManagementService";
 import {
   Download,
   Search,
@@ -48,165 +50,10 @@ interface WalletRecord {
   transactions: WalletTransaction[];
 }
 
-const INITIAL_WALLETS: WalletRecord[] = [
-  {
-    id: "w-1",
-    customerName: "Rahul Sharma",
-    mobile: "+91 98765 43210",
-    amount: 17100.0,
-    totalCredited: 25000.0,
-    totalDebited: 7900.0,
-    lastUsedDate: "2026-09-02 14:15",
-    created: "9 Sep 2023 23:05:22",
-    transactions: [
-      {
-        id: "tx-w1-1",
-        type: "credit",
-        amount: 25000,
-        balanceAfter: 25000,
-        reason: "VIP Prepaid Deposit",
-        date: "9 Sep 2023 23:05:22",
-        mode: "UPI",
-      },
-      {
-        id: "tx-w1-2",
-        type: "debit",
-        amount: 4500,
-        balanceAfter: 20500,
-        reason: "Dining Bill Payment",
-        orderRef: "RET-2026-0710",
-        date: "14 Aug 2026 21:30",
-        mode: "Wallet Redeem",
-      },
-      {
-        id: "tx-w1-3",
-        type: "debit",
-        amount: 3400,
-        balanceAfter: 17100,
-        reason: "Bar Order Payment",
-        orderRef: "RET-2026-0812",
-        date: "2026-09-02 14:15",
-        mode: "Wallet Redeem",
-      },
-    ],
-  },
-  {
-    id: "w-2",
-    customerName: "Pooja Verma",
-    mobile: "+91 98234 56789",
-    amount: 17000.0,
-    totalCredited: 20000.0,
-    totalDebited: 3000.0,
-    lastUsedDate: "2026-08-30 19:40",
-    created: "9 Sep 2023 22:25:23",
-    transactions: [
-      {
-        id: "tx-w2-1",
-        type: "credit",
-        amount: 20000,
-        balanceAfter: 20000,
-        reason: "Advance Banquet Booking Deposit",
-        date: "9 Sep 2023 22:25:23",
-        mode: "Credit Card",
-      },
-      {
-        id: "tx-w2-2",
-        type: "debit",
-        amount: 3000,
-        balanceAfter: 17000,
-        reason: "Beverage Top-Up",
-        orderRef: "RET-2026-0680",
-        date: "2026-08-30 19:40",
-        mode: "Wallet Redeem",
-      },
-    ],
-  },
-  {
-    id: "w-3",
-    customerName: "Anand Gupta",
-    mobile: "+91 97123 45678",
-    amount: 5000.0,
-    totalCredited: 10000.0,
-    totalDebited: 5000.0,
-    lastUsedDate: "2026-08-25 12:10",
-    created: "1 Jan 2023 01:56:13",
-    transactions: [
-      {
-        id: "tx-w3-1",
-        type: "credit",
-        amount: 10000,
-        balanceAfter: 10000,
-        reason: "Corporate Prepaid Allowance",
-        date: "1 Jan 2023 01:56:13",
-        mode: "NEFT / Bank Transfer",
-      },
-      {
-        id: "tx-w3-2",
-        type: "debit",
-        amount: 5000,
-        balanceAfter: 5000,
-        reason: "Team Lunch Settled",
-        orderRef: "RET-2026-0590",
-        date: "2026-08-25 12:10",
-        mode: "Wallet Redeem",
-      },
-    ],
-  },
-  {
-    id: "w-4",
-    customerName: "Vikas Malhotra",
-    mobile: "+91 94371 88410",
-    amount: 8400.0,
-    totalCredited: 15000.0,
-    totalDebited: 6600.0,
-    lastUsedDate: "2026-09-01 20:05",
-    created: "14 Feb 2024 18:30:10",
-    transactions: [
-      {
-        id: "tx-w4-1",
-        type: "credit",
-        amount: 15000,
-        balanceAfter: 15000,
-        reason: "Regular Dining Credit Top-Up",
-        date: "14 Feb 2024 18:30:10",
-        mode: "UPI",
-      },
-      {
-        id: "tx-w4-2",
-        type: "debit",
-        amount: 6600,
-        balanceAfter: 8400,
-        reason: "Dinner Settled",
-        orderRef: "RET-2026-0801",
-        date: "2026-09-01 20:05",
-        mode: "Wallet Redeem",
-      },
-    ],
-  },
-  {
-    id: "w-5",
-    customerName: "Deepak Mehta",
-    mobile: "+91 99370 12845",
-    amount: 12200.0,
-    totalCredited: 12200.0,
-    totalDebited: 0.0,
-    lastUsedDate: "2024-03-22 14:15",
-    created: "22 Mar 2024 14:15:00",
-    transactions: [
-      {
-        id: "tx-w5-1",
-        type: "credit",
-        amount: 12200,
-        balanceAfter: 12200,
-        reason: "Promotional Cash-Back Reward",
-        date: "22 Mar 2024 14:15:00",
-        mode: "Cash",
-      },
-    ],
-  },
-];
+const INITIAL_WALLETS: WalletRecord[] = [];
 
 export function VirtualWalletView() {
+  const { activeOutlet } = useOutletContext();
   const [mobileFilter, setMobileFilter] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -216,6 +63,25 @@ export function VirtualWalletView() {
   const [sortConfig, setSortConfig] = useState<{ colId: string; direction: "asc" | "desc" } | null>(null);
 
   const [records, setRecords] = useState<WalletRecord[]>(INITIAL_WALLETS);
+
+  useEffect(() => {
+    if (!activeOutlet?.id) return;
+    posManagementService.getWallets(activeOutlet.id).then((res) => {
+      setRecords(
+        (res || []).map((w) => ({
+          id: w.id,
+          customerName: w.customer_name,
+          mobile: w.customer_mobile,
+          amount: parseFloat(w.balance) || 0,
+          totalCredited: parseFloat(w.total_credited) || 0,
+          totalDebited: parseFloat(w.total_debited) || 0,
+          lastUsedDate: w.last_transaction_at ? new Date(w.last_transaction_at).toLocaleString("en-IN") : "",
+          created: w.created_at ? new Date(w.created_at).toLocaleString("en-IN") : "",
+          transactions: [],
+        }))
+      );
+    }).catch(() => {});
+  }, [activeOutlet?.id]);
 
   // Modal States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);

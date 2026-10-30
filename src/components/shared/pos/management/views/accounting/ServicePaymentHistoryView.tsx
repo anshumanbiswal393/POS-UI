@@ -42,64 +42,7 @@ export interface ServicePaymentRecord {
   downloadUrl?: string;
 }
 
-const INITIAL_SERVICE_PAYMENTS: ServicePaymentRecord[] = [
-  {
-    id: "sp-1",
-    invoiceNo: "INV-RET-2026-0841",
-    serviceName: "Retrod POS Enterprise Plan (Multi-Terminal & KOT)",
-    category: "POS Subscription",
-    billingCycle: "Annual",
-    invoiceDate: "01 Oct 2025",
-    amount: 24000.0,
-    taxAmount: 4320.0,
-    totalPaid: 28320.0,
-    paymentMethod: "Credit Card",
-    txnRef: "CC-AUTOPAY-984210",
-    status: "Paid",
-  },
-  {
-    id: "sp-2",
-    invoiceNo: "INV-RET-2026-0912",
-    serviceName: "Customer Notification & OTP SMS Pack (50,000 SMS)",
-    category: "SMS Pack",
-    billingCycle: "One-time",
-    invoiceDate: "15 Aug 2026",
-    amount: 4500.0,
-    taxAmount: 810.0,
-    totalPaid: 5310.0,
-    paymentMethod: "UPI",
-    txnRef: "UPI/2608159821/phonepe",
-    status: "Paid",
-  },
-  {
-    id: "sp-3",
-    invoiceNo: "INV-RET-2026-0925",
-    serviceName: "Kitchen Display System (KDS) Terminal License #2 & #3",
-    category: "Hardware & Add-on",
-    billingCycle: "Annual",
-    invoiceDate: "01 Sep 2026",
-    amount: 7200.0,
-    taxAmount: 1296.0,
-    totalPaid: 8496.0,
-    paymentMethod: "Net Banking",
-    txnRef: "HDFC0921849102",
-    status: "Paid",
-  },
-  {
-    id: "sp-4",
-    invoiceNo: "INV-RET-2026-0933",
-    serviceName: "Real-time Multi-Branch Cloud Backup & Offline Sync",
-    category: "Cloud Backup",
-    billingCycle: "Annual",
-    invoiceDate: "05 Sep 2026",
-    amount: 3600.0,
-    taxAmount: 648.0,
-    totalPaid: 4248.0,
-    paymentMethod: "Auto-Debit",
-    txnRef: "ACH-RET-982104",
-    status: "Paid",
-  },
-];
+const INITIAL_SERVICE_PAYMENTS: ServicePaymentRecord[] = [];
 
 const SERVICE_CATEGORIES = [
   "POS Subscription",

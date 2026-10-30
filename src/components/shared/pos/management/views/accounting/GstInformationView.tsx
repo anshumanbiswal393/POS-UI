@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useOutletContext } from "@/context/PosOutletContext";
 import {
   Save,
   CheckCircle2,
@@ -98,18 +99,19 @@ const TAX_SLABS: TaxSlabRecord[] = [
 ];
 
 export function GstInformationView() {
+  const { activeOutlet } = useOutletContext();
   const [hasGst, setHasGst] = useState<"Yes" | "No">("Yes");
-  const [gstNumber, setGstNumber] = useState("21AAAAA0000A1Z5");
+  const [gstNumber, setGstNumber] = useState(activeOutlet?.gstin || "");
   const [registeredName, setRegisteredName] = useState("RETROD HOSPITALITY & RESORTS PVT LTD");
   const [registeredAddress, setRegisteredAddress] = useState(
     "PLOT NO 1977 KHATA NO 304/102, KARADAGADIA, Angul, Odisha, 759132"
   );
   const [state, setState] = useState("Odisha");
   const [city, setCity] = useState("Angul");
-  const [vatNumber, setVatNumber] = useState("VAT-OD-2023-88192");
-  const [pan, setPan] = useState("AAAAA0000A");
-  const [cin, setCin] = useState("U55101OR2023PTC042891");
-  const [zipCode, setZipCode] = useState("759132");
+  const [vatNumber, setVatNumber] = useState("");
+  const [pan, setPan] = useState(activeOutlet?.gstin ? activeOutlet.gstin.slice(2, 12) : "");
+  const [cin, setCin] = useState("");
+  const [zipCode, setZipCode] = useState("");
 
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 

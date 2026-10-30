@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useOutletContext } from "@/context/PosOutletContext";
+import posManagementService from "@/services/posManagementService";
 import { Plus, RefreshCw, Eye, Edit2, Copy, Trash2, CheckCircle2, Download, X } from "lucide-react";
 import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid";
@@ -16,6 +18,7 @@ export interface StaffUser {
 }
 
 export function BillerAppManagementView() {
+  const { activeOutlet } = useOutletContext();
   const [activeTab, setActiveTab] = useState<
     "biller" | "captain" | "delivery_boy" | "waiter" | "order_acceptance"
   >("biller");
@@ -31,39 +34,35 @@ export function BillerAppManagementView() {
   const [viewingUser, setViewingUser] = useState<StaffUser | null>(null);
 
   // 1. Biller Users (Screenshot 1)
-  const [billerUsers, setBillerUsers] = useState<StaffUser[]>([
-    { id: "b-1", name: "Kailash", username: "kailash", userCode: "-", phone: "9876543210", billerGroup: "Main Counter Cashiers", status: true },
-    { id: "b-2", name: "biller", username: "biller", userCode: "-", phone: "9876543211", billerGroup: "Main Counter Cashiers", status: true },
-  ]);
+  const [billerUsers, setBillerUsers] = useState<StaffUser[]>([]);
+
+  useEffect(() => {
+    if (!activeOutlet?.id) return;
+    posManagementService.getStaffUsers(activeOutlet.id).then((res) => {
+      const staff = (res || []).map((s) => ({
+        id: s.id,
+        name: s.name,
+        username: s.user_code || s.name.toLowerCase().replace(/\s+/g, ""),
+        userCode: s.user_code || "-",
+        phone: s.phone || "-",
+        billerGroup: s.biller_group_name || "General Staff",
+        status: s.is_active,
+      }));
+      setBillerUsers(staff);
+    }).catch(() => {});
+  }, [activeOutlet?.id]);
 
   // 2. Captain Users (Screenshot 2)
-  const [captainUsers, setCaptainUsers] = useState<StaffUser[]>([
-    { id: "c-1", name: "sanjiv", username: "sanjiv1", userCode: "9892", phone: "9892001122", billerGroup: "Floor Captains", status: true },
-    { id: "c-2", name: "RAMESH", username: "RAMESH", userCode: "2536", phone: "9892001123", billerGroup: "Floor Captains", status: true },
-    { id: "c-3", name: "SURYA", username: "SURYA", userCode: "1111", phone: "9892001124", billerGroup: "Floor Captains", status: true },
-    { id: "c-4", name: "PAPI", username: "PAPI", userCode: "1536", phone: "9892001125", billerGroup: "Floor Captains", status: true },
-    { id: "c-5", name: "papu", username: "papu", userCode: "1122", phone: "9892001126", billerGroup: "Floor Captains", status: true },
-    { id: "c-6", name: "PUJA", username: "SONI", userCode: "2255", phone: "9892001127", billerGroup: "Floor Captains", status: true },
-    { id: "c-7", name: "SOUMYA", username: "SOUMYA", userCode: "5588", phone: "9892001128", billerGroup: "Floor Captains", status: true },
-    { id: "c-8", name: "SUJIT", username: "SUJIT", userCode: "5242", phone: "9892001129", billerGroup: "Floor Captains", status: false },
-  ]);
+  const [captainUsers, setCaptainUsers] = useState<StaffUser[]>([]);
 
   // 3. Delivery Boy Users
-  const [deliveryUsers, setDeliveryUsers] = useState<StaffUser[]>([
-    { id: "d-1", name: "Raju", username: "raju_delivery", userCode: "4011", phone: "9811002233", billerGroup: "Delivery Team", status: true },
-    { id: "d-2", name: "Mohan", username: "mohan_del", userCode: "4022", phone: "9811002234", billerGroup: "Delivery Team", status: true },
-  ]);
+  const [deliveryUsers, setDeliveryUsers] = useState<StaffUser[]>([]);
 
   // 4. Waiter Users
-  const [waiterUsers, setWaiterUsers] = useState<StaffUser[]>([
-    { id: "w-1", name: "Sunil", username: "sunil_waiter", userCode: "3001", phone: "9822003344", billerGroup: "Service Stewards", status: true },
-    { id: "w-2", name: "Amit", username: "amit_steward", userCode: "3002", phone: "9822003345", billerGroup: "Service Stewards", status: true },
-  ]);
+  const [waiterUsers, setWaiterUsers] = useState<StaffUser[]>([]);
 
   // 5. Order Acceptance App (Screenshot 3)
-  const [orderAcceptanceUsers, setOrderAcceptanceUsers] = useState<StaffUser[]>([
-    { id: "oa-1", name: "orderapp", username: "orderapp", userCode: "-", phone: "9833004455", billerGroup: "Order Acceptance Dispatchers", status: true },
-  ]);
+  const [orderAcceptanceUsers, setOrderAcceptanceUsers] = useState<StaffUser[]>([]);
 
   const tabs = [
     { id: "biller", label: "Biller" },

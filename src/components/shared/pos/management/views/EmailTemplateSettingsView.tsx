@@ -128,16 +128,16 @@ export function EmailTemplateSettingsView() {
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
 
   // Branding Details
-  const [restaurantName, setRestaurantName] = useState(activeOutlet.name || "Retrod Fine Dining & Lounge");
+  const [restaurantName, setRestaurantName] = useState(activeOutlet.name || "");
   const [brandTagline, setBrandTagline] = useState(
     activeOutlet.cuisine ? `${activeOutlet.cuisine} • Freshly Prepared Daily` : "Exquisite Culinary Experience & Cocktail Lounge",
   );
   const [address, setAddress] = useState(
     activeOutlet.address || "Plot 42, Bandra Kurla Complex, G Block, Mumbai, MH 400051",
   );
-  const [contactNo, setContactNo] = useState(activeOutlet.contact || "+91 98200 54321");
-  const [emailId, setEmailId] = useState("support@retrod.in");
-  const [website, setWebsite] = useState("https://retrod.in/");
+  const [contactNo, setContactNo] = useState(activeOutlet.contact || "");
+  const [emailId, setEmailId] = useState(activeOutlet.email || "");
+  const [website, setWebsite] = useState("");
 
   // Dynamic Content Customization
   const [subjectLine, setSubjectLine] = useState("Your E-Receipt from Retrod POS (Order #ORD-8492)");

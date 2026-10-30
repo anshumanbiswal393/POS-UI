@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useOutletContext } from "@/context/PosOutletContext";
+import posManagementService from "@/services/posManagementService";
 import {
   Coins,
   Save,
@@ -44,45 +46,10 @@ interface ShiftCashLog {
   notes?: string;
 }
 
-const INITIAL_LOGS: ShiftCashLog[] = [
-  {
-    id: "scl-1",
-    shiftName: "Evening / Dinner Shift",
-    cashierName: "Ayush Mishra (Cashier Desk 1)",
-    countedDate: "27 Sep 2026 23:45",
-    openingFloat: 5000.0,
-    expectedSystemCash: 38400.0,
-    physicalCountedCash: 38400.0,
-    variance: 0.0,
-    status: "Balanced",
-    notes: "Day-end cash drawer closure verified",
-  },
-  {
-    id: "scl-2",
-    shiftName: "Morning Shift",
-    cashierName: "Rahul Sharma",
-    countedDate: "27 Sep 2026 16:00",
-    openingFloat: 5000.0,
-    expectedSystemCash: 21500.0,
-    physicalCountedCash: 21550.0,
-    variance: 50.0,
-    status: "Surplus",
-    notes: "Small change rounding surplus",
-  },
-  {
-    id: "scl-3",
-    shiftName: "Evening / Dinner Shift",
-    cashierName: "Ayush Mishra",
-    countedDate: "26 Sep 2026 23:50",
-    openingFloat: 5000.0,
-    expectedSystemCash: 42100.0,
-    physicalCountedCash: 42100.0,
-    variance: 0.0,
-    status: "Balanced",
-  },
-];
+const INITIAL_LOGS: ShiftCashLog[] = [];
 
 export function CashDenominationView() {
+  const { activeOutlet } = useOutletContext();
   // Live Denomination Counter State
   const [denominations, setDenominations] = useState([
     { note: 500, count: 24 },
@@ -103,6 +70,26 @@ export function CashDenominationView() {
 
   // History Logs Table State
   const [logs, setLogs] = useState<ShiftCashLog[]>(INITIAL_LOGS);
+
+  useEffect(() => {
+    if (!activeOutlet?.id) return;
+    posManagementService.getDenominations(activeOutlet.id).then((res) => {
+      setLogs(
+        (res || []).map((d) => ({
+          id: d.id,
+          shiftName: (d.session_type as any) || "Morning Shift",
+          cashierName: d.session_type || "Cashier",
+          countedDate: d.date ? new Date(d.date).toLocaleString("en-IN") : "",
+          openingFloat: parseFloat(d.total_amount) || 0,
+          expectedSystemCash: parseFloat(d.total_amount) || 0,
+          physicalCountedCash: parseFloat(d.total_amount) || 0,
+          variance: 0,
+          status: "Balanced",
+          notes: d.notes || "Count verified",
+        }))
+      );
+    }).catch(() => {});
+  }, [activeOutlet?.id]);
   const [searchQuery, setSearchQuery] = useState("");
   const [shiftFilter, setShiftFilter] = useState("All");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);

@@ -27,22 +27,7 @@ const DEFAULT_ADMIN_PERMISSIONS = [
 ];
 
 export function AdminGroupManagementView() {
-  const [groups, setGroups] = useState<AdminGroup[]>([
-    {
-      id: "ag-1",
-      name: "Restaurant Owners / Partners",
-      count: 2,
-      permissions: "Full POS, Management, Audits, Financial Reports, Settings",
-      description: "Executive administrators with unrestricted ownership and financial authorization.",
-    },
-    {
-      id: "ag-2",
-      name: "General Store Managers",
-      count: 1,
-      permissions: "Inventory, Cash Desk Closing, Recipe Modification, Staff Rosters",
-      description: "Back-office operations, daily inventory reconciliations, and staff management.",
-    },
-  ]);
+  const [groups, setGroups] = useState<AdminGroup[]>([]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);

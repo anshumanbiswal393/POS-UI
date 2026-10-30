@@ -23,72 +23,7 @@ export function SubOrderTypeListView() {
   const [loading, setLoading] = useState(false);
 
   // Exact data rows matching Screenshot 2
-  const [items, setItems] = useState<SubOrderTypeItem[]>([
-    {
-      id: "1",
-      name: "Delivery",
-      type: "Default Order Type",
-      orderType: "Delivery",
-      status: "Active",
-      created: "24 May 2024",
-    },
-    {
-      id: "2",
-      name: "Pick Up",
-      type: "Default Order Type",
-      orderType: "Pick Up",
-      status: "Active",
-      created: "24 May 2024",
-    },
-    {
-      id: "3",
-      name: "Dine In",
-      type: "Default Order Type",
-      orderType: "Dine In",
-      status: "Active",
-      created: "24 May 2024",
-    },
-    {
-      id: "4",
-      name: "Bar Counter",
-      type: "Area",
-      orderType: "Dine In",
-      status: "Active",
-      created: "6 Jun 2024",
-    },
-    {
-      id: "5",
-      name: "Dining",
-      type: "Area",
-      orderType: "Dine In",
-      status: "Active",
-      created: "6 Jun 2024",
-    },
-    {
-      id: "6",
-      name: "Garden",
-      type: "Area",
-      orderType: "Dine In",
-      status: "Active",
-      created: "6 Jun 2024",
-    },
-    {
-      id: "7",
-      name: "BANQUET",
-      type: "Area",
-      orderType: "Dine In",
-      status: "Active",
-      created: "13 Sep 2024",
-    },
-    {
-      id: "8",
-      name: "Zomato",
-      type: "Third Party Integration",
-      orderType: "Delivery, Pick Up",
-      status: "Active",
-      created: "5 Oct 2024",
-    },
-  ]);
+  const [items, setItems] = useState<SubOrderTypeItem[]>([]);
 
   useEffect(() => {
     if (!activeOutlet?.id) return;
@@ -96,18 +31,16 @@ export function SubOrderTypeListView() {
     posManagementService
       .getSubOrderTypes(activeOutlet.id)
       .then((res) => {
-        if (res && res.length > 0) {
-          setItems(
-            res.map((r) => ({
-              id: r.id,
-              name: r.name,
-              type: (r.type as any) || "Area",
-              orderType: r.order_type || "Dine In",
-              status: (r.status as any) || "Active",
-              created: r.created_at ? new Date(r.created_at).toLocaleDateString() : "Today",
-            }))
-          );
-        }
+        setItems(
+          (res || []).map((r) => ({
+            id: r.id,
+            name: r.name,
+            type: (r.type as any) || "Area",
+            orderType: r.order_type || "Dine In",
+            status: (r.status as any) || "Active",
+            created: r.created_at ? new Date(r.created_at).toLocaleDateString() : "Today",
+          }))
+        );
       })
       .catch((err) => {
         console.warn("[SubOrderTypes] Fallback to default records:", err);

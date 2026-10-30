@@ -48,38 +48,7 @@ export interface BusinessLoan {
   repaidAmount: number;
 }
 
-const INITIAL_LOANS: BusinessLoan[] = [
-  {
-    id: "ln-1",
-    loanRef: "BL-HDFC-2026-9810",
-    lenderName: "HDFC Bank Business Banking",
-    facilityType: "Working Capital",
-    sanctionAmount: 1500000.0,
-    disbursedDate: "10 Feb 2026",
-    tenureMonths: 24,
-    interestRate: 11.5,
-    monthlyEmiOrSwipeDeduction: "₹70,250 / mo",
-    outstandingBalance: 1124000.0,
-    repaidAmount: 376000.0,
-    settlementBank: "HDFC Bank (A/C: ************4821)",
-    status: "Active",
-  },
-  {
-    id: "ln-2",
-    loanRef: "POS-ADV-ICICI-4921",
-    lenderName: "ICICI Merchant Finance (Pine Labs)",
-    facilityType: "POS Daily Swipe Advance",
-    sanctionAmount: 500000.0,
-    disbursedDate: "01 Jun 2026",
-    tenureMonths: 12,
-    interestRate: 13.0,
-    monthlyEmiOrSwipeDeduction: "8% of Daily POS Swipes",
-    outstandingBalance: 290000.0,
-    repaidAmount: 210000.0,
-    settlementBank: "ICICI Bank (A/C: ************1938)",
-    status: "Active",
-  },
-];
+const INITIAL_LOANS: BusinessLoan[] = [];
 
 const FACILITY_TYPES = [
   "Working Capital",
