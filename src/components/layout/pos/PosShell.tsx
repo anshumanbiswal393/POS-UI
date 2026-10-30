@@ -50,13 +50,11 @@ export function PosShell({ children }: { children: React.ReactNode }) {
 
       {/* Content column spanning the remaining length/width — matches PMS */}
       <div className="flex min-w-0 flex-1 flex-col bg-background text-text-primary print:!m-0 print:!h-auto print:!overflow-visible print:!p-0 print:!w-full print:!min-h-0 print:!bg-white">
-        <div className="print:hidden">
-          <PosTopBar
-            onOpenMobileNav={isMobile ? () => setMobileOpen(true) : undefined}
-            onToggleSidebar={() => setDesktopCollapsed((c) => !c)}
-            sidebarCollapsed={desktopCollapsed}
-          />
-        </div>
+        <PosTopBar
+          onOpenMobileNav={isMobile ? () => setMobileOpen(true) : undefined}
+          onToggleSidebar={() => setDesktopCollapsed((c) => !c)}
+          sidebarCollapsed={desktopCollapsed}
+        />
         <main className="flex-1 min-w-0 p-3 sm:p-4 lg:p-5 pb-[env(safe-area-inset-bottom)] print:!m-0 print:!p-0 print:!w-full print:!overflow-visible">
           {children}
         </main>

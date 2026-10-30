@@ -130,7 +130,7 @@ export function PosTopBar({
   ];
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-border bg-surface px-3 sm:px-4 lg:px-5 shadow-2xs">
+    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-3 sm:px-4 lg:px-5 shadow-2xs print:hidden">
       {/* Left: Nav toggles & Breadcrumbs */}
       <div className="flex shrink-0 items-center gap-2 sm:gap-2.5 min-w-0">
         {onOpenMobileNav && (

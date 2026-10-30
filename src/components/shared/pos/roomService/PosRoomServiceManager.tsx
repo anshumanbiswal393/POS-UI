@@ -110,7 +110,7 @@ export function PosRoomServiceManager() {
   });
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] w-full overflow-hidden bg-slate-100 font-sans">
+    <div className="flex flex-col h-[calc(100dvh-6rem)] min-h-[520px] w-full overflow-hidden bg-slate-100 font-sans rounded-xl border border-slate-200/80 shadow-2xs">
       {/* 1. Header Toolbar */}
       <div className="p-4 sm:p-6 pb-4 bg-white border-b border-slate-200/80">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

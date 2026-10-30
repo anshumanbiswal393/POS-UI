@@ -516,7 +516,7 @@
     color: var(--color-text-primary);
     font-size: clamp(13px, 0.25vw + 12px, 14px);
     line-height: 1.5;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   ::selection {
