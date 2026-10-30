@@ -11,6 +11,8 @@ import {
   syncAuthSession,
   clearAuthSession,
   parseSsoFromUrl,
+  getDomainCookie,
+  COOKIE_USER,
   LS_USER,
   LS_USERS,
   LS_ENTITLEMENTS,
@@ -103,9 +105,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const raw = localStorage.getItem(LS_USER);
       if (raw) return JSON.parse(raw);
     } catch {}
+    const cUser = getDomainCookie(COOKIE_USER);
+    if (cUser) {
+      try {
+        return JSON.parse(cUser);
+      } catch {}
+    }
     return null;
   });
-  const [users, setUsers] = useState<AppUser[]>(loadCachedUsers);
+
+  const [users, setUsers] = useState<AppUser[]>(() => {
+    const cached = loadCachedUsers();
+    return cached;
+  });
 
   useEffect(() => {
     if (user) {
