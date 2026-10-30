@@ -32,7 +32,7 @@ export function useHotelRooms(floor?: RoomFloor) {
     });
   }, [activeOutlet?.id, activeOutlet?.propertyId, activeOutlet?.tenantId]);
   return useQuery({
-    queryKey: [...POS_ROOM_SERVICE_ROOMS_KEY, floor, activeOutlet?.id],
+    queryKey: [...POS_ROOM_SERVICE_ROOMS_KEY, floor, activeOutlet?.id, activeOutlet?.propertyId],
     queryFn: () => {
       setRoomsOutletScope({
         outletId: activeOutlet?.id,

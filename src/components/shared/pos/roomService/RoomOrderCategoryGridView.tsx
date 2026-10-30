@@ -144,6 +144,16 @@ export function RoomOrderCategoryGridView({
 
       {/* Category Rows (Ultra Compact Single Screen Layout) */}
       <div className="flex-1 px-5 sm:px-8 py-2.5 space-y-2.5">
+        {filteredRooms.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-center text-slate-500">
+            <p className="text-sm font-semibold text-slate-700">No rooms available</p>
+            <p className="text-xs text-slate-400 mt-1">
+              {searchQuery
+                ? "No rooms match your search query."
+                : "No active rooms found for the current property."}
+            </p>
+          </div>
+        )}
         {Object.entries(groupedRooms).map(([category, categoryRooms]) => {
           if (categoryRooms.length === 0) return null;
 

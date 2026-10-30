@@ -11,6 +11,7 @@ import { API_ENDPOINTS } from "@/config/apiEndpoints";
 import { isBackendOutletId } from "@/utils/outletId";
 import { mergeHighwayDemoRooms } from "@/lib/highwayInnDemo";
 import { liveCreateOrder, liveGetCurrent, livePatchOrder } from "@/services/posOrderLive";
+import { getStoredPropertyId, getStoredSubdomain } from "@/utils/cookieAuth";
 
 let scopedOutletId: string | undefined;
 let scopedPropertyId: string | undefined;
@@ -115,36 +116,217 @@ export const posRoomService = {
   },
 
   getRooms: async (floor?: RoomFloor): Promise<HotelRoom[]> => {
-    if (scopedOutletId && isBackendOutletId(scopedOutletId)) {
-      if (!scopedPropertyId && !scopedTenantId) {
-        return scopedHighwayDemo ? mergeHighwayDemoRooms([]) : [];
-      }
-      let mapped: HotelRoom[] = [];
+    // 1. Resolve active property and tenant
+    let resolvedPropId = scopedPropertyId;
+    if (!resolvedPropId && typeof window !== "undefined") {
+      resolvedPropId =
+        getStoredPropertyId() ||
+        localStorage.getItem("retrod:active-property-id") ||
+        localStorage.getItem("retrod_property_id") ||
+        (scopedOutletId?.startsWith("outlet-") ? scopedOutletId.replace(/^outlet-/, "") : undefined) ||
+        undefined;
+    }
+
+    let resolvedTenant = scopedTenantId;
+    if (!resolvedTenant && typeof window !== "undefined") {
+      resolvedTenant =
+        getStoredSubdomain() ||
+        localStorage.getItem("retrod:active-subdomain") ||
+        localStorage.getItem("retrod_tenant_subdomain") ||
+        undefined;
+    }
+
+    // 2. Query occupied rooms from POS integration endpoint
+    let occupiedList: Array<Record<string, any>> = [];
+    if (resolvedPropId || resolvedTenant) {
       try {
         const res = await httpClient.get(API_ENDPOINTS.ROOM_SERVICE.ROOMS, {
           params: {
-            property_id: scopedPropertyId,
-            tenant_id: scopedTenantId,
+            ...(resolvedPropId ? { property_id: resolvedPropId } : {}),
+            ...(resolvedTenant ? { tenant_id: resolvedTenant } : {}),
           },
         });
-        const rooms = (res.data?.rooms || []) as Array<Record<string, any>>;
-        mapped = rooms.map((r) => ({
-        id: String(r.unit_id || r.reservation_id || r.room_number),
-        roomNumber: String(r.room_number),
-        floor: (r.floor || "Floor 1") as RoomFloor,
-        roomType: r.unit_type || "Standard Room",
+        occupiedList = (res.data?.rooms || []) as Array<Record<string, any>>;
+      } catch (e) {
+        console.warn("Failed to fetch occupied rooms:", e);
+      }
+    }
+
+    // 3. Query inventory units to populate vacant doors alongside occupied doors
+    let unitsList: Array<Record<string, any>> = [];
+    const typesMap = new Map<string, string>();
+
+    if (resolvedPropId || resolvedTenant) {
+      try {
+        const [unitsRes, typesRes] = await Promise.all([
+          httpClient.get("/api/inventory/units/", {
+            params: {
+              ...(resolvedPropId ? { property_id: resolvedPropId } : {}),
+              limit: 1000,
+            },
+          }),
+          httpClient.get("/api/inventory/types/", {
+            params: {
+              ...(resolvedPropId ? { property_id: resolvedPropId } : {}),
+              limit: 500,
+            },
+          }).catch(() => ({ data: [] })),
+        ]);
+
+        const rawUnits =
+          unitsRes.data?.results || (Array.isArray(unitsRes.data) ? unitsRes.data : []);
+        unitsList = rawUnits.filter((u: any) => {
+          if (!u) return false;
+          if (
+            resolvedPropId &&
+            u.property &&
+            u.property !== resolvedPropId &&
+            u.property_id !== resolvedPropId
+          ) {
+            return false;
+          }
+          return true;
+        });
+
+        const rawTypes =
+          typesRes.data?.results || (Array.isArray(typesRes.data) ? typesRes.data : []);
+        for (const t of rawTypes) {
+          if (t && t.id && t.name) {
+            typesMap.set(String(t.id), String(t.name));
+          }
+        }
+      } catch (e) {
+        // Fall back to occupied rooms if inventory endpoint is not accessible
+      }
+    }
+
+    const occByRoomNum = new Map<string, Record<string, any>>();
+    const occByUnitId = new Map<string, Record<string, any>>();
+    for (const occ of occupiedList) {
+      if (occ.room_number) occByRoomNum.set(String(occ.room_number).trim().toLowerCase(), occ);
+      if (occ.unit_id) occByUnitId.set(String(occ.unit_id), occ);
+    }
+
+    let mapped: HotelRoom[] = [];
+    if (unitsList.length > 0) {
+      const seenUnitIds = new Set<string>();
+      mapped = unitsList.map((unit) => {
+        seenUnitIds.add(String(unit.id));
+        const occ =
+          occByUnitId.get(String(unit.id)) ||
+          occByRoomNum.get(String(unit.name || "").trim().toLowerCase());
+
+        const typeName =
+          occ?.unit_type ||
+          (unit.inventory_unit_type && typesMap.get(String(unit.inventory_unit_type))) ||
+          unit.unit_type_name ||
+          "Standard Room";
+
+        if (occ) {
+          return {
+            id: String(occ.unit_id || occ.reservation_id || unit.id),
+            roomNumber: String(occ.room_number || unit.name),
+            floor: (occ.floor || unit.floor_name || "Floor 1") as RoomFloor,
+            roomType: typeName,
+            isOccupied: true,
+            guest: {
+              name: occ.guest_name || "In-house guest",
+              phoneExtension: occ.guest_phone || "",
+              pax: Number(occ.pax || 1),
+              checkInDate: occ.arrival_date || undefined,
+              checkOutDate: occ.departure_date || undefined,
+            },
+            roomUnitId: String(occ.unit_id || unit.id),
+            reservationId: occ.reservation_id || undefined,
+            folioId: occ.folio_id || undefined,
+            folioOrders: (occ.pos_orders || occ.posOrders || []).map((o: Record<string, any>) => ({
+              id: String(o.id),
+              orderNumber: String(o.orderNumber || o.order_number || ""),
+              totalAmount: Number(o.totalAmount ?? o.total_amount ?? 0),
+              itemsSummary: String(o.itemsSummary || o.items_summary || ""),
+              items: (o.items || []).map((it: Record<string, any>) => ({
+                name: String(it.name || ""),
+                quantity: Number(it.quantity || 1),
+                unitPrice: Number(it.unitPrice ?? it.unit_price ?? 0),
+              })),
+              createdAt: String(o.createdAt || o.created_at || ""),
+              paymentMode: String(o.paymentMode || o.payment_mode || "Add to Room Folio"),
+              status: String(o.status || ""),
+            })),
+            posChargeTotal: Number(occ.pos_charge_total ?? occ.posChargeTotal ?? 0),
+          };
+        }
+
+        return {
+          id: String(unit.id),
+          roomNumber: String(unit.name),
+          floor: (unit.floor_name || "Floor 1") as RoomFloor,
+          roomType: typeName,
+          isOccupied: false,
+          guest: undefined,
+          roomUnitId: String(unit.id),
+          posChargeTotal: 0,
+          folioOrders: [],
+        };
+      });
+
+      for (const occ of occupiedList) {
+        if (
+          !seenUnitIds.has(String(occ.unit_id)) &&
+          !mapped.some((m) => m.roomNumber === String(occ.room_number))
+        ) {
+          mapped.push({
+            id: String(occ.unit_id || occ.reservation_id || occ.room_number),
+            roomNumber: String(occ.room_number),
+            floor: (occ.floor || "Floor 1") as RoomFloor,
+            roomType: occ.unit_type || "Standard Room",
+            isOccupied: true,
+            guest: {
+              name: occ.guest_name || "In-house guest",
+              phoneExtension: occ.guest_phone || "",
+              pax: Number(occ.pax || 1),
+              checkInDate: occ.arrival_date || undefined,
+              checkOutDate: occ.departure_date || undefined,
+            },
+            roomUnitId: occ.unit_id || undefined,
+            reservationId: occ.reservation_id || undefined,
+            folioId: occ.folio_id || undefined,
+            folioOrders: (occ.pos_orders || occ.posOrders || []).map((o: Record<string, any>) => ({
+              id: String(o.id),
+              orderNumber: String(o.orderNumber || o.order_number || ""),
+              totalAmount: Number(o.totalAmount ?? o.total_amount ?? 0),
+              itemsSummary: String(o.itemsSummary || o.items_summary || ""),
+              items: (o.items || []).map((it: Record<string, any>) => ({
+                name: String(it.name || ""),
+                quantity: Number(it.quantity || 1),
+                unitPrice: Number(it.unitPrice ?? it.unit_price ?? 0),
+              })),
+              createdAt: String(o.createdAt || o.created_at || ""),
+              paymentMode: String(o.paymentMode || o.payment_mode || "Add to Room Folio"),
+              status: String(o.status || ""),
+            })),
+            posChargeTotal: Number(occ.pos_charge_total ?? occ.posChargeTotal ?? 0),
+          });
+        }
+      }
+    } else if (occupiedList.length > 0) {
+      mapped = occupiedList.map((occ) => ({
+        id: String(occ.unit_id || occ.reservation_id || occ.room_number),
+        roomNumber: String(occ.room_number),
+        floor: (occ.floor || "Floor 1") as RoomFloor,
+        roomType: occ.unit_type || "Standard Room",
         isOccupied: true,
         guest: {
-          name: r.guest_name || "In-house guest",
-          phoneExtension: r.guest_phone || "",
-          pax: Number(r.pax || 1),
-          checkInDate: r.arrival_date || undefined,
-          checkOutDate: r.departure_date || undefined,
+          name: occ.guest_name || "In-house guest",
+          phoneExtension: occ.guest_phone || "",
+          pax: Number(occ.pax || 1),
+          checkInDate: occ.arrival_date || undefined,
+          checkOutDate: occ.departure_date || undefined,
         },
-        roomUnitId: r.unit_id || undefined,
-        reservationId: r.reservation_id || undefined,
-        folioId: r.folio_id || undefined,
-        folioOrders: (r.pos_orders || r.posOrders || []).map((o: Record<string, any>) => ({
+        roomUnitId: occ.unit_id || undefined,
+        reservationId: occ.reservation_id || undefined,
+        folioId: occ.folio_id || undefined,
+        folioOrders: (occ.pos_orders || occ.posOrders || []).map((o: Record<string, any>) => ({
           id: String(o.id),
           orderNumber: String(o.orderNumber || o.order_number || ""),
           totalAmount: Number(o.totalAmount ?? o.total_amount ?? 0),
@@ -158,18 +340,20 @@ export const posRoomService = {
           paymentMode: String(o.paymentMode || o.payment_mode || "Add to Room Folio"),
           status: String(o.status || ""),
         })),
-        posChargeTotal: Number(r.pos_charge_total ?? r.posChargeTotal ?? 0),
+        posChargeTotal: Number(occ.pos_charge_total ?? occ.posChargeTotal ?? 0),
       }));
-      } catch {
-        mapped = [];
-      }
+    }
+
+    if (mapped.length > 0) {
+      mapped.sort((a, b) =>
+        a.roomNumber.localeCompare(b.roomNumber, undefined, { numeric: true, sensitivity: "base" }),
+      );
       const roomsForOutlet = scopedHighwayDemo ? mergeHighwayDemoRooms(mapped) : mapped;
-      const withLocalFolio = scopedHighwayDemo
-        ? attachLocalFolioOrders(roomsForOutlet)
-        : roomsForOutlet;
+      const withLocalFolio = attachLocalFolioOrders(roomsForOutlet);
       if (floor && floor !== "All") return withLocalFolio.filter((r) => r.floor === floor);
       return withLocalFolio;
     }
+
     if (scopedHighwayDemo) {
       const withOrders = attachLocalFolioOrders(mergeHighwayDemoRooms([]));
       if (floor && floor !== "All") return withOrders.filter((r) => r.floor === floor);
