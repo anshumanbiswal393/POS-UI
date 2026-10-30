@@ -13,6 +13,9 @@ export const COOKIE_PROPERTY_ID = "retrod_property_id";
 export const LS_ACCESS_TOKEN = "retrod.auth.access_token";
 export const LS_REFRESH_TOKEN = "retrod.auth.refresh_token";
 export const LS_USER = "retrod.auth.user";
+export const LS_USERS = "retrod.auth.users";
+export const LS_ENTITLEMENTS = "retrod.auth.entitlements";
+export const LS_AUDIT_EVENTS = "retrod.auth.audit-events";
 export const LS_SUBDOMAIN = "retrod:active-subdomain";
 export const LS_PROPERTY_ID = "retrod:active-property-id";
 
@@ -219,4 +222,3 @@ export function parseSsoFromUrl(): {
 
   return { token, refresh, tenant, propertyId };
 }
-
