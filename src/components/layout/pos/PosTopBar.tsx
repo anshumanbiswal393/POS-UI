@@ -24,6 +24,7 @@ import {
   Package,
   ShoppingBag,
   Wifi,
+  Building2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -411,6 +412,17 @@ export function PosTopBar({
                 </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
+            <DropdownMenuSeparator className="my-1 bg-border" />
+            <DropdownMenuItem
+              onClick={() => {
+                const isRetrod = typeof window !== "undefined" && window.location.hostname.endsWith("retrod.in");
+                window.location.href = isRetrod ? "https://app.dev.retrod.in/" : "http://localhost:3000/";
+              }}
+              className="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] font-semibold text-primary hover:bg-primary/10"
+            >
+              <Building2 className="h-4 w-4" />
+              <span>Back to PMS</span>
+            </DropdownMenuItem>
             <DropdownMenuSeparator className="my-1 bg-border" />
             <DropdownMenuItem
               onClick={() => {

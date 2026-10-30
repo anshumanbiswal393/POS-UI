@@ -112,8 +112,45 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function AuthGate() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { isAuthenticated, loading, redirectToPmsLogin } = useAuth();
 
   if (pathname === "/login") return <Outlet />;
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-9 w-9 animate-spin rounded-full border-3 border-primary border-t-transparent" />
+          <p className="text-sm font-medium text-text-secondary animate-pulse">
+            Connecting to Retrod session...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    const isRetrod = typeof window !== "undefined" && window.location.hostname.endsWith("retrod.in");
+    if (isRetrod) {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+          <div className="max-w-sm text-center">
+            <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <h2 className="text-base font-semibold text-text-primary">Redirecting to Sign In...</h2>
+            <p className="mt-1 text-xs text-text-secondary">
+              Redirecting you to Retrod PMS unified login session.
+            </p>
+            <button
+              onClick={() => redirectToPmsLogin()}
+              className="mt-4 inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-pressed"
+            >
+              Click here if not redirected
+            </button>
+          </div>
+        </div>
+      );
+    }
+  }
 
   // POS-only product: every screen uses PosShell
   return (

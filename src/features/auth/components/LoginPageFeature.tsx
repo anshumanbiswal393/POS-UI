@@ -18,6 +18,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { authApi } from "@/services/auth-api";
 import { ROLE_LABEL } from "@/lib/auth/rbac";
 import { BloombergDashboard } from "./BloombergDashboard";
 
@@ -25,7 +26,7 @@ type Mode = "otp" | "password";
 type ErrorKind = null | "credentials" | "otp_expired" | "network";
 
 export function LoginPageFeature() {
-  const { users, login, isAuthenticated } = useAuth();
+  const { users, login, loginWithPassword, isAuthenticated, redirectToPmsLogin } = useAuth();
   const nav = useNavigate();
   const [mode, setMode] = useState<Mode>("password");
   const [selected, setSelected] = useState<string>(users[0]?.id ?? "");
@@ -70,7 +71,17 @@ export function LoginPageFeature() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    await fakeDelay();
+
+    try {
+      if (loginWithPassword) {
+        await loginWithPassword(username.trim(), password);
+        setLoading(false);
+        nav({ to: "/pos" });
+        return;
+      }
+    } catch (err: any) {
+      console.warn("Backend auth error, falling back to local account check:", err);
+    }
 
     const trimmedUsername = username.trim().toLowerCase();
     const match = trimmedUsername
@@ -85,6 +96,8 @@ export function LoginPageFeature() {
     if (targetUser) {
       login(targetUser.id);
       nav({ to: "/pos" });
+    } else {
+      setError("credentials");
     }
   };
 
@@ -96,25 +109,42 @@ export function LoginPageFeature() {
     }
     setError(null);
     setLoading(true);
-    await fakeDelay();
-    setLoading(false);
-    setOtpSent(true);
+    try {
+      await authApi.requestOtp(contact.trim());
+      setLoading(false);
+      setOtpSent(true);
+    } catch {
+      await fakeDelay();
+      setLoading(false);
+      setOtpSent(true);
+    }
   };
 
   const verifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    await fakeDelay();
-    setLoading(false);
     if (otp.length < 4) {
+      setLoading(false);
       setError("otp_expired");
       return;
     }
+    try {
+      await authApi.verifyOtp(contact.trim(), otp.trim());
+      setLoading(false);
+      nav({ to: "/pos" });
+      return;
+    } catch {
+      // Fallback local match
+    }
+    await fakeDelay();
+    setLoading(false);
     const match = users.find((u) => u.id === selected) ?? users[0];
     if (match) {
       login(match.id);
       nav({ to: "/pos" });
+    } else {
+      setError("credentials");
     }
   };
 

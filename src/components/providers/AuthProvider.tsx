@@ -4,6 +4,18 @@ import { type AppUser, type TenantEntitlements } from "@/types/auth";
 import type { FeatureFlags, FeatureKey } from "@/types/entitlements";
 import { DEFAULT_PLATFORM_APPS } from "@/types/entitlements";
 import { hasPermission, ROLE_LABEL } from "@/lib/auth/rbac";
+import { authApi, mapBackendUserToAppUser } from "@/services/auth-api";
+import {
+  getStoredAccessToken,
+  getStoredRefreshToken,
+  syncAuthSession,
+  clearAuthSession,
+  parseSsoFromUrl,
+  LS_USER,
+  LS_USERS,
+  LS_ENTITLEMENTS,
+  LS_AUDIT_EVENTS,
+} from "@/utils/cookieAuth";
 
 export interface AuthCtx {
   user: AppUser | null;
@@ -16,14 +28,18 @@ export interface AuthCtx {
   setPropertyFeatures: (property: string, features: Partial<FeatureFlags>) => void;
   setEntitlementPlan: (plan: TenantEntitlements["plan"]) => void;
   isAuthenticated: boolean;
+  loading: boolean;
   login: (userId: string) => void;
+  loginWithPassword: (emailOrUsername: string, password: string) => Promise<AppUser>;
+  loginWithTokens: (tokens: any, user: any, properties: any, permissions: any) => AppUser;
   logout: () => void;
-  can: (perm: Permission) => boolean;
+  redirectToPmsLogin: () => void;
+  can: (perm: Permission | string) => boolean;
   switchRole: (role: Role) => void;
   inviteUser: (u: Omit<AppUser, "id" | "initials" | "active" | "lastActive">) => void;
   updateUser: (id: string, patch: Partial<AppUser>) => void;
   deleteUser: (id: string) => void;
-  roleLabel: (r: Role) => string;
+  roleLabel: (r: Role | string | undefined) => string;
   logAuditEvent: (action: string, target?: string, detail?: string) => void;
 }
 
@@ -70,42 +86,7 @@ const SEED_USERS: AppUser[] = [
     property: "Retrod Bistro & Cafe · Connaught Place",
     lastActive: "5 min ago",
   },
-  {
-    id: "u3",
-    name: "Rohan Verma",
-    email: "rohan@retrod.in",
-    role: "front_desk_agent",
-    initials: "RV",
-    active: true,
-    property: "Retrod Bistro & Cafe · Connaught Place",
-    lastActive: "2 min ago",
-  },
-  {
-    id: "u4",
-    name: "Chef Sanjay",
-    email: "sanjay@retrod.in",
-    role: "housekeeping_supervisor",
-    initials: "CS",
-    active: true,
-    property: "Retrod Bistro & Cafe · Connaught Place",
-    lastActive: "1 hr ago",
-  },
-  {
-    id: "u5",
-    name: "Ananya Bose",
-    email: "ananya@retrod.in",
-    role: "accounts",
-    initials: "AB",
-    active: true,
-    property: "Retrod Bistro & Cafe · Connaught Place",
-    lastActive: "Yesterday",
-  },
 ];
-
-const LS_USER = "retrod.auth.user";
-const LS_USERS = "retrod.auth.users";
-const LS_ENTITLEMENTS = "retrod.auth.entitlements";
-const LS_AUDIT_EVENTS = "retrod.auth.audit-events";
 
 const DEFAULT_ENTITLEMENTS: TenantEntitlements = {
   tenantId: "retrod-pos-tenant",
@@ -132,72 +113,119 @@ const DEFAULT_ENTITLEMENTS: TenantEntitlements = {
   ],
 };
 
-function loadUsers(): AppUser[] {
+function loadCachedUsers(): AppUser[] {
   if (typeof window === "undefined") return SEED_USERS;
   try {
     const raw = localStorage.getItem(LS_USERS);
     if (!raw) return SEED_USERS;
     const parsed = JSON.parse(raw) as AppUser[];
-    // Auto-merge new seed users who do not exist in cache
-    const merged = [...parsed];
-    for (const su of SEED_USERS) {
-      if (!merged.some((u) => u.id === su.id || u.email.toLowerCase() === su.email.toLowerCase())) {
-        merged.push(su);
-      }
-    }
-    return merged;
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : SEED_USERS;
   } catch {
     return SEED_USERS;
   }
 }
 
-function persistUsers(users: AppUser[]) {
-  if (typeof window !== "undefined") localStorage.setItem(LS_USERS, JSON.stringify(users));
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<AppUser[]>(SEED_USERS);
-  const [user, setUser] = useState<AppUser | null>(SEED_USERS[0]);
+  const [user, setUser] = useState<AppUser | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem(LS_USER);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  });
+  const [loading, setLoading] = useState<boolean>(true);
   const [auditEvents, setAuditEvents] = useState<AuthAuditEvent[]>([]);
   const [entitlements, setEntitlements] = useState<TenantEntitlements>(DEFAULT_ENTITLEMENTS);
-  const [hydrated, setHydrated] = useState(false);
+  const [hydrated, setHydrated] = useState<boolean>(false);
+
+  const redirectToPmsLogin = () => {
+    if (typeof window === "undefined") return;
+    const isRetrodDomain = window.location.hostname.endsWith("retrod.in");
+    if (isRetrodDomain) {
+      const returnUrl = encodeURIComponent(window.location.href);
+      window.location.href = `https://app.dev.retrod.in/login?returnUrl=${returnUrl}`;
+    } else {
+      window.location.href = "/login";
+    }
+  };
 
   useEffect(() => {
-    const u = loadUsers();
+    const u = loadCachedUsers();
     const e = loadEntitlements();
     const a = loadAuditEvents();
     setUsers(u);
     setEntitlements(e);
     setAuditEvents(a);
-    try {
-      const raw = localStorage.getItem(LS_USER);
-      if (raw) {
-        const parsed = JSON.parse(raw) as AppUser;
-        const fresh = u.find((x) => x.id === parsed.id) ?? parsed;
-        setUser(fresh);
+
+    async function initSession() {
+      // 1. Process any SSO redirect tokens in URL (?sso_token=...&sso_refresh=...)
+      parseSsoFromUrl();
+
+      // 2. Read access token from storage / cookie
+      const token = getStoredAccessToken();
+      if (token) {
+        try {
+          const data = await authApi.getCurrentUser();
+          if (data && data.user) {
+            const mappedUser = mapBackendUserToAppUser(data.user, data.properties, data.permissions);
+            setUser(mappedUser);
+            syncAuthSession(
+              { access: token, refresh: getStoredRefreshToken() },
+              mappedUser,
+              mappedUser.tenant_subdomain,
+            );
+          } else if (!data) {
+            // Server explicitly invalidated session
+            setUser(null);
+            authApi.clearTokens();
+          }
+        } catch (err: any) {
+          console.warn("POS session verification background notice:", err?.message || err);
+          // If offline or network glitch, retain existing cached user
+        }
       } else {
-        setUser(u[0] ?? SEED_USERS[0]);
-        localStorage.setItem(LS_USER, JSON.stringify(u[0] ?? SEED_USERS[0]));
+        // No token present
+        const isRetrod = window.location.hostname.endsWith("retrod.in");
+        const isLoginPage = window.location.pathname === "/login";
+        if (isRetrod && !isLoginPage) {
+          // Unauthenticated on live POS: redirect to PMS login
+          redirectToPmsLogin();
+          return;
+        }
       }
-    } catch {
-      setUser(u[0] ?? SEED_USERS[0]);
+      setHydrated(true);
+      setLoading(false);
     }
-    setHydrated(true);
+
+    initSession();
+
+    // Listen for session expiration events from HTTP client
+    const handleAuthExpired = () => {
+      console.warn("POS auth session expired. Redirecting to login...");
+      authApi.clearTokens();
+      setUser(null);
+      redirectToPmsLogin();
+    };
+
+    window.addEventListener("pos-auth-expired", handleAuthExpired);
+    return () => {
+      window.removeEventListener("pos-auth-expired", handleAuthExpired);
+    };
   }, []);
 
   useEffect(() => {
-    if (hydrated) persistUsers(users);
-  }, [users, hydrated]);
-  useEffect(() => {
-    if (hydrated) persistEntitlements(entitlements);
-  }, [entitlements, hydrated]);
-  useEffect(() => {
-    if (hydrated) persistAuditEvents(auditEvents);
-  }, [auditEvents, hydrated]);
-  useEffect(() => {
-    if (!hydrated) return;
-    if (user) localStorage.setItem(LS_USER, JSON.stringify(user));
-    else localStorage.removeItem(LS_USER);
+    if (hydrated) {
+      if (user) {
+        localStorage.setItem(LS_USER, JSON.stringify(user));
+        if (user.tenant_subdomain) {
+          localStorage.setItem("retrod:active-subdomain", user.tenant_subdomain);
+        }
+      } else {
+        localStorage.removeItem(LS_USER);
+      }
+    }
   }, [user, hydrated]);
 
   const addAuditEvent = (
@@ -211,9 +239,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       actorOverride?.role === "system"
         ? "System"
         : actorOverride?.role
-          ? ROLE_LABEL[actorOverride.role]
+          ? (ROLE_LABEL[actorOverride.role] || String(actorOverride.role))
           : user
-            ? ROLE_LABEL[user.role]
+            ? (ROLE_LABEL[user.role as Role] || String(user.role))
             : "System";
     setAuditEvents((prev) => [
       {
@@ -233,6 +261,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       users,
+      loading,
       auditEvents,
       entitlements,
       effectiveFeatures: resolveEffectiveFeatures(entitlements, user?.property),
@@ -250,70 +279,104 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       setPropertyFeatures: (property, features) => {
         setEntitlements((prev) => {
-          const overrides = prev.propertyOverrides ?? [];
-          const idx = overrides.findIndex((entry) => entry.property === property);
-          if (idx === -1) {
-            addAuditEvent(
-              "Property feature override added",
-              property,
-              `Applied override: ${Object.keys(features).join(", ") || "none"}.`,
-            );
-            return { ...prev, propertyOverrides: [...overrides, { property, features }] };
-          }
-          const existing = overrides[idx];
-          const nextFeatures = { ...existing.features, ...features };
-          const unchanged = Object.entries(features).every(
-            ([key, value]) => existing.features[key as FeatureKey] === value,
-          );
-          if (unchanged) return prev;
-          addAuditEvent(
-            "Property feature override updated",
+          const current = prev.propertyOverrides?.find((p) => p.property === property);
+          const nextOverrides = (prev.propertyOverrides ?? []).filter((p) => p.property !== property);
+          nextOverrides.push({
             property,
-            `Updated override: ${Object.keys(features).join(", ")}.`,
-          );
-          const nextOverrides = [...overrides];
-          nextOverrides[idx] = { ...existing, features: nextFeatures };
+            features: { ...(current?.features ?? {}), ...features },
+          });
           return { ...prev, propertyOverrides: nextOverrides };
         });
       },
       setEntitlementPlan: (plan) => {
-        if (entitlements.plan !== plan) {
-          addAuditEvent(
-            "Tenant plan changed",
-            "Tenant",
-            `Plan switched from ${entitlements.plan} to ${plan}.`,
-          );
-        }
-        setEntitlements((prev) => (prev.plan === plan ? prev : { ...prev, plan }));
+        setEntitlements((prev) => ({ ...prev, plan }));
       },
       isAuthenticated: !!user,
-      login: (id: string) => {
-        const found = users.find((u) => u.id === id);
+      login: (userId: string) => {
+        const found = users.find((u) => u.id === userId);
         if (found) {
           setUser(found);
           addAuditEvent("User logged in", found.email, `Session started for ${found.name}.`, {
             name: found.name,
-            role: found.role,
+            role: found.role as Role,
           });
         }
+      },
+      loginWithPassword: async (emailOrUsername: string, password: string) => {
+        const data = await authApi.login(emailOrUsername, password);
+        const mappedUser = mapBackendUserToAppUser(data.user, data.properties, data.permissions);
+        setUser(mappedUser);
+        addAuditEvent("User logged in (Password)", mappedUser.email, `Session started for ${mappedUser.name}.`, {
+          name: mappedUser.name,
+          role: mappedUser.role as Role,
+        });
+        return mappedUser;
+      },
+      loginWithTokens: (tokens: any, userVal: any, propsVal: any, permsVal: any) => {
+        authApi.saveTokens(tokens.access, tokens.refresh);
+        const mappedUser = mapBackendUserToAppUser(userVal, propsVal, permsVal);
+        setUser(mappedUser);
+        return mappedUser;
       },
       logout: () => {
         if (user) {
           addAuditEvent("User logged out", user.email, `Session ended for ${user.name}.`);
         }
+        authApi.logout();
         setUser(null);
+        redirectToPmsLogin();
       },
-      can: (perm) => hasPermission(user?.role, perm),
+      redirectToPmsLogin,
+      can: (perm: Permission | string) => {
+        if (!user) return false;
+
+        // 1. Super Admin and Owner have master access
+        const roleStr = String(user.role || "").toLowerCase();
+        if (
+          roleStr === "super_admin" ||
+          roleStr === "owner" ||
+          roleStr === "tenant_owner" ||
+          user.is_superuser ||
+          user.permissions?.includes("*:*") ||
+          user.permissions?.includes("*")
+        ) {
+          return true;
+        }
+
+        // 2. Pure dynamic database permission evaluation from backend
+        if (user.permissions && Array.isArray(user.permissions) && user.permissions.length > 0) {
+          const raw = String(perm).toLowerCase();
+          const dotVersion = raw.replace(/:/g, ".");
+          const colonVersion = raw.replace(/\./g, ":");
+
+          const granted = user.permissions.some((p) => {
+            const pLower = String(p).toLowerCase();
+            const pDot = pLower.replace(/:/g, ".");
+            const pColon = pLower.replace(/\./g, ":");
+            return (
+              pLower === raw ||
+              pDot === dotVersion ||
+              pColon === colonVersion ||
+              pLower === "*:*" ||
+              pLower === "*" ||
+              (pLower.startsWith("pos") && (raw.startsWith("pos") || dotVersion.startsWith("pos")))
+            );
+          });
+          if (granted) return true;
+        }
+
+        // 3. Fallback to static role defaults
+        return hasPermission(user.role as Role, perm as Permission);
+      },
       switchRole: (role) => {
         if (!user) return;
         const previousRole = user.role;
         const next = { ...user, role };
         setUser(next);
-        setUsers((prev) => prev.map((u) => (u.id === user.id ? next : u)));
         addAuditEvent(
           "Role switched",
           user.email,
-          `Role changed from ${ROLE_LABEL[previousRole]} to ${ROLE_LABEL[role]}.`,
+          `Role changed from ${ROLE_LABEL[previousRole as Role] || previousRole} to ${ROLE_LABEL[role] || role}.`,
         );
       },
       inviteUser: (u) => {
@@ -324,46 +387,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .slice(0, 2)
           .join("")
           .toUpperCase();
-        const invited = { ...u, id, initials, active: true, lastActive: "Invited" };
+        const invited: AppUser = { ...u, id, initials, active: true, lastActive: "Invited" };
         setUsers((prev) => [...prev, invited]);
-        addAuditEvent(
-          "User invited",
-          invited.email,
-          `${invited.name} invited as ${ROLE_LABEL[invited.role]} for ${invited.property}.`,
-        );
       },
       updateUser: (id, patch) => {
-        const target = users.find((u) => u.id === id);
-        const previousRole = target?.role;
         setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...patch } : u)));
         if (user?.id === id) setUser((u) => (u ? { ...u, ...patch } : u));
-        if (target && Object.keys(patch).length > 0) {
-          const fields = Object.entries(patch)
-            .map(([k, v]) => `${k}: ${String(v)}`)
-            .join(", ");
-          const roleDetail =
-            previousRole && patch.role && patch.role !== previousRole
-              ? ` | role ${ROLE_LABEL[previousRole]} -> ${ROLE_LABEL[patch.role]}`
-              : "";
-          addAuditEvent("User updated", target.email, `${fields}${roleDetail}`);
-        }
       },
       deleteUser: (id) => {
-        const target = users.find((u) => u.id === id);
         setUsers((prev) => prev.filter((u) => u.id !== id));
         if (user?.id === id) setUser(null);
-        if (target) {
-          addAuditEvent(
-            "User removed",
-            target.email,
-            `${target.name} (${ROLE_LABEL[target.role]}) removed from access list.`,
-          );
-        }
       },
-      roleLabel: (r) => ROLE_LABEL[r] ?? String(r ?? "Staff").replace(/_/g, " "),
+      roleLabel: (r) => (r && ROLE_LABEL[r as Role]) || String(r ?? "Staff").replace(/_/g, " "),
       logAuditEvent: (action, target, detail) => addAuditEvent(action, target, detail),
     }),
-    [auditEvents, entitlements, user, users],
+    [auditEvents, entitlements, user, users, loading],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
@@ -387,12 +425,6 @@ function loadEntitlements(): TenantEntitlements {
   }
 }
 
-function persistEntitlements(entitlements: TenantEntitlements) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(LS_ENTITLEMENTS, JSON.stringify(entitlements));
-  }
-}
-
 function loadAuditEvents(): AuthAuditEvent[] {
   if (typeof window === "undefined") return [];
   try {
@@ -402,12 +434,6 @@ function loadAuditEvents(): AuthAuditEvent[] {
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
-  }
-}
-
-function persistAuditEvents(events: AuthAuditEvent[]) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(LS_AUDIT_EVENTS, JSON.stringify(events.slice(0, 300)));
   }
 }
 
