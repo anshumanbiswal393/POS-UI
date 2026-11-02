@@ -17,6 +17,7 @@ import { Route as PosTablesRouteImport } from './routes/pos.tables'
 import { Route as PosSettlementRouteImport } from './routes/pos.settlement'
 import { Route as PosSettingsRouteImport } from './routes/pos.settings'
 import { Route as PosRoomServiceRouteImport } from './routes/pos.room-service'
+import { Route as PosReservationsRouteImport } from './routes/pos.reservations'
 import { Route as PosReportsRouteImport } from './routes/pos.reports'
 import { Route as PosOrdersRouteImport } from './routes/pos.orders'
 import { Route as PosMenuRouteImport } from './routes/pos.menu'
@@ -153,6 +154,11 @@ const PosSettingsRoute = PosSettingsRouteImport.update({
 const PosRoomServiceRoute = PosRoomServiceRouteImport.update({
   id: '/room-service',
   path: '/room-service',
+  getParentRoute: () => PosRoute,
+} as any)
+const PosReservationsRoute = PosReservationsRouteImport.update({
+  id: '/reservations',
+  path: '/reservations',
   getParentRoute: () => PosRoute,
 } as any)
 const PosReportsRoute = PosReportsRouteImport.update({
@@ -719,6 +725,7 @@ export interface FileRoutesByFullPath {
   '/pos/menu': typeof PosMenuRouteWithChildren
   '/pos/orders': typeof PosOrdersRouteWithChildren
   '/pos/reports': typeof PosReportsRouteWithChildren
+  '/pos/reservations': typeof PosReservationsRoute
   '/pos/room-service': typeof PosRoomServiceRoute
   '/pos/settings': typeof PosSettingsRoute
   '/pos/settlement': typeof PosSettlementRoute
@@ -826,6 +833,7 @@ export interface FileRoutesByTo {
   '/pos/menu': typeof PosMenuRouteWithChildren
   '/pos/orders': typeof PosOrdersRouteWithChildren
   '/pos/reports': typeof PosReportsRouteWithChildren
+  '/pos/reservations': typeof PosReservationsRoute
   '/pos/room-service': typeof PosRoomServiceRoute
   '/pos/settings': typeof PosSettingsRoute
   '/pos/settlement': typeof PosSettlementRoute
@@ -934,6 +942,7 @@ export interface FileRoutesById {
   '/pos/menu': typeof PosMenuRouteWithChildren
   '/pos/orders': typeof PosOrdersRouteWithChildren
   '/pos/reports': typeof PosReportsRouteWithChildren
+  '/pos/reservations': typeof PosReservationsRoute
   '/pos/room-service': typeof PosRoomServiceRoute
   '/pos/settings': typeof PosSettingsRoute
   '/pos/settlement': typeof PosSettlementRoute
@@ -1043,6 +1052,7 @@ export interface FileRouteTypes {
     | '/pos/menu'
     | '/pos/orders'
     | '/pos/reports'
+    | '/pos/reservations'
     | '/pos/room-service'
     | '/pos/settings'
     | '/pos/settlement'
@@ -1150,6 +1160,7 @@ export interface FileRouteTypes {
     | '/pos/menu'
     | '/pos/orders'
     | '/pos/reports'
+    | '/pos/reservations'
     | '/pos/room-service'
     | '/pos/settings'
     | '/pos/settlement'
@@ -1257,6 +1268,7 @@ export interface FileRouteTypes {
     | '/pos/menu'
     | '/pos/orders'
     | '/pos/reports'
+    | '/pos/reservations'
     | '/pos/room-service'
     | '/pos/settings'
     | '/pos/settlement'
@@ -1415,6 +1427,13 @@ declare module '@tanstack/react-router' {
       path: '/room-service'
       fullPath: '/pos/room-service'
       preLoaderRoute: typeof PosRoomServiceRouteImport
+      parentRoute: typeof PosRoute
+    }
+    '/pos/reservations': {
+      id: '/pos/reservations'
+      path: '/reservations'
+      fullPath: '/pos/reservations'
+      preLoaderRoute: typeof PosReservationsRouteImport
       parentRoute: typeof PosRoute
     }
     '/pos/reports': {
@@ -2410,6 +2429,7 @@ interface PosRouteChildren {
   PosMenuRoute: typeof PosMenuRouteWithChildren
   PosOrdersRoute: typeof PosOrdersRouteWithChildren
   PosReportsRoute: typeof PosReportsRouteWithChildren
+  PosReservationsRoute: typeof PosReservationsRoute
   PosRoomServiceRoute: typeof PosRoomServiceRoute
   PosSettingsRoute: typeof PosSettingsRoute
   PosSettlementRoute: typeof PosSettlementRoute
@@ -2426,6 +2446,7 @@ const PosRouteChildren: PosRouteChildren = {
   PosMenuRoute: PosMenuRouteWithChildren,
   PosOrdersRoute: PosOrdersRouteWithChildren,
   PosReportsRoute: PosReportsRouteWithChildren,
+  PosReservationsRoute: PosReservationsRoute,
   PosRoomServiceRoute: PosRoomServiceRoute,
   PosSettingsRoute: PosSettingsRoute,
   PosSettlementRoute: PosSettlementRoute,

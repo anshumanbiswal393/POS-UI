@@ -303,6 +303,18 @@ export const posTablesService = {
   },
 
   getReservations: async (): Promise<ReservationItem[]> => {
+    if (isLiveFloor()) {
+      const tables = await posTablesService.getTables();
+      const liveReservations: ReservationItem[] = [];
+      tables.forEach((t) => {
+        if (t.status === "reserved" && t.activeReservation) {
+          liveReservations.push(t.activeReservation);
+        }
+      });
+      const liveIds = new Set(liveReservations.map((r) => r.id));
+      const extra = store().reservations.filter((r) => !liveIds.has(r.id));
+      return [...liveReservations, ...extra];
+    }
     return [...store().reservations];
   },
 

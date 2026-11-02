@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { PosDataGrid } from "@/components/ui/data-grid";
 import type { DataGridColumn } from "@/components/ui/data-grid/types";
 import { useStockItems } from "@/hooks/queries/usePosInventory";
+import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 
 interface StockSummaryRow {
   name: string;
@@ -221,27 +222,18 @@ export function StockSummaryReportView() {
       {/* 2. Date Filter Bar */}
       <div className="rounded-xl border border-border bg-surface p-3.5 shadow-xs">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="w-36">
+          <div>
             <label className="block text-[11.5px] font-semibold text-muted-foreground mb-1">
-              From Date
+              Stock Period
             </label>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
-
-          <div className="w-36">
-            <label className="block text-[11.5px] font-semibold text-muted-foreground mb-1">
-              To Date
-            </label>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            <PosDateRangePicker
+              from={fromDate}
+              to={toDate}
+              onSelect={({ from, to }) => {
+                setFromDate(from);
+                setToDate(to);
+              }}
+              size="sm"
             />
           </div>
 

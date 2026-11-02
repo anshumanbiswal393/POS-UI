@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/data-grid";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { exportToExcel } from "@/utils/exportUtils";
+import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 import { toast } from "sonner";
 
 function todayIso() {
@@ -545,36 +546,20 @@ export function PosAllOrdersManager() {
         {!showMoreFilters ? (
           /* PICTURE 1: DEFAULT COMPACT SINGLE-ROW FILTER TOOLBAR */
           <div className="flex flex-wrap items-end gap-3.5">
-            {/* Start Date */}
-            <div className="min-w-[170px] flex-1">
+            {/* Order Date Range */}
+            <div className="min-w-[240px] flex-1">
               <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
-                Start Date
+                Order Date Range
               </label>
-              <div className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 h-10 shadow-2xs hover:border-slate-400 focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-500/20 transition">
-                <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full text-[12.5px] font-medium text-slate-800 bg-transparent focus:outline-none cursor-pointer"
-                />
-              </div>
-            </div>
-
-            {/* End Date */}
-            <div className="min-w-[170px] flex-1">
-              <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
-                End Date
-              </label>
-              <div className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 h-10 shadow-2xs hover:border-slate-400 focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-500/20 transition">
-                <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full text-[12.5px] font-medium text-slate-800 bg-transparent focus:outline-none cursor-pointer"
-                />
-              </div>
+              <PosDateRangePicker
+                from={startDate}
+                to={endDate}
+                onSelect={({ from, to }) => {
+                  setStartDate(from);
+                  setEndDate(to);
+                }}
+                className="w-full h-10"
+              />
             </div>
 
             {/* All Order Type */}
@@ -646,34 +631,19 @@ export function PosAllOrdersManager() {
           <div className="space-y-4 animate-in fade-in duration-150">
             {/* Row 1 */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
-              <div>
+              <div className="sm:col-span-2">
                 <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
-                  Start Date
+                  Order Date Range
                 </label>
-                <div className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 h-10 shadow-2xs hover:border-slate-400 focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-500/20 transition">
-                  <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full text-[12.5px] font-medium text-slate-800 bg-transparent focus:outline-none cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
-                  End Date
-                </label>
-                <div className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 h-10 shadow-2xs hover:border-slate-400 focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-500/20 transition">
-                  <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full text-[12.5px] font-medium text-slate-800 bg-transparent focus:outline-none cursor-pointer"
-                  />
-                </div>
+                <PosDateRangePicker
+                  from={startDate}
+                  to={endDate}
+                  onSelect={({ from, to }) => {
+                    setStartDate(from);
+                    setEndDate(to);
+                  }}
+                  className="w-full h-10"
+                />
               </div>
 
               <div>
