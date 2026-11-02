@@ -88,7 +88,6 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
       { id: "kot", label: "Kitchen Orders", to: "/pos/kot", icon: ChefHat },
       { id: "settlement", label: "Pending Payments", to: "/pos/settlement", icon: Wallet },
       { id: "all-orders", label: "Order History", to: "/pos/orders/all", icon: History },
-      { id: "reservations-sub", label: "Reservations List", to: "/pos/reservations", icon: CalendarCheck2 },
     ],
   },
   {
