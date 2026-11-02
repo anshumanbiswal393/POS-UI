@@ -108,7 +108,7 @@ export function PosTopBar({
 
   const getBreadcrumbTitle = (pathname: string) => {
     if (pathname.includes("/take-order")) return "Take Order";
-    if (pathname.includes("/billing")) return "Billing & Checkout";
+    if (pathname.includes("/billing")) return "POS";
     if (pathname.includes("/orders")) return "Orders";
     if (pathname.includes("/menu")) return "Food Menu";
     if (pathname.includes("/inventory")) return "Stock & Inventory";

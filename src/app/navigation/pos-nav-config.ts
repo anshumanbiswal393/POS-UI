@@ -87,7 +87,7 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
   },
   {
     id: "billing",
-    label: "Billing",
+    label: "POS",
     to: "/pos/billing",
     icon: CreditCard,
     permission: "pos.billing.view",

@@ -6,7 +6,7 @@ import type {
   DiningArea,
   TableManagementStats,
 } from "@/types/posTables";
-import { Users, Sparkles, LayoutGrid, RotateCw, Plus, CalendarPlus, UserPlus, Utensils, AlertCircle, ArrowDown, X } from "lucide-react";
+import { Users, Sparkles, LayoutGrid, RotateCw, Plus, CalendarPlus, UserPlus, Utensils, AlertCircle, X } from "lucide-react";
 
 interface TableFloorPlanProps {
   tables: RestaurantTable[];
@@ -83,36 +83,17 @@ export function TableFloorPlan({
           {/* Area Switcher & Actions */}
           <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto relative">
             {/* Area Switcher with + button */}
-            <div
-              className={`flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border relative transition-all duration-300 ${
-                showNoAreaWarning && areas.length === 0
-                  ? "border-primary/50 bg-primary/5 ring-2 ring-primary/30"
-                  : "border-slate-200/60"
-              }`}
-            >
+            <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/60 relative">
               {areas.length === 0 ? (
                 <div className="relative">
-                  {/* Animated bouncing arrow pointing to the Add First Area button */}
-                  {showNoAreaWarning && (
-                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-50 animate-bounce">
-                      <span className="bg-primary text-primary-foreground text-[10.5px] font-extrabold px-2.5 py-0.5 rounded-full shadow-lg whitespace-nowrap flex items-center gap-1">
-                        <Plus className="w-3 h-3" />
-                        <span>Add dining area here!</span>
-                      </span>
-                      <ArrowDown className="w-4 h-4 text-primary -mt-0.5" />
-                    </div>
-                  )}
+
                   <button
                     type="button"
                     onClick={() => {
                       setShowNoAreaWarning(false);
                       onOpenAddArea?.();
                     }}
-                    className={`px-3 py-1 rounded-lg text-xs transition-all flex items-center gap-1 cursor-pointer ${
-                      showNoAreaWarning
-                        ? "text-primary bg-primary/20 ring-2 ring-primary ring-offset-1 animate-pulse font-extrabold scale-105"
-                        : "text-slate-600 hover:text-primary hover:bg-primary/10 font-semibold"
-                    }`}
+                    className="px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-primary hover:bg-primary/10 transition-colors flex items-center gap-1 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add First Area</span>
@@ -293,26 +274,14 @@ export function TableFloorPlan({
             </p>
             {onOpenAddArea && (
               <div className="relative inline-block mt-3">
-                {/* Animated bouncing arrow pointing to the center Add Dining Area button */}
-                {showNoAreaWarning && (
-                  <div className="absolute -top-9 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-50 animate-bounce">
-                    <span className="bg-primary text-primary-foreground text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-md whitespace-nowrap">
-                      Add area here!
-                    </span>
-                    <ArrowDown className="w-4 h-4 text-primary -mt-0.5" />
-                  </div>
-                )}
+
                 <button
                   type="button"
                   onClick={() => {
                     setShowNoAreaWarning(false);
                     onOpenAddArea();
                   }}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    showNoAreaWarning
-                      ? "bg-primary text-primary-foreground ring-4 ring-primary/40 animate-pulse scale-105 shadow-md"
-                      : "text-primary bg-primary/10 hover:bg-primary/20 border border-primary/30"
-                  }`}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-lg transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add Dining Area
