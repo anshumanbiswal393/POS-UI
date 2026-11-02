@@ -53,7 +53,7 @@ export function FloorPlanManagementView() {
               <Move className="h-4 w-4 text-teal-600" />
               <span>Interactive Floor Plan Canvas</span>
             </div>
-            <div className="text-[12px] text-slate-500">Main Dining • 12 Active Tables</div>
+            <div className="text-[12px] text-slate-500">Floor Layout Canvas</div>
           </div>
           <div className="h-80 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 flex items-center justify-center text-slate-400 text-[13px]">
             Drag & place tables onto the visual floor grid

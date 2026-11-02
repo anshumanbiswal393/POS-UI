@@ -36,6 +36,7 @@ import {
   UserCog,
   Coins,
   PlusCircle,
+  CalendarCheck2,
 } from "lucide-react";
 import type { Permission } from "@/types/rbac";
 
@@ -103,6 +104,13 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
       { id: "settlement", label: "Pending Payments", to: "/pos/settlement", icon: Wallet, permission: "pos.billing.settle" },
       { id: "all-orders", label: "Order History", to: "/pos/orders/all", icon: History, permission: "pos.orders.view" },
     ],
+  },
+  {
+    id: "reservations",
+    label: "Reservations",
+    to: "/pos/reservations",
+    icon: CalendarCheck2,
+    permission: "pos.orders.view",
   },
   {
     id: "menu",

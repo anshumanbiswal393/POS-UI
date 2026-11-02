@@ -1,64 +1,67 @@
 import { useState, useMemo } from "react";
-import { Search, Calendar, Eye } from "lucide-react";
+import { Search } from "lucide-react";
 import {
   DataTableHeader,
   type DataTableColumn,
 } from "@/components/common/DataTableHeader";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { toast } from "sonner";
+import { useStockMovements } from "@/hooks/queries/usePosInventory";
+
+interface OrderConsumptionRow {
+  id: string;
+  orderNumber: string;
+  time: string;
+  table: string;
+  item: string;
+  recipeItems: string;
+  balanceAfter: string;
+  status: string;
+}
 
 export function OrderwiseConsumptionView() {
   const [search, setSearch] = useState("");
+  const { data: movements = [], isLoading } = useStockMovements({ type: "SETTLE_DEDUCT" });
 
-  const orders = [
-    {
-      id: "ORD-9912",
-      kot: "KOT-401",
-      time: "14:25",
-      table: "T-04",
-      item: "Butter Chicken x 2",
-      recipeItems: "Chicken Breast (600g), Makhani Gravy (400ml), Butter (60g)",
-      cost: "₹ 340",
-      status: "Billed",
-    },
-    {
-      id: "ORD-9911",
-      kot: "KOT-400",
-      time: "14:10",
-      table: "Takeaway",
-      item: "Paneer Tikka Pizza x 1",
-      recipeItems: "Pizza Dough (250g), Paneer (120g), Mozzarella (100g), Capsicum",
-      cost: "₹ 185",
-      status: "Billed",
-    },
-    {
-      id: "ORD-9910",
-      kot: "KOT-399",
-      time: "13:48",
-      table: "T-09",
-      item: "Veg Manchurian Dry x 2",
-      recipeItems: "Manchuria Balls (16 pcs), Soya Sauce, Spring Onion, Oil",
-      cost: "₹ 140",
-      status: "Billed",
-    },
-  ];
+  const orders: OrderConsumptionRow[] = useMemo(() => {
+    return (movements as Array<Record<string, any>>).map((mov, idx) => {
+      const orderRef = mov.referenceId ? String(mov.referenceId).slice(0, 8).toUpperCase() : `ORD-${idx + 1}`;
+      const notes = mov.notes || "";
+      // Notes typically formatted as: "Settle ORD-XXX – Item Name"
+      const itemMatch = notes.includes("–") ? notes.split("–")[1]?.trim() : (notes || mov.name);
+      const timeStr = mov.createdAt
+        ? new Date(mov.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        : "Just now";
 
-  const orderColumns: DataTableColumn<any>[] = useMemo(
+      return {
+        id: orderRef,
+        orderNumber: orderRef,
+        time: timeStr,
+        table: mov.tableName || "Counter / Table",
+        item: itemMatch || mov.name || "Menu Dish",
+        recipeItems: `${mov.name} (${mov.quantity} ${mov.unit || ""})`,
+        balanceAfter: `${mov.balanceAfter ?? "0"} ${mov.unit || ""}`,
+        status: "Billed",
+      };
+    });
+  }, [movements]);
+
+  const orderColumns: DataTableColumn<OrderConsumptionRow>[] = useMemo(
     () => [
       {
         id: "id",
-        label: "Order ID",
+        label: "Order Ref",
         sortable: true,
         filterable: true,
         defaultWidth: 120,
         getValue: (r) => r.id,
       },
       {
-        id: "kot",
-        label: "KOT / Time",
+        id: "time",
+        label: "Time",
         sortable: true,
-        defaultWidth: 130,
-        getValue: (r) => `${r.kot} ${r.time}`,
+        defaultWidth: 110,
+        getValue: (r) => r.time,
       },
       {
         id: "table",
@@ -84,12 +87,12 @@ export function OrderwiseConsumptionView() {
         getValue: (r) => r.recipeItems,
       },
       {
-        id: "cost",
-        label: "Theoretical Food Cost",
+        id: "balanceAfter",
+        label: "Stock After Deduct",
         sortable: true,
         align: "right",
         defaultWidth: 150,
-        getValue: (r) => r.cost,
+        getValue: (r) => r.balanceAfter,
       },
       {
         id: "status",
@@ -108,7 +111,8 @@ export function OrderwiseConsumptionView() {
     (o) =>
       o.id.toLowerCase().includes(search.toLowerCase()) ||
       o.item.toLowerCase().includes(search.toLowerCase()) ||
-      o.table.toLowerCase().includes(search.toLowerCase()),
+      o.table.toLowerCase().includes(search.toLowerCase()) ||
+      o.recipeItems.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -117,8 +121,7 @@ export function OrderwiseConsumptionView() {
         <div>
           <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">Usage by Order</h2>
           <p className="text-[12.5px] text-slate-500 mt-0.5">
-            Billed bill-of-materials and recipe ingredient deduction broken down by individual KOT
-            and ticket.
+            Billed bill-of-materials and recipe ingredient deduction broken down by individual settled orders.
           </p>
         </div>
 
@@ -133,13 +136,15 @@ export function OrderwiseConsumptionView() {
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search order no, table, dish..."
+              placeholder="Search order ref, table, dish..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 py-1.5 text-[12.5px] text-slate-800 focus:border-teal-500 focus:outline-none"
             />
           </div>
-          <span className="text-[12px] text-slate-500">{filtered.length} orders logged</span>
+          <span className="text-[12px] text-slate-500">
+            {isLoading ? "Loading live movements..." : `${filtered.length} orders logged`}
+          </span>
         </div>
 
         <div className="overflow-x-auto">
@@ -153,23 +158,24 @@ export function OrderwiseConsumptionView() {
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={orderColumns.length} className="py-12 text-center text-slate-400">
-                    No order consumption records found for this date.
+                    {isLoading
+                      ? "Loading live consumption records..."
+                      : "No order consumption records found for this outlet."}
                   </td>
                 </tr>
               ) : (
-                filtered.map((o) => (
-                  <tr key={o.id} className="hover:bg-slate-50/60 transition">
+                filtered.map((o, idx) => (
+                  <tr key={`${o.id}-${idx}`} className="hover:bg-slate-50/60 transition">
                     <td className="px-4 py-3 font-mono font-bold text-teal-600">{o.id}</td>
                     <td className="px-4 py-3 text-slate-600 text-[12px]">
-                      <div className="font-semibold text-slate-800">{o.kot}</div>
-                      <div className="text-slate-400">{o.time}</div>
+                      <div className="font-semibold text-slate-800">{o.time}</div>
                     </td>
                     <td className="px-4 py-3 font-semibold text-slate-700">{o.table}</td>
                     <td className="px-4 py-3 font-bold text-slate-900">{o.item}</td>
                     <td className="px-4 py-3 text-slate-600 text-[12px] max-w-sm truncate">
                       {o.recipeItems}
                     </td>
-                    <td className="px-4 py-3 font-mono font-bold text-slate-900">{o.cost}</td>
+                    <td className="px-4 py-3 font-mono font-bold text-slate-900">{o.balanceAfter}</td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
                         {o.status}
@@ -185,4 +191,3 @@ export function OrderwiseConsumptionView() {
     </div>
   );
 }
-

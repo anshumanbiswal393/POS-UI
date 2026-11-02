@@ -75,7 +75,7 @@ export function ReservationDetailSlide({
                 </SheetTitle>
                 <SheetDescription className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{selectedTable?.area || "Main Dining Area"}</span>
+                  <span>{selectedTable?.area || "Dining Area"}</span>
                   <span>•</span>
                   <Users className="w-3.5 h-3.5 text-slate-400" />
                   <span>{selectedTable?.capacity || res?.guests || 4} Seats</span>

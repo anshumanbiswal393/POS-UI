@@ -1,4 +1,6 @@
+import { useMemo } from "react";
 import { usePosDashboard } from "@/hooks/queries/usePosDashboard";
+import { usePosDate } from "@/hooks/usePosDate";
 import { DashboardKpiCards } from "./dashboard/DashboardKpiCards";
 import { OrderTypesDonutChart } from "./dashboard/OrderTypesDonutChart";
 import { LiveOrdersWidget } from "./dashboard/LiveOrdersWidget";
@@ -9,14 +11,24 @@ import { AttentionNeededCard } from "./dashboard/AttentionNeededCard";
 import { OperationalMetricsStrip } from "./dashboard/OperationalMetricsStrip";
 import type { DashboardFilterParams } from "@/types/posDashboard";
 
-const DEFAULT_FILTERS: DashboardFilterParams = { dateRange: "today" };
-
 /**
  * POS Dashboard Manager
  * Orchestrates real backend data fetching via TanStack Query and coordinates all visual panels.
+ * Synchronizes with the top navigation operational date picker.
  */
 export function PosDashboardManager() {
-  const { data } = usePosDashboard(DEFAULT_FILTERS);
+  const { selectedDateStr, isToday } = usePosDate();
+
+  const filters: DashboardFilterParams = useMemo(
+    () => ({
+      dateRange: (isToday ? "today" : selectedDateStr) as any,
+      startDate: selectedDateStr,
+      endDate: selectedDateStr,
+    }),
+    [isToday, selectedDateStr],
+  );
+
+  const { data } = usePosDashboard(filters);
 
   if (!data) return null;
 

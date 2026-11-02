@@ -350,3 +350,17 @@ export function useDeleteUnit() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.units }),
   });
 }
+
+export function useStockMovements(params?: {
+  type?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+}) {
+  const { activeOutlet } = useOutletContext();
+  return useQuery({
+    queryKey: ["pos", "inventory", "movements", activeOutlet?.id, params],
+    queryFn: () => posInventoryService.getMovements(activeOutlet?.id, params),
+    enabled: Boolean(activeOutlet?.id),
+  });
+}

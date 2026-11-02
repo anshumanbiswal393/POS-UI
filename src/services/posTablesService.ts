@@ -41,7 +41,7 @@ function mapApiTable(dto: Record<string, any>, areaName?: string): RestaurantTab
     capacity: Number(dto.capacity || 2),
     currentGuests: dto.status === "OCCUPIED" || dto.status === "BILLED" ? Number(dto.capacity || 0) : 0,
     shape: shapeMap[String(dto.shape || "").toUpperCase()] || "square",
-    area: dto.section_name || areaName || "Main Dining",
+    area: dto.section_name || areaName || "",
     status: statusMap[String(dto.status || "VACANT").toUpperCase()] || "vacant",
     activeOrder: dto.active_order_id
       ? {
@@ -73,7 +73,7 @@ type TableBucket = {
 };
 
 const legacyBucket: TableBucket = {
-  areas: ["Main Dining", "Terrace", "Outdoor"],
+  areas: [],
   tables: [...INITIAL_TABLES],
   reservations: [],
 };
@@ -147,6 +147,58 @@ export const posTablesService = {
     return [...store().areas];
   },
 
+  updateArea: async (oldName: string, newName: string): Promise<string[]> => {
+    const trimmed = newName.trim();
+    if (!trimmed || oldName === trimmed) return posTablesService.getAreas();
+
+    if (isLiveFloor()) {
+      const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+        params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 200 },
+      });
+      const sections = unwrapRows<any>(res.data);
+      const section = sections.find(
+        (s) => String(s.name).trim().toLowerCase() === oldName.trim().toLowerCase(),
+      );
+      if (section?.id) {
+        await httpClient.patch(`${API_ENDPOINTS.TABLES.AREAS}${section.id}/`, {
+          name: trimmed,
+        });
+      }
+      return posTablesService.getAreas();
+    }
+
+    const idx = store().areas.findIndex((a) => a.toLowerCase() === oldName.toLowerCase());
+    if (idx !== -1) {
+      store().areas[idx] = trimmed;
+      store().tables.forEach((t) => {
+        if (t.area.toLowerCase() === oldName.toLowerCase()) {
+          t.area = trimmed;
+        }
+      });
+    }
+    return [...store().areas];
+  },
+
+  deleteArea: async (areaName: string): Promise<string[]> => {
+    const trimmed = areaName.trim();
+    if (isLiveFloor()) {
+      const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+        params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 200 },
+      });
+      const sections = unwrapRows<any>(res.data);
+      const section = sections.find(
+        (s) => String(s.name).trim().toLowerCase() === trimmed.toLowerCase(),
+      );
+      if (section?.id) {
+        await httpClient.delete(`${API_ENDPOINTS.TABLES.AREAS}${section.id}/`);
+      }
+      return posTablesService.getAreas();
+    }
+
+    store().areas = store().areas.filter((a) => a.toLowerCase() !== trimmed.toLowerCase());
+    return [...store().areas];
+  },
+
   addTable: async (input: {
     tableNumber: string;
     capacity: number;
@@ -165,7 +217,7 @@ export const posTablesService = {
         try {
           const created = await httpClient.post(API_ENDPOINTS.TABLES.AREAS, {
             outlet: scopedOutletId,
-            name: input.area || "Main Dining",
+            name: input.area || "Dining Area",
             is_active: true,
           });
           section = created.data;
@@ -209,7 +261,7 @@ export const posTablesService = {
       capacity: input.capacity,
       currentGuests: 0,
       shape: input.shape || defaultShape,
-      area: input.area || "Main Dining",
+      area: input.area || "Dining Area",
       status: "vacant",
     };
 
@@ -251,6 +303,18 @@ export const posTablesService = {
   },
 
   getReservations: async (): Promise<ReservationItem[]> => {
+    if (isLiveFloor()) {
+      const tables = await posTablesService.getTables();
+      const liveReservations: ReservationItem[] = [];
+      tables.forEach((t) => {
+        if (t.status === "reserved" && t.activeReservation) {
+          liveReservations.push(t.activeReservation);
+        }
+      });
+      const liveIds = new Set(liveReservations.map((r) => r.id));
+      const extra = store().reservations.filter((r) => !liveIds.has(r.id));
+      return [...liveReservations, ...extra];
+    }
     return [...store().reservations];
   },
 

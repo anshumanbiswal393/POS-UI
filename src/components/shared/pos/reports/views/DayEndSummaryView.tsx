@@ -3,6 +3,7 @@ import { Download, ChevronDown, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { DataTableHeader, DataTableFooter, type DataTableColumn } from "@/components/common";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
+import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 import { exportToExcel } from "@/utils/exportUtils";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { isBackendOutletId } from "@/utils/outletId";
@@ -219,22 +220,15 @@ export function DayEndSummaryView() {
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1">
-            <label className="text-[11.5px] font-semibold text-slate-600">Start Date</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[11.5px] font-semibold text-slate-600">End Date</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
+            <label className="text-[11.5px] font-semibold text-slate-600">Period</label>
+            <PosDateRangePicker
+              from={startDate}
+              to={endDate}
+              onSelect={({ from, to }) => {
+                setStartDate(from);
+                setEndDate(to);
+              }}
+              className="h-9"
             />
           </div>
 

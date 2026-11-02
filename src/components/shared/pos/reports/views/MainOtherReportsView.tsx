@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { DataTableHeader, DataTableFooter, type DataTableColumn } from "@/components/common";
 import { exportToExcel } from "@/utils/exportUtils";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
+import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { isBackendOutletId } from "@/utils/outletId";
 import { usePosSalesReport, usePosReportsDashboard } from "@/hooks/queries/usePosReports";
@@ -761,25 +762,18 @@ export function MainOtherReportsView() {
         {/* Filter Toolbar: Date Filter + Global Search */}
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3 print:hidden">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            {/* Date Pickers */}
+            {/* Date Range Picker */}
             <div className="flex flex-wrap items-end gap-3">
               <div className="space-y-1">
-                <label className="text-[11.5px] font-semibold text-slate-600">From Date</label>
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[11.5px] font-semibold text-slate-600">To Date</label>
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
+                <label className="text-[11.5px] font-semibold text-slate-600">Report Period</label>
+                <PosDateRangePicker
+                  from={fromDate}
+                  to={toDate}
+                  onSelect={({ from, to }) => {
+                    setFromDate(from);
+                    setToDate(to);
+                  }}
+                  className="h-9"
                 />
               </div>
 

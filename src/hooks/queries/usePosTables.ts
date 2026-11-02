@@ -57,6 +57,54 @@ export function useAddAreaMutation() {
   });
 }
 
+export function useUpdateAreaMutation() {
+  const { outletId, highwayDemo } = useOutletScopedTables();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ oldName, newName }: { oldName: string; newName: string }) => {
+      setTablesOutletScope(outletId, highwayDemo);
+      return posTablesService.updateArea(oldName, newName);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: POS_AREAS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_TABLE_STATS_QUERY_KEY });
+      toast.success("Dining area renamed");
+    },
+    onError: (err: unknown) => {
+      const message =
+        (err as { message?: string })?.message ||
+        (err as { data?: { detail?: string } })?.data?.detail ||
+        "Could not rename dining area";
+      toast.error(String(message));
+    },
+  });
+}
+
+export function useDeleteAreaMutation() {
+  const { outletId, highwayDemo } = useOutletScopedTables();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (areaName: string) => {
+      setTablesOutletScope(outletId, highwayDemo);
+      return posTablesService.deleteArea(areaName);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: POS_AREAS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_TABLE_STATS_QUERY_KEY });
+      toast.success("Dining area deleted");
+    },
+    onError: (err: unknown) => {
+      const message =
+        (err as { message?: string })?.message ||
+        (err as { data?: { detail?: string } })?.data?.detail ||
+        "Could not delete dining area";
+      toast.error(String(message));
+    },
+  });
+}
+
 export function useAddTableMutation() {
   const { outletId, highwayDemo } = useOutletScopedTables();
   const queryClient = useQueryClient();

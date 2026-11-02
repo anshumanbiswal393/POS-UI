@@ -24,7 +24,7 @@ interface TableFloorPlanProps {
   onRefresh?: () => void;
 }
 
-const DEFAULT_AREAS = ["Main Dining", "Terrace", "Outdoor"];
+const DEFAULT_AREAS: string[] = [];
 
 export function TableFloorPlan({
   tables,
@@ -62,12 +62,17 @@ export function TableFloorPlan({
 
           {/* Area Switcher & Actions */}
           <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
-            {/* Area Switcher (Main Dining, Terrace, Outdoor, etc.) with + button */}
+            {/* Area Switcher with + button */}
             <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/60">
               {areas.length === 0 ? (
-                <span className="px-3 py-1 text-[11px] font-semibold text-slate-500">
-                  No dining area yet
-                </span>
+                <button
+                  type="button"
+                  onClick={onOpenAddArea}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-primary hover:bg-primary/10 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add First Area</span>
+                </button>
               ) : null}
               {areas.map((area) => {
                 const isActive = activeArea === area;
@@ -76,10 +81,11 @@ export function TableFloorPlan({
                     key={area}
                     type="button"
                     onClick={() => onSelectArea(area)}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${isActive
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      isActive
                         ? "bg-primary text-primary-foreground shadow-xs"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
-                      }`}
+                    }`}
                   >
                     {area}
                   </button>
@@ -87,7 +93,7 @@ export function TableFloorPlan({
               })}
 
               {/* Plus button to add new area */}
-              {onOpenAddArea && (
+              {onOpenAddArea && areas.length > 0 && (
                 <button
                   type="button"
                   onClick={onOpenAddArea}
@@ -112,16 +118,18 @@ export function TableFloorPlan({
             )}
           </div>
         </div>
+      </div>
 
-        {/* 2. Sub-strip: Legend & Direct Quick Action Buttons (Book Reservation & Assign Guest) */}
-        <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-          {/* Status Legends with theme styling */}
-          <div className="flex items-center gap-2.5 sm:gap-3 font-medium">
-            {/* Available (Vacant) */}
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100/90 border border-slate-300 text-slate-800 font-semibold text-[11px]">
+      {/* 2. Secondary Sub-Bar: Status Legend & Action Buttons */}
+      <div className="px-5 py-2.5 sm:px-6 border-b border-slate-200/60 bg-white/70 backdrop-blur-xs shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          {/* Status Counts Pill */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Available */}
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200/80 text-slate-700 font-bold text-[11px]">
               <span className="h-2 w-2 rounded-full bg-slate-400 border border-slate-500" />
               <span>Available</span>
-              <span className="text-[10px] text-slate-500 font-bold ml-0.5">
+              <span className="text-[10px] text-slate-500 font-extrabold ml-0.5">
                 ({tables.filter((t) => t.status === "vacant").length})
               </span>
             </div>
@@ -185,18 +193,38 @@ export function TableFloorPlan({
 
       {/* 3. The Floor Plan Grid (Compact Single Page View) */}
       <div className="flex-1 p-3 sm:p-5 flex items-start justify-center overflow-y-auto">
-        {tables.length === 0 ? (
+        {areas.length === 0 ? (
           <div className="text-center py-16 text-slate-400">
             <LayoutGrid className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm font-medium">No tables configured in {activeArea}.</p>
+            <p className="text-sm font-medium">No dining areas configured yet.</p>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              Add your restaurant floors or dining areas (e.g. Indoor, Rooftop, Garden, AC Hall) to set up tables.
+            </p>
+            {onOpenAddArea && (
+              <button
+                type="button"
+                onClick={onOpenAddArea}
+                className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-lg transition-colors cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Dining Area
+              </button>
+            )}
+          </div>
+        ) : tables.length === 0 ? (
+          <div className="text-center py-16 text-slate-400">
+            <LayoutGrid className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm font-medium">
+              {activeArea ? `No tables configured in ${activeArea}.` : "No tables configured."}
+            </p>
             {onOpenAddTable && (
               <button
                 type="button"
                 onClick={onOpenAddTable}
-                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-lg transition-colors cursor-pointer"
+                className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-lg transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                Add First Table in {activeArea}
+                {activeArea ? `Add First Table in ${activeArea}` : "Add First Table"}
               </button>
             )}
           </div>

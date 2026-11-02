@@ -539,6 +539,24 @@ export const posInventoryService = {
     }
   },
 
+  getMovements: async (
+    outletId?: string,
+    params?: { type?: string; movementType?: string; from?: string; to?: string; limit?: number },
+  ) => {
+    if (!isBackendOutletId(outletId)) return [];
+    try {
+      const res = await httpClient.get<{ success: boolean; movements: Array<Record<string, unknown>> }>(
+        "/api/pos/stock/movements/",
+        {
+          params: { ...scopeParams(outletId), ...params },
+        },
+      );
+      return res.data.movements || [];
+    } catch {
+      return [];
+    }
+  },
+
   adjustMockStock,
 
   getUnits: async (outletId?: string) => {

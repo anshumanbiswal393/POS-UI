@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Clock } from "lucide-react";
 import { toast } from "sonner";
 import { PosDataGrid } from "@/components/ui/data-grid";
 import type { DataGridColumn } from "@/components/ui/data-grid/types";
+import { useStockItems } from "@/hooks/queries/usePosInventory";
+import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 
 interface StockSummaryRow {
   name: string;
@@ -156,79 +158,41 @@ const SUMMARY_COLUMNS: DataGridColumn<StockSummaryRow>[] = [
 ];
 
 export function StockSummaryReportView() {
-  const [fromDate, setFromDate] = useState("2026-09-02");
-  const [toDate, setToDate] = useState("2026-09-02");
+  const today = new Date().toISOString().slice(0, 10);
+  const [fromDate, setFromDate] = useState(today);
+  const [toDate, setToDate] = useState(today);
+  const { data: stockItems = [], isLoading } = useStockItems();
 
-  const rows: StockSummaryRow[] = [
-    {
-      name: "Garlic Chann Dry [Dish]",
-      opening: "12.500",
-      purchase: "25.000",
-      excess: "0.000",
-      total1: "37.500",
-      consumed: "18.200",
-      wastage: "0.500",
-      normalLoss: "0.200",
-      transfer: "0.000",
-      shortage: "0.000",
-      production: "0.000",
-      total2: "18.900",
-      closingStock: "18.600",
-      closingSummary: "18.600",
-      difference: "0.000",
-    },
-    {
-      name: "Veg Manchuria Gravy [Dish]",
-      opening: "8.000",
-      purchase: "30.000",
-      excess: "1.000",
-      total1: "39.000",
-      consumed: "22.500",
-      wastage: "1.200",
-      normalLoss: "0.400",
-      transfer: "0.000",
-      shortage: "0.000",
-      production: "0.000",
-      total2: "24.100",
-      closingStock: "14.900",
-      closingSummary: "14.900",
-      difference: "0.000",
-    },
-    {
-      name: "Veg Manchuria Dry [Dish]",
-      opening: "15.000",
-      purchase: "40.000",
-      excess: "0.000",
-      total1: "55.000",
-      consumed: "34.000",
-      wastage: "0.800",
-      normalLoss: "0.300",
-      transfer: "2.000",
-      shortage: "0.000",
-      production: "0.000",
-      total2: "37.100",
-      closingStock: "17.900",
-      closingSummary: "17.900",
-      difference: "0.000",
-    },
-    {
-      name: "Basmati Rice Grade A 25kg",
-      opening: "50.000",
-      purchase: "100.000",
-      excess: "0.000",
-      total1: "150.000",
-      consumed: "62.000",
-      wastage: "0.000",
-      normalLoss: "1.000",
-      transfer: "0.000",
-      shortage: "0.000",
-      production: "0.000",
-      total2: "63.000",
-      closingStock: "87.000",
-      closingSummary: "87.000",
-      difference: "0.000",
-    },
-  ];
+  const rows: StockSummaryRow[] = useMemo(() => {
+    return stockItems.map((item) => {
+      const opening = Number(item.openingBalance ?? item.availableStock ?? 0);
+      const purchase = Number(item.purchaseQty ?? 0);
+      const totalIn = opening + purchase;
+      const consumed = Number(item.consumedQty ?? 0);
+      const wastage = Number(item.wastageQty ?? 0);
+      const totalOut = consumed + wastage;
+      const closing = Number(item.availableStock ?? 0);
+      const variance = Number(item.variance ?? 0);
+
+      return {
+        name: `${item.rawMaterial || item.name} [${item.unit || "unit"}]`,
+        opening: opening.toFixed(3),
+        purchase: purchase.toFixed(3),
+        excess: "0.000",
+        total1: totalIn.toFixed(3),
+        consumed: consumed.toFixed(3),
+        wastage: wastage.toFixed(3),
+        normalLoss: "0.000",
+        transfer: "0.000",
+        shortage: "0.000",
+        production: "0.000",
+        total2: totalOut.toFixed(3),
+        closingStock: closing.toFixed(3),
+        closingSummary: closing.toFixed(3),
+        difference: variance.toFixed(3),
+      };
+    });
+  }, [stockItems]);
 
   return (
     <div className="space-y-4">
@@ -258,33 +222,24 @@ export function StockSummaryReportView() {
       {/* 2. Date Filter Bar */}
       <div className="rounded-xl border border-border bg-surface p-3.5 shadow-xs">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="w-36">
+          <div>
             <label className="block text-[11.5px] font-semibold text-muted-foreground mb-1">
-              From Date
+              Stock Period
             </label>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
-
-          <div className="w-36">
-            <label className="block text-[11.5px] font-semibold text-muted-foreground mb-1">
-              To Date
-            </label>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            <PosDateRangePicker
+              from={fromDate}
+              to={toDate}
+              onSelect={({ from, to }) => {
+                setFromDate(from);
+                setToDate(to);
+              }}
+              size="sm"
             />
           </div>
 
           <button
             type="button"
-            onClick={() => toast.info("Filters updated")}
+            onClick={() => toast.info("Filters applied")}
             className="rounded-lg border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-foreground hover:bg-surface-2 transition cursor-pointer"
           >
             Apply Period
@@ -298,7 +253,7 @@ export function StockSummaryReportView() {
         columns={SUMMARY_COLUMNS}
         keyField="name"
         title="Stock Summary"
-        subtitle="Multi-column ledger balance report"
+        subtitle={isLoading ? "Loading live ledger records..." : "Multi-column ledger balance report"}
         showToolbar
         selectable
         storageKey="pos-stock-summary-report"
