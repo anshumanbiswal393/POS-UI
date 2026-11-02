@@ -34,6 +34,7 @@ import {
 } from "@/hooks/queries/usePosTables";
 import type { ReservationItem, RestaurantTable } from "@/types/posTables";
 import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
+import { usePosDate } from "@/hooks/usePosDate";
 import { NewReservationModal } from "../tables/NewReservationModal";
 import { ReservationDetailSlide } from "../tables/ReservationDetailSlide";
 import { exportToExcel } from "@/utils/exportUtils";
@@ -89,10 +90,17 @@ export function PosReservationsManager() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [areaFilter, setAreaFilter] = useState<string>("all");
 
-  // Date filter (defaults to today)
+  // Date filter (defaults to operational date from top nav calendar)
+  const { selectedDateStr } = usePosDate();
   const todayIso = useMemo(() => getTodayIso(), []);
-  const [fromDate, setFromDate] = useState<string>(todayIso);
-  const [toDate, setToDate] = useState<string>(todayIso);
+  const [fromDate, setFromDate] = useState<string>(selectedDateStr);
+  const [toDate, setToDate] = useState<string>(selectedDateStr);
+
+  React.useEffect(() => {
+    setFromDate(selectedDateStr);
+    setToDate(selectedDateStr);
+    setCurrentPage(1);
+  }, [selectedDateStr]);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);

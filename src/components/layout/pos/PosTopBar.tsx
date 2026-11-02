@@ -1,3 +1,4 @@
+import { PosDateCalendarPopover } from "./PosDateCalendarPopover";
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
@@ -90,9 +91,7 @@ export function PosTopBar({
   const { activeOutlet } = useOutletContext();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = usePosNotifications();
 
-  const [showDateMenu, setShowDateMenu] = useState(false);
-  const [dateLabel, setDateLabel] = useState(formatTodayLabel);
-  const dateRef = useRef<HTMLDivElement>(null);
+  // Operational date is managed by PosDateCalendarPopover and usePosDate
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -191,39 +190,8 @@ export function PosTopBar({
           <span className="hidden sm:inline">New Order</span>
         </Link>
 
-        {/* Date pill */}
-        <div className="relative hidden md:block" ref={dateRef}>
-          <button
-            type="button"
-            onClick={() => setShowDateMenu((v) => !v)}
-            className="flex h-9 items-center gap-1.5 rounded-md border border-border bg-surface px-3 text-[12.5px] font-medium text-text-primary hover:bg-surface-2 transition cursor-pointer"
-          >
-            <Calendar className="h-3.5 w-3.5 text-text-secondary" />
-            <span className="max-w-[180px] truncate">{dateLabel}</span>
-            <ChevronDown className="h-3.5 w-3.5 text-text-disabled" />
-          </button>
-          {showDateMenu && (
-            <div className="absolute right-0 mt-1.5 w-56 rounded-md border border-border bg-surface p-1 shadow-lg z-30 animate-in fade-in zoom-in-95">
-              {dateOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => {
-                    setDateLabel(opt.label);
-                    setShowDateMenu(false);
-                  }}
-                  className={`flex w-full items-center rounded-md px-3 py-2 text-left text-[12.5px] transition cursor-pointer ${
-                    dateLabel === opt.label
-                      ? "bg-primary/10 text-primary font-semibold"
-                      : "text-text-primary hover:bg-surface-2"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Interactive Single-Date Calendar Popover */}
+        <PosDateCalendarPopover />
 
         {/* Notifications */}
         <DropdownMenu
