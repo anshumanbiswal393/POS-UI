@@ -467,7 +467,7 @@ export function PosAllOrdersManager() {
       <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
         {/* Left: Title, Order tabs, Table/Grid view */}
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-[16px] font-bold text-slate-900 leading-tight">Order History</h1>
+          <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">Order History</h1>
           <div className="flex items-center rounded-lg border border-slate-300 bg-slate-100 p-0.5 shadow-2xs">
             <button
               type="button"
@@ -970,7 +970,7 @@ export function PosAllOrdersManager() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-in fade-in">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-4">
             <div className="text-center border-b border-dashed border-slate-300 pb-4">
-              <h2 className="text-[18px] font-bold text-slate-900">HIGHWAY INN RESTAURANT</h2>
+              <h2 className="font-serif text-[18px] font-bold text-slate-900">HIGHWAY INN RESTAURANT</h2>
               <p className="text-[11px] text-slate-500">GSTIN: 27AABCT3518Q1ZY</p>
               <p className="text-[11px] text-slate-500">Ph: +91 98765 43210</p>
             </div>

@@ -33,7 +33,7 @@ export function PosMenuHeader() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4 mb-5">
       <div>
-        <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">{getTitle()}</h1>
+        <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight">{getTitle()}</h1>
       </div>
 
       <div className="flex items-center gap-2.5">

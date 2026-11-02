@@ -250,7 +250,7 @@ export function OutletConfigurationHubView() {
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <div>
-            <h2 className="text-[20px] font-bold tracking-tight text-slate-900">Outlet Setup</h2>
+            <h2 className="font-serif text-[20px] sm:text-[22px] font-bold tracking-tight text-slate-900">Outlet Setup</h2>
             <p className="mt-0.5 text-[12.5px] text-slate-500">
               Configure your outlet settings, contact details, timings and billing for smooth operations.
             </p>

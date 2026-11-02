@@ -588,7 +588,7 @@ export function InvoiceTemplatesView() {
               <div className="border-b-2 border-slate-800 pb-4 mb-4">
                 <div className="bg-slate-900 text-white p-4 rounded-t-lg flex justify-between items-center">
                   <div>
-                    <h1 className="text-[18px] font-extrabold uppercase tracking-wider">{companyName}</h1>
+                    <h1 className="font-serif text-[18px] font-extrabold uppercase tracking-wider">{companyName}</h1>
                     <p className="text-[10.5px] opacity-80 mt-0.5">{address}</p>
                   </div>
                   <div className="text-right">
@@ -652,7 +652,7 @@ export function InvoiceTemplatesView() {
                       <div className="h-7 w-7 rounded-md bg-teal-600 text-white flex items-center justify-center font-bold text-[12px]">
                         R
                       </div>
-                      <h1 className="text-[18px] font-extrabold text-slate-900">{companyName}</h1>
+                      <h1 className="font-serif text-[18px] font-extrabold text-slate-900">{companyName}</h1>
                     </div>
                     <p className="text-[11px] text-slate-500">{address}</p>
                     <p className="text-[11px] text-slate-500">

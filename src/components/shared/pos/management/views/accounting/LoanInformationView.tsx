@@ -413,7 +413,7 @@ export function LoanInformationView() {
       {/* 1. Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">Business Loans & POS Advance</h2>
+          <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">Business Loans & POS Advance</h2>
           <p className="text-[12.5px] text-slate-500 mt-0.5">
             Track business working capital credit, merchant cash advances, and automated swipe deductions.
           </p>

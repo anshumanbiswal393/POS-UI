@@ -111,7 +111,7 @@ export function SalesConsumptionView() {
       {/* Top Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">Sales Consumption</h2>
+          <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">Sales Consumption</h2>
           <p className="text-[12.5px] text-slate-500 mt-0.5">
             Automatic consumption calculated from billed recipes, item sales, and add-ons.
           </p>

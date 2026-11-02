@@ -442,7 +442,7 @@ export function PosOnlineOrdersManager() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-[16px] font-bold text-text-primary leading-tight">
+              <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-text-primary tracking-tight leading-tight">
                 Online Aggregator Hub
               </h1>
               <span className="inline-flex items-center gap-1 rounded-full bg-primary-tint px-2 py-0.2 text-[10.5px] font-bold text-primary border border-primary/30">

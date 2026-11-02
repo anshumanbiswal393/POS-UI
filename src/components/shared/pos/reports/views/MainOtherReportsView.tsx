@@ -693,7 +693,7 @@ export function MainOtherReportsView() {
             </button>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
+                <h2 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight">
                   {selectedReport.title}
                 </h2>
                 <span className="rounded-md bg-teal-50 px-2 py-0.5 text-[11px] font-bold text-teal-700 border border-teal-200">
@@ -1053,7 +1053,7 @@ export function MainOtherReportsView() {
       {/* 1. Header Toolbar (Title + Subtitle + Search + View Mode Switcher) */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-extrabold text-slate-900 tracking-tight">
+          <h1 className="font-serif text-[22px] sm:text-[24px] font-bold text-slate-900 tracking-tight">
             Reports & Graphs
           </h1>
           <p className="text-[13px] text-slate-500 font-medium mt-0.5">

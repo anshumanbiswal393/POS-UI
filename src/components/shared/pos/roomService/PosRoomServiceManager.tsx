@@ -120,7 +120,7 @@ export function PosRoomServiceManager() {
                 <BedDouble className="w-5 h-5" />
               </span>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight leading-none">
+                <h1 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 tracking-tight leading-none">
                   Room Orders
                 </h1>
                 <p className="text-xs text-slate-500 mt-0.5">

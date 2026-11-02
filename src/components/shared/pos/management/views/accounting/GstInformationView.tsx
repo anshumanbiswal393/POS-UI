@@ -265,7 +265,7 @@ export function GstInformationView() {
       {/* 1. Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
+          <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">
             GST & Statutory Business Tax Profile
           </h2>
           <p className="text-[12px] text-slate-500 mt-0.5">

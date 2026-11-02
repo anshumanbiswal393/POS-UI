@@ -18,7 +18,7 @@ export function MarketplaceSettingsView() {
     <div className="space-y-4 w-full">
       {/* 1. Header matching Screenshot 3 */}
       <div>
-        <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
+        <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">
           Marketplace Settings
         </h2>
       </div>

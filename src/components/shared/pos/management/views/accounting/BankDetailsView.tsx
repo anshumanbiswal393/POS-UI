@@ -350,7 +350,7 @@ export function BankDetailsView() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-[20px] font-bold text-slate-900 tracking-tight">Bank Details</h2>
+            <h2 className="font-serif text-[20px] font-bold text-slate-900 tracking-tight">Bank Details</h2>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
               <ShieldCheck className="h-3 w-3" /> Auto-Disbursement Active
             </span>

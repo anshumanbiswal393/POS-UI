@@ -284,7 +284,7 @@ export function StockWastageView() {
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
+            <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">
               Stock Wastage & Leakage
             </h2>
             <p className="text-[12.5px] text-slate-500 mt-0.5 max-w-xl">

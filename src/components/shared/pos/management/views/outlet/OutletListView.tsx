@@ -25,7 +25,7 @@ export function OutletListView() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-[18px] font-bold tracking-tight text-slate-900">Outlet List</h2>
+          <h2 className="font-serif text-[18px] font-bold tracking-tight text-slate-900">Outlet List</h2>
           <p className="mt-0.5 text-[12.5px] text-slate-500 max-w-xl">
             All dining, takeaway, and bar outlets registered for this property.
           </p>

@@ -95,7 +95,7 @@ export function AdminGroupManagementView() {
       {/* 1. Header & Actions - Full width space utilization */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
+          <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">
             Admin Group Management
           </h2>
           <p className="text-[12.5px] text-slate-500 mt-0.5">

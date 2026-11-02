@@ -352,7 +352,7 @@ export function KycDetailsView() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5">
-            <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">KYC & Compliance Details</h2>
+            <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">KYC & Compliance Details</h2>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
               <ShieldCheck className="h-3.5 w-3.5" /> Level-3 Verified
             </span>

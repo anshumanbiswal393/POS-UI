@@ -361,7 +361,7 @@ export function PaymentInformationView() {
       {/* 1. Header with Add Button */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">Payment Information</h2>
+          <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">Payment Information</h2>
           <p className="text-[12px] text-slate-500 mt-0.5">
             Real-time digital payment settlements, MDR charges, and multi-gateway provider reconciliation.
           </p>

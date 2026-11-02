@@ -170,7 +170,7 @@ export function OnlineItemLogsView() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="font-serif text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             <UtensilsCrossed className="h-5 w-5 text-teal-600" />
             Online Item On / Off Availability Logs
           </h2>
