@@ -33,7 +33,7 @@ export function PosDashboardManager() {
   if (!data) return null;
 
   return (
-    <div className="flex flex-col flex-1 gap-2 p-3 sm:p-4 lg:p-5 lg:min-h-0 lg:overflow-hidden">
+    <div className="flex flex-col flex-1 gap-2 p-3 sm:p-4 lg:p-5 pt-2 sm:pt-2.5 lg:pt-3 lg:min-h-0 lg:overflow-hidden">
       <DashboardKpiCards stats={data.stats} />
 
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:min-h-0 lg:flex-[1.15] lg:grid-cols-3">

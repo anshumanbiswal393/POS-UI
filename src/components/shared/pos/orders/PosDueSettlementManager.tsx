@@ -345,7 +345,7 @@ export function PosDueSettlementManager() {
   if (selectedBill) {
     const amt = parseFloat(settlementAmount) || selectedBill.dueAmount;
     return (
-      <div className="responsive-page-x py-3 sm:py-4 flex flex-col gap-3 pb-6 lg:h-[calc(100dvh-3.5rem)] lg:max-h-[calc(100dvh-3.5rem)] lg:overflow-hidden">
+      <div className="flex flex-col flex-1 min-h-0 w-full h-[calc(100dvh-3.5rem)] overflow-hidden bg-slate-50/50">
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
@@ -491,7 +491,7 @@ export function PosDueSettlementManager() {
 
   return (
     <div className="space-y-2.5 pb-8">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8.5 w-8.5 items-center justify-center rounded-lg bg-teal-50 border border-teal-300 text-teal-700">
             <CreditCard className="h-4.5 w-4.5" />

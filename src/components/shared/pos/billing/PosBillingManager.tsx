@@ -1230,7 +1230,7 @@ export function PosBillingManager() {
   }, [handleNewBill, handleHoldBill, handlePrintKot, cartItems.length]);
 
   return (
-    <div className="flex flex-col flex-1 h-[calc(100dvh-3.5rem)] max-h-[calc(100dvh-3.5rem)] overflow-hidden gap-2 p-2 sm:p-3">
+    <div className="flex flex-col flex-1 h-[calc(100dvh-3.5rem)] max-h-[calc(100dvh-3.5rem)] overflow-hidden bg-slate-50/50">
       {/* 1. Top Order Mode & Action Header */}
       <div className="shrink-0">
         <BillingHeader

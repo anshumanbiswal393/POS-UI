@@ -462,9 +462,10 @@ export function PosAllOrdersManager() {
   };
 
   return (
-    <div className="responsive-page-x py-4 sm:py-5 space-y-2.5 pb-8">
-      {/* 1. Top Header Row */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
+    <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden bg-slate-50/50">
+      {/* 1. Top Header Row - Flush with TopBar */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
+
         {/* Left: Title, Order tabs, Table/Grid view */}
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">Order History</h1>

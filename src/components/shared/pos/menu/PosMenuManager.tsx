@@ -61,7 +61,7 @@ export function PosMenuManager() {
   ];
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] bg-[#f8fafc]">
+    <div className="flex flex-1 h-[calc(100dvh-3.5rem)] min-h-[520px] bg-[#f8fafc] overflow-hidden">
       {/* 1. Left Menu Sub-Navigation Rail */}
       <aside className="w-60 shrink-0 border-r border-slate-200 bg-white shadow-2xs flex flex-col justify-between">
         <div className="py-2">

@@ -433,9 +433,10 @@ export function PosOnlineOrdersManager() {
   );
 
   return (
-    <div className="responsive-page-x py-4 sm:py-5 space-y-2.5 pb-8">
-      {/* 1. TOP HEADER */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-border bg-surface p-3 shadow-2xs">
+    <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden bg-slate-50/50">
+      {/* 1. TOP HEADER - Flush with TopBar */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
+
         <div className="flex items-center gap-2.5">
           <div className="flex h-8.5 w-8.5 items-center justify-center rounded-lg bg-primary-tint border border-primary/30 text-primary font-bold">
             <Bike className="h-4.5 w-4.5" />

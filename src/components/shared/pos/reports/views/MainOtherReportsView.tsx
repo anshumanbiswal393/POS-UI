@@ -679,7 +679,7 @@ export function MainOtherReportsView() {
   // ---------------------------------------------------------
   if (selectedReport) {
     return (
-      <div className="responsive-page-x py-4 sm:py-6 space-y-4 print:p-0">
+      <div className="responsive-page-x pt-2.5 pb-6 sm:pt-3 space-y-4 print:p-0">
         {/* Top Breadcrumb / Title Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3 print:hidden">
           <div className="flex items-center gap-3">
@@ -1049,7 +1049,7 @@ export function MainOtherReportsView() {
   // RENDER: REPORTS CATALOG & DASHBOARD (ALIGNED WITH PMS/POS DESIGN)
   // ---------------------------------------------------------
   return (
-    <div className="responsive-page-x py-4 sm:py-6 space-y-6">
+    <div className="responsive-page-x pt-2.5 pb-6 sm:pt-3 space-y-6">
       {/* 1. Header Toolbar (Title + Subtitle + Search + View Mode Switcher) */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

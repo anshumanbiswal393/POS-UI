@@ -164,9 +164,10 @@ export function PosLiveOrdersManager() {
 
 
   return (
-    <div className="responsive-page-x py-4 sm:py-5 space-y-2.5">
-      {/* 1. TOP HEADER & VIEW SWITCHER */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
+    <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden bg-slate-50/50">
+      {/* 1. TOP HEADER & VIEW SWITCHER - Flush with TopBar */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
+
         <div className="flex items-center gap-2.5">
           <div className="flex h-8.5 w-8.5 items-center justify-center rounded-lg bg-teal-50 border border-teal-300 text-teal-700">
             <Timer className="h-4.5 w-4.5" />

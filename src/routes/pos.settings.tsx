@@ -3,5 +3,5 @@ import { PosSettingsScreen } from "@/components/shared/pos/settings/PosSettingsS
 
 export const Route = createFileRoute("/pos/settings")({
   
-  component: PosSettingsScreen,
+  component: () => <div className="responsive-page-x pt-2.5 pb-6 sm:pt-3"><PosSettingsScreen /></div>,
 });
