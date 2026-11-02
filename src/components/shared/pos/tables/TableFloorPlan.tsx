@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { TableCardItem } from "./TableCardItem";
 import type {
   RestaurantTable,
@@ -6,7 +6,7 @@ import type {
   DiningArea,
   TableManagementStats,
 } from "@/types/posTables";
-import { Users, Sparkles, LayoutGrid, RotateCw, Plus, CalendarPlus, UserPlus, Utensils } from "lucide-react";
+import { Users, Sparkles, LayoutGrid, RotateCw, Plus, CalendarPlus, UserPlus, Utensils, AlertCircle, ArrowDown, X } from "lucide-react";
 
 interface TableFloorPlanProps {
   tables: RestaurantTable[];
@@ -41,6 +41,26 @@ export function TableFloorPlan({
   stats,
   onRefresh,
 }: TableFloorPlanProps) {
+  const [showNoAreaWarning, setShowNoAreaWarning] = useState(false);
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    };
+  }, []);
+
+  const handleAddTableClick = () => {
+    if (areas.length === 0) {
+      setShowNoAreaWarning(true);
+      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+      warningTimerRef.current = setTimeout(() => {
+        setShowNoAreaWarning(false);
+      }, 5000);
+      return;
+    }
+    onOpenAddTable?.();
+  };
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-slate-50/50 overflow-y-auto">
       {/* 1. Header Bar: Title + Actions + Area Switcher Tabs */}
@@ -61,18 +81,43 @@ export function TableFloorPlan({
           </div>
 
           {/* Area Switcher & Actions */}
-          <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto relative">
             {/* Area Switcher with + button */}
-            <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/60">
+            <div
+              className={`flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border relative transition-all duration-300 ${
+                showNoAreaWarning && areas.length === 0
+                  ? "border-primary/50 bg-primary/5 ring-2 ring-primary/30"
+                  : "border-slate-200/60"
+              }`}
+            >
               {areas.length === 0 ? (
-                <button
-                  type="button"
-                  onClick={onOpenAddArea}
-                  className="px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-primary hover:bg-primary/10 transition-colors flex items-center gap-1 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add First Area</span>
-                </button>
+                <div className="relative">
+                  {/* Animated bouncing arrow pointing to the Add First Area button */}
+                  {showNoAreaWarning && (
+                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-50 animate-bounce">
+                      <span className="bg-primary text-primary-foreground text-[10.5px] font-extrabold px-2.5 py-0.5 rounded-full shadow-lg whitespace-nowrap flex items-center gap-1">
+                        <Plus className="w-3 h-3" />
+                        <span>Add dining area here!</span>
+                      </span>
+                      <ArrowDown className="w-4 h-4 text-primary -mt-0.5" />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNoAreaWarning(false);
+                      onOpenAddArea?.();
+                    }}
+                    className={`px-3 py-1 rounded-lg text-xs transition-all flex items-center gap-1 cursor-pointer ${
+                      showNoAreaWarning
+                        ? "text-primary bg-primary/20 ring-2 ring-primary ring-offset-1 animate-pulse font-extrabold scale-105"
+                        : "text-slate-600 hover:text-primary hover:bg-primary/10 font-semibold"
+                    }`}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add First Area</span>
+                  </button>
+                </div>
               ) : null}
               {areas.map((area) => {
                 const isActive = activeArea === area;
@@ -105,17 +150,63 @@ export function TableFloorPlan({
               )}
             </div>
 
-            {/* Add Table Button */}
-            {onOpenAddTable && (
-              <button
-                type="button"
-                onClick={onOpenAddTable}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-primary-foreground bg-primary hover:bg-primary/90 active:scale-95 rounded-xl shadow-xs transition-all cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Table</span>
-              </button>
-            )}
+            {/* Add Table Button with Popover */}
+            <div className="relative">
+              {onOpenAddTable && (
+                <button
+                  type="button"
+                  onClick={handleAddTableClick}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl shadow-xs transition-all ${
+                    areas.length === 0
+                      ? "bg-slate-200 text-slate-400 border border-slate-300 shadow-none cursor-not-allowed hover:bg-slate-200 hover:text-slate-400"
+                      : "text-primary-foreground bg-primary hover:bg-primary/90 active:scale-95 cursor-pointer"
+                  }`}
+                  title={areas.length === 0 ? "First add a dining area to create tables" : "Add Table"}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Table</span>
+                </button>
+              )}
+
+              {/* Popup warning when clicking Add Table without any dining area */}
+              {showNoAreaWarning && (
+                <div className="absolute right-0 top-full mt-2.5 w-72 rounded-xl bg-white p-3.5 shadow-2xl border border-primary/25 z-50 animate-in fade-in slide-in-from-top-2 duration-200 text-left">
+                  {/* Caret pointing up to the Add Table button */}
+                  <div className="absolute -top-2 right-6 h-4 w-4 rotate-45 border-l border-t border-primary/25 bg-white" />
+
+                  <div className="flex items-start justify-between gap-2 relative z-10">
+                    <div className="flex items-center gap-1.5 text-primary font-bold text-xs">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-primary" />
+                      <span>First add a dining area!</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowNoAreaWarning(false)}
+                      className="text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+                      title="Dismiss"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <p className="mt-1.5 text-[11.5px] leading-relaxed text-slate-600 relative z-10">
+                    Tables must belong to a dining area (e.g. Main Dining, Terrace). Please add your dining area first.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNoAreaWarning(false);
+                      onOpenAddArea?.();
+                    }}
+                    className="mt-2.5 w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg shadow-xs transition-all cursor-pointer relative z-10"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Dining Area Now</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -201,14 +292,32 @@ export function TableFloorPlan({
               Add your restaurant floors or dining areas (e.g. Indoor, Rooftop, Garden, AC Hall) to set up tables.
             </p>
             {onOpenAddArea && (
-              <button
-                type="button"
-                onClick={onOpenAddArea}
-                className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-lg transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add Dining Area
-              </button>
+              <div className="relative inline-block mt-3">
+                {/* Animated bouncing arrow pointing to the center Add Dining Area button */}
+                {showNoAreaWarning && (
+                  <div className="absolute -top-9 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-50 animate-bounce">
+                    <span className="bg-primary text-primary-foreground text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-md whitespace-nowrap">
+                      Add area here!
+                    </span>
+                    <ArrowDown className="w-4 h-4 text-primary -mt-0.5" />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowNoAreaWarning(false);
+                    onOpenAddArea();
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    showNoAreaWarning
+                      ? "bg-primary text-primary-foreground ring-4 ring-primary/40 animate-pulse scale-105 shadow-md"
+                      : "text-primary bg-primary/10 hover:bg-primary/20 border border-primary/30"
+                  }`}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add Dining Area
+                </button>
+              </div>
             )}
           </div>
         ) : tables.length === 0 ? (
