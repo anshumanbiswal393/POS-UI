@@ -29,7 +29,6 @@ import {
   FileText,
   Users,
   ScrollText,
-  Building2,
   Mail,
   Landmark,
   Receipt,
@@ -39,6 +38,7 @@ import {
   PlusCircle,
   CalendarCheck2,
 } from "lucide-react";
+import type { Permission } from "@/types/rbac";
 
 export type PosNavChild = {
   id: string;
@@ -46,6 +46,8 @@ export type PosNavChild = {
   to?: string;
   icon?: LucideIcon;
   children?: PosNavChild[];
+  permission?: Permission;
+  anyPermissions?: Permission[];
 };
 
 export type PosNavItem = {
@@ -55,9 +57,11 @@ export type PosNavItem = {
   icon: LucideIcon;
   exact?: boolean;
   children?: PosNavChild[];
+  permission?: Permission;
+  anyPermissions?: Permission[];
 };
 
-/** SRS module nav — Exact alignment with POS Design System */
+/** SRS module nav — Exact alignment with POS Design System & RBAC permissions */
 export const POS_NAV_ITEMS: PosNavItem[] = [
   {
     id: "dashboard",
@@ -65,29 +69,40 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
     to: "/pos",
     icon: LayoutDashboard,
     exact: true,
+    anyPermissions: [
+      "pos.orders.view",
+      "pos.kot.view",
+      "pos.billing.view",
+      "pos.inventory.view",
+      "pos.menu.view",
+      "dashboard.view",
+    ],
   },
   {
     id: "take-order",
     label: "Take Order",
     to: "/pos/take-order",
     icon: Grid3X3,
+    permission: "pos.orders.create",
   },
   {
     id: "billing",
     label: "Billing",
     to: "/pos/billing",
     icon: CreditCard,
+    permission: "pos.billing.view",
   },
   {
     id: "daily",
     label: "Orders",
     to: "/pos/orders",
     icon: ShoppingBag,
+    anyPermissions: ["pos.orders.view", "pos.kot.view", "pos.billing.settle"],
     children: [
-      { id: "live-orders", label: "Current Orders", to: "/pos/orders", icon: ClipboardList },
-      { id: "kot", label: "Kitchen Orders", to: "/pos/kot", icon: ChefHat },
-      { id: "settlement", label: "Pending Payments", to: "/pos/settlement", icon: Wallet },
-      { id: "all-orders", label: "Order History", to: "/pos/orders/all", icon: History },
+      { id: "live-orders", label: "Current Orders", to: "/pos/orders", icon: ClipboardList, permission: "pos.orders.view" },
+      { id: "kot", label: "Kitchen Orders", to: "/pos/kot", icon: ChefHat, permission: "pos.kot.view" },
+      { id: "settlement", label: "Pending Payments", to: "/pos/settlement", icon: Wallet, permission: "pos.billing.settle" },
+      { id: "all-orders", label: "Order History", to: "/pos/orders/all", icon: History, permission: "pos.orders.view" },
     ],
   },
   {
@@ -95,18 +110,19 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
     label: "Reservations",
     to: "/pos/reservations",
     icon: CalendarCheck2,
+    permission: "pos.orders.view",
   },
-
   {
     id: "menu",
     label: "Food Menu",
     to: "/pos/menu",
     icon: UtensilsCrossed,
+    permission: "pos.menu.view",
     children: [
-      { id: "menu-list", label: "Menu List", to: "/pos/menu", icon: List },
-      { id: "menu-notes", label: "Special Notes", to: "/pos/menu/special-notes", icon: StickyNote },
-      { id: "menu-commission", label: "Set Item Commission", to: "/pos/menu/commission", icon: Percent },
-      { id: "menu-physical", label: "Printed Menu", to: "/pos/menu/physical", icon: BookOpen },
+      { id: "menu-list", label: "Menu List", to: "/pos/menu", icon: List, permission: "pos.menu.view" },
+      { id: "menu-notes", label: "Special Notes", to: "/pos/menu/special-notes", icon: StickyNote, permission: "pos.menu.manage" },
+      { id: "menu-commission", label: "Set Item Commission", to: "/pos/menu/commission", icon: Percent, permission: "pos.menu.manage" },
+      { id: "menu-physical", label: "Printed Menu", to: "/pos/menu/physical", icon: BookOpen, permission: "pos.menu.view" },
     ],
   },
   {
@@ -114,46 +130,52 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
     label: "Stock",
     to: "/pos/inventory",
     icon: Package,
+    permission: "pos.inventory.view",
     children: [
-      { id: "inv-dashboard", label: "Stock Overview", to: "/pos/inventory", icon: LayoutGrid },
+      { id: "inv-dashboard", label: "Stock Overview", to: "/pos/inventory", icon: LayoutGrid, permission: "pos.inventory.view" },
       {
         id: "purchase-group",
         label: "Purchases",
         icon: ShoppingCart,
+        permission: "pos.inventory.manage",
         children: [
-          { id: "stock-purchase", label: "Purchases", to: "/pos/inventory/purchase", icon: ShoppingCart },
-          { id: "purchase-return", label: "Purchase Returns", to: "/pos/inventory/return", icon: ArrowLeftRight },
+          { id: "stock-purchase", label: "Purchases", to: "/pos/inventory/purchase", icon: ShoppingCart, permission: "pos.inventory.manage" },
+          { id: "purchase-return", label: "Purchase Returns", to: "/pos/inventory/return", icon: ArrowLeftRight, permission: "pos.inventory.manage" },
         ],
       },
       {
         id: "manage-stock-group",
         label: "Manage Stock",
         icon: Boxes,
+        permission: "pos.inventory.view",
         children: [
-          { id: "available-stock", label: "Available Stock", to: "/pos/inventory/available-stock", icon: Boxes },
-          { id: "closing-stock", label: "Daily Stock Count", to: "/pos/inventory/closing-stock", icon: ClipboardList },
+          { id: "available-stock", label: "Available Stock", to: "/pos/inventory/available-stock", icon: Boxes, permission: "pos.inventory.view" },
+          { id: "closing-stock", label: "Daily Stock Count", to: "/pos/inventory/closing-stock", icon: ClipboardList, permission: "pos.inventory.manage" },
         ],
       },
       {
         id: "consumption-group",
         label: "Stock Usage",
         icon: ArrowLeftRight,
+        permission: "pos.inventory.view",
         children: [
-          { id: "inv-sales", label: "Items Sold", to: "/pos/inventory/sales", icon: ShoppingBag },
-          { id: "inv-wastage", label: "Stock Wastage", to: "/pos/inventory/wastage", icon: Package },
+          { id: "inv-sales", label: "Items Sold", to: "/pos/inventory/sales", icon: ShoppingBag, permission: "pos.inventory.view" },
+          { id: "inv-wastage", label: "Stock Wastage", to: "/pos/inventory/wastage", icon: Package, permission: "pos.inventory.wastage" },
         ],
       },
       {
         id: "production-group",
         label: "Food Preparation",
         icon: CookingPot,
+        permission: "pos.inventory.production",
         children: [
-          { id: "inv-prod-master", label: "Preparation Setup", to: "/pos/inventory/production", icon: SlidersHorizontal },
+          { id: "inv-prod-master", label: "Preparation Setup", to: "/pos/inventory/production", icon: SlidersHorizontal, permission: "pos.inventory.production" },
           {
             id: "inv-prod-exec",
             label: "Prepare Items",
             to: "/pos/inventory/production/execution",
             icon: CookingPot,
+            permission: "pos.inventory.production",
           },
         ],
       },
@@ -161,25 +183,29 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
         id: "reports-group",
         label: "Reports",
         icon: BarChart3,
+        permission: "pos.reports.view",
         children: [
-          { id: "inv-rep-current", label: "Stock Report", to: "/pos/inventory/reports", icon: BarChart3 },
+          { id: "inv-rep-current", label: "Stock Report", to: "/pos/inventory/reports", icon: BarChart3, permission: "pos.reports.view" },
           {
             id: "inv-rep-summary",
             label: "Stock Summary",
             to: "/pos/inventory/reports/stock-summary",
             icon: PieChart,
+            permission: "pos.reports.view",
           },
           {
             id: "inv-rep-orderwise",
             label: "Usage by Order",
             to: "/pos/inventory/reports/orderwise-consumption",
             icon: ClipboardList,
+            permission: "pos.reports.view",
           },
           {
             id: "inv-rep-other",
             label: "More Reports",
             to: "/pos/inventory/reports/other-reports",
             icon: FileText,
+            permission: "pos.reports.view",
           },
         ],
       },
@@ -187,25 +213,28 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
         id: "masters-group",
         label: "Stock Setup",
         icon: Settings2,
+        permission: "pos.inventory.manage",
         children: [
           {
             id: "inv-raw-materials",
             label: "Raw Materials",
             to: "/pos/inventory/masters/raw-materials",
             icon: Package,
+            permission: "pos.inventory.manage",
           },
-          { id: "inv-recipes", label: "Recipes", to: "/pos/inventory/masters/recipes", icon: BookOpen },
-          { id: "inv-suppliers-list", label: "Suppliers", to: "/pos/inventory/masters/suppliers", icon: Store },
+          { id: "inv-recipes", label: "Recipes", to: "/pos/inventory/masters/recipes", icon: BookOpen, permission: "pos.recipes.view" },
+          { id: "inv-suppliers-list", label: "Suppliers", to: "/pos/inventory/masters/suppliers", icon: Store, permission: "pos.inventory.manage" },
           {
             id: "inv-invoice-templates",
             label: "Invoice Format",
             to: "/pos/inventory/masters/invoice-templates",
             icon: FileText,
+            permission: "pos.inventory.manage",
           },
-          { id: "inv-units", label: "Units", to: "/pos/inventory/masters/units", icon: SlidersHorizontal },
+          { id: "inv-units", label: "Units", to: "/pos/inventory/masters/units", icon: SlidersHorizontal, permission: "pos.inventory.manage" },
         ],
       },
-      { id: "inv-settings", label: "Stock Settings", to: "/pos/inventory/settings", icon: Settings },
+      { id: "inv-settings", label: "Stock Settings", to: "/pos/inventory/settings", icon: Settings, permission: "pos.settings.manage" },
     ],
   },
   {
@@ -213,10 +242,11 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
     label: "Reports",
     to: "/pos/reports",
     icon: PieChart,
+    permission: "pos.reports.view",
     children: [
-      { id: "rep-day-end", label: "Day End Summary", to: "/pos/reports/day-end", icon: ClipboardList },
-      { id: "rep-other", label: "Other Reports", to: "/pos/reports/other", icon: FileText },
-      { id: "rep-notifications", label: "Report Notification", to: "/pos/reports/notifications", icon: StickyNote },
+      { id: "rep-day-end", label: "Day End Summary", to: "/pos/reports/day-end", icon: ClipboardList, permission: "pos.reports.view" },
+      { id: "rep-other", label: "Other Reports", to: "/pos/reports/other", icon: FileText, permission: "pos.reports.view" },
+      { id: "rep-notifications", label: "Report Notification", to: "/pos/reports/notifications", icon: StickyNote, permission: "pos.settings.manage" },
     ],
   },
   {
@@ -224,34 +254,40 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
     label: "Management",
     to: "/pos/management",
     icon: Settings2,
+    permission: "pos.settings.manage",
     children: [
       {
         id: "configuration-group",
         label: "Configuration",
         icon: SlidersHorizontal,
+        permission: "pos.settings.manage",
         children: [
           {
             id: "cfg-outlet-group",
             label: "Outlet",
             icon: Store,
+            permission: "pos.settings.manage",
             children: [
               {
                 id: "cfg-outlet-list",
                 label: "Outlet List",
                 to: "/pos/management/configuration/outlet/list",
                 icon: List,
+                permission: "pos.settings.manage",
               },
               {
                 id: "cfg-outlet-add",
                 label: "+ Add Outlet",
                 to: "/pos/management/configuration/outlet/add",
                 icon: PlusCircle,
+                permission: "pos.settings.manage",
               },
               {
                 id: "cfg-outlet-setup",
                 label: "Outlet Setup",
                 to: "/pos/management/configuration/outlet",
                 icon: Store,
+                permission: "pos.settings.manage",
               },
             ],
           },
@@ -260,6 +296,7 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
             label: "Email Template Settings",
             to: "/pos/management/configuration/email-templates",
             icon: Mail,
+            permission: "pos.settings.manage",
           },
         ],
       },
@@ -267,74 +304,85 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
         id: "accounting-group",
         label: "Accounting",
         icon: Wallet,
+        permission: "pos.billing.settle",
         children: [
           {
             id: "payments-group",
             label: "Payments",
             icon: CreditCard,
+            permission: "pos.billing.settle",
             children: [
               {
                 id: "acc-pay-info",
                 label: "Payment Information",
                 to: "/pos/management/accounting/payments/information",
                 icon: CreditCard,
+                permission: "pos.billing.view",
               },
               {
                 id: "acc-pay-wallet",
                 label: "Virtual Wallet",
                 to: "/pos/management/accounting/payments/wallet",
                 icon: Wallet,
+                permission: "pos.billing.settle",
               },
             ],
           },
-          { id: "acc-gst", label: "GST Information", to: "/pos/management/accounting/gst", icon: FileText },
-          { id: "acc-bank", label: "Bank Details", to: "/pos/management/accounting/bank-details", icon: Landmark },
-          { id: "acc-kyc", label: "KYC Details", to: "/pos/management/accounting/kyc", icon: Users },
+          { id: "acc-gst", label: "GST Information", to: "/pos/management/accounting/gst", icon: FileText, permission: "pos.reports.view" },
+          { id: "acc-bank", label: "Bank Details", to: "/pos/management/accounting/bank-details", icon: Landmark, permission: "pos.settings.manage" },
+          { id: "acc-kyc", label: "KYC Details", to: "/pos/management/accounting/kyc", icon: Users, permission: "pos.settings.manage" },
           {
             id: "acc-utility",
             label: "Utility Bills",
             to: "/pos/management/accounting/utility-bills",
             icon: Receipt,
+            permission: "pos.settings.manage",
           },
           {
             id: "acc-expenses",
             label: "Expense & Withdrawal",
             to: "/pos/management/accounting/expenses",
             icon: Wallet,
+            permission: "pos.shift.manage",
           },
           {
             id: "acc-service",
             label: "Service Payment History",
             to: "/pos/management/accounting/service-payments",
             icon: History,
+            permission: "pos.reports.view",
           },
-          { id: "acc-loans", label: "Loan Information", to: "/pos/management/accounting/loans", icon: FileText },
-          { id: "acc-denom", label: "Denomination", to: "/pos/management/accounting/denomination", icon: Coins },
+          { id: "acc-loans", label: "Loan Information", to: "/pos/management/accounting/loans", icon: FileText, permission: "pos.settings.manage" },
+          { id: "acc-denom", label: "Denomination", to: "/pos/management/accounting/denomination", icon: Coins, permission: "pos.shift.manage" },
         ],
       },
       {
         id: "user-management-group",
         label: "User Management",
         icon: Users,
+        permission: "pos.users.manage",
         children: [
-          { id: "usr-biller-app", label: "Biller App", to: "/pos/management/users/biller-app", icon: Smartphone },
+          { id: "usr-biller-app", label: "Biller App", to: "/pos/management/users/biller-app", icon: Smartphone, permission: "pos.users.manage" },
           {
             id: "usr-biller-groups",
             label: "Biller Group Management",
             to: "/pos/management/users/biller-groups",
             icon: Users,
+            permission: "pos.users.manage",
           },
           {
             id: "usr-admin-groups",
             label: "Admin Group Management",
             to: "/pos/management/users/admin-groups",
             icon: Users,
+            permission: "pos.users.manage",
           },
           {
             id: "usr-admin-mgmt",
             label: "Admin Management",
             to: "/pos/management/users/admin-management",
             icon: UserCog,
+            permission: "pos.users.manage",
           },
         ],
       },
@@ -342,46 +390,51 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
         id: "user-logs-group",
         label: "User Logs",
         icon: ScrollText,
+        permission: "pos.settings.manage",
         children: [
-          { id: "log-support", label: "Support Management", to: "/pos/management/logs/support", icon: HelpCircle },
-          { id: "log-notifications", label: "Notification", to: "/pos/management/logs/notifications", icon: StickyNote },
+          { id: "log-support", label: "Support Management", to: "/pos/management/logs/support", icon: HelpCircle, permission: "pos.settings.manage" },
+          { id: "log-notifications", label: "Notification", to: "/pos/management/logs/notifications", icon: StickyNote, permission: "pos.settings.manage" },
           {
             id: "log-menu-trigger",
             label: "Menu Trigger Logs",
             to: "/pos/management/logs/menu-trigger",
             icon: ScrollText,
+            permission: "pos.settings.manage",
           },
           {
             id: "log-closing-hours",
             label: "Closing Hour Logs",
             to: "/pos/management/logs/closing-hours",
             icon: History,
+            permission: "pos.settings.manage",
           },
-          { id: "log-expense", label: "Expense Logs", to: "/pos/management/logs/expenses", icon: Wallet },
+          { id: "log-expense", label: "Expense Logs", to: "/pos/management/logs/expenses", icon: Wallet, permission: "pos.shift.manage" },
           {
             id: "log-withdrawal",
             label: "Withdrawal Logs",
             to: "/pos/management/logs/withdrawals",
             icon: Wallet,
+            permission: "pos.shift.manage",
           },
           {
             id: "log-cash-topup",
             label: "Cash Top-Up Logs",
             to: "/pos/management/logs/cash-topup",
             icon: Coins,
+            permission: "pos.shift.manage",
           },
         ],
       },
-      { id: "mgmt-audit", label: "Audit Trail", to: "/pos/management/audit-trail", icon: ScrollText },
-      { id: "mgmt-data", label: "Data Management", to: "/pos/management/data-management", icon: FileText },
-      { id: "mgmt-device", label: "Device Mapping", to: "/pos/management/device-mapping", icon: Settings2 },
+      { id: "mgmt-audit", label: "Audit Trail", to: "/pos/management/audit-trail", icon: ScrollText, permission: "pos.settings.manage" },
+      { id: "mgmt-data", label: "Data Management", to: "/pos/management/data-management", icon: FileText, permission: "pos.settings.manage" },
+      { id: "mgmt-device", label: "Device Mapping", to: "/pos/management/device-mapping", icon: Settings2, permission: "pos.settings.manage" },
     ],
   },
 ];
 
 export const POS_FOOTER_NAV_ITEMS: PosNavItem[] = [
   { id: "help", label: "Help & Support", to: "/pos/help", icon: HelpCircle },
-  { id: "settings", label: "Settings", to: "/pos/settings", icon: Settings },
+  { id: "settings", label: "Settings", to: "/pos/settings", icon: Settings, permission: "pos.settings.manage" },
 ];
 
 export function getPosRouteMeta(pathname: string): { label: string; linkTo: string } {

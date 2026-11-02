@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PosBillingManager } from "@/components/shared/pos/billing/PosBillingManager";
+import { GuardedRoute } from "@/features/auth/components/GuardedRoute";
 
 type BillingSearch = {
   orderType?: string;
@@ -42,5 +43,16 @@ export const Route = createFileRoute("/pos/billing")({
     settle: typeof search.settle === "string" ? search.settle : undefined,
   }),
   
-  component: PosBillingManager,
+  component: PosBillingRoute,
 });
+
+function PosBillingRoute() {
+  return (
+    <GuardedRoute permission="pos.billing.view">
+      <PosBillingManager />
+    </GuardedRoute>
+  );
+}
+
+// export placeholder to satisfy TanStack
+const _dummy = null;

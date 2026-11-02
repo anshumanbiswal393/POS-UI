@@ -354,7 +354,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               pColon === colonVersion ||
               pLower === "*:*" ||
               pLower === "*" ||
-              (pLower.startsWith("pos") && (raw.startsWith("pos") || dotVersion.startsWith("pos")))
+              pLower === "pos:*" || pLower === "pos.*" || (pDot.endsWith(".*") && dotVersion.startsWith(pDot.slice(0, -1)))
             );
           });
           if (granted) return true;

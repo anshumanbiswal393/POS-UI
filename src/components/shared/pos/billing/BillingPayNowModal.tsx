@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 import type { BillingPaymentMethod } from "@/types/posBilling";
 
 export type PayNowMode = "Cash" | "UPI" | "Card" | "Room Charge" | "Wallet";
@@ -58,8 +59,29 @@ export function BillingPayNowModal({
   busy = false,
   onConfirm,
 }: BillingPayNowModalProps) {
+  const { can, user } = useAuth();
+  const isMaster =
+    Boolean(user?.is_superuser) ||
+    ["super_admin", "owner", "tenant_owner", "general_manager", "pos_admin"].includes(
+      String(user?.role || "").toLowerCase()
+    );
+  const canRoomCharge = isMaster || can("pos.billing.room_charge");
+
+  const availableMethods = useMemo(() => {
+    return PAY_METHODS.filter((m) => {
+      if (m.id === "Room Charge" && !canRoomCharge) return false;
+      return true;
+    });
+  }, [canRoomCharge]);
+
   const [mode, setMode] = useState<PayNowMode>("Cash");
   const [amount, setAmount] = useState(String(grandTotal || 0));
+
+  useEffect(() => {
+    if (mode === "Room Charge" && !canRoomCharge) {
+      setMode("Cash");
+    }
+  }, [canRoomCharge, mode]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -107,7 +129,7 @@ export function BillingPayNowModal({
               </p>
             </div>
             <nav className="flex md:flex-col gap-1 p-2 overflow-x-auto md:overflow-y-auto">
-              {PAY_METHODS.map((m) => {
+              {availableMethods.map((m) => {
                 const Icon = m.icon;
                 const active = mode === m.id;
                 return (

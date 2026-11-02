@@ -4,16 +4,46 @@ import { useAuth } from "@/hooks/useAuth";
 import type { Permission } from "@/types/rbac";
 
 interface GuardedRouteProps {
-  permission: Permission;
+  permission?: Permission;
+  anyPermissions?: Permission[];
   title?: string;
   description?: string;
   children: ReactNode;
 }
 
-export function GuardedRoute({ permission, title, description, children }: GuardedRouteProps) {
-  const { can } = useAuth();
-  if (!can(permission)) {
+export function GuardedRoute({
+  permission,
+  anyPermissions,
+  title,
+  description,
+  children,
+}: GuardedRouteProps) {
+  const { can, user } = useAuth();
+
+  if (!user) {
+    return <AccessDenied title="Authentication Required" description="Please sign in to access this page." />;
+  }
+
+  const roleStr = String(user.role || "").toLowerCase();
+  const isMaster =
+    roleStr === "super_admin" ||
+    roleStr === "owner" ||
+    roleStr === "tenant_owner" ||
+    roleStr === "general_manager" ||
+    roleStr === "pos_admin" ||
+    Boolean(user.is_superuser);
+
+  if (isMaster) {
+    return <>{children}</>;
+  }
+
+  if (permission && !can(permission)) {
     return <AccessDenied title={title} description={description} />;
   }
+
+  if (anyPermissions?.length && !anyPermissions.some((p) => can(p))) {
+    return <AccessDenied title={title} description={description} />;
+  }
+
   return <>{children}</>;
 }
