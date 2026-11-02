@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PosSidebar } from "@/components/layout/pos/PosSidebar";
 import { PosTopBar } from "@/components/layout/pos/PosTopBar";
+import { PosSubscriptionRenewalBanner } from "@/components/common/PosSubscriptionRenewalBanner";
 // import { OnlineOrderAlertModal } from "@/components/shared/pos/orders/OnlineOrderAlertModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
 
       {/* Content column spanning the remaining length/width — matches PMS */}
       <div className="flex min-w-0 flex-1 flex-col bg-background text-text-primary print:!m-0 print:!h-auto print:!overflow-visible print:!p-0 print:!w-full print:!min-h-0 print:!bg-white">
+        <PosSubscriptionRenewalBanner />
         <PosTopBar
           onOpenMobileNav={isMobile ? () => setMobileOpen(true) : undefined}
           onToggleSidebar={() => setDesktopCollapsed((c) => !c)}
