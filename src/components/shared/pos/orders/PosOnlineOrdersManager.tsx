@@ -433,7 +433,7 @@ export function PosOnlineOrdersManager() {
   );
 
   return (
-    <div className="space-y-2.5 pb-8">
+    <div className="responsive-page-x py-4 sm:py-5 space-y-2.5 pb-8">
       {/* 1. TOP HEADER */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-border bg-surface p-3 shadow-2xs">
         <div className="flex items-center gap-2.5">

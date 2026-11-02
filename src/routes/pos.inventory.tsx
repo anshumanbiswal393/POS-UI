@@ -12,7 +12,7 @@ function InventoryLayoutRoute() {
 
   return (
     <GuardedRoute permission="pos.inventory.view">
-      <div className="space-y-3">
+      <div className="responsive-page-x py-4 sm:py-6 space-y-3">
         {isRootInventory ? <InventoryDashboardView /> : <Outlet />}
       </div>
     </GuardedRoute>

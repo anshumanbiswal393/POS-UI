@@ -239,7 +239,7 @@ export function OutletConfigurationHubView() {
   };
 
   return (
-    <div className="space-y-4 pb-6">
+    <div className="responsive-page-x py-4 sm:py-6 space-y-4 pb-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-2">
           <Link

@@ -462,7 +462,7 @@ export function PosAllOrdersManager() {
   };
 
   return (
-    <div className="space-y-2.5 pb-8">
+    <div className="responsive-page-x py-4 sm:py-5 space-y-2.5 pb-8">
       {/* 1. Top Header Row */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
         {/* Left: Title, Order tabs, Table/Grid view */}

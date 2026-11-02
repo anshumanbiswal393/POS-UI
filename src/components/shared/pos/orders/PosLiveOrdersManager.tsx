@@ -164,7 +164,7 @@ export function PosLiveOrdersManager() {
 
 
   return (
-    <div className="space-y-2.5">
+    <div className="responsive-page-x py-4 sm:py-5 space-y-2.5">
       {/* 1. TOP HEADER & VIEW SWITCHER */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
         <div className="flex items-center gap-2.5">
@@ -296,7 +296,7 @@ export function PosLiveOrdersManager() {
 
       {/* VIEW 1: GANTT CHART & ORDER STATUS TIMELINE */}
       {activeTab === "gantt_timeline" && (
-        <div className="space-y-2.5">
+        <div className="responsive-page-x py-4 sm:py-5 space-y-2.5">
           {/* Timeline Filter Bar */}
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-300 bg-white p-2.5 shadow-2xs">
             <div className="flex flex-wrap items-center gap-1.5">

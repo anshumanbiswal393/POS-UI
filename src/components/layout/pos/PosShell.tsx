@@ -55,7 +55,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
           onToggleSidebar={() => setDesktopCollapsed((c) => !c)}
           sidebarCollapsed={desktopCollapsed}
         />
-        <main className="flex-1 min-w-0 p-3 sm:p-4 lg:p-5 pb-[env(safe-area-inset-bottom)] print:!m-0 print:!p-0 print:!w-full print:!overflow-visible">
+        <main className="flex-1 min-w-0 flex flex-col pb-[env(safe-area-inset-bottom)] print:!m-0 print:!p-0 print:!w-full print:!overflow-visible">
           {children}
         </main>
       </div>

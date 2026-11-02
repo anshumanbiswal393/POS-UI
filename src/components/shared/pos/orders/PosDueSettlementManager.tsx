@@ -345,7 +345,7 @@ export function PosDueSettlementManager() {
   if (selectedBill) {
     const amt = parseFloat(settlementAmount) || selectedBill.dueAmount;
     return (
-      <div className="flex flex-col gap-3 pb-6 lg:h-[calc(100dvh-5.5rem)] lg:max-h-[calc(100dvh-5.5rem)] lg:overflow-hidden">
+      <div className="responsive-page-x py-3 sm:py-4 flex flex-col gap-3 pb-6 lg:h-[calc(100dvh-3.5rem)] lg:max-h-[calc(100dvh-3.5rem)] lg:overflow-hidden">
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
