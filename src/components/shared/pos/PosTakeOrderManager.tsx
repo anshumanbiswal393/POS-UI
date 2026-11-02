@@ -9,6 +9,8 @@ import {
   useVacateTableMutation,
   useAddReservationMutation,
   useAddAreaMutation,
+  useUpdateAreaMutation,
+  useDeleteAreaMutation,
   useAddTableMutation,
   useCreateTableOrderMutation,
   useUpdateTableOrderMutation,
@@ -74,6 +76,8 @@ export function PosTakeOrderManager() {
   const vacateTableMutation = useVacateTableMutation();
   const addReservationMutation = useAddReservationMutation();
   const addAreaMutation = useAddAreaMutation();
+  const updateAreaMutation = useUpdateAreaMutation();
+  const deleteAreaMutation = useDeleteAreaMutation();
   const addTableMutation = useAddTableMutation();
   const createTableOrderMutation = useCreateTableOrderMutation();
   const updateTableOrderMutation = useUpdateTableOrderMutation();
@@ -176,6 +180,32 @@ export function PosTakeOrderManager() {
     addAreaMutation.mutate(areaName, {
       onSuccess: () => {
         setActiveArea(areaName);
+      },
+    });
+  };
+
+  const handleRenameArea = (oldName: string, newName: string) => {
+    updateAreaMutation.mutate(
+      { oldName, newName },
+      {
+        onSuccess: () => {
+          if (activeArea.toLowerCase() === oldName.toLowerCase()) {
+            setActiveArea(newName);
+          }
+        },
+      },
+    );
+  };
+
+  const handleDeleteArea = (areaName: string) => {
+    deleteAreaMutation.mutate(areaName, {
+      onSuccess: () => {
+        if (activeArea.toLowerCase() === areaName.toLowerCase()) {
+          const remaining = diningAreas.filter(
+            (a) => a.toLowerCase() !== areaName.toLowerCase(),
+          );
+          setActiveArea(remaining[0] || "");
+        }
       },
     });
   };
@@ -392,6 +422,10 @@ export function PosTakeOrderManager() {
         onClose={() => setIsAddAreaOpen(false)}
         onAddArea={handleAddArea}
         existingAreas={diningAreas}
+        onRenameArea={handleRenameArea}
+        onDeleteArea={handleDeleteArea}
+        isRenaming={updateAreaMutation.isPending}
+        isDeleting={deleteAreaMutation.isPending}
       />
 
       {/* 2. Add Table Modal */}

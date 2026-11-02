@@ -147,6 +147,58 @@ export const posTablesService = {
     return [...store().areas];
   },
 
+  updateArea: async (oldName: string, newName: string): Promise<string[]> => {
+    const trimmed = newName.trim();
+    if (!trimmed || oldName === trimmed) return posTablesService.getAreas();
+
+    if (isLiveFloor()) {
+      const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+        params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 200 },
+      });
+      const sections = unwrapRows<any>(res.data);
+      const section = sections.find(
+        (s) => String(s.name).trim().toLowerCase() === oldName.trim().toLowerCase(),
+      );
+      if (section?.id) {
+        await httpClient.patch(`${API_ENDPOINTS.TABLES.AREAS}${section.id}/`, {
+          name: trimmed,
+        });
+      }
+      return posTablesService.getAreas();
+    }
+
+    const idx = store().areas.findIndex((a) => a.toLowerCase() === oldName.toLowerCase());
+    if (idx !== -1) {
+      store().areas[idx] = trimmed;
+      store().tables.forEach((t) => {
+        if (t.area.toLowerCase() === oldName.toLowerCase()) {
+          t.area = trimmed;
+        }
+      });
+    }
+    return [...store().areas];
+  },
+
+  deleteArea: async (areaName: string): Promise<string[]> => {
+    const trimmed = areaName.trim();
+    if (isLiveFloor()) {
+      const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+        params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 200 },
+      });
+      const sections = unwrapRows<any>(res.data);
+      const section = sections.find(
+        (s) => String(s.name).trim().toLowerCase() === trimmed.toLowerCase(),
+      );
+      if (section?.id) {
+        await httpClient.delete(`${API_ENDPOINTS.TABLES.AREAS}${section.id}/`);
+      }
+      return posTablesService.getAreas();
+    }
+
+    store().areas = store().areas.filter((a) => a.toLowerCase() !== trimmed.toLowerCase());
+    return [...store().areas];
+  },
+
   addTable: async (input: {
     tableNumber: string;
     capacity: number;
