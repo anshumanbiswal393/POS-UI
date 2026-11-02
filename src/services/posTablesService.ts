@@ -41,7 +41,7 @@ function mapApiTable(dto: Record<string, any>, areaName?: string): RestaurantTab
     capacity: Number(dto.capacity || 2),
     currentGuests: dto.status === "OCCUPIED" || dto.status === "BILLED" ? Number(dto.capacity || 0) : 0,
     shape: shapeMap[String(dto.shape || "").toUpperCase()] || "square",
-    area: dto.section_name || areaName || "Main Dining",
+    area: dto.section_name || areaName || "",
     status: statusMap[String(dto.status || "VACANT").toUpperCase()] || "vacant",
     activeOrder: dto.active_order_id
       ? {
@@ -73,7 +73,7 @@ type TableBucket = {
 };
 
 const legacyBucket: TableBucket = {
-  areas: ["Main Dining", "Terrace", "Outdoor"],
+  areas: [],
   tables: [...INITIAL_TABLES],
   reservations: [],
 };
@@ -165,7 +165,7 @@ export const posTablesService = {
         try {
           const created = await httpClient.post(API_ENDPOINTS.TABLES.AREAS, {
             outlet: scopedOutletId,
-            name: input.area || "Main Dining",
+            name: input.area || "Dining Area",
             is_active: true,
           });
           section = created.data;
@@ -209,7 +209,7 @@ export const posTablesService = {
       capacity: input.capacity,
       currentGuests: 0,
       shape: input.shape || defaultShape,
-      area: input.area || "Main Dining",
+      area: input.area || "Dining Area",
       status: "vacant",
     };
 

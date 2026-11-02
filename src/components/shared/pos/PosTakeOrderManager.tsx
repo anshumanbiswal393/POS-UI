@@ -49,7 +49,7 @@ export function PosTakeOrderManager() {
   const [activeSlide, setActiveSlide] = useState<"restaurant" | "room">("restaurant");
 
   // ===================== RESTAURANT (TABLE) STATE =====================
-  const [activeArea, setActiveArea] = useState<DiningArea>("Main Dining");
+  const [activeArea, setActiveArea] = useState<DiningArea>("");
   const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
   const [selectedReservation, setSelectedReservation] = useState<ReservationItem | null>(null);
   const [isDetailSlideOpen, setIsDetailSlideOpen] = useState(false);
@@ -163,8 +163,12 @@ export function PosTakeOrderManager() {
   };
 
   useEffect(() => {
-    if (diningAreas.length > 0 && !diningAreas.includes(activeArea)) {
-      setActiveArea(diningAreas[0]);
+    if (diningAreas.length > 0) {
+      if (!activeArea || !diningAreas.includes(activeArea)) {
+        setActiveArea(diningAreas[0]);
+      }
+    } else if (activeArea) {
+      setActiveArea("");
     }
   }, [diningAreas, activeArea]);
 
