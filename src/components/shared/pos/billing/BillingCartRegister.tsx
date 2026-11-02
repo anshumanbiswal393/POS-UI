@@ -20,6 +20,7 @@ import type {
 import { getPosTaxSettings } from "@/lib/posTaxSettings";
 import { useSpecialNotes } from "@/hooks/queries/usePosMenu";
 import { useOutletContext } from "@/context/PosOutletContext";
+import { useAuth } from "@/hooks/useAuth";
 
 type BillingCartRegisterProps = {
   cartItems: BillingCartItem[];
@@ -66,6 +67,19 @@ export function BillingCartRegister({
   selectedCustomer,
   onSelectCustomer,
 }: BillingCartRegisterProps) {
+  const { can, user } = useAuth();
+  const isMaster =
+    Boolean(user?.is_superuser) ||
+    ["super_admin", "owner", "tenant_owner", "general_manager", "pos_admin"].includes(
+      String(user?.role || "").toLowerCase()
+    );
+
+  const canSettle = isMaster || can("pos.billing.settle");
+  const canHold = isMaster || can("pos.orders.create");
+  const canKot = isMaster || can("pos.kot.create") || can("pos.orders.create");
+  const canRoomCharge = isMaster || can("pos.billing.room_charge");
+  const canDiscount = isMaster || can("pos.billing.discount");
+
   const { activeOutlet } = useOutletContext();
   const { data: specialNotes = [] } = useSpecialNotes(activeOutlet?.id);
   const availableNotes = useMemo(
@@ -324,18 +338,20 @@ export function BillingCartRegister({
                   </div>
 
                   {/* Quick Complimentary Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => onToggleComplimentary(cartItem.cartId)}
-                    title={cartItem.isComplimentary ? "Remove Complimentary" : "Make Complimentary"}
-                    className={`p-1 rounded transition cursor-pointer ${
-                      cartItem.isComplimentary
-                        ? "text-purple-700 bg-purple-100"
-                        : "text-slate-300 hover:text-purple-600 hover:bg-purple-50"
-                    }`}
-                  >
-                    <Gift className="h-3 w-3" />
-                  </button>
+                  {canDiscount && (
+                    <button
+                      type="button"
+                      onClick={() => onToggleComplimentary(cartItem.cartId)}
+                      title={cartItem.isComplimentary ? "Remove Complimentary" : "Make Complimentary"}
+                      className={`p-1 rounded transition cursor-pointer ${
+                        cartItem.isComplimentary
+                          ? "text-purple-700 bg-purple-100"
+                          : "text-slate-300 hover:text-purple-600 hover:bg-purple-50"
+                      }`}
+                    >
+                      <Gift className="h-3 w-3" />
+                    </button>
+                  )}
 
                   {/* Delete Item */}
                   <button
@@ -500,7 +516,8 @@ export function BillingCartRegister({
           <button
             type="button"
             onClick={onHoldBill}
-            disabled={actionsDisabled}
+            disabled={actionsDisabled || !canHold}
+            title={!canHold ? "Permission required to hold orders (pos.orders.create)" : undefined}
             className="flex items-center justify-center gap-1 py-2.5 px-1 rounded-lg bg-orange-300 hover:bg-orange-400 text-orange-950 text-[11px] font-bold transition disabled:opacity-40 cursor-pointer shadow-2xs"
           >
             <PauseCircle className="h-3.5 w-3.5" />
@@ -510,7 +527,8 @@ export function BillingCartRegister({
           <button
             type="button"
             onClick={onPrintKot}
-            disabled={actionsDisabled}
+            disabled={actionsDisabled || !canKot}
+            title={!canKot ? "Permission required to send KOT (pos.kot.create)" : undefined}
             className="flex items-center justify-center gap-1 py-2.5 px-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] font-bold transition disabled:opacity-40 cursor-pointer shadow-2xs"
           >
             <Printer className="h-3.5 w-3.5" />
@@ -520,7 +538,8 @@ export function BillingCartRegister({
           <button
             type="button"
             onClick={onPayNow}
-            disabled={actionsDisabled}
+            disabled={actionsDisabled || !canSettle}
+            title={!canSettle ? "Permission required to settle payments (pos.billing.settle)" : undefined}
             className="flex items-center justify-center gap-1 py-2.5 px-1 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-[11px] font-bold transition disabled:opacity-40 cursor-pointer shadow-2xs"
           >
             <IndianRupee className="h-3.5 w-3.5" />
@@ -528,7 +547,7 @@ export function BillingCartRegister({
           </button>
         </div>
 
-        {showRoomFolio && (
+        {showRoomFolio && canRoomCharge && (
           <button
             type="button"
             onClick={onAddToRoomFolio}

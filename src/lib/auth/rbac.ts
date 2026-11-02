@@ -1,6 +1,38 @@
 import { Role, Permission } from "@/types/rbac";
 export type { Role, Permission };
 
+export const ALL_POS_PERMISSIONS: Permission[] = [
+  "pos.orders.view",
+  "pos.orders.create",
+  "pos.orders.edit",
+  "pos.orders.transfer",
+  "pos.orders.void",
+  "pos.tables.manage",
+  "pos.kot.view",
+  "pos.kot.manage",
+  "pos.menu.toggle",
+  "pos.recipes.view",
+  "pos.billing.view",
+  "pos.billing.settle",
+  "pos.billing.room_charge",
+  "pos.billing.discount",
+  "pos.billing.split",
+  "pos.billing.refund",
+  "pos.shift.manage",
+  "pos.menu.view",
+  "pos.menu.manage",
+  "pos.discounts.manage",
+  "pos.inventory.view",
+  "pos.inventory.manage",
+  "pos.inventory.wastage",
+  "pos.inventory.production",
+  "pos.inventory.purchase_orders",
+  "pos.reports.view",
+  "pos.reports.export",
+  "pos.settings.manage",
+  "pos.users.manage",
+];
+
 export const ALL_PERMISSIONS: Permission[] = [
   "dashboard.view",
   "reservations.view",
@@ -61,6 +93,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   "property.configure",
   "settings.manage",
   "onboarding.run",
+  ...ALL_POS_PERMISSIONS,
 ];
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -72,6 +105,14 @@ export const ROLE_LABEL: Record<Role, string> = {
   housekeeping_supervisor: "Housekeeping Supervisor",
   accounts: "Accounts & Finance",
   revenue_manager: "Revenue Manager",
+  // Restaurant / POS Roles
+  pos_admin: "POS Admin",
+  pos_captain: "Captain / Floor Supervisor",
+  pos_waiter: "Waiter / Steward",
+  pos_cashier: "Cashier / POS Biller",
+  pos_kitchen: "Kitchen / Chef (KDS)",
+  pos_bartender: "Bartender / Bar Counter",
+  pos_inventory_manager: "Storekeeper / Inventory Manager",
 };
 
 export const ROLE_DESCRIPTION: Record<Role, string> = {
@@ -83,6 +124,14 @@ export const ROLE_DESCRIPTION: Record<Role, string> = {
   housekeeping_supervisor: "Room status, HK assignments, lost & found.",
   accounts: "Folios, payments, refunds, AR, financial reports.",
   revenue_manager: "Rates, restrictions, OTA, forecasts.",
+  // Restaurant / POS Roles
+  pos_admin: "Full operational, financial, and configuration authority over all restaurant outlets.",
+  pos_captain: "Floor management, table allocations, order edits, proforma billing, pre-approved comps/discounts.",
+  pos_waiter: "Order taking at tables, firing KOTs, adding running items, viewing live order status, marking served.",
+  pos_cashier: "Final guest bill generation, payment collection (Cash/Card/UPI), charging to hotel room folio, register shift open/close.",
+  pos_kitchen: "Kitchen Display System (KDS), ticket preparation stages, item 86 (sold out) toggle, recipe reference.",
+  pos_bartender: "Bar KOTs, beverage prep, fast over-the-counter sales, bottle consumption & wastage logging.",
+  pos_inventory_manager: "Raw materials, recipes, purchase orders, vendor invoices, stock audits, wastage logs.",
 };
 
 const allOf = (...keys: Permission[]) => keys;
@@ -161,6 +210,9 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "reports.view",
     "reports.export",
     "audit.view",
+    "pos.billing.view",
+    "pos.reports.view",
+    "pos.reports.export",
   ),
   revenue_manager: allOf(
     "dashboard.view",
@@ -181,9 +233,109 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "revenue.aiDashboard",
     "analytics.executive",
   ),
+
+  // Restaurant / POS Roles
+  pos_admin: [
+    "dashboard.view",
+    "reports.view",
+    ...ALL_POS_PERMISSIONS,
+  ],
+  pos_captain: [
+    "pos.orders.view",
+    "pos.orders.create",
+    "pos.orders.edit",
+    "pos.orders.transfer",
+    "pos.orders.void",
+    "pos.tables.manage",
+    "pos.kot.view",
+    "pos.kot.manage",
+    "pos.menu.toggle",
+    "pos.billing.view",
+    "pos.billing.discount",
+    "pos.billing.split",
+    "pos.menu.view",
+    "pos.reports.view",
+  ],
+  pos_waiter: [
+    "pos.orders.view",
+    "pos.orders.create",
+    "pos.orders.edit",
+    "pos.kot.view",
+    "pos.kot.manage",
+    "pos.billing.view",
+    "pos.menu.view",
+  ],
+  pos_cashier: [
+    "pos.orders.view",
+    "pos.orders.create",
+    "pos.orders.edit",
+    "pos.orders.transfer",
+    "pos.billing.view",
+    "pos.billing.settle",
+    "pos.billing.room_charge",
+    "pos.billing.split",
+    "pos.shift.manage",
+    "pos.menu.view",
+    "pos.reports.view",
+  ],
+  pos_kitchen: [
+    "pos.kot.view",
+    "pos.kot.manage",
+    "pos.menu.toggle",
+    "pos.recipes.view",
+    "pos.menu.view",
+    "pos.inventory.view",
+    "pos.inventory.wastage",
+    "pos.inventory.production",
+  ],
+  pos_bartender: [
+    "pos.orders.view",
+    "pos.orders.create",
+    "pos.orders.edit",
+    "pos.kot.view",
+    "pos.kot.manage",
+    "pos.menu.toggle",
+    "pos.recipes.view",
+    "pos.billing.view",
+    "pos.billing.settle",
+    "pos.menu.view",
+    "pos.inventory.view",
+    "pos.inventory.wastage",
+  ],
+  pos_inventory_manager: [
+    "pos.recipes.view",
+    "pos.menu.view",
+    "pos.inventory.view",
+    "pos.inventory.manage",
+    "pos.inventory.wastage",
+    "pos.inventory.production",
+    "pos.inventory.purchase_orders",
+    "pos.reports.view",
+    "pos.reports.export",
+  ],
 };
 
-export function hasPermission(role: Role | undefined, perm: Permission): boolean {
+export function hasPermission(role: Role | string | undefined, perm: Permission | string): boolean {
   if (!role) return false;
-  return ROLE_PERMISSIONS[role]?.includes(perm) ?? false;
+  const normalizedRole = role.toLowerCase() as Role;
+  const perms = ROLE_PERMISSIONS[normalizedRole] ?? ROLE_PERMISSIONS[role as Role];
+  if (!perms) return false;
+  if (perms.includes(perm as Permission)) return true;
+
+  // Support bidirectional mapping between colon-notation and dot-notation
+  const permStr = String(perm);
+  if (permStr.includes(".")) {
+    const colonPerm = permStr.replace(/\./g, ":") as Permission;
+    if (perms.includes(colonPerm)) return true;
+    const posColonPerm = permStr.replace("pos.", "pos_") as Permission;
+    if (perms.includes(posColonPerm)) return true;
+  }
+  if (permStr.includes(":")) {
+    const dotPerm = permStr.replace(/:/g, ".") as Permission;
+    if (perms.includes(dotPerm)) return true;
+    const posDotPerm = permStr.replace("pos_", "pos.").replace(/:/g, ".") as Permission;
+    if (perms.includes(posDotPerm)) return true;
+  }
+
+  return false;
 }

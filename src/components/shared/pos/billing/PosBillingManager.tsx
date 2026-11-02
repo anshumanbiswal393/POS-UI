@@ -106,7 +106,13 @@ function currentOrderToHeldBill(ord: CurrentOrderRecord): HeldBill {
 export function PosBillingManager() {
   const queryClient = useQueryClient();
   const { activeOutlet } = useOutletContext();
-  const { user } = useAuth();
+  const { user, can } = useAuth();
+  const isMaster =
+    Boolean(user?.is_superuser) ||
+    ["super_admin", "owner", "tenant_owner", "general_manager", "pos_admin"].includes(
+      String(user?.role || "").toLowerCase()
+    );
+  const canVoid = isMaster || can("pos.orders.void");
   const { data: menuList = [] } = useBillingMenuItems(activeOutlet?.id || "outlet-primary");
   const { data: hotelRooms = [] } = useHotelRooms();
   const { data: restaurantTables = [] } = usePosTables();
@@ -832,6 +838,10 @@ export function PosBillingManager() {
 
   // Discard Held Check
   const handleDeleteHeldBill = (id: string) => {
+    if (!canVoid) {
+      toast.error("Permission required: pos.orders.void to discard or cancel checks.");
+      return;
+    }
     const target = heldBills.find((h) => h.id === id);
     const orderId = target?.linkedOrderId || (isBackendOutlet ? id : "");
     if (orderId && isBackendOutlet) {

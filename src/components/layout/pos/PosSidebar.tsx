@@ -26,6 +26,7 @@ import {
   readPinnedNavNodeIds,
   togglePinnedNavNodeId,
 } from "@/app/navigation/nav-personalization";
+import { useAuth } from "@/hooks/useAuth";
 import { RetrodLogo } from "@/components/common";
 import { cn } from "@/lib/utils";
 import { useOutletContext } from "@/context/PosOutletContext";
@@ -193,12 +194,79 @@ export function PosSidebar({
     });
   };
 
+  const { can, user } = useAuth();
+
+  const isNodeAllowed = (node: PosNavItem | PosNavChild): boolean => {
+    if (!user) return false;
+    const roleStr = String(user.role || "").toLowerCase();
+    if (
+      roleStr === "super_admin" ||
+      roleStr === "owner" ||
+      roleStr === "tenant_owner" ||
+      roleStr === "general_manager" ||
+      roleStr === "pos_admin" ||
+      user.is_superuser
+    ) {
+      return true;
+    }
+    if (node.permission && !can(node.permission)) {
+      return false;
+    }
+    if (node.anyPermissions?.length && !node.anyPermissions.some((p) => can(p))) {
+      return false;
+    }
+    return true;
+  };
+
+  const filterNavChildren = (children: PosNavChild[]): PosNavChild[] => {
+    return children
+      .filter((child) => {
+        if (!isNodeAllowed(child)) return false;
+        if (child.children?.length) {
+          const visibleSubs = filterNavChildren(child.children);
+          return visibleSubs.length > 0;
+        }
+        return true;
+      })
+      .map((child) => {
+        if (child.children?.length) {
+          return {
+            ...child,
+            children: filterNavChildren(child.children),
+          };
+        }
+        return child;
+      });
+  };
+
+  const visibleNavItems = useMemo(() => {
+    return POS_NAV_ITEMS.filter((item) => {
+      if (!isNodeAllowed(item)) return false;
+      if (item.children?.length) {
+        const visibleSubs = filterNavChildren(item.children);
+        return visibleSubs.length > 0;
+      }
+      return true;
+    }).map((item) => {
+      if (item.children?.length) {
+        return {
+          ...item,
+          children: filterNavChildren(item.children),
+        };
+      }
+      return item;
+    });
+  }, [user, can]);
+
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => readPinnedNavNodeIds());
 
-  const allRouteNodes = getAllPosRouteNodes();
+  const allRouteNodes = useMemo(() => {
+    return getAllPosRouteNodes().filter((node) => isNodeAllowed(node));
+  }, [user, can]);
+
   const pinnedNodes = pinnedIds
     .map((id) => allRouteNodes.find((node) => node.id === id))
-    .filter((node): node is NonNullable<typeof node> => Boolean(node));
+    .filter((node): node is NonNullable<typeof node> => Boolean(node) && isNodeAllowed(node));
 
   const togglePinned = (nodeId: string) => {
     setPinnedIds(togglePinnedNavNodeId(nodeId));
@@ -236,7 +304,7 @@ export function PosSidebar({
           </button>
           {expanded && (
             <div className={cn("mt-0.5 space-y-0.5", depth === 0 ? "pl-[30px]" : "pl-3.5")}>
-              {node.children.map((child) => renderNode(child, depth + 1))}
+              {filterNavChildren(node.children).map((child) => renderNode(child, depth + 1))}
             </div>
           )}
         </div>
@@ -575,7 +643,7 @@ export function PosSidebar({
           </div>
         )}
 
-        {POS_NAV_ITEMS.map((item) => {
+        {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const hasChildren = Boolean(item.children?.length);
           const groupOpen = Boolean(openGroups[item.id]);
@@ -692,7 +760,7 @@ export function PosSidebar({
       </nav>
 
       <div className="space-y-0.5 border-t border-sidebar-border p-2">
-        {POS_FOOTER_NAV_ITEMS.map((item) => {
+        {POS_FOOTER_NAV_ITEMS.filter((item) => isNodeAllowed(item)).map((item) => {
           const Icon = item.icon;
           const active = isActive(item.to);
           const pinned = pinnedIds.includes(item.id);
