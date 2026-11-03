@@ -40,13 +40,21 @@ export interface LiveOrderItem {
   elapsedMinutes: number;
 }
 
+export interface PaymentMethodItem {
+  amount: number;
+  formatted: string;
+  percentage: number;
+  count?: number;
+}
+
 export interface PaymentSummaryData {
-  cash: { amount: number; formatted: string; percentage: number };
-  card: { amount: number; formatted: string; percentage: number };
-  upiWallets: { amount: number; formatted: string; percentage: number };
-  other: { amount: number; formatted: string; percentage: number };
+  cash: PaymentMethodItem;
+  card: PaymentMethodItem;
+  upiWallets: PaymentMethodItem;
+  other: PaymentMethodItem;
   totalFormatted: string;
   totalAmount: number;
+  totalCount?: number;
 }
 
 export interface TableStatusItem {

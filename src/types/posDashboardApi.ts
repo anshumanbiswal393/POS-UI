@@ -41,11 +41,12 @@ export interface LiveOrderApiDto {
 }
 
 export interface PaymentBreakdownApiDto {
-  cash: { amount: number; percentage: number };
-  card: { amount: number; percentage: number };
-  upiWallets: { amount: number; percentage: number };
-  other: { amount: number; percentage: number };
+  cash: { amount: number; percentage: number; count?: number };
+  card: { amount: number; percentage: number; count?: number };
+  upiWallets: { amount: number; percentage: number; count?: number };
+  other: { amount: number; percentage: number; count?: number };
   total: number;
+  totalCount?: number;
 }
 
 export interface TableItemApiDto {
