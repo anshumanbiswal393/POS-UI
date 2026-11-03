@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   Plus,
   Edit2,
-  Eye,
   Image as ImageIcon,
   Trash2,
   RefreshCw,
@@ -41,8 +40,8 @@ function MenuImageCell({
     <button
       type="button"
       onClick={() => onManageImages(item)}
-      className="relative h-10 w-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 hover:border-teal-500 transition cursor-pointer group/img shrink-0 mx-auto block"
-      title="Click to manage photos"
+      className="relative h-10 w-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 hover:border-teal-500 hover:bg-teal-50/50 transition cursor-pointer group/img shrink-0 mx-auto block shadow-2xs"
+      title={canShowImg ? "Click to view & add photos" : "Click to add photo"}
     >
       {canShowImg ? (
         <img
@@ -207,7 +206,7 @@ export function MenuListManagerView() {
           <div className={`min-w-0 py-0.5 ${inactive ? "opacity-55" : ""}`}>
             <div className="flex items-center gap-2">
               <span
-                onClick={() => handleOpenView(row)}
+                onClick={() => handleOpenEdit(row)}
                 className={`font-bold cursor-pointer transition text-xs sm:text-[13px] truncate ${
                   inactive
                     ? "text-slate-500 line-through decoration-slate-300 hover:text-slate-700"
@@ -345,27 +344,10 @@ export function MenuListManagerView() {
       id: "actions",
       header: "Actions",
       align: "right",
-      minWidth: 140,
+      minWidth: 90,
+      width: 90,
       cell: ({ row }) => (
-        <div className="flex items-center justify-end gap-1">
-          <button
-            type="button"
-            onClick={() => handleOpenView(row)}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer"
-            title="View Details"
-          >
-            <Eye className="h-4 w-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleOpenImages(row)}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-teal-50 hover:text-teal-700 transition cursor-pointer"
-            title="Manage Photos"
-          >
-            <ImageIcon className="h-4 w-4" />
-          </button>
-
+        <div className="flex items-center justify-end gap-1.5">
           <button
             type="button"
             onClick={() => handleOpenEdit(row)}
