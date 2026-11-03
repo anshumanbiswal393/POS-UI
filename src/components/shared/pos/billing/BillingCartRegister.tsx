@@ -11,6 +11,10 @@ import {
   BedDouble,
   ChevronDown,
   StickyNote,
+  User,
+  Search,
+  Check,
+  X,
 } from "lucide-react";
 import type {
   BillingCartItem,
@@ -21,6 +25,8 @@ import { getPosTaxSettings } from "@/lib/posTaxSettings";
 import { useSpecialNotes } from "@/hooks/queries/usePosMenu";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { useAuth } from "@/hooks/useAuth";
+import { getPosCustomers } from "@/services/posCustomerStore";
+import { AddCustomerDrawer } from "./AddCustomerDrawer";
 
 type BillingCartRegisterProps = {
   cartItems: BillingCartItem[];
@@ -96,6 +102,20 @@ export function BillingCartRegister({
   const [customerName, setCustomerName] = useState(selectedCustomer?.name ?? "");
   const [customerNumber, setCustomerNumber] = useState(selectedCustomer?.phone ?? "");
   const [presetNoteId, setPresetNoteId] = useState("");
+  const [isCustomerSelectOpen, setIsCustomerSelectOpen] = useState(false);
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
+
+  const allCustomers = useMemo(() => getPosCustomers(activeOutlet?.id), [activeOutlet?.id, isAddCustomerOpen]);
+  const filteredCustomers = useMemo(() => {
+    const q = customerSearchQuery.trim().toLowerCase();
+    if (!q) return allCustomers;
+    return allCustomers.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.phone.replace(/\D/g, "").includes(q.replace(/\D/g, ""))
+    );
+  }, [allCustomers, customerSearchQuery]);
 
   useEffect(() => {
     const refresh = () => setTaxSettings(getPosTaxSettings());
@@ -210,31 +230,145 @@ export function BillingCartRegister({
         </div>
       </div>
 
-      {/* 2. Optional customer name + number */}
-      <div className="px-2.5 py-1.5 bg-slate-50 border-b border-slate-200 text-xs shrink-0">
-        <div className="grid grid-cols-2 gap-1.5">
-          <input
-            type="text"
-            value={customerName}
-            onChange={(e) => {
-              const next = e.target.value;
-              setCustomerName(next);
-              syncCustomer(next, customerNumber);
-            }}
-            placeholder="Customer name (optional)"
-            className="w-full px-2 py-1 text-[11.5px] bg-white border border-slate-200 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-          <input
-            type="tel"
-            value={customerNumber}
-            onChange={(e) => {
-              const next = e.target.value;
-              setCustomerNumber(next);
-              syncCustomer(customerName, next);
-            }}
-            placeholder="Number (optional)"
-            className="w-full px-2 py-1 text-[11.5px] bg-white border border-slate-200 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
-          />
+      {/* 2. Customer dropdown + (+) button - 2 fields only */}
+      <div className="relative px-2.5 py-1.5 bg-slate-50 border-b border-slate-200 text-xs shrink-0">
+        <div className="flex items-center gap-1.5">
+          {/* Dropdown for choosing customer */}
+          <div className="relative flex-1 min-w-0">
+            <button
+              type="button"
+              onClick={() => setIsCustomerSelectOpen((prev) => !prev)}
+              className="w-full h-8 px-2.5 py-1 flex items-center justify-between gap-1.5 bg-white border border-slate-200 rounded-md text-[11.5px] text-slate-800 hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-primary transition cursor-pointer text-left shadow-2xs"
+            >
+              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                {selectedCustomer ? (
+                  <span className="truncate font-semibold text-slate-900">
+                    {selectedCustomer.name}
+                    {selectedCustomer.phone ? (
+                      <span className="font-normal text-slate-500 ml-1">
+                        ({selectedCustomer.phone})
+                      </span>
+                    ) : null}
+                  </span>
+                ) : (
+                  <span className="truncate text-slate-400 font-normal">
+                    Choose Customer (Walk-in)...
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                {selectedCustomer && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectCustomer(null);
+                    }}
+                    title="Clear to Walk-in"
+                    className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700"
+                  >
+                    <X className="h-3 w-3" />
+                  </span>
+                )}
+                <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+              </div>
+            </button>
+
+            {/* Dropdown Popover */}
+            {isCustomerSelectOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsCustomerSelectOpen(false)}
+                />
+                <div className="absolute left-0 top-full mt-1 w-[280px] sm:w-[320px] bg-white rounded-lg shadow-xl border border-slate-200 z-50 overflow-hidden flex flex-col max-h-[260px] animate-in fade-in zoom-in-95 duration-150">
+                  <div className="p-2 border-b border-slate-100 bg-slate-50 flex items-center gap-1.5">
+                    <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <input
+                      type="text"
+                      autoFocus
+                      value={customerSearchQuery}
+                      onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                      placeholder="Search by name or phone..."
+                      className="w-full text-xs bg-transparent border-none outline-none text-slate-800 placeholder:text-slate-400"
+                    />
+                  </div>
+
+                  <div className="overflow-y-auto flex-1 p-1 space-y-0.5">
+                    {/* Walk-in Option */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSelectCustomer(null);
+                        setIsCustomerSelectOpen(false);
+                      }}
+                      className="w-full px-2.5 py-1.5 text-left text-xs rounded hover:bg-slate-100 flex items-center justify-between text-slate-700 transition cursor-pointer"
+                    >
+                      <span className="font-medium">Walk-in Customer (Default)</span>
+                      {!selectedCustomer && <Check className="h-3.5 w-3.5 text-primary" />}
+                    </button>
+
+                    {filteredCustomers.map((cust) => {
+                      const isSelected =
+                        selectedCustomer?.id === cust.id ||
+                        (selectedCustomer?.phone && selectedCustomer?.phone === cust.phone);
+                      return (
+                        <button
+                          key={cust.id}
+                          type="button"
+                          onClick={() => {
+                            onSelectCustomer({
+                              id: cust.id,
+                              name: cust.name,
+                              phone: cust.phone,
+                              tier: cust.tier,
+                              loyaltyPoints: cust.loyaltyPoints,
+                              visitCount: cust.visitCount,
+                              lastVisit: cust.lastVisit,
+                            });
+                            setIsCustomerSelectOpen(false);
+                          }}
+                          className={`w-full px-2.5 py-1.5 text-left text-xs rounded flex items-center justify-between transition cursor-pointer ${
+                            isSelected
+                              ? "bg-primary/10 text-primary font-semibold"
+                              : "hover:bg-slate-100 text-slate-800"
+                          }`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium truncate">{cust.name}</div>
+                            <div className="text-[10.5px] text-slate-500">{cust.phone}</div>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
+                              {cust.tier}
+                            </span>
+                            {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
+                          </div>
+                        </button>
+                      );
+                    })}
+
+                    {filteredCustomers.length === 0 && (
+                      <div className="p-3 text-center text-xs text-slate-400">
+                        No customer found. Click + to add new.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* (+) Button for Add Customer with Right-Side Sidebar Drawer */}
+          <button
+            type="button"
+            onClick={() => setIsAddCustomerOpen(true)}
+            title="Add Customer"
+            className="h-8 w-8 shrink-0 flex items-center justify-center rounded-md bg-primary text-white hover:bg-primary/90 transition cursor-pointer shadow-2xs"
+            aria-label="Add Customer"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -559,6 +693,16 @@ export function BillingCartRegister({
           </button>
         )}
       </div>
+
+      {/* Add Customer Right Sidebar Drawer */}
+      <AddCustomerDrawer
+        isOpen={isAddCustomerOpen}
+        onClose={() => setIsAddCustomerOpen(false)}
+        onCustomerAdded={(newCust) => {
+          onSelectCustomer(newCust);
+        }}
+        outletId={activeOutlet?.id}
+      />
     </div>
   );
 }

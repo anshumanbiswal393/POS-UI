@@ -15,6 +15,8 @@ import type {
 import { BillingHeader } from "./BillingHeader";
 import { BillingMenuCatalog } from "./BillingMenuCatalog";
 import { BillingCartRegister } from "./BillingCartRegister";
+import { BillingTablesOrdersSidebar } from "./BillingTablesOrdersSidebar";
+import type { RestaurantTable } from "@/types/posTables";
 import { BillingModifierModal } from "./BillingModifierModal";
 import { BillingReceiptModal } from "./BillingReceiptModal";
 import { BillingHeldDrawer } from "./BillingHeldDrawer";
@@ -850,6 +852,71 @@ export function PosBillingManager() {
     toast.success(`Resumed check ${held.billNumber} for ${held.tableNumber || held.roomNumber || "Takeaway"}`);
   };
 
+  // Select Table from Left Sidebar
+  const handleSelectTableFromSidebar = (table: RestaurantTable) => {
+    const code =
+      table.tableNumber && /^T\d+/i.test(table.tableNumber)
+        ? table.tableNumber.toUpperCase()
+        : `T${String(table.tableNumberRaw || 1).padStart(2, "0")}`;
+
+    setActiveTable(code);
+    if (table.id) setBillingTableId(table.id);
+    setOrderType("dine_in");
+    setGuestCount(table.activeReservation?.guests || table.capacity || 4);
+
+    if (table.activeReservation?.customerName) {
+      setSelectedCustomer({
+        id: `res-${table.id}`,
+        name: table.activeReservation.customerName,
+        phone: table.activeReservation.customerPhone || "",
+        tier: table.activeReservation.isVip ? "Gold" : "Silver",
+        loyaltyPoints: 0,
+        visitCount: 1,
+        lastVisit: "Today",
+      });
+    }
+
+    // If table has a held check or active timeline order, resume it
+    const existingHeld = heldBills.find(
+      (h) =>
+        h.tableNumber === code ||
+        h.tableId === table.id ||
+        h.tableNumber === table.tableNumber
+    );
+    if (existingHeld) {
+      handleResumeHeldBill(existingHeld);
+      return;
+    }
+
+    const activeTimelineOrder = (currentTimeline || []).find(
+      (ord) =>
+        ord.tableOrRoom === code ||
+        ord.tableId === table.id ||
+        ord.tableOrRoom === table.tableNumber
+    );
+    if (activeTimelineOrder) {
+      const held = currentOrderToHeldBill(activeTimelineOrder);
+      handleResumeHeldBill(held);
+    }
+  };
+
+  // Select/Edit Order from Left Sidebar
+  const handleSelectOrderFromSidebar = (order: CurrentOrderRecord) => {
+    const held = currentOrderToHeldBill(order);
+    handleResumeHeldBill(held);
+    if (order.customerName) {
+      setSelectedCustomer({
+        id: `ord-cust-${order.id}`,
+        name: order.customerName,
+        phone: order.customerPhone || "",
+        tier: "Silver",
+        loyaltyPoints: 0,
+        visitCount: 1,
+        lastVisit: "Today",
+      });
+    }
+  };
+
   // Discard Held Check
   const handleDeleteHeldBill = (id: string) => {
     if (!canVoid) {
@@ -1263,10 +1330,20 @@ export function PosBillingManager() {
         />
       </div>
 
-      {/* 2. Main Workspace: Menu Catalog (Left/Center) + Cart Register (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 flex-1 min-h-0 lg:overflow-hidden items-stretch">
-        {/* Left / Center Catalog (7 cols on desktop, 8 on 2xl) */}
-        <div className="lg:col-span-7 xl:col-span-7 2xl:col-span-8 flex flex-col h-full min-h-0 overflow-hidden">
+      {/* 2. Main Workspace: Tables & Orders (Left) + Menu Catalog (Center) + Cart Register (Right) */}
+      <div className="flex flex-col lg:flex-row gap-2.5 flex-1 min-h-0 lg:overflow-hidden items-stretch px-2.5 pb-2.5">
+        {/* Left: Tables & Orders Panel (Matches Design System, responsive & collapsible) */}
+        <div className="hidden lg:flex shrink-0 w-80 xl:w-[340px] 2xl:w-[380px] h-full min-h-0">
+          <BillingTablesOrdersSidebar
+            activeTable={activeTable}
+            onSelectTable={handleSelectTableFromSidebar}
+            onSelectOrder={handleSelectOrderFromSidebar}
+            activeOutletId={activeOutlet?.id}
+          />
+        </div>
+
+        {/* Center: Menu Catalog */}
+        <div className="flex-1 min-w-0 flex flex-col h-full min-h-0 overflow-hidden">
           <BillingMenuCatalog
             items={billingItems}
             cartItems={cartItems}
@@ -1281,8 +1358,8 @@ export function PosBillingManager() {
           />
         </div>
 
-        {/* Right Billing Cart Register & Settlement (5 cols on desktop, 4 on 2xl) */}
-        <div className="lg:col-span-5 xl:col-span-5 2xl:col-span-4 flex flex-col h-full min-h-0 overflow-hidden">
+        {/* Right: Billing Cart Register & Settlement */}
+        <div className="w-full lg:w-[350px] xl:w-[380px] 2xl:w-[410px] shrink-0 flex flex-col h-full min-h-0 overflow-hidden">
           <BillingCartRegister
             cartItems={cartItems}
             orderType={orderType}

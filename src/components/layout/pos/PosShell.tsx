@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { PosSidebar } from "@/components/layout/pos/PosSidebar";
 import { PosTopBar } from "@/components/layout/pos/PosTopBar";
 import { PosSubscriptionRenewalBanner } from "@/components/common/PosSubscriptionRenewalBanner";
@@ -8,8 +9,20 @@ import { cn } from "@/lib/utils";
 
 export function PosShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [desktopCollapsed, setDesktopCollapsed] = useState(true);
   const isMobile = useIsMobile();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isBillingPage = pathname === "/pos/billing" || pathname.startsWith("/pos/billing");
+
+  // On POS Billing, hide sidebar by default; on other routes, keep it open
+  const [desktopCollapsed, setDesktopCollapsed] = useState(() => isBillingPage);
+
+  useEffect(() => {
+    if (isBillingPage) {
+      setDesktopCollapsed(true);
+    } else {
+      setDesktopCollapsed(false);
+    }
+  }, [pathname, isBillingPage]);
 
   const isSidebarCollapsed = isMobile ? false : desktopCollapsed;
   const showMobileSidebar = isMobile && mobileOpen;
@@ -38,6 +51,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
             ? "fixed left-0 top-0 h-screen transition-transform duration-200"
             : "",
           isMobile && !showMobileSidebar ? "-translate-x-full" : "translate-x-0",
+          !isMobile && isBillingPage && desktopCollapsed ? "hidden" : "block",
         )}
       >
         <PosSidebar
