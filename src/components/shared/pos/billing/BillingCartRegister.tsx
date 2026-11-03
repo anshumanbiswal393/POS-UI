@@ -10,7 +10,6 @@ import {
   IndianRupee,
   BedDouble,
   ChevronDown,
-  StickyNote,
   User,
   Search,
   Check,
@@ -21,8 +20,6 @@ import type {
   BillingOrderType,
   CustomerProfile,
 } from "@/types/posBilling";
-import { getPosTaxSettings } from "@/lib/posTaxSettings";
-import { useSpecialNotes } from "@/hooks/queries/usePosMenu";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { useAuth } from "@/hooks/useAuth";
 import { getPosCustomers } from "@/services/posCustomerStore";
@@ -49,6 +46,12 @@ type BillingCartRegisterProps = {
   busyAction?: "hold" | "kot" | "pay" | "folio" | null;
   selectedCustomer: CustomerProfile | null;
   onSelectCustomer: (customer: CustomerProfile | null) => void;
+  discountType?: "percent" | "flat";
+  discountValue?: number;
+  onDiscountChange?: (type: "percent" | "flat", val: number) => void;
+  taxType?: "percent" | "flat";
+  taxValue?: number;
+  onTaxChange?: (type: "percent" | "flat", val: number) => void;
 };
 
 export function BillingCartRegister({
@@ -72,6 +75,12 @@ export function BillingCartRegister({
   busyAction = null,
   selectedCustomer,
   onSelectCustomer,
+  discountType: propDiscountType,
+  discountValue: propDiscountValue,
+  onDiscountChange,
+  taxType: propTaxType,
+  taxValue: propTaxValue,
+  onTaxChange,
 }: BillingCartRegisterProps) {
   const { can, user } = useAuth();
   const isMaster =
@@ -87,25 +96,12 @@ export function BillingCartRegister({
   const canDiscount = isMaster || can("pos.billing.discount");
 
   const { activeOutlet } = useOutletContext();
-  const { data: specialNotes = [] } = useSpecialNotes(activeOutlet?.id);
-  const availableNotes = useMemo(
-    () => specialNotes.filter((n) => n.available),
-    [specialNotes],
-  );
 
-  const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountRate: number } | null>(
-    null,
-  );
-  const [promoOpen, setPromoOpen] = useState(false);
-  const [taxSettings, setTaxSettings] = useState(() => getPosTaxSettings());
-  const [customerName, setCustomerName] = useState(selectedCustomer?.name ?? "");
-  const [customerNumber, setCustomerNumber] = useState(selectedCustomer?.phone ?? "");
-  const [presetNoteId, setPresetNoteId] = useState("");
   const [isCustomerSelectOpen, setIsCustomerSelectOpen] = useState(false);
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const [customerSearchQuery, setCustomerSearchQuery] = useState("");
 
+  // Real customers store only — zero hardcoded mock data
   const allCustomers = useMemo(() => getPosCustomers(activeOutlet?.id), [activeOutlet?.id, isAddCustomerOpen]);
   const filteredCustomers = useMemo(() => {
     const q = customerSearchQuery.trim().toLowerCase();
@@ -117,35 +113,60 @@ export function BillingCartRegister({
     );
   }, [allCustomers, customerSearchQuery]);
 
-  useEffect(() => {
-    const refresh = () => setTaxSettings(getPosTaxSettings());
-    refresh();
-    window.addEventListener("focus", refresh);
-    return () => window.removeEventListener("focus", refresh);
-  }, []);
+  // Discount (Percentage or Flat Amount)
+  const [discountType, setDiscountType] = useState<"percent" | "flat">(
+    propDiscountType ?? "percent"
+  );
+  const [discountInput, setDiscountInput] = useState<string>(
+    String(propDiscountValue ?? 0)
+  );
+
+  // Tax (Percentage or Flat Amount) - default 5%
+  const [taxType, setTaxType] = useState<"percent" | "flat">(
+    propTaxType ?? "percent"
+  );
+  const [taxInput, setTaxInput] = useState<string>(
+    String(propTaxValue ?? 5)
+  );
 
   useEffect(() => {
-    setCustomerName(selectedCustomer?.name ?? "");
-    setCustomerNumber(selectedCustomer?.phone ?? "");
-  }, [selectedCustomer?.id, selectedCustomer?.name, selectedCustomer?.phone]);
+    if (propDiscountType !== undefined) setDiscountType(propDiscountType);
+  }, [propDiscountType]);
 
-  const syncCustomer = (name: string, phone: string) => {
-    const trimmedName = name.trim();
-    const trimmedPhone = phone.trim();
-    if (!trimmedName && !trimmedPhone) {
-      onSelectCustomer(null);
-      return;
-    }
-    onSelectCustomer({
-      id: selectedCustomer?.id || `walkin-${Date.now()}`,
-      name: trimmedName,
-      phone: trimmedPhone,
-      tier: selectedCustomer?.tier || "Silver",
-      loyaltyPoints: selectedCustomer?.loyaltyPoints ?? 0,
-      visitCount: selectedCustomer?.visitCount ?? 1,
-      lastVisit: selectedCustomer?.lastVisit || "Today",
-      roomNumber: selectedCustomer?.roomNumber,
-    });
+  useEffect(() => {
+    if (propDiscountValue !== undefined) setDiscountInput(String(propDiscountValue));
+  }, [propDiscountValue]);
+
+  useEffect(() => {
+    if (propTaxType !== undefined) setTaxType(propTaxType);
+  }, [propTaxType]);
+
+  useEffect(() => {
+    if (propTaxValue !== undefined) setTaxInput(String(propTaxValue));
+  }, [propTaxValue]);
+
+  const handleDiscountTypeChange = (type: "percent" | "flat") => {
+    setDiscountType(type);
+    const num = Math.max(0, parseFloat(discountInput) || 0);
+    onDiscountChange?.(type, num);
+  };
+
+  const handleDiscountInputChange = (val: string) => {
+    setDiscountInput(val);
+    const num = Math.max(0, parseFloat(val) || 0);
+    onDiscountChange?.(discountType, num);
+  };
+
+  const handleTaxTypeChange = (type: "percent" | "flat") => {
+    setTaxType(type);
+    const num = Math.max(0, parseFloat(taxInput) || 0);
+    onTaxChange?.(type, num);
+  };
+
+  const handleTaxInputChange = (val: string) => {
+    setTaxInput(val);
+    const num = Math.max(0, parseFloat(val) || 0);
+    onTaxChange?.(taxType, num);
   };
 
   // Calculations
@@ -158,36 +179,30 @@ export function BillingCartRegister({
     }, 0);
   }, [cartItems]);
 
-  const discountAmount = useMemo(() => {
-    if (!appliedCoupon || subtotal === 0) return 0;
-    return Math.round((subtotal * appliedCoupon.discountRate) / 100);
-  }, [subtotal, appliedCoupon]);
+  const discountNumber = Math.max(0, parseFloat(discountInput) || 0);
+  const calculatedDiscount = useMemo(() => {
+    if (subtotal <= 0 || discountNumber <= 0) return 0;
+    if (discountType === "percent") {
+      const pct = Math.min(100, discountNumber);
+      return Math.round((subtotal * pct) / 100);
+    }
+    return Math.min(subtotal, Math.round(discountNumber));
+  }, [subtotal, discountType, discountNumber]);
 
-  const taxableAmount = Math.max(0, subtotal - discountAmount);
-  const cgst = Math.round((taxableAmount * taxSettings.cgstPercent) / 100);
-  const sgst = Math.round((taxableAmount * taxSettings.sgstPercent) / 100);
-  const serviceCharge = Math.round((taxableAmount * taxSettings.serviceChargePercent) / 100);
-  const rawTotal = taxableAmount + cgst + sgst + serviceCharge;
+  const taxableAmount = Math.max(0, subtotal - calculatedDiscount);
+
+  const taxNumber = Math.max(0, parseFloat(taxInput) || 0);
+  const calculatedTax = useMemo(() => {
+    if (taxableAmount <= 0 || taxNumber <= 0) return 0;
+    if (taxType === "percent") {
+      return Math.round((taxableAmount * taxNumber) / 100);
+    }
+    return Math.round(taxNumber);
+  }, [taxableAmount, taxType, taxNumber]);
+
+  const rawTotal = taxableAmount + calculatedTax;
   const grandTotal = Math.round(rawTotal);
   const roundOff = Number((grandTotal - rawTotal).toFixed(2));
-
-  const handleApplyCoupon = () => {
-    if (!couponCode.trim()) return;
-    const upper = couponCode.toUpperCase().trim();
-    if (upper === "RETROD10" || upper === "WELCOME10") {
-      setAppliedCoupon({ code: upper, discountRate: 10 });
-      setCouponCode("");
-    } else if (upper === "VIP20" || upper === "GOLD20") {
-      setAppliedCoupon({ code: upper, discountRate: 20 });
-      setCouponCode("");
-    } else if (upper === "FLAT50") {
-      setAppliedCoupon({ code: upper, discountRate: 50 });
-      setCouponCode("");
-    } else {
-      setAppliedCoupon({ code: upper, discountRate: 5 });
-      setCouponCode("");
-    }
-  };
 
   const actionsDisabled = cartItems.length === 0 || Boolean(busyAction);
   const showRoomFolio = orderType === "room_service" && Boolean(onAddToRoomFolio);
@@ -502,143 +517,109 @@ export function BillingCartRegister({
         )}
       </div>
 
-      {/* 4. Totals, Taxes & Discount Breakdown (Tight) */}
-      <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 space-y-1.5 text-xs shrink-0">
-        {/* Note + promo arrow — one compact row */}
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-amber-200 bg-amber-50 text-amber-700"
-            title="Special note"
-          >
-            <StickyNote className="h-3.5 w-3.5" />
+      {/* 4. Totals, Taxes & Discount Breakdown (Exact POS Terminal Layout) */}
+      <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 space-y-2 text-xs shrink-0 select-none">
+        {/* Subtotal */}
+        <div className="flex items-center justify-between text-slate-700">
+          <span className="font-medium text-[11.5px]">
+            Subtotal ({cartItems.reduce((s, i) => s + i.quantity, 0)} items)
           </span>
-          <select
-            value={presetNoteId}
-            onChange={(e) => {
-              const id = e.target.value;
-              setPresetNoteId(id);
-              if (!id) return;
-              const match = availableNotes.find((n) => n.id === id);
-              if (match) onSpecialNoteChange(match.name);
-            }}
-            className="w-[5.5rem] shrink-0 rounded-md border border-slate-200 bg-white px-1.5 py-1 text-[11px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-            title="Choose note"
-          >
-            <option value="">Note</option>
-            {availableNotes.map((note) => (
-              <option key={note.id} value={note.id}>
-                {note.name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            value={specialNote}
-            onChange={(e) => {
-              const next = e.target.value;
-              onSpecialNoteChange(next);
-              const match = availableNotes.find((n) => n.name === next.trim());
-              setPresetNoteId(match?.id ?? "");
-            }}
-            placeholder="Custom note…"
-            className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-          <button
-            type="button"
-            onClick={() => setPromoOpen((open) => !open)}
-            aria-label="Toggle promo"
-            title={appliedCoupon ? appliedCoupon.code : "Promo"}
-            className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition cursor-pointer ${
-              appliedCoupon || promoOpen
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
-            }`}
-          >
-            <ChevronDown
-              className={`h-3.5 w-3.5 transition ${promoOpen ? "rotate-180" : ""}`}
-            />
-          </button>
+          <span className="font-semibold text-slate-900 text-xs font-mono">
+            ₹{subtotal.toLocaleString()}
+          </span>
         </div>
 
-        {promoOpen && (
-          <div className="space-y-1.5 rounded-md border border-slate-200 bg-white px-2 py-1.5">
-            <div className="flex items-center gap-1.5">
-              <input
-                type="text"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value)}
-                placeholder="Promo code (e.g. RETROD10)"
-                className="w-full px-2 py-0.5 text-xs uppercase bg-white border border-slate-200 rounded-md text-slate-800 placeholder:normal-case placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              <button
-                type="button"
-                onClick={handleApplyCoupon}
-                disabled={!couponCode.trim()}
-                className="px-2 py-0.5 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] font-bold transition disabled:opacity-40 cursor-pointer"
+        {/* Discount Control Row: Dropdown (% / ₹) + Input + Display */}
+        <div className="flex items-center justify-between gap-2 text-slate-700 py-0.5">
+          <span className="font-medium text-[11.5px]">Discount</span>
+          <div className="flex items-center gap-1.5">
+            {/* Dropdown: % or ₹ */}
+            <div className="relative">
+              <select
+                value={discountType}
+                onChange={(e) => handleDiscountTypeChange(e.target.value as "percent" | "flat")}
+                className="h-7 pl-2 pr-5 text-[11px] font-bold bg-white border border-slate-200 rounded-md text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer appearance-none shadow-2xs"
+                title="Discount Type"
               >
-                Apply
-              </button>
+                <option value="percent">% (Percentage)</option>
+                <option value="flat">₹ (Flat)</option>
+              </select>
+              <ChevronDown className="h-3 w-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
-            {appliedCoupon && (
-              <div className="flex items-center justify-between bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-[10.5px] font-semibold">
-                <span>
-                  <strong>{appliedCoupon.code}</strong> ({appliedCoupon.discountRate}% OFF)
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setAppliedCoupon(null)}
-                  className="text-emerald-700 hover:text-emerald-950 cursor-pointer"
-                >
-                  Remove
-                </button>
-              </div>
-            )}
+
+            {/* Input value */}
+            <input
+              type="number"
+              min="0"
+              max={discountType === "percent" ? 100 : undefined}
+              value={discountInput}
+              onChange={(e) => handleDiscountInputChange(e.target.value)}
+              placeholder="0"
+              className="h-7 w-16 px-2 text-[11.5px] font-semibold text-right bg-white border border-slate-200 rounded-md text-slate-900 focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+
+            {/* Computed display */}
+            <span className="font-bold text-emerald-700 min-w-[55px] text-right font-mono text-[11.5px]">
+              {calculatedDiscount > 0 ? `-₹${calculatedDiscount.toLocaleString()}` : "₹0"}
+            </span>
+          </div>
+        </div>
+
+        {/* Tax Control Row: Dropdown (% / ₹) + Input + Display */}
+        <div className="flex items-center justify-between gap-2 text-slate-700 py-0.5">
+          <span className="font-medium text-[11.5px]">Tax</span>
+          <div className="flex items-center gap-1.5">
+            {/* Dropdown: % or ₹ */}
+            <div className="relative">
+              <select
+                value={taxType}
+                onChange={(e) => handleTaxTypeChange(e.target.value as "percent" | "flat")}
+                className="h-7 pl-2 pr-5 text-[11px] font-bold bg-white border border-slate-200 rounded-md text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer appearance-none shadow-2xs"
+                title="Tax Type"
+              >
+                <option value="percent">% (Percentage)</option>
+                <option value="flat">₹ (Flat)</option>
+              </select>
+              <ChevronDown className="h-3 w-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Input value */}
+            <input
+              type="number"
+              min="0"
+              value={taxInput}
+              onChange={(e) => handleTaxInputChange(e.target.value)}
+              placeholder="0"
+              className="h-7 w-16 px-2 text-[11.5px] font-semibold text-right bg-white border border-slate-200 rounded-md text-slate-900 focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+
+            {/* Computed display */}
+            <span className="font-bold text-slate-900 min-w-[55px] text-right font-mono text-[11.5px]">
+              {calculatedTax > 0 ? `+₹${calculatedTax.toLocaleString()}` : "₹0"}
+            </span>
+          </div>
+        </div>
+
+        {/* Tax Breakdown Hint (if percentage tax active) */}
+        {taxType === "percent" && taxNumber > 0 && calculatedTax > 0 && (
+          <div className="flex items-center justify-between text-[10px] text-slate-400 pl-1 font-mono">
+            <span>CGST ({(taxNumber / 2).toFixed(1)}%) + SGST ({(taxNumber / 2).toFixed(1)}%)</span>
+            <span>₹{Math.round(calculatedTax / 2).toLocaleString()} + ₹{Math.round(calculatedTax / 2).toLocaleString()}</span>
           </div>
         )}
 
-        {/* Calculation Table */}
-        <div className="space-y-0.5 text-slate-600 text-[11px]">
-          <div className="flex items-center justify-between">
-            <span>Subtotal ({cartItems.reduce((s, i) => s + i.quantity, 0)} items)</span>
-            <span className="font-semibold text-slate-900">₹{subtotal.toLocaleString()}</span>
+        {/* Round Off (if any) */}
+        {roundOff !== 0 && (
+          <div className="flex items-center justify-between text-slate-400 text-[10.5px]">
+            <span>Round Off</span>
+            <span className="font-mono">{roundOff > 0 ? `+₹${roundOff}` : `-₹${Math.abs(roundOff)}`}</span>
           </div>
-
-          {discountAmount > 0 && (
-            <div className="flex items-center justify-between text-emerald-700 font-semibold">
-              <span>Discount</span>
-              <span>-₹{discountAmount.toLocaleString()}</span>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between">
-            <span>CGST ({taxSettings.cgstPercent}%)</span>
-            <span>₹{cgst.toLocaleString()}</span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span>SGST ({taxSettings.sgstPercent}%)</span>
-            <span>₹{sgst.toLocaleString()}</span>
-          </div>
-
-          {taxSettings.serviceChargePercent > 0 && (
-            <div className="flex items-center justify-between">
-              <span>Service Charge ({taxSettings.serviceChargePercent}%)</span>
-              <span>₹{serviceCharge.toLocaleString()}</span>
-            </div>
-          )}
-
-          {roundOff !== 0 && (
-            <div className="flex items-center justify-between text-slate-400 text-[10px]">
-              <span>Round Off</span>
-              <span>{roundOff > 0 ? `+₹${roundOff}` : `-₹${Math.abs(roundOff)}`}</span>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Grand Total Display */}
-        <div className="pt-1.5 border-t border-slate-200 flex items-center justify-between text-slate-900">
-          <span className="font-bold text-xs">Grand Total Payable</span>
-          <span className="font-extrabold text-base text-primary">
+        <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-slate-900">
+          <span className="font-extrabold text-xs tracking-tight">Grand Total Payable</span>
+          <span className="font-black text-base text-primary font-mono tracking-tight">
             ₹{grandTotal.toLocaleString()}
           </span>
         </div>

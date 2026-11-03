@@ -15,74 +15,28 @@ export interface PosCustomerRecord {
 
 const STORAGE_KEY = "retrod:pos:customers:store";
 
-const DEFAULT_CUSTOMERS: PosCustomerRecord[] = [
-  {
-    id: "cust-1",
-    name: "Rahul Sharma",
-    phone: "+91 98765 43210",
-    email: "rahul.sharma@gmail.com",
-    tier: "Gold",
-    loyaltyPoints: 340,
-    visitCount: 6,
-    lastVisit: "Yesterday",
-  },
-  {
-    id: "cust-2",
-    name: "Priya Verma",
-    phone: "+91 98112 23344",
-    email: "priya.verma@hotmail.com",
-    tier: "Platinum VIP",
-    loyaltyPoints: 820,
-    visitCount: 14,
-    lastVisit: "Today",
-  },
-  {
-    id: "cust-3",
-    name: "Amit Patel",
-    phone: "+91 99887 76655",
-    email: "amit.patel@yahoo.com",
-    tier: "Silver",
-    loyaltyPoints: 120,
-    visitCount: 2,
-    lastVisit: "3 days ago",
-  },
-  {
-    id: "cust-4",
-    name: "Sneha Rao",
-    phone: "+91 91234 56789",
-    email: "sneha.rao@outlook.com",
-    tier: "Gold",
-    loyaltyPoints: 490,
-    visitCount: 9,
-    lastVisit: "Last week",
-  },
-  {
-    id: "cust-5",
-    name: "Vikram Malhotra",
-    phone: "+91 98711 22334",
-    email: "vikram.m@gmail.com",
-    tier: "Silver",
-    loyaltyPoints: 80,
-    visitCount: 1,
-    lastVisit: "Today",
-  },
-];
-
+// No hardcoded customers — starts clean, populated only by real added guests
 export function getPosCustomers(outletId?: string): PosCustomerRecord[] {
-  if (typeof window === "undefined") return DEFAULT_CUSTOMERS;
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_CUSTOMERS));
-      return DEFAULT_CUSTOMERS;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
+    if (Array.isArray(parsed)) {
+      // Purge any legacy dummy mock customers
+      const realCustomers = parsed.filter(
+        (c) =>
+          !["cust-1", "cust-2", "cust-3", "cust-4", "cust-5"].includes(c.id) &&
+          !["Rahul Sharma", "Priya Verma", "Amit Patel", "Sneha Rao", "Vikram Malhotra"].includes(c.name)
+      );
+      if (realCustomers.length !== parsed.length) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(realCustomers));
+      }
+      return realCustomers;
     }
-    return DEFAULT_CUSTOMERS;
+    return [];
   } catch {
-    return DEFAULT_CUSTOMERS;
+    return [];
   }
 }
 
@@ -99,14 +53,13 @@ export function savePosCustomer(
   outletId?: string
 ): PosCustomerRecord {
   const current = getPosCustomers(outletId);
-  const now = new Date();
   const newCustomer: PosCustomerRecord = {
     id: `cust-${Date.now()}`,
     name: input.name.trim(),
     phone: input.phone.trim(),
     email: input.email?.trim() || undefined,
     tier: input.tier || "Silver",
-    loyaltyPoints: 50, // Welcome points
+    loyaltyPoints: 0,
     visitCount: 1,
     lastVisit: "Today",
     gstin: input.gstin?.trim() || undefined,
@@ -123,4 +76,3 @@ export function savePosCustomer(
   }
   return newCustomer;
 }
-
