@@ -542,7 +542,9 @@ export function PosAllOrdersManager() {
         </div>
       </div>
 
-      {/* 2. Structured Filter Card */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="responsive-page-x py-4 sm:py-5 space-y-4">
+          {/* 2. Structured Filter Card */}
       <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
         {!showMoreFilters ? (
           /* PICTURE 1: DEFAULT COMPACT SINGLE-ROW FILTER TOOLBAR */
@@ -882,6 +884,8 @@ export function PosAllOrdersManager() {
           ))}
         </div>
       )}
+        </div>
+      </div>
 
       {/* VIEW ORDER DETAILS MODAL */}
       {viewingOrder && (

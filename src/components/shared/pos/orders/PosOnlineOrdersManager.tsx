@@ -516,7 +516,9 @@ export function PosOnlineOrdersManager() {
         </div>
       </div>
 
-      {/* 2. PLATFORM TABS & FILTER BAR */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="responsive-page-x py-4 sm:py-5 space-y-4">
+          {/* 2. PLATFORM TABS & FILTER BAR */}
       <div className="rounded-xl border border-border bg-surface p-3 shadow-2xs space-y-2.5">
         {/* Channel Segmented Filter */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle pb-2.5">
@@ -633,6 +635,8 @@ export function PosOnlineOrdersManager() {
         emptyMessage="No online orders found matching current filters."
         columns={columns}
       />
+        </div>
+      </div>
 
       {/* ONLINE ORDERS SYMBOLS NOTEPAD MODAL */}
       {showSymbolGuide && (

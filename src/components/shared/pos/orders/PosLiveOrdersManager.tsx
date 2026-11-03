@@ -244,7 +244,9 @@ export function PosLiveOrdersManager() {
         </div>
       </div>
 
-      {/* 2. KPI METRIC STRIP — Clean Slate & Teal Theme */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="responsive-page-x py-4 sm:py-5 space-y-4">
+          {/* 2. KPI METRIC STRIP — Clean Slate & Teal Theme */}
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500">
@@ -297,7 +299,7 @@ export function PosLiveOrdersManager() {
 
       {/* VIEW 1: GANTT CHART & ORDER STATUS TIMELINE */}
       {activeTab === "gantt_timeline" && (
-        <div className="responsive-page-x py-4 sm:py-5 space-y-2.5">
+        <div className="space-y-3">
           {/* Timeline Filter Bar */}
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-300 bg-white p-2.5 shadow-2xs">
             <div className="flex flex-wrap items-center gap-1.5">
@@ -759,6 +761,8 @@ export function PosLiveOrdersManager() {
           </div>
         </div>
       )}
+        </div>
+      </div>
 
       {/* MODAL: TIMELINE ORDER DETAILS */}
       {selectedTimelineOrder && (
