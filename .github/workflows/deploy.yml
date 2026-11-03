@@ -44,14 +44,27 @@ jobs:
       # prevents "client_loop: send disconnect: Broken pipe" (~10m SSH drop).
       - name: Build and restart pos-ui
         env:
-          SSH_OPTS: -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=120 -o TCPKeepAlive=yes
+          SSH_OPTS: -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=120 -o TCPKeepAlive=yes -o ConnectTimeout=15
         run: |
-          ssh -p ${{ secrets.VM_PORT }} $SSH_OPTS ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
-            'set -euo pipefail
-             cd /opt/retrod/POS-UI
-             (docker compose build --progress=plain pos-ui || (sleep 5 && docker compose build --progress=plain pos-ui) || (sleep 10 && docker compose build --progress=plain pos-ui))
-             docker compose up -d --force-recreate pos-ui
-             docker image prune -f'
+          for i in 1 2 3 4 5; do
+            echo "Attempt $i: Connecting to VM to build and restart pos-ui..."
+            if ssh -p ${{ secrets.VM_PORT }} $SSH_OPTS ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+              'set -euo pipefail
+               cd /opt/retrod/POS-UI
+               (docker compose build --progress=plain pos-ui || (sleep 5 && docker compose build --progress=plain pos-ui) || (sleep 10 && docker compose build --progress=plain pos-ui))
+               docker compose up -d --force-recreate pos-ui
+               docker image prune -f'; then
+              echo "Build and restart succeeded."
+              break
+            else
+              if [ $i -eq 5 ]; then
+                echo "Failed after 5 attempts."
+                exit 1
+              fi
+              echo "SSH command failed (attempt $i/5). Retrying in 10s..."
+              sleep 10
+            fi
+          done
 
       - name: Sync deploy branch to main
         if: github.ref == 'refs/heads/main'

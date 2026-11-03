@@ -18,8 +18,8 @@ export function usePosDashboard(filters?: DashboardFilterParams) {
     queryKey: [...POS_DASHBOARD_QUERY_KEY, mergedFilters],
     queryFn: () => getPosDashboardData(mergedFilters),
     initialData: () => getInitialDashboardData(outletId),
-    staleTime: 1000 * 30,
-    refetchInterval: 1000 * 60,
+    staleTime: 1000 * 5,
+    refetchInterval: 1000 * 10,
     enabled: Boolean(outletId),
   });
 }

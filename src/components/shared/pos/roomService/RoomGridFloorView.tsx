@@ -153,7 +153,7 @@ export function RoomGridFloorView({
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-primary">{activeOrder.orderNumber}</span>
                       <span className="font-bold text-slate-900">
-                        ${activeOrder.totalAmount.toFixed(2)}
+                        ₹{Math.round(activeOrder.totalAmount || 0).toLocaleString("en-IN")}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">

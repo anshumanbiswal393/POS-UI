@@ -1,4 +1,6 @@
 import httpClient from "@/utils/httpClient";
+import { liveGetCurrent, liveGetHistory } from "./posOrderLive";
+import { posTablesService } from "./posTablesService";
 import type { PosDashboardApiResponse } from "@/types/posDashboardApi";
 import type {
   PosDashboardData,
@@ -213,6 +215,7 @@ export function getInitialDashboardData(_outletId?: string): PosDashboardData {
   return mapDtoToDashboardModel(EMPTY_DASHBOARD_API_RESPONSE, false);
 }
 
+
 /**
  * Service to fetch POS Dashboard data from backend or fallback to local realistic store
  */
@@ -224,21 +227,212 @@ export async function getPosDashboardData(
     return getInitialDashboardData(outletId);
   }
 
+  let backendData: PosDashboardApiResponse | null = null;
   try {
-    const response = await httpClient.get<PosDashboardApiResponse>("/api/pos/dashboard", {
+    const response = await httpClient.get<PosDashboardApiResponse>("/api/pos/dashboard/", {
       params: filters,
     });
-    // Stub / incomplete payloads must not surface Highway demo numbers for real outlets
     if (
       response.data &&
       response.data.success &&
       response.data.stats &&
       Array.isArray(response.data.orderTypes)
     ) {
-      return mapDtoToDashboardModel(response.data, false);
+      backendData = response.data;
     }
-    return getInitialDashboardData(outletId);
   } catch (_err) {
-    return getInitialDashboardData(outletId);
+    backendData = null;
   }
+
+  // If backend returned complete operational stats including live orders or tables, use it
+  if (
+    backendData &&
+    ((backendData.stats && (backendData.stats.totalOrders > 0 || backendData.stats.activeTablesCount > 0)) ||
+      (backendData.liveOrders && backendData.liveOrders.length > 0))
+  ) {
+    return mapDtoToDashboardModel(backendData, false);
+  }
+
+  // Synthesize / augment real-time data from live endpoints
+  try {
+    const isLive = isBackendOutletId(outletId);
+    const [currentOrders, tables, history] = await Promise.all([
+      isLive ? liveGetCurrent(outletId) : Promise.resolve([]),
+      posTablesService.getTables(),
+      isLive ? liveGetHistory(outletId) : Promise.resolve({ records: [] }),
+    ]);
+
+    const activeCurrentOrders = currentOrders || [];
+    const outletTables = tables || [];
+    const historyRecords = (history as any)?.records || [];
+
+    // If we have any active orders or tables, build live model
+    if (activeCurrentOrders.length > 0 || outletTables.length > 0 || historyRecords.length > 0) {
+      const liveOrders = activeCurrentOrders.map((co) => ({
+        id: co.id,
+        orderNumber: co.orderNumber,
+        title: co.tableOrRoom || co.source || co.orderNumber,
+        orderType: (co.type as any) || "dine_in",
+        orderTypeLabel: co.typeLabel || "Dine In",
+        status: co.currentStage === "placed" ? ("preparing" as const) : ("ready" as const),
+        statusLabel: co.stageLabel || (co.currentStage === "placed" ? "Placed (In Kitchen)" : "Prepared"),
+        elapsedMinutes: Math.max(1, co.elapsedMinutes || 0),
+        amount: co.amount || 0,
+      }));
+
+      const tableItems = outletTables.map((t) => ({
+        tableNumber: String(t.tableNumberRaw || t.tableNumber).replace(/^Table\s*#?/i, ""),
+        status: t.status === "occupied" ? ("occupied" as const) : t.status === "reserved" ? ("reserved" as const) : ("available" as const),
+        guests: t.capacity,
+        currentOrderAmount: t.activeOrder?.totalAmount || 0,
+      }));
+
+      const activeTablesCount = outletTables.filter((t) => t.status === "occupied").length ||
+        activeCurrentOrders.filter((co) => co.type === "dine_in").length;
+      const totalTablesCount = outletTables.length || activeTablesCount;
+
+      // Calculate total collections from settled orders
+      const settledRecords = historyRecords.filter((h: any) =>
+        String(h.status || "").toLowerCase().includes("settle")
+      );
+      const totalCollections = settledRecords.reduce((sum: number, h: any) => {
+        const amt = parseFloat(String(h.grandTotalFormatted || h.amount || "0").replace(/[^0-9.]/g, ""));
+        return sum + (isNaN(amt) ? 0 : amt);
+      }, 0);
+
+      // Unpaid bills from active orders
+      const unpaidBillsAmount = activeCurrentOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
+      const unpaidBillsCount = activeCurrentOrders.length;
+      const totalOrdersCount = activeCurrentOrders.length + settledRecords.length;
+
+      // Order types breakdown
+      const allOrders = [...activeCurrentOrders, ...historyRecords];
+      const dineCount = allOrders.filter((o: any) =>
+        (o.type || o.orderTypeDisplay || "").toLowerCase().includes("dine")
+      ).length;
+      const takeawayCount = allOrders.filter((o: any) =>
+        (o.type || o.orderTypeDisplay || "").toLowerCase().includes("takeaway") ||
+        (o.type || "").toLowerCase().includes("pickup")
+      ).length;
+      const roomServiceCount = allOrders.filter((o: any) =>
+        (o.type || o.orderTypeDisplay || "").toLowerCase().includes("room")
+      ).length;
+      const totalMix = Math.max(1, dineCount + takeawayCount + roomServiceCount);
+
+      const orderTypes = [
+        {
+          type: "dine_in" as const,
+          label: "Dine-in",
+          count: dineCount,
+          percentage: Math.round((dineCount / totalMix) * 1000) / 10,
+          color: "#0f766e",
+        },
+        {
+          type: "takeaway" as const,
+          label: "Takeaway",
+          count: takeawayCount,
+          percentage: Math.round((takeawayCount / totalMix) * 1000) / 10,
+          color: "#0d9488",
+        },
+        {
+          type: "room_service" as const,
+          label: "Room service",
+          count: roomServiceCount,
+          percentage: Math.round((roomServiceCount / totalMix) * 1000) / 10,
+          color: "#94a3b8",
+        },
+      ];
+
+      // Top selling dishes from active orders
+      const dishCountMap = new Map<string, { count: number; rev: number; cat: string }>();
+      activeCurrentOrders.forEach((co) => {
+        (co.items || []).forEach((it: any) => {
+          const name = it.name || "Item";
+          const curr = dishCountMap.get(name) || { count: 0, rev: 0, cat: it.category || "General" };
+          curr.count += (it.quantity || 1);
+          curr.rev += ((it.quantity || 1) * (it.price || 0));
+          dishCountMap.set(name, curr);
+        });
+      });
+
+      const topSellingItems = Array.from(dishCountMap.entries()).map(([name, val]) => ({
+        id: name,
+        name,
+        category: val.cat,
+        quantitySold: val.count,
+        unitLabel: "Plates",
+        revenue: val.rev,
+      }));
+
+      // Attention alerts
+      const attentionAlerts = [];
+      if (unpaidBillsCount > 0) {
+        attentionAlerts.push({
+          id: "unsettled_bills",
+          type: "unsettled_bills" as const,
+          title: `${unpaidBillsCount} Unsettled Bills`,
+          count: unpaidBillsCount,
+          actionText: "Review dues",
+          actionRoute: "/pos/settlement",
+        });
+      }
+
+      const synthesizedDto: PosDashboardApiResponse = {
+        success: true,
+        outletId: outletId || "",
+        outletName: "",
+        date: "Today",
+        currency: "INR",
+        stats: {
+          totalCollections,
+          totalOrders: Math.max(totalOrdersCount, activeCurrentOrders.length),
+          activeTablesCount,
+          totalTablesCount,
+          unpaidBillsAmount,
+          unpaidBillsCount,
+          roomChargesAmount: 0,
+          roomChargesCount: 0,
+        },
+        salesGraph: [
+          { hour: "12 AM", todaySales: 0, yesterdaySales: 0 },
+          { hour: "4 AM", todaySales: 0, yesterdaySales: 0 },
+          { hour: "8 AM", todaySales: 0, yesterdaySales: 0 },
+          { hour: "12 PM", todaySales: 0, yesterdaySales: 0 },
+          { hour: "4 PM", todaySales: totalCollections, yesterdaySales: 0 },
+          { hour: "8 PM", todaySales: 0, yesterdaySales: 0 },
+        ],
+        orderTypes,
+        liveOrders,
+        paymentSummary: {
+          cash: { amount: 0, percentage: 0 },
+          card: { amount: 0, percentage: 0 },
+          upiWallets: { amount: 0, percentage: 0 },
+          other: { amount: 0, percentage: 0 },
+          total: totalCollections,
+        },
+        tables: tableItems,
+        topSellingItems,
+        attentionAlerts,
+        operationalMetrics: [
+          {
+            avgPrepTimeMinutes: 15,
+            successfulOrdersCount: settledRecords.length,
+            complimentaryOrdersCount: 0,
+            cancelledOrdersCount: 0,
+            exceptionsCount: 0,
+          },
+        ],
+      };
+
+      return mapDtoToDashboardModel(synthesizedDto, false);
+    }
+  } catch (err) {
+    console.warn("Could not synthesize live dashboard metrics:", err);
+  }
+
+  if (backendData) {
+    return mapDtoToDashboardModel(backendData, false);
+  }
+
+  return getInitialDashboardData(outletId);
 }

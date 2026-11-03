@@ -197,10 +197,10 @@ export function TableCardItem({ table, onSelectReserved, onSelectTable, onDelete
           {status === "occupied" && activeOrder && (
             <div className="mt-0.5 flex items-center gap-1 text-[9.5px] font-bold text-orange-950 bg-orange-100/90 px-1.5 py-0.2 rounded border border-orange-200/80">
               <Clock className="w-2 h-2 text-orange-700" />
-              <span>{activeOrder.elapsedMinutes}m</span>
+              <span>{Math.max(1, activeOrder.elapsedMinutes || 0)}m</span>
               <span>•</span>
               <Receipt className="w-2 h-2 text-orange-700" />
-              <span>${activeOrder.totalAmount.toFixed(2)}</span>
+              <span>₹{Math.round(activeOrder.totalAmount || 0).toLocaleString("en-IN")}</span>
             </div>
           )}
 

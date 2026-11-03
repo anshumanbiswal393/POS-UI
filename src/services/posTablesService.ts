@@ -40,6 +40,7 @@ import type {
 } from "@/types/posTables";
 import { isBackendOutletId } from "@/utils/outletId";
 import httpClient from "@/utils/httpClient";
+import { liveGetCurrent } from "./posOrderLive";
 import { API_ENDPOINTS } from "@/config/apiEndpoints";
 import { liveCreateOrder, livePatchOrder } from "@/services/posOrderLive";
 import { mergeHighwayDemoAreas, mergeHighwayDemoTables } from "@/lib/highwayInnDemo";
@@ -77,7 +78,21 @@ function mapApiTable(dto: Record<string, any>, areaName?: string): RestaurantTab
     shape: shapeMap[String(dto.shape || "").toUpperCase()] || "square",
     area: dto.section_name || areaName || "",
     status: statusMap[String(dto.status || "VACANT").toUpperCase()] || "vacant",
-    activeOrder: dto.active_order_id
+    activeOrder: dto.active_order
+      ? {
+          orderId: String(dto.active_order.orderId || dto.active_order_id),
+          orderNumber: dto.active_order.orderNumber || "",
+          serverName: dto.active_order.serverName || dto.active_waiter_name || "Captain",
+          seatedAt: dto.active_order.seatedAt || "",
+          elapsedMinutes: Number(dto.active_order.elapsedMinutes || 0),
+          itemsCount: Number(dto.active_order.itemsCount || 0),
+          subtotal: Number(dto.active_order.subtotal || 0),
+          totalAmount: Number(dto.active_order.totalAmount || 0),
+          status: dto.active_order.status || "in_prep",
+          guestName: dto.active_order.guestName,
+          guestPhone: dto.active_order.guestPhone,
+        }
+      : dto.active_order_id
       ? {
           orderId: String(dto.active_order_id),
           orderNumber: "",
@@ -359,6 +374,49 @@ export const posTablesService = {
         mapped = [];
       }
       mapped = mapped.filter((t) => Boolean(t.area && t.area.trim()));
+
+      // Hydrate active orders on occupied tables if order details/amount are missing
+      const needsHydration = mapped.some(
+        (t) => t.status === "occupied" && (!t.activeOrder || !t.activeOrder.totalAmount)
+      );
+      if (needsHydration) {
+        try {
+          const currentOrders = await liveGetCurrent(cid);
+          if (currentOrders && currentOrders.length > 0) {
+            mapped = mapped.map((tbl) => {
+              if (tbl.status !== "occupied") return tbl;
+              const matched = currentOrders.find((co) => {
+                if (co.tableId && co.tableId === tbl.id) return true;
+                const tblClean = tbl.tableNumber.toLowerCase().replace(/[^0-9a-z]/g, "");
+                const orderSrcClean = (co.tableOrRoom || co.source || "").toLowerCase().replace(/[^0-9a-z]/g, "");
+                return tblClean && orderSrcClean && (tblClean.includes(orderSrcClean) || orderSrcClean.includes(tblClean));
+              });
+              if (matched) {
+                return {
+                  ...tbl,
+                  activeOrder: {
+                    orderId: matched.id,
+                    orderNumber: matched.orderNumber,
+                    serverName: matched.waiterName || tbl.activeOrder?.serverName || "Captain",
+                    seatedAt: matched.startTime || "",
+                    elapsedMinutes: Math.max(1, matched.elapsedMinutes || 0),
+                    itemsCount: matched.items?.length || 0,
+                    subtotal: matched.subtotal || matched.amount,
+                    totalAmount: matched.amount,
+                    status: matched.currentStage === "placed" ? "in_prep" : "served",
+                    guestName: matched.customerName,
+                    guestPhone: matched.customerPhone,
+                  },
+                };
+              }
+              return tbl;
+            });
+          }
+        } catch (e) {
+          console.warn("Could not hydrate table active order details from liveGetCurrent:", e);
+        }
+      }
+
       if (area && area.trim()) {
         const target = area.trim().toLowerCase();
         return mapped.filter((t) => (t.area || "").trim().toLowerCase() === target);
