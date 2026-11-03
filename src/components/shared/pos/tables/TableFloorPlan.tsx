@@ -134,21 +134,7 @@ export function TableFloorPlan({
                 </button>
               )}
 
-              {/* Delete active area button */}
-              {onDeleteArea && areas.length > 0 && activeArea && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm(`Delete dining area "${activeArea}" and all its tables?`)) {
-                      onDeleteArea(activeArea);
-                    }
-                  }}
-                  title={`Delete "${activeArea}" area`}
-                  className="flex items-center justify-center p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer ml-0.5"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              )}
+
             </div>
 
             {/* Add Table Button with Popover */}
