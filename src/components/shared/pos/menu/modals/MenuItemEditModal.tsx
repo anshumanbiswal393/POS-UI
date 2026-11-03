@@ -209,12 +209,20 @@ export function MenuItemEditModal({
       return;
     }
     if (!category.trim()) {
-      toast.error("Please enter a category for this menu item");
+      toast.error("Please enter or select a category");
+      return;
+    }
+    if (!itemType || !["Veg", "Non-Veg", "Egg"].includes(itemType)) {
+      toast.error("Please select a food type");
+      return;
+    }
+    if (price === "" || price === undefined || price === null) {
+      toast.error("Please enter the base price");
       return;
     }
     const numPrice = Number(price);
     if (isNaN(numPrice) || numPrice < 0) {
-      toast.error("Please enter a valid price");
+      toast.error("Please enter a valid base price");
       return;
     }
 
@@ -388,73 +396,55 @@ export function MenuItemEditModal({
           </div>
 
           {/* 2. Type, Price, Tax, Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3 p-4 rounded-xl bg-slate-50/80 border border-slate-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50/80 border border-slate-200">
             {/* Item Type (Veg / Non-Veg / Egg) */}
-            <div className="md:col-span-4">
-              <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
-                Food Type
+            <div>
+              <label className="block text-[12.5px] font-semibold text-slate-700 mb-1">
+                Food Type <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white p-1">
-                {(["Veg", "Non-Veg", "Egg"] as const).map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setItemType(type)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 px-1.5 py-1.5 text-[11.5px] font-bold rounded-md transition cursor-pointer whitespace-nowrap ${
-                      itemType === type
-                        ? type === "Veg"
-                          ? "bg-emerald-500 text-white shadow-2xs"
-                          : type === "Non-Veg"
-                            ? "bg-red-500 text-white shadow-2xs"
-                            : "bg-amber-500 text-white shadow-2xs"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                  >
-                    <span
-                      className={`h-2 w-2 shrink-0 rounded-full ${
-                        type === "Veg"
-                          ? "bg-emerald-300"
-                          : type === "Non-Veg"
-                            ? "bg-red-300"
-                            : "bg-amber-300"
-                      }`}
-                    />
-                    {type}
-                  </button>
-                ))}
-              </div>
+              <select
+                value={itemType}
+                onChange={(e) => setItemType(e.target.value as MenuItemType)}
+                className="w-full h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-900 focus:border-teal-500 focus:outline-hidden cursor-pointer"
+                required
+              >
+                <option value="Veg">Veg</option>
+                <option value="Non-Veg">Non-Veg</option>
+                <option value="Egg">Egg</option>
+              </select>
             </div>
 
             {/* Base Price */}
-            <div className="md:col-span-3">
-              <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
+            <div>
+              <label className="block text-[12.5px] font-semibold text-slate-700 mb-1">
                 Base Price (₹) <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-2 text-[13px] font-bold text-slate-400">
+                <span className="absolute left-3 top-2.5 text-[13px] font-bold text-slate-400 select-none">
                   ₹
                 </span>
                 <input
                   type="number"
                   min="0"
                   step="1"
+                  placeholder="0"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 pl-7 pr-3 py-1.5 text-[13px] font-bold text-slate-900 focus:border-teal-500 focus:outline-hidden"
+                  className="w-full h-10 rounded-lg border border-slate-300 pl-7 pr-3 py-2 text-[13px] font-bold text-slate-900 focus:border-teal-500 focus:outline-hidden"
                   required
                 />
               </div>
             </div>
 
             {/* Tax Rate */}
-            <div className="md:col-span-3">
-              <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
+            <div>
+              <label className="block text-[12.5px] font-semibold text-slate-700 mb-1">
                 Tax Rate (%)
               </label>
               <select
                 value={taxRate}
                 onChange={(e) => setTaxRate(Number(e.target.value))}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[13px] text-slate-900 focus:border-teal-500 focus:outline-hidden cursor-pointer"
+                className="w-full h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-900 focus:border-teal-500 focus:outline-hidden cursor-pointer"
               >
                 <option value={0}>0% (Tax Exempt)</option>
                 <option value={5}>5% GST (Standard Food)</option>
@@ -465,11 +455,11 @@ export function MenuItemEditModal({
             </div>
 
             {/* Single Status toggle — Active = Billing + printed menu; Inactive stays in list only */}
-            <div className="md:col-span-2">
-              <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
+            <div>
+              <label className="block text-[12.5px] font-semibold text-slate-700 mb-1">
                 Status
               </label>
-              <div className="flex items-center gap-1.5 h-[34px] px-2 bg-white rounded-lg border border-slate-300">
+              <div className="flex items-center gap-2 h-10 px-3 bg-white rounded-lg border border-slate-300">
                 <label className="relative inline-flex items-center cursor-pointer shrink-0">
                   <input
                     type="checkbox"
@@ -480,8 +470,8 @@ export function MenuItemEditModal({
                   <div className="w-8 h-4.5 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-teal-600"></div>
                 </label>
                 <span
-                  className={`text-[11px] font-bold whitespace-nowrap ${
-                    status === "Active" ? "text-teal-700" : "text-slate-400"
+                  className={`text-[12px] font-semibold whitespace-nowrap ${
+                    status === "Active" ? "text-teal-700" : "text-slate-500"
                   }`}
                 >
                   {status === "Active" ? "Active" : "Inactive"}
