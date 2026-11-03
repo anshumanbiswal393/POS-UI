@@ -293,6 +293,28 @@ export function useUpdateItemCommission() {
     }) => posMenuService.updateCommission(id, commissionType, commissionValue),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.commissions });
+      queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.items });
+      queryClient.invalidateQueries({ queryKey: ["pos", "billing-menu"] });
+    },
+  });
+}
+
+export function useBulkUpdateItemCommissions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ids,
+      commissionType,
+      commissionValue,
+    }: {
+      ids: string[];
+      commissionType: "Not Configured" | "Percentage" | "Fixed Amount";
+      commissionValue: number | null;
+    }) => posMenuService.bulkUpdateCommissions(ids, commissionType, commissionValue),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.commissions });
+      queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.items });
+      queryClient.invalidateQueries({ queryKey: ["pos", "billing-menu"] });
     },
   });
 }

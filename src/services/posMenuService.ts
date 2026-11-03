@@ -766,18 +766,15 @@ export const posMenuService = {
 
   // 5. Item Commissions
   getCommissions: async (outletId?: string) => {
-    if (isBackendOutletId(outletId)) {
-      const items = await posMenuService.getMenuItems(outletId);
-      return items.map((item) => ({
-        id: item.id,
-        name: item.name,
-        category: item.category,
-        price: item.price,
-        commissionType: item.commissionType || "Not Configured",
-        commissionValue: item.commissionValue ?? null,
-      }));
-    }
-    return [...commissionsStore];
+    const items = await posMenuService.getMenuItems(outletId);
+    return items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      price: item.price,
+      commissionType: item.commissionType || "Not Configured",
+      commissionValue: item.commissionValue ?? null,
+    }));
   },
   updateCommission: async (
     id: string,
@@ -785,23 +782,51 @@ export const posMenuService = {
     commissionValue: number | null,
   ) => {
     if (/^[0-9a-f-]{36}$/i.test(id)) {
-      const res = await httpClient.patch<MenuItem>(API_ENDPOINTS.MENU.UPDATE_ITEM(id), {
-        commissionType,
-        commissionValue,
-      });
-      return {
-        id: res.data.id,
-        name: res.data.name,
-        category: res.data.category,
-        price: res.data.price,
-        commissionType: res.data.commissionType || commissionType,
-        commissionValue: res.data.commissionValue ?? commissionValue,
-      };
+      try {
+        const res = await httpClient.patch<MenuItem>(API_ENDPOINTS.MENU.UPDATE_ITEM(id), {
+          commissionType,
+          commissionValue,
+        });
+        // Also update local store if cached
+        menuItemsStore = menuItemsStore.map((item) =>
+          item.id === id ? { ...item, commissionType, commissionValue } : item,
+        );
+        saveMenuItemsToStorage(menuItemsStore);
+        return {
+          id: res.data.id,
+          name: res.data.name,
+          category: res.data.category,
+          price: res.data.price,
+          commissionType: res.data.commissionType || commissionType,
+          commissionValue: res.data.commissionValue ?? commissionValue,
+        };
+      } catch (err) {
+        console.warn("Backend update failed, updating local state", err);
+      }
     }
+    menuItemsStore = menuItemsStore.map((item) =>
+      item.id === id ? { ...item, commissionType, commissionValue } : item,
+    );
+    saveMenuItemsToStorage(menuItemsStore);
+
     commissionsStore = commissionsStore.map((item) =>
       item.id === id ? { ...item, commissionType, commissionValue } : item,
     );
-    return commissionsStore.find((i) => i.id === id);
+    return {
+      id,
+      commissionType,
+      commissionValue,
+    };
+  },
+  bulkUpdateCommissions: async (
+    ids: string[],
+    commissionType: "Not Configured" | "Percentage" | "Fixed Amount",
+    commissionValue: number | null,
+  ) => {
+    for (const id of ids) {
+      await posMenuService.updateCommission(id, commissionType, commissionValue);
+    }
+    return true;
   },
 
   // 6. Schedules

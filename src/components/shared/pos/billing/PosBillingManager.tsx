@@ -25,6 +25,7 @@ import { useOutletContext } from "@/context/PosOutletContext";
 import { useAuth } from "@/hooks/useAuth";
 import type { CurrentOrderRecord } from "@/services/posOrdersService";
 import { useCurrentOrdersTimeline } from "@/hooks/queries/usePosOrders";
+import { calculateEffectivePrice } from "@/utils/commissionUtils";
 import {
   liveCreateOrder,
   livePatchOrder,
@@ -273,18 +274,31 @@ export function PosBillingManager() {
                 ? "drinks"
                 : "non_veg";
 
+        // Calculate effective price: Base Price + Commission markup
+        const effectivePrice = calculateEffectivePrice(
+          item.price,
+          item.commissionType,
+          item.commissionValue,
+        );
+
+        // Apply same commission markup to variants if defined
+        const effectiveVariants = item.variants?.map((v) => ({
+          ...v,
+          price: calculateEffectivePrice(v.price, item.commissionType, item.commissionValue),
+        }));
+
         return {
           id: item.id,
           code: item.code.startsWith("#") ? item.code : `#${item.code}`,
           name: item.name,
           category: item.category as any,
           diet,
-          price: item.price,
+          price: effectivePrice,
           inStock: true,
           prepTimeMinutes: 15,
           imageUrl: primaryImg,
           description: item.description,
-          variants: item.variants && item.variants.length > 0 ? (item.variants as any) : undefined,
+          variants: effectiveVariants && effectiveVariants.length > 0 ? (effectiveVariants as any) : undefined,
           modifierGroups: item.modifierGroups,
         };
       });
