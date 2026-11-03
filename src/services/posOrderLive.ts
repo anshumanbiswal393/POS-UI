@@ -103,6 +103,8 @@ export function mapLiveKotRecord(r: KotRecordApiDto & Record<string, any>): KotI
       notes: i.notes || undefined,
     })),
     status,
+    notes: r.notes || r.orderNote || r.order_note || undefined,
+    orderNote: r.orderNote || r.order_note || undefined,
     billPrintDate: r.billPrintDate || "",
     completeDuration: r.completeDuration || "",
     createdAt: r.createdAt || "",

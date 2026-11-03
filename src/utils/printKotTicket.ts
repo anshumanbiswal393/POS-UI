@@ -14,6 +14,7 @@ export type KotPrintPayload = {
   createdAt?: string;
   items: KotPrintLine[];
   isModified?: boolean;
+  specialNote?: string;
 };
 
 function escapeHtml(value: string) {
@@ -182,6 +183,14 @@ function buildKotHtml(payload: KotPrintPayload) {
         ${itemsHtml || `<tr><td colspan="3" class="center">No items</td></tr>`}
       </tbody>
     </table>
+    ${
+      payload.specialNote
+        ? `<div style="margin: 8px 0; padding: 6px 8px; background: #fffbe8; border: 1.5px dashed #333; border-radius: 4px; font-size: 11px;">
+        <strong style="display: block; font-size: 10px; text-transform: uppercase; margin-bottom: 2px;">★ Special Note:</strong>
+        <span style="font-size: 12px; font-weight: 800;">${escapeHtml(payload.specialNote)}</span>
+      </div>`
+        : ""
+    }
     <hr class="rule" />
     <div class="footer">— End of KOT #${payload.kotId} —</div>
   </div>

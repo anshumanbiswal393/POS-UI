@@ -18,22 +18,37 @@ type KdsTicket = {
   itemsText: string;
   items?: Array<{ name: string; quantity: number; notes?: string }>;
   itemCount: number;
+  notes?: string;
+  orderNote?: string;
   createdAt?: string;
   createdTimestamp: number;
   isModified?: boolean;
 };
 
+function getKotSpecialNote(kot: KdsTicket): string | undefined {
+  if (kot.notes && kot.notes.trim()) return kot.notes.trim();
+  if (kot.orderNote && kot.orderNote.trim()) return kot.orderNote.trim();
+  const noteMatch = (kot.itemsText || "").match(/(?:^|,\s*)Note:\s*(.+)$/i);
+  if (noteMatch) {
+    return noteMatch[1].trim();
+  }
+  return undefined;
+}
+
 function parseItemLines(kot: KdsTicket): Array<{ name: string; quantity: number; notes?: string }> {
-  if (kot.items && kot.items.length > 0) return kot.items;
+  if (kot.items && kot.items.length > 0) {
+    return kot.items.filter((i) => !i.name.toLowerCase().startsWith("note:"));
+  }
   return (kot.itemsText || "")
     .split(",")
     .map((part) => part.trim())
     .filter(Boolean)
+    .filter((line) => !line.toLowerCase().startsWith("note:"))
     .map((line) => {
-      const qtyMatch = line.match(/×\s*(\d+)\s*$/);
+      const qtyMatch = line.match(/[×x*]\s*(\d+)\s*$/i);
       if (qtyMatch) {
         return {
-          name: line.replace(/×\s*\d+\s*$/, "").trim(),
+          name: line.replace(/[×x*]\s*\d+\s*$/i, "").trim(),
           quantity: Number(qtyMatch[1]) || 1,
         };
       }
@@ -93,6 +108,8 @@ export function PosKotManager() {
         itemsText: k.itemsText,
         items: k.items,
         itemCount: k.itemCount,
+        notes: (k as any).notes || (k as any).orderNote || undefined,
+        orderNote: (k as any).orderNote || undefined,
         createdAt: k.createdAt,
         createdTimestamp: kotStartMs(k.createdTimestamp, k.createdAt),
         isModified: k.isModified,
@@ -151,6 +168,7 @@ export function PosKotManager() {
         createdAt: kot.createdAt,
         items: parseItemLines(kot),
         isModified: kot.isModified,
+        specialNote: getKotSpecialNote(kot),
       });
       toast.success(`Printing KOT #${kot.kotId}`);
     } catch (err) {
@@ -312,6 +330,23 @@ function KdsOrderCard({
           </li>
         ))}
       </ul>
+
+      {/* Special Note / Kitchen Instruction */}
+      {(() => {
+        const specialNote = getKotSpecialNote(kot);
+        if (!specialNote) return null;
+        return (
+          <div className="mx-3 my-2 rounded-lg bg-amber-50 border border-amber-300/80 p-2 text-amber-950 shadow-2xs">
+            <div className="flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-wider text-amber-800 mb-0.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+              Special Note:
+            </div>
+            <div className="text-[12px] font-bold text-amber-950 break-words leading-snug">
+              {specialNote}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="border-t border-border/80 px-3 py-2.5">
         <button

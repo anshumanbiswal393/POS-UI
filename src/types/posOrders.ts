@@ -104,6 +104,8 @@ export interface KotItem {
   itemCount: number;
   itemsText: string;
   items?: Array<{ name: string; quantity: number; notes?: string }>;
+  notes?: string;
+  orderNote?: string;
   status: "Not Prepared" | "In Kitchen" | "Prepared" | "Served";
   billPrintDate: string;
   completeDuration: string;
