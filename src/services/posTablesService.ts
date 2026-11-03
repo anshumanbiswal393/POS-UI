@@ -358,6 +358,7 @@ export const posTablesService = {
         console.error("Failed to fetch tables from DB", err);
         mapped = [];
       }
+      mapped = mapped.filter((t) => Boolean(t.area && t.area.trim()));
       if (area && area.trim()) {
         const target = area.trim().toLowerCase();
         return mapped.filter((t) => (t.area || "").trim().toLowerCase() === target);

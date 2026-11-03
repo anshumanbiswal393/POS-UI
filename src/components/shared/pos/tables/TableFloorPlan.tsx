@@ -75,7 +75,7 @@ export function TableFloorPlan({
               <span>Manage Tables</span>
               {stats && (
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                  {stats.totalTables} Tables
+                  {areas.length === 0 ? 0 : stats.totalTables} Tables
                 </span>
               )}
             </h1>
@@ -222,7 +222,7 @@ export function TableFloorPlan({
               <span className="h-2 w-2 rounded-full bg-slate-400 border border-slate-500" />
               <span>Available</span>
               <span className="text-[10px] text-slate-500 font-extrabold ml-0.5">
-                ({tables.filter((t) => t.status === "vacant").length})
+                ({areas.length === 0 ? 0 : tables.filter((t) => t.status === "vacant").length})
               </span>
             </div>
 
@@ -231,7 +231,7 @@ export function TableFloorPlan({
               <span className="h-2 w-2 rounded-full bg-primary border border-primary" />
               <span>Reserved</span>
               <span className="text-[10px] text-primary font-extrabold ml-0.5">
-                ({tables.filter((t) => t.status === "reserved").length})
+                ({areas.length === 0 ? 0 : tables.filter((t) => t.status === "reserved").length})
               </span>
             </div>
 
@@ -240,7 +240,7 @@ export function TableFloorPlan({
               <span className="h-2 w-2 rounded-full bg-orange-500 border border-orange-600" />
               <span>On Dine</span>
               <span className="text-[10px] text-orange-700 font-extrabold ml-0.5">
-                ({tables.filter((t) => t.status === "occupied").length})
+                ({areas.length === 0 ? 0 : tables.filter((t) => t.status === "occupied").length})
               </span>
             </div>
           </div>
