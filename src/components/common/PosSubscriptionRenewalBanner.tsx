@@ -57,7 +57,7 @@ export function PosSubscriptionRenewalBanner() {
           ? "bg-rose-600 text-white"
           : isWarning
           ? "bg-amber-500 text-slate-950"
-          : "bg-teal-700 text-white"
+          : "bg-primary text-primary-foreground"
       }`}
     >
       <div className="flex items-center gap-2 min-w-0">
@@ -86,7 +86,7 @@ export function PosSubscriptionRenewalBanner() {
               ? "bg-white text-rose-700 hover:bg-rose-50"
               : isWarning
               ? "bg-slate-950 text-white hover:bg-slate-800"
-              : "bg-white text-teal-800 hover:bg-teal-50"
+              : "bg-primary-foreground text-primary hover:bg-primary-foreground/90"
           }`}
         >
           <span>Renew Subscription</span>
