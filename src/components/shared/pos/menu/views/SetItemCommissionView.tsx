@@ -231,7 +231,7 @@ export function SetItemCommissionView({ onBack }: { onBack?: () => void } = {}) 
 
   return (
     <div className="space-y-4">
-      {/* 1. Clean Top Action & Filter Bar */}
+      {/* 1. Filter Bar (Single Add Commission button lives in page header) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2.5 flex-1">
           {/* Search Input */}
@@ -260,59 +260,30 @@ export function SetItemCommissionView({ onBack }: { onBack?: () => void } = {}) 
               ))}
             </select>
           </div>
-
-          {/* Configured Counter Badge */}
-          <span className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-teal-50 text-teal-800 border border-teal-200 text-xs font-semibold">
-            <Sparkles className="h-3 w-3 text-teal-600" />
-            {configuredItems.length} {configuredItems.length === 1 ? "Item" : "Items"} Configured
-          </span>
         </div>
 
-        {/* Primary Action Button */}
-        <button
-          type="button"
-          onClick={openAddModal}
-          className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-teal-700 transition cursor-pointer shrink-0"
-        >
-          <Plus className="h-4 w-4" />
-          <span>+ Add Commission</span>
-        </button>
+        {/* Configured Counter Badge */}
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-50 text-teal-800 border border-teal-200 text-xs font-semibold shrink-0">
+          <Sparkles className="h-3.5 w-3.5 text-teal-600" />
+          {configuredItems.length} {configuredItems.length === 1 ? "Item" : "Items"} Configured
+        </span>
       </div>
 
-      {/* 2. Main Commission Table (Only Configured Items) */}
-      {configuredItems.length === 0 && !isLoading && !isFetching ? (
-        <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-xl border border-slate-200 shadow-2xs">
-          <div className="w-12 h-12 rounded-full bg-teal-50 flex items-center justify-center text-teal-700 mb-3 border border-teal-100">
-            <Percent className="w-6 h-6" />
-          </div>
-          <h3 className="text-sm font-bold text-slate-900 mb-1">
-            No commission rules configured yet
-          </h3>
-          <p className="text-xs text-slate-500 max-w-md mb-4">
-            Click &ldquo;+ Add Commission&rdquo; to apply markups to individual dishes, multiple items,
-            or whole categories. Final selling prices will automatically reflect in POS billing and printed menus.
-          </p>
-          <button
-            type="button"
-            onClick={openAddModal}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-teal-700 transition cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            <span>+ Add Commission</span>
-          </button>
-        </div>
-      ) : (
-        <PosDataGrid<MenuItemCommission>
-          data={filteredItems}
-          columns={columns}
-          isLoading={isLoading || isFetching}
-          enableSelection={false}
-          enablePagination={true}
-          pageSize={pageSize}
-          pageSizeOptions={[10, 25, 50, 100]}
-          emptyMessage="No configured commission items match your search filter."
-        />
-      )}
+      {/* 2. Main Commission Table: Always visible with all columns, even when vacant */}
+      <PosDataGrid<MenuItemCommission>
+        data={filteredItems}
+        columns={columns}
+        isLoading={isLoading || isFetching}
+        enableSelection={false}
+        enablePagination={true}
+        pageSize={pageSize}
+        pageSizeOptions={[10, 25, 50, 100]}
+        emptyMessage={
+          searchQuery || categoryFilter !== "All"
+            ? "No commission rules found for selected filter."
+            : "No commission rules configured yet."
+        }
+      />
 
       {/* Edit Single Commission Modal */}
       <SetCommissionModal
