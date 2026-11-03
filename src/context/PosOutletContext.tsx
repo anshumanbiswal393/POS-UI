@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import type { PosOutlet } from "@/types/posMenu";
 import { toast } from "sonner";
 import { posOutletsService, type CreateOutletPayload } from "@/services/posOutletsService";
-import { deduplicateOutlets, isDummyOutlet } from "@/utils/outletId";
+import { deduplicateOutlets, isDummyOutlet, isBackendOutletId } from "@/utils/outletId";
 import { useAuth } from "@/hooks/useAuth";
 import { getDomainCookie } from "@/utils/cookieAuth";
 

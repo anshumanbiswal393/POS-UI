@@ -824,7 +824,7 @@ export async function settleDueBillLive(
         archivedOrder: settledBill,
       };
     } catch (e) {
-      if (!isBackendOutletId()) {
+      if (!isBackendOutletId(billId)) {
         return settleDueBill(billId, paymentMode, paidAmount);
       }
       throw e;

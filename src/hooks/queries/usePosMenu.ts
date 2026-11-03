@@ -3,6 +3,7 @@ import { posMenuService } from "@/services/posMenuService";
 import { liveGetBillingMenu } from "@/services/posOrderLive";
 import { isBackendOutletId } from "@/utils/outletId";
 import type { MenuItem, MenuItemImage } from "@/types/posMenu";
+import { calculateEffectivePrice } from "@/utils/commissionUtils";
 
 export const MENU_QUERY_KEYS = {
   menuItems: (outletId?: string) => ["pos", "menu", "items", outletId || "all"] as const,
@@ -28,14 +29,33 @@ export function useBillingMenuItems(outletId?: string) {
   return useQuery({
     queryKey: ["pos", "billing", "menu", outletId || "all"] as const,
     queryFn: async (): Promise<MenuItem[]> => {
+      let raw: MenuItem[] = [];
       if (live && outletId) {
         try {
-          return (await liveGetBillingMenu(outletId)) as MenuItem[];
+          raw = (await liveGetBillingMenu(outletId)) as MenuItem[];
         } catch {
-          return [];
+          raw = [];
         }
+      } else {
+        raw = await posMenuService.getMenuItems(outletId);
       }
-      return posMenuService.getMenuItems(outletId);
+      return (raw || []).map((item) => {
+        const effectivePrice = calculateEffectivePrice(
+          item.price,
+          item.commissionType,
+          item.commissionValue,
+        );
+        return {
+          ...item,
+          originalPrice: item.price,
+          price: effectivePrice,
+          variants: (item.variants || []).map((v: any) => ({
+            ...v,
+            originalPrice: v.price,
+            price: calculateEffectivePrice(v.price, item.commissionType, item.commissionValue),
+          })),
+        };
+      });
     },
     enabled: Boolean(outletId),
   });
@@ -294,7 +314,8 @@ export function useUpdateItemCommission() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.commissions });
       queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.items });
-      queryClient.invalidateQueries({ queryKey: ["pos", "billing-menu"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "billing"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "menu"] });
     },
   });
 }
@@ -314,7 +335,8 @@ export function useBulkUpdateItemCommissions() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.commissions });
       queryClient.invalidateQueries({ queryKey: MENU_QUERY_KEYS.items });
-      queryClient.invalidateQueries({ queryKey: ["pos", "billing-menu"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "billing"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "menu"] });
     },
   });
 }

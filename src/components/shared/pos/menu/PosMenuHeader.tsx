@@ -44,7 +44,7 @@ export function PosMenuHeader() {
             className="flex items-center gap-1.5 rounded-lg bg-teal-600 px-3.5 py-1.5 text-[12.5px] font-semibold text-white shadow-xs hover:bg-teal-700 transition cursor-pointer"
           >
             <Plus className="h-4 w-4" />
-            Add Menu Commission
+            Add Commission
           </button>
         ) : (
           <>
