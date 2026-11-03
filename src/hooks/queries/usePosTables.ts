@@ -134,6 +134,30 @@ export function useAddTableMutation() {
   });
 }
 
+export function useDeleteTableMutation() {
+  const { outletId, highwayDemo } = useOutletScopedTables();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (tableId: string) => {
+      setTablesOutletScope(outletId, highwayDemo);
+      return posTablesService.deleteTable(tableId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_TABLE_STATS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_AREAS_QUERY_KEY });
+      toast.success("Table deleted successfully");
+    },
+    onError: (err: unknown) => {
+      const message =
+        (err as { message?: string })?.message ||
+        (err as { data?: { detail?: string } })?.data?.detail ||
+        "Could not delete table";
+      toast.error(String(message));
+    },
+  });
+}
+
 export function usePosTables(area?: DiningArea) {
   const { outletId, highwayDemo } = useOutletScopedTables();
   return useQuery({

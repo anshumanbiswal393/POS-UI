@@ -81,6 +81,14 @@ const outletBuckets = new Map<string, TableBucket>();
 let scopedOutletId: string | undefined;
 let scopedHighwayDemo = false;
 
+export function cleanOutletId(id?: string | null): string | undefined {
+  if (!id) return undefined;
+  const clean = id.replace(/^outlet-/, "");
+  if (isBackendOutletId(clean)) return clean;
+  if (isBackendOutletId(id)) return id;
+  return undefined;
+}
+
 /** Scope table/reservation mutations to the active outlet (empty for new UUID outlets). */
 export function setTablesOutletScope(outletId?: string | null, highwayDemo?: boolean) {
   scopedOutletId = outletId || undefined;
@@ -88,7 +96,8 @@ export function setTablesOutletScope(outletId?: string | null, highwayDemo?: boo
 }
 
 function isLiveFloor() {
-  return Boolean(scopedOutletId && isBackendOutletId(scopedOutletId));
+  const cid = cleanOutletId(scopedOutletId);
+  return Boolean(cid && isBackendOutletId(cid));
 }
 
 function store(): TableBucket {
@@ -116,32 +125,41 @@ async function patchTableStatus(
 
 export const posTablesService = {
   getAreas: async (): Promise<string[]> => {
-    if (isLiveFloor()) {
+    const cid = cleanOutletId(scopedOutletId);
+    if (cid) {
       try {
         const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
-          params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 200 },
+          params: { outlet_id: cid, outletId: cid, page_size: 200 },
         });
-        const names = unwrapRows<any>(res.data).map((s) => String(s.name));
-        return scopedHighwayDemo ? mergeHighwayDemoAreas(names) : names;
-      } catch {
-        return scopedHighwayDemo ? mergeHighwayDemoAreas([]) : [];
+        const names = unwrapRows<any>(res.data)
+          .map((s) => String(s.name || "").trim())
+          .filter(Boolean);
+        return Array.from(new Set(names));
+      } catch (err) {
+        console.error("Failed to fetch areas from DB", err);
       }
     }
     const local = [...store().areas];
-    return scopedHighwayDemo ? mergeHighwayDemoAreas(local) : local;
+    return Array.from(new Set(local));
   },
 
   addArea: async (areaName: string): Promise<string[]> => {
     const trimmed = areaName.trim();
-    if (isLiveFloor()) {
-      await httpClient.post(API_ENDPOINTS.TABLES.AREAS, {
-        outlet: scopedOutletId,
-        name: trimmed,
-        is_active: true,
-      });
+    if (!trimmed) return posTablesService.getAreas();
+    const cid = cleanOutletId(scopedOutletId);
+    if (cid) {
+      try {
+        await httpClient.post(API_ENDPOINTS.TABLES.AREAS, {
+          outlet: cid,
+          name: trimmed,
+          is_active: true,
+        });
+      } catch (err) {
+        console.warn("Section creation returned error or already exists", err);
+      }
       return posTablesService.getAreas();
     }
-    if (trimmed && !store().areas.includes(trimmed)) {
+    if (!store().areas.includes(trimmed)) {
       store().areas = [...store().areas, trimmed];
     }
     return [...store().areas];
@@ -149,20 +167,27 @@ export const posTablesService = {
 
   updateArea: async (oldName: string, newName: string): Promise<string[]> => {
     const trimmed = newName.trim();
-    if (!trimmed || oldName === trimmed) return posTablesService.getAreas();
+    if (!trimmed || oldName.trim().toLowerCase() === trimmed.toLowerCase()) {
+      return posTablesService.getAreas();
+    }
 
-    if (isLiveFloor()) {
-      const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
-        params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 200 },
-      });
-      const sections = unwrapRows<any>(res.data);
-      const section = sections.find(
-        (s) => String(s.name).trim().toLowerCase() === oldName.trim().toLowerCase(),
-      );
-      if (section?.id) {
-        await httpClient.patch(`${API_ENDPOINTS.TABLES.AREAS}${section.id}/`, {
-          name: trimmed,
+    const cid = cleanOutletId(scopedOutletId);
+    if (cid) {
+      try {
+        const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+          params: { outlet_id: cid, outletId: cid, page_size: 200 },
         });
+        const sections = unwrapRows<any>(res.data);
+        const section = sections.find(
+          (s) => String(s.name).trim().toLowerCase() === oldName.trim().toLowerCase(),
+        );
+        if (section?.id) {
+          await httpClient.patch(`${API_ENDPOINTS.TABLES.AREAS}${section.id}/`, {
+            name: trimmed,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to update area in DB", err);
       }
       return posTablesService.getAreas();
     }
@@ -181,16 +206,21 @@ export const posTablesService = {
 
   deleteArea: async (areaName: string): Promise<string[]> => {
     const trimmed = areaName.trim();
-    if (isLiveFloor()) {
-      const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
-        params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 200 },
-      });
-      const sections = unwrapRows<any>(res.data);
-      const section = sections.find(
-        (s) => String(s.name).trim().toLowerCase() === trimmed.toLowerCase(),
-      );
-      if (section?.id) {
-        await httpClient.delete(`${API_ENDPOINTS.TABLES.AREAS}${section.id}/`);
+    const cid = cleanOutletId(scopedOutletId);
+    if (cid) {
+      try {
+        const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+          params: { outlet_id: cid, outletId: cid, page_size: 200 },
+        });
+        const sections = unwrapRows<any>(res.data);
+        const section = sections.find(
+          (s) => String(s.name).trim().toLowerCase() === trimmed.toLowerCase(),
+        );
+        if (section?.id) {
+          await httpClient.delete(`${API_ENDPOINTS.TABLES.AREAS}${section.id}/`);
+        }
+      } catch (err) {
+        console.error("Failed to delete area in DB", err);
       }
       return posTablesService.getAreas();
     }
@@ -205,30 +235,31 @@ export const posTablesService = {
     area: string;
     shape?: "rectangle" | "square" | "circle";
   }): Promise<RestaurantTable> => {
-    if (isLiveFloor()) {
+    const cid = cleanOutletId(scopedOutletId);
+    if (cid) {
       const sectionsRes = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
-        params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 200 },
+        params: { outlet_id: cid, outletId: cid, page_size: 200 },
       });
       const sections = unwrapRows<any>(sectionsRes.data);
       let section = sections.find(
-        (s) => String(s.name).toLowerCase() === (input.area || "").trim().toLowerCase(),
+        (s) => String(s.name).trim().toLowerCase() === (input.area || "").trim().toLowerCase(),
       );
       if (!section) {
         try {
           const created = await httpClient.post(API_ENDPOINTS.TABLES.AREAS, {
-            outlet: scopedOutletId,
+            outlet: cid,
             name: input.area || "Dining Area",
             is_active: true,
           });
           section = created.data;
         } catch {
           const retryRes = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
-            params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 200 },
+            params: { outlet_id: cid, outletId: cid, page_size: 200 },
           });
           const rows = unwrapRows<any>(retryRes.data);
           section =
             rows.find(
-              (s) => String(s.name).toLowerCase() === (input.area || "").trim().toLowerCase(),
+              (s) => String(s.name).trim().toLowerCase() === (input.area || "").trim().toLowerCase(),
             ) || rows[0];
         }
       }
@@ -237,9 +268,10 @@ export const posTablesService = {
       }
       const shapeApi =
         input.shape === "circle" ? "ROUND" : input.shape === "rectangle" ? "RECTANGLE" : "SQUARE";
+      const cleanNum = input.tableNumber.replace(/^Table\s*#?/i, "").trim() || input.tableNumber;
       const res = await httpClient.post(API_ENDPOINTS.TABLES.LIST, {
         section: section.id,
-        table_number: input.tableNumber.replace(/^Table\s*#?/i, "").trim() || input.tableNumber,
+        table_number: cleanNum,
         capacity: input.capacity,
         shape: shapeApi,
         status: "VACANT",
@@ -269,20 +301,34 @@ export const posTablesService = {
     return newTable;
   },
 
+  deleteTable: async (tableId: string): Promise<boolean> => {
+    const cid = cleanOutletId(scopedOutletId);
+    if (cid && isBackendOutletId(tableId)) {
+      await httpClient.delete(`${API_ENDPOINTS.TABLES.LIST}${tableId}/`);
+      return true;
+    }
+    store().tables = store().tables.filter((t) => t.id !== tableId);
+    return true;
+  },
+
   getTables: async (area?: DiningArea): Promise<RestaurantTable[]> => {
-    if (isLiveFloor()) {
+    const cid = cleanOutletId(scopedOutletId);
+    if (cid) {
       let mapped: RestaurantTable[] = [];
       try {
         const res = await httpClient.get(API_ENDPOINTS.TABLES.LIST, {
-          params: { outlet_id: scopedOutletId, outletId: scopedOutletId, page_size: 500 },
+          params: { outlet_id: cid, outletId: cid, page_size: 500 },
         });
         mapped = unwrapRows<any>(res.data).map((row) => mapApiTable(row, area));
-      } catch {
+      } catch (err) {
+        console.error("Failed to fetch tables from DB", err);
         mapped = [];
       }
-      const forOutlet = scopedHighwayDemo ? mergeHighwayDemoTables(mapped) : mapped;
-      if (area) return forOutlet.filter((t) => t.area === area);
-      return forOutlet;
+      if (area && area.trim()) {
+        const target = area.trim().toLowerCase();
+        return mapped.filter((t) => (t.area || "").trim().toLowerCase() === target);
+      }
+      return mapped;
     }
     // Re-link reservations in case status changed
     const current = store().tables.map((tbl) => {
@@ -545,11 +591,12 @@ export const posTablesService = {
     subtotal: number;
     grandTotal: number;
   }): Promise<{ table: RestaurantTable; orderNumber: string; kotId: number }> => {
-    if (isLiveFloor() && scopedOutletId) {
+    const cid = cleanOutletId(scopedOutletId);
+    if (cid) {
       const tables = await posTablesService.getTables();
       const targetTable = tables.find((t) => t.id === input.tableId);
       const created = await liveCreateOrder({
-        outletId: scopedOutletId,
+        outletId: cid,
         orderType: "dine_in",
         tableId: input.tableId,
         tableNumber: targetTable?.tableNumber,
@@ -587,7 +634,8 @@ export const posTablesService = {
     grandTotal: number;
     modifiedSummaryText: string;
   }): Promise<{ table: RestaurantTable; kotId: number }> => {
-    if (isLiveFloor() && scopedOutletId) {
+    const cid = cleanOutletId(scopedOutletId);
+    if (cid) {
       const tables = await posTablesService.getTables();
       const targetTable = tables.find((t) => t.id === input.tableId);
       const orderId = targetTable?.activeOrder?.orderId;
@@ -595,7 +643,7 @@ export const posTablesService = {
         throw new Error("This table has no live order to update. Place the order again.");
       }
       const patched = await livePatchOrder(orderId, {
-        outletId: scopedOutletId,
+        outletId: cid,
         items: input.items,
         subtotal: input.subtotal,
         grandTotal: input.grandTotal,

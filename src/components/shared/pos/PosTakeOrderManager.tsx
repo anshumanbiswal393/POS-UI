@@ -12,6 +12,7 @@ import {
   useUpdateAreaMutation,
   useDeleteAreaMutation,
   useAddTableMutation,
+  useDeleteTableMutation,
   useCreateTableOrderMutation,
   useUpdateTableOrderMutation,
 } from "@/hooks/queries/usePosTables";
@@ -79,6 +80,7 @@ export function PosTakeOrderManager() {
   const updateAreaMutation = useUpdateAreaMutation();
   const deleteAreaMutation = useDeleteAreaMutation();
   const addTableMutation = useAddTableMutation();
+  const deleteTableMutation = useDeleteTableMutation();
   const createTableOrderMutation = useCreateTableOrderMutation();
   const updateTableOrderMutation = useUpdateTableOrderMutation();
 
@@ -381,6 +383,8 @@ export function PosTakeOrderManager() {
             }}
             stats={stats}
             onRefresh={() => refetchTables()}
+            onDeleteArea={handleDeleteArea}
+            onDeleteTable={(tblId) => deleteTableMutation.mutate(tblId)}
           />
         ) : (
           // ROOM SLIDE - Ultra-compact Room View matching reference image

@@ -46,7 +46,7 @@ function cleanBrowserStorage() {
   if (typeof window === "undefined") return;
   try {
     const active = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
-    if (active && (KNOWN_DUMMY_IDS.has(active) || DEMO_OUTLET_IDS.has(active))) {
+    if (active && (KNOWN_DUMMY_IDS.has(active) || DEMO_OUTLET_IDS.has(active) || active.startsWith("outlet-"))) {
       localStorage.removeItem(STORAGE_KEY_ACTIVE_ID);
     }
     const customKey = "retrod_pos_custom_outlets";
@@ -131,7 +131,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === "undefined") return DEFAULT_FALLBACK_OUTLET.id;
     try {
       const stored = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
-      if (stored && !KNOWN_DUMMY_IDS.has(stored) && !DEMO_OUTLET_IDS.has(stored)) {
+      if (stored && isBackendOutletId(stored) && !KNOWN_DUMMY_IDS.has(stored) && !DEMO_OUTLET_IDS.has(stored)) {
         return stored;
       }
       return DEFAULT_FALLBACK_OUTLET.id;
@@ -180,34 +180,57 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
       if (remote.length > 0) {
         finalOutlets = deduplicateOutlets(remote);
       } else {
-        // Fallback dynamically scoped to current property
-        const propCode =
-          (propName.replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase() || "MAIN") + "-01";
-        const dynamicDefault: PosOutlet = {
-          id: propId ? `outlet-${propId}` : "outlet-default",
-          name: `${propName} Restaurant`,
-          code: propCode,
-          type: "Primary Outlet",
-          outletKind: "PRIMARY",
-          cuisine: "Multi-Cuisine & Bar",
-          description: `Main dining outlet for ${propName}`,
-          address: "",
-          contact: user?.phone || "",
-          orderTypes: ["Dine-In", "Takeaway", "Room Service"],
-          status: "Active",
-          menuCount: 0,
-          propertyId: propId || null,
-          tenantId: user?.tenant_subdomain || null,
-        };
-        finalOutlets = [dynamicDefault];
+        let created: PosOutlet | null = null;
+        if (propId && isBackendOutletId(propId)) {
+          try {
+            const propCode =
+              (propName.replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase() || "MAIN") + "-01";
+            created = await posOutletsService.createOutlet({
+              name: `${propName} Restaurant`,
+              code: propCode,
+              outlet_type: "PRIMARY",
+              property: propId,
+              tenant: user?.tenant_subdomain || undefined,
+              cuisine: "Multi-Cuisine & Bar",
+              phone: user?.phone || undefined,
+              orderTypes: ["Dine-In", "Takeaway", "Room Service"],
+              is_active: true,
+            });
+          } catch (e) {
+            console.error("Failed to auto-create primary outlet in DB", e);
+          }
+        }
+        if (created?.id && isBackendOutletId(created.id)) {
+          finalOutlets = [created];
+        } else {
+          const propCode =
+            (propName.replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase() || "MAIN") + "-01";
+          const dynamicDefault: PosOutlet = {
+            id: propId ? `outlet-${propId}` : "outlet-default",
+            name: `${propName} Restaurant`,
+            code: propCode,
+            type: "Primary Outlet",
+            outletKind: "PRIMARY",
+            cuisine: "Multi-Cuisine & Bar",
+            description: `Main dining outlet for ${propName}`,
+            address: "",
+            contact: user?.phone || "",
+            orderTypes: ["Dine-In", "Takeaway", "Room Service"],
+            status: "Active",
+            menuCount: 0,
+            propertyId: propId || null,
+            tenantId: user?.tenant_subdomain || null,
+          };
+          finalOutlets = [dynamicDefault];
+        }
       }
 
       setOutlets(finalOutlets);
       setActiveOutletId((prevId) => {
-        if (prevId && finalOutlets.some((o) => o.id === prevId)) {
+        if (prevId && isBackendOutletId(prevId) && finalOutlets.some((o) => o.id === prevId)) {
           return prevId;
         }
-        return finalOutlets[0].id;
+        return finalOutlets[0]?.id || "";
       });
     } catch {
       const { propId, propName } = getActivePropertyInfo();

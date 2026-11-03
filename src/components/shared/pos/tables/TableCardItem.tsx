@@ -1,11 +1,12 @@
 import React from "react";
-import { Users, Clock, Receipt, CalendarCheck } from "lucide-react";
+import { Users, Clock, Receipt, CalendarCheck, Trash2 } from "lucide-react";
 import type { RestaurantTable, ReservationItem } from "@/types/posTables";
 
 interface TableCardItemProps {
   table: RestaurantTable;
   onSelectReserved: (table: RestaurantTable, reservation?: ReservationItem) => void;
   onSelectTable: (table: RestaurantTable) => void;
+  onDeleteTable?: (tableId: string) => void;
 }
 
 /**
@@ -40,7 +41,7 @@ function Chair({
   );
 }
 
-export function TableCardItem({ table, onSelectReserved, onSelectTable }: TableCardItemProps) {
+export function TableCardItem({ table, onSelectReserved, onSelectTable, onDeleteTable }: TableCardItemProps) {
   const { status, capacity, tableNumber, activeReservation, activeOrder } = table;
 
   // Determine chair layout count strictly matching capacity
@@ -161,6 +162,23 @@ export function TableCardItem({ table, onSelectReserved, onSelectTable }: TableC
                 : "w-26 sm:w-30 h-20 sm:h-22 px-2"
           }`}
         >
+          {/* Delete Table Button (Vacant tables only) */}
+          {onDeleteTable && status === "vacant" && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (window.confirm(`Delete ${tableNumber}?`)) {
+                  onDeleteTable(table.id);
+                }
+              }}
+              className="absolute top-1 right-1 p-1 rounded-md text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer z-20"
+              title={`Delete ${tableNumber}`}
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          )}
+
           {/* Table Header / Number */}
           <span className="text-xs sm:text-[13.5px] font-extrabold tracking-tight">
             {tableNumber}

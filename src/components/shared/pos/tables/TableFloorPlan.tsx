@@ -6,7 +6,7 @@ import type {
   DiningArea,
   TableManagementStats,
 } from "@/types/posTables";
-import { Users, Sparkles, LayoutGrid, RotateCw, Plus, CalendarPlus, UserPlus, Utensils, AlertCircle, X } from "lucide-react";
+import { Users, Sparkles, LayoutGrid, RotateCw, Plus, CalendarPlus, UserPlus, Utensils, AlertCircle, X, Trash2 } from "lucide-react";
 
 interface TableFloorPlanProps {
   tables: RestaurantTable[];
@@ -22,6 +22,8 @@ interface TableFloorPlanProps {
   onOpenTakeOrder?: (tableId?: string) => void;
   stats?: TableManagementStats;
   onRefresh?: () => void;
+  onDeleteArea?: (area: string) => void;
+  onDeleteTable?: (tableId: string) => void;
 }
 
 const DEFAULT_AREAS: string[] = [];
@@ -40,6 +42,8 @@ export function TableFloorPlan({
   onOpenTakeOrder,
   stats,
   onRefresh,
+  onDeleteArea,
+  onDeleteTable,
 }: TableFloorPlanProps) {
   const [showNoAreaWarning, setShowNoAreaWarning] = useState(false);
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,6 +131,22 @@ export function TableFloorPlan({
                   className="flex items-center justify-center p-1 text-slate-600 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
+                </button>
+              )}
+
+              {/* Delete active area button */}
+              {onDeleteArea && areas.length > 0 && activeArea && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`Delete dining area "${activeArea}" and all its tables?`)) {
+                      onDeleteArea(activeArea);
+                    }
+                  }}
+                  title={`Delete "${activeArea}" area`}
+                  className="flex items-center justify-center p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer ml-0.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
@@ -314,6 +334,7 @@ export function TableFloorPlan({
                 table={table}
                 onSelectReserved={onSelectReserved}
                 onSelectTable={onSelectTable}
+                onDeleteTable={onDeleteTable}
               />
             ))}
           </div>
