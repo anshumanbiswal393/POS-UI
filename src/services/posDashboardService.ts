@@ -135,29 +135,24 @@ export function mapDtoToDashboardModel(
       amount: dto.paymentSummary?.cash?.amount || 0,
       formatted: formatINR(dto.paymentSummary?.cash?.amount || 0),
       percentage: dto.paymentSummary?.cash?.percentage || 0,
-      count: dto.paymentSummary?.cash?.count || 0,
     },
     card: {
       amount: dto.paymentSummary?.card?.amount || 0,
       formatted: formatINR(dto.paymentSummary?.card?.amount || 0),
       percentage: dto.paymentSummary?.card?.percentage || 0,
-      count: dto.paymentSummary?.card?.count || 0,
     },
     upiWallets: {
       amount: dto.paymentSummary?.upiWallets?.amount || 0,
       formatted: formatINR(dto.paymentSummary?.upiWallets?.amount || 0),
       percentage: dto.paymentSummary?.upiWallets?.percentage || 0,
-      count: dto.paymentSummary?.upiWallets?.count || 0,
     },
     other: {
       amount: dto.paymentSummary?.other?.amount || 0,
       formatted: formatINR(dto.paymentSummary?.other?.amount || 0),
       percentage: dto.paymentSummary?.other?.percentage || 0,
-      count: dto.paymentSummary?.other?.count || 0,
     },
     totalFormatted: formatINR(dto.paymentSummary?.total || 0),
     totalAmount: dto.paymentSummary?.total || 0,
-    totalCount: dto.paymentSummary?.totalCount || 0,
   };
 
   const tables: TableStatusItem[] = (dto.tables || []).map((t) => ({
@@ -348,114 +343,26 @@ export async function getPosDashboardData(
         },
       ];
 
-      // Calculate breakdown from settled orders today
-      let cashAmount = 0, cashCount = 0;
-      let cardAmount = 0, cardCount = 0;
-      let upiAmount = 0, upiCount = 0;
-      let otherAmount = 0, otherCount = 0;
-
-      settledRecords.forEach((h: any) => {
-        const mode = String(h.paymentMode || h.payment_mode || "").toUpperCase();
-        const amt = parseFloat(String(h.grandTotalFormatted || h.grandTotal || h.amount || "0").replace(/[^0-9.]/g, "")) || 0;
-        if (amt <= 0) return;
-
-        if (mode.includes("CASH")) {
-          cashAmount += amt;
-          cashCount += 1;
-        } else if (mode.includes("CARD")) {
-          cardAmount += amt;
-          cardCount += 1;
-        } else if (
-          mode.includes("UPI") ||
-          mode.includes("WALLET") ||
-          mode.includes("ONLINE") ||
-          mode.includes("GPAY") ||
-          mode.includes("PHONEPE") ||
-          mode.includes("PAYTM")
-        ) {
-          upiAmount += amt;
-          upiCount += 1;
-        } else {
-          otherAmount += amt;
-          otherCount += 1;
-        }
-      });
-
-      // If totalCollections > 0 and no records had explicit mode name, attribute to cash
-      if (totalCollections > 0 && (cashAmount + cardAmount + upiAmount + otherAmount) === 0) {
-        cashAmount = totalCollections;
-        cashCount = settledRecords.length || 1;
-      }
-
-      const totalPay = totalCollections > 0 ? totalCollections : 1;
-      const paymentSummaryDto = {
-        cash: {
-          amount: cashAmount,
-          percentage: totalCollections > 0 ? Math.round((cashAmount / totalPay) * 100) : 0,
-          count: cashCount,
-        },
-        card: {
-          amount: cardAmount,
-          percentage: totalCollections > 0 ? Math.round((cardAmount / totalPay) * 100) : 0,
-          count: cardCount,
-        },
-        upiWallets: {
-          amount: upiAmount,
-          percentage: totalCollections > 0 ? Math.round((upiAmount / totalPay) * 100) : 0,
-          count: upiCount,
-        },
-        other: {
-          amount: otherAmount,
-          percentage: totalCollections > 0 ? Math.round((otherAmount / totalPay) * 100) : 0,
-          count: otherCount,
-        },
-        total: totalCollections,
-        totalCount: settledRecords.length,
-      };
-
-      // Top selling dishes: collect from settled orders and active orders today
+      // Top selling dishes from active orders
       const dishCountMap = new Map<string, { count: number; rev: number; cat: string }>();
-
-      // From settled history records:
-      settledRecords.forEach((rec: any) => {
-        if (Array.isArray(rec.items)) {
-          rec.items.forEach((it: any) => {
-            const name = it.name || "Item";
-            const qty = Number(it.quantity || 1);
-            const price = Number(it.price || 0);
-            const curr = dishCountMap.get(name) || { count: 0, rev: 0, cat: it.category || "Main Course" };
-            curr.count += qty;
-            curr.rev += (it.lineTotal ? Number(it.lineTotal) : qty * price);
-            dishCountMap.set(name, curr);
-          });
-        }
-      });
-
-      // From active current orders:
       activeCurrentOrders.forEach((co) => {
         (co.items || []).forEach((it: any) => {
           const name = it.name || "Item";
-          const qty = Number(it.quantity || 1);
-          const price = Number(it.price || 0);
           const curr = dishCountMap.get(name) || { count: 0, rev: 0, cat: it.category || "General" };
-          curr.count += qty;
-          curr.rev += qty * price;
+          curr.count += (it.quantity || 1);
+          curr.rev += ((it.quantity || 1) * (it.price || 0));
           dishCountMap.set(name, curr);
         });
       });
 
-      // Strictly top 3 items ordered by highest amount sold
-      const topSellingItems = Array.from(dishCountMap.entries())
-        .sort((a, b) => b[1].rev - a[1].rev || b[1].count - a[1].count)
-        .slice(0, 3)
-        .map(([name, val]) => ({
-          id: name,
-          name,
-          category: val.cat,
-          quantitySold: val.count,
-          unitLabel: val.count === 1 ? "Plate" : "Plates",
-          revenue: val.rev,
-        }));
+      const topSellingItems = Array.from(dishCountMap.entries()).map(([name, val]) => ({
+        id: name,
+        name,
+        category: val.cat,
+        quantitySold: val.count,
+        unitLabel: "Plates",
+        revenue: val.rev,
+      }));
 
       // Attention alerts
       const attentionAlerts = [];
@@ -496,7 +403,13 @@ export async function getPosDashboardData(
         ],
         orderTypes,
         liveOrders,
-        paymentSummary: paymentSummaryDto,
+        paymentSummary: {
+          cash: { amount: 0, percentage: 0 },
+          card: { amount: 0, percentage: 0 },
+          upiWallets: { amount: 0, percentage: 0 },
+          other: { amount: 0, percentage: 0 },
+          total: totalCollections,
+        },
         tables: tableItems,
         topSellingItems,
         attentionAlerts,
