@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 export function PosShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(true);
   const isMobile = useIsMobile();
 
   const isSidebarCollapsed = isMobile ? false : desktopCollapsed;
