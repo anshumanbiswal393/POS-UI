@@ -111,8 +111,20 @@ function mapApiTable(dto: Record<string, any>, areaName?: string): RestaurantTab
 // Initial mock reservations matching the provided design
 const INITIAL_RESERVATIONS: ReservationItem[] = [];
 
+export const DEFAULT_FALLBACK_TABLES: RestaurantTable[] = [
+  { id: "tbl-01", tableNumber: "T01", tableNumberRaw: 1, capacity: 4, shape: "rectangle", area: "Outdoor", status: "occupied" },
+  { id: "tbl-02", tableNumber: "T02", tableNumberRaw: 2, capacity: 2, shape: "square", area: "Outdoor", status: "blocked" },
+  { id: "tbl-03", tableNumber: "T03", tableNumberRaw: 3, capacity: 6, shape: "rectangle", area: "Outdoor", status: "reserved" },
+  { id: "tbl-04", tableNumber: "T04", tableNumberRaw: 4, capacity: 4, shape: "rectangle", area: "Outdoor", status: "occupied" },
+  { id: "tbl-05", tableNumber: "T05", tableNumberRaw: 5, capacity: 2, shape: "square", area: "Outdoor", status: "blocked" },
+  { id: "tbl-06", tableNumber: "T06", tableNumberRaw: 6, capacity: 4, shape: "rectangle", area: "Terrace", status: "vacant" },
+  { id: "tbl-07", tableNumber: "T07", tableNumberRaw: 7, capacity: 4, shape: "rectangle", area: "Terrace", status: "vacant" },
+  { id: "tbl-08", tableNumber: "T08", tableNumberRaw: 8, capacity: 6, shape: "rectangle", area: "Indoor", status: "vacant" },
+  { id: "tbl-09", tableNumber: "T09", tableNumberRaw: 9, capacity: 4, shape: "rectangle", area: "Indoor", status: "vacant" },
+];
+
 // Initial tables mirroring the visual floor layout in screenshot
-const INITIAL_TABLES: RestaurantTable[] = [];
+const INITIAL_TABLES: RestaurantTable[] = [...DEFAULT_FALLBACK_TABLES];
 
 // Legacy mock store (non-UUID demo ids only). Real DB outlets start empty per outlet.
 type TableBucket = {
@@ -175,21 +187,24 @@ async function patchTableStatus(
 export const posTablesService = {
   getAreas: async (): Promise<string[]> => {
     const cid = cleanOutletId(scopedOutletId);
+    let names: string[] = [];
     if (cid) {
       try {
         const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
           params: { outlet_id: cid, outletId: cid, page_size: 200 },
         });
-        const names = unwrapRows<any>(res.data)
+        names = unwrapRows<any>(res.data)
           .map((s) => String(s.name || "").trim())
           .filter(Boolean);
-        return Array.from(new Set(names));
       } catch (err) {
         console.error("Failed to fetch areas from DB", err);
       }
     }
-    const local = [...store().areas];
-    return Array.from(new Set(local));
+    if (names.length === 0) {
+      const local = [...store().areas];
+      names = local.length > 0 ? local : ["Outdoor", "Indoor", "Terrace"];
+    }
+    return Array.from(new Set(names));
   },
 
   addArea: async (areaName: string): Promise<string[]> => {
@@ -373,6 +388,443 @@ export const posTablesService = {
         console.error("Failed to fetch tables from DB", err);
         mapped = [];
       }
+      // Guarantee each table has an area label
+      mapped = mapped.map((t) => ({
+        ...t,
+        area: t.area && t.area.trim() ? t.area : "Outdoor",
+      }));
+
+      // Hydrate active orders on occupied tables if order details/amount are missing
+      const needsHydration = mapped.some(
+        (t) => t.status === "occupied" && (!t.activeOrder || !t.activeOrder.totalAmount)
+      );
+      if (needsHydration) {
+        try {
+          const currentOrders = await liveGetCurrent(cid);
+          if (currentOrders && currentOrders.length > 0) {
+            mapped = mapped.map((tbl) => {
+              if (tbl.status !== "occupied") return tbl;
+              const matched = currentOrders.find((co) => {
+                if (co.tableId && co.tableId === tbl.id) return true;
+                const tblClean = tbl.tableNumber.toLowerCase().replace(/[^0-9a-z]/g, "");
+                const orderSrcClean = (co.tableOrRoom || co.source || "").toLowerCase().replace(/[^0-9a-z]/g, "");
+                return tblClean && orderSrcClean && (tblClean.includes(orderSrcClean) || orderSrcClean.includes(tblClean));
+              });
+              if (matched) {
+                return {
+                  ...tbl,
+                  activeOrder: {
+                    orderId: matched.id,
+                    orderNumber: matched.orderNumber,
+                    serverName: matched.waiterName || tbl.activeOrder?.serverName || "Captain",
+                    seatedAt: matched.startTime || "",
+                    elapsedMinutes: Math.max(1, matched.elapsedMinutes || 0),
+                    itemsCount: matched.items?.length || 0,
+                    subtotal: matched.subtotal || matched.amount,
+                    totalAmount: matched.amount,
+                    status: matched.currentStage === "placed" ? "in_prep" : "served",
+                    guestName: matched.customerName,
+                    guestPhone: matched.customerPhone,
+                  },
+                };
+              }
+              return tbl;
+            });
+          }
+        } catch (e) {
+          console.warn("Could not hydrate table active order details from liveGetCurrent:", e);
+        }
+      }
+
+      if (area && area.trim() && area !== "All Zones" && area !== "All Areas") {r.table_numbers : [];
+  const tableIds = Array.isArray(r.table_ids) ? r.table_ids : [];
+  const primaryTableId = tableIds[0] || "";
+  const primaryTableNumber = tableNumbers[0] || "Table";
+
+  let status: "reserved" | "seated" | "completed" | "cancelled" = "reserved";
+  const st = String(r.status || "").toUpperCase();
+  if (st === "SEATED") status = "seated";
+  else if (st === "COMPLETED") status = "completed";
+  else if (st === "CANCELLED" || st === "NO_SHOW") status = "cancelled";
+
+  return {
+    id: r.id,
+    tableId: primaryTableId,
+    tableNumber: primaryTableNumber,
+    mergedTableIds: tableIds.length > 1 ? tableIds : undefined,
+    mergedTableNumbers: tableNumbers.length > 1 ? tableNumbers : undefined,
+    isMerged: tableIds.length > 1,
+    customerName: r.guest_name || "Guest",
+    customerPhone: r.guest_phone || "",
+    customerEmail: r.guest_email || undefined,
+    guests: r.pax || 2,
+    reservationDate: r.reservation_date || "",
+    reservationTime: r.start_time || "",
+    endTime: r.end_time || undefined,
+    status,
+    notes: r.notes || r.special_requests || undefined,
+    isVip: Boolean(r.is_vip),
+    createdAt: r.created_at || new Date().toISOString(),
+  };
+}
+
+import type {
+  RestaurantTable,
+  ReservationItem,
+  TableManagementStats,
+  DiningArea,
+} from "@/types/posTables";
+import { isBackendOutletId } from "@/utils/outletId";
+import httpClient from "@/utils/httpClient";
+import { liveGetCurrent } from "./posOrderLive";
+import { API_ENDPOINTS } from "@/config/apiEndpoints";
+import { liveCreateOrder, livePatchOrder } from "@/services/posOrderLive";
+import { mergeHighwayDemoAreas, mergeHighwayDemoTables } from "@/lib/highwayInnDemo";
+
+function unwrapRows<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (data && typeof data === "object" && Array.isArray((data as { results?: unknown }).results)) {
+    return (data as { results: T[] }).results;
+  }
+  return [];
+}
+
+function mapApiTable(dto: Record<string, any>, areaName?: string): RestaurantTable {
+  const raw = parseInt(String(dto.table_number || "").replace(/\D/g, ""), 10) || 0;
+  const statusMap: Record<string, RestaurantTable["status"]> = {
+    VACANT: "vacant",
+    RESERVED: "reserved",
+    OCCUPIED: "occupied",
+    BILLED: "occupied",
+    DIRTY: "occupied",
+  };
+  const shapeMap: Record<string, RestaurantTable["shape"]> = {
+    SQUARE: "square",
+    ROUND: "circle",
+    CIRCLE: "circle",
+    RECTANGLE: "rectangle",
+  };
+  const label = String(dto.table_number || raw);
+  return {
+    id: String(dto.id),
+    tableNumber: label.toLowerCase().startsWith("table") ? label : `Table #${label}`,
+    tableNumberRaw: raw,
+    capacity: Number(dto.capacity || 2),
+    currentGuests: dto.status === "OCCUPIED" || dto.status === "BILLED" ? Number(dto.capacity || 0) : 0,
+    shape: shapeMap[String(dto.shape || "").toUpperCase()] || "square",
+    area: dto.section_name || areaName || "",
+    status: statusMap[String(dto.status || "VACANT").toUpperCase()] || "vacant",
+    activeOrder: dto.active_order
+      ? {
+          orderId: String(dto.active_order.orderId || dto.active_order_id),
+          orderNumber: dto.active_order.orderNumber || "",
+          serverName: dto.active_order.serverName || dto.active_waiter_name || "Captain",
+          seatedAt: dto.active_order.seatedAt || "",
+          elapsedMinutes: Number(dto.active_order.elapsedMinutes || 0),
+          itemsCount: Number(dto.active_order.itemsCount || 0),
+          subtotal: Number(dto.active_order.subtotal || 0),
+          totalAmount: Number(dto.active_order.totalAmount || 0),
+          status: dto.active_order.status || "in_prep",
+          guestName: dto.active_order.guestName,
+          guestPhone: dto.active_order.guestPhone,
+        }
+      : dto.active_order_id
+      ? {
+          orderId: String(dto.active_order_id),
+          orderNumber: "",
+          serverName: dto.active_waiter_name || "Captain",
+          seatedAt: "",
+          elapsedMinutes: 0,
+          itemsCount: 0,
+          subtotal: 0,
+          totalAmount: 0,
+          status: "in_prep",
+        }
+      : undefined,
+  };
+}
+
+// Initial mock reservations matching the provided design
+const INITIAL_RESERVATIONS: ReservationItem[] = [];
+
+export const DEFAULT_FALLBACK_TABLES: RestaurantTable[] = [
+  { id: "tbl-01", tableNumber: "T01", tableNumberRaw: 1, capacity: 4, shape: "rectangle", area: "Outdoor", status: "occupied" },
+  { id: "tbl-02", tableNumber: "T02", tableNumberRaw: 2, capacity: 2, shape: "square", area: "Outdoor", status: "blocked" },
+  { id: "tbl-03", tableNumber: "T03", tableNumberRaw: 3, capacity: 6, shape: "rectangle", area: "Outdoor", status: "reserved" },
+  { id: "tbl-04", tableNumber: "T04", tableNumberRaw: 4, capacity: 4, shape: "rectangle", area: "Outdoor", status: "occupied" },
+  { id: "tbl-05", tableNumber: "T05", tableNumberRaw: 5, capacity: 2, shape: "square", area: "Outdoor", status: "blocked" },
+  { id: "tbl-06", tableNumber: "T06", tableNumberRaw: 6, capacity: 4, shape: "rectangle", area: "Terrace", status: "vacant" },
+  { id: "tbl-07", tableNumber: "T07", tableNumberRaw: 7, capacity: 4, shape: "rectangle", area: "Terrace", status: "vacant" },
+  { id: "tbl-08", tableNumber: "T08", tableNumberRaw: 8, capacity: 6, shape: "rectangle", area: "Indoor", status: "vacant" },
+  { id: "tbl-09", tableNumber: "T09", tableNumberRaw: 9, capacity: 4, shape: "rectangle", area: "Indoor", status: "vacant" },
+];
+
+// Initial tables mirroring the visual floor layout in screenshot
+const INITIAL_TABLES: RestaurantTable[] = [...DEFAULT_FALLBACK_TABLES];
+
+// Legacy mock store (non-UUID demo ids only). Real DB outlets start empty per outlet.
+type TableBucket = {
+  areas: string[];
+  tables: RestaurantTable[];
+  reservations: ReservationItem[];
+};
+
+const legacyBucket: TableBucket = {
+  areas: [],
+  tables: [...INITIAL_TABLES],
+  reservations: [],
+};
+const outletBuckets = new Map<string, TableBucket>();
+let scopedOutletId: string | undefined;
+let scopedHighwayDemo = false;
+
+export function cleanOutletId(id?: string | null): string | undefined {
+  if (!id) return undefined;
+  const clean = id.replace(/^outlet-/, "");
+  if (isBackendOutletId(clean)) return clean;
+  if (isBackendOutletId(id)) return id;
+  return undefined;
+}
+
+/** Scope table/reservation mutations to the active outlet (empty for new UUID outlets). */
+export function setTablesOutletScope(outletId?: string | null, highwayDemo?: boolean) {
+  scopedOutletId = outletId || undefined;
+  if (typeof highwayDemo === "boolean") scopedHighwayDemo = highwayDemo;
+}
+
+function isLiveFloor() {
+  const cid = cleanOutletId(scopedOutletId);
+  return Boolean(cid && isBackendOutletId(cid));
+}
+
+function store(): TableBucket {
+  if (isLiveFloor()) {
+    let b = outletBuckets.get(scopedOutletId as string);
+    if (!b) {
+      b = { areas: [], tables: [], reservations: [] };
+      outletBuckets.set(scopedOutletId as string, b);
+    }
+    return b;
+  }
+  return legacyBucket;
+}
+
+async function patchTableStatus(
+  tableId: string,
+  status: "VACANT" | "OCCUPIED" | "RESERVED" | "BILLED" | "DIRTY",
+  extra?: Record<string, unknown>,
+) {
+  await httpClient.patch(API_ENDPOINTS.TABLES.STATUS(tableId), {
+    status,
+    ...extra,
+  });
+}
+
+export const posTablesService = {
+  getAreas: async (): Promise<string[]> => {
+    const cid = cleanOutletId(scopedOutletId);
+    let names: string[] = [];
+    if (cid) {
+      try {
+        const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+          params: { outlet_id: cid, outletId: cid, page_size: 200 },
+        });
+        names = unwrapRows<any>(res.data)
+          .map((s) => String(s.name || "").trim())
+          .filter(Boolean);
+      } catch (err) {
+        console.error("Failed to fetch areas from DB", err);
+      }
+    }
+    if (names.length === 0) {
+      const local = [...store().areas];
+      names = local.length > 0 ? local : ["Outdoor", "Indoor", "Terrace"];
+    }
+    return Array.from(new Set(names));
+  },
+
+  addArea: async (areaName: string): Promise<string[]> => {
+    const trimmed = areaName.trim();
+    if (!trimmed) return posTablesService.getAreas();
+    const cid = cleanOutletId(scopedOutletId);
+    if (cid) {
+      try {
+        await httpClient.post(API_ENDPOINTS.TABLES.AREAS, {
+          outlet: cid,
+          name: trimmed,
+          is_active: true,
+        });
+      } catch (err) {
+        console.warn("Section creation returned error or already exists", err);
+      }
+      return posTablesService.getAreas();
+    }
+    if (!store().areas.includes(trimmed)) {
+      store().areas = [...store().areas, trimmed];
+    }
+    return [...store().areas];
+  },
+
+  updateArea: async (oldName: string, newName: string): Promise<string[]> => {
+    const trimmed = newName.trim();
+    if (!trimmed || oldName.trim().toLowerCase() === trimmed.toLowerCase()) {
+      return posTablesService.getAreas();
+    }
+
+    const cid = cleanOutletId(scopedOutletId);
+    if (cid) {
+      try {
+        const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+          params: { outlet_id: cid, outletId: cid, page_size: 200 },
+        });
+        const sections = unwrapRows<any>(res.data);
+        const section = sections.find(
+          (s) => String(s.name).trim().toLowerCase() === oldName.trim().toLowerCase(),
+        );
+        if (section?.id) {
+          await httpClient.patch(`${API_ENDPOINTS.TABLES.AREAS}${section.id}/`, {
+            name: trimmed,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to update area in DB", err);
+      }
+      return posTablesService.getAreas();
+    }
+
+    const idx = store().areas.findIndex((a) => a.toLowerCase() === oldName.toLowerCase());
+    if (idx !== -1) {
+      store().areas[idx] = trimmed;
+      store().tables.forEach((t) => {
+        if (t.area.toLowerCase() === oldName.toLowerCase()) {
+          t.area = trimmed;
+        }
+      });
+    }
+    return [...store().areas];
+  },
+
+  deleteArea: async (areaName: string): Promise<string[]> => {
+    const trimmed = areaName.trim();
+    const cid = cleanOutletId(scopedOutletId);
+    if (cid) {
+      try {
+        const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+          params: { outlet_id: cid, outletId: cid, page_size: 200 },
+        });
+        const sections = unwrapRows<any>(res.data);
+        const section = sections.find(
+          (s) => String(s.name).trim().toLowerCase() === trimmed.toLowerCase(),
+        );
+        if (section?.id) {
+          await httpClient.delete(`${API_ENDPOINTS.TABLES.AREAS}${section.id}/`);
+        }
+      } catch (err) {
+        console.error("Failed to delete area in DB", err);
+      }
+      return posTablesService.getAreas();
+    }
+
+    store().areas = store().areas.filter((a) => a.toLowerCase() !== trimmed.toLowerCase());
+    return [...store().areas];
+  },
+
+  addTable: async (input: {
+    tableNumber: string;
+    capacity: number;
+    area: string;
+    shape?: "rectangle" | "square" | "circle";
+  }): Promise<RestaurantTable> => {
+    const cid = cleanOutletId(scopedOutletId);
+    if (cid) {
+      const sectionsRes = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+        params: { outlet_id: cid, outletId: cid, page_size: 200 },
+      });
+      const sections = unwrapRows<any>(sectionsRes.data);
+      let section = sections.find(
+        (s) => String(s.name).trim().toLowerCase() === (input.area || "").trim().toLowerCase(),
+      );
+      if (!section) {
+        try {
+          const created = await httpClient.post(API_ENDPOINTS.TABLES.AREAS, {
+            outlet: cid,
+            name: input.area || "Dining Area",
+            is_active: true,
+          });
+          section = created.data;
+        } catch {
+          const retryRes = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+            params: { outlet_id: cid, outletId: cid, page_size: 200 },
+          });
+          const rows = unwrapRows<any>(retryRes.data);
+          section =
+            rows.find(
+              (s) => String(s.name).trim().toLowerCase() === (input.area || "").trim().toLowerCase(),
+            ) || rows[0];
+        }
+      }
+      if (!section?.id) {
+        throw new Error("Unable to create or locate dining section.");
+      }
+      const shapeApi =
+        input.shape === "circle" ? "ROUND" : input.shape === "rectangle" ? "RECTANGLE" : "SQUARE";
+      const cleanNum = input.tableNumber.replace(/^Table\s*#?/i, "").trim() || input.tableNumber;
+      const res = await httpClient.post(API_ENDPOINTS.TABLES.LIST, {
+        section: section.id,
+        table_number: cleanNum,
+        capacity: input.capacity,
+        shape: shapeApi,
+        status: "VACANT",
+        is_active: true,
+      });
+      return mapApiTable(res.data, input.area);
+    }
+    const rawNum = parseInt(input.tableNumber.replace(/\D/g, ""), 10) || store().tables.length + 1;
+    const defaultShape = input.capacity >= 6 ? "rectangle" : "square";
+
+    const newTable: RestaurantTable = {
+      id: `tbl-${Date.now()}`,
+      tableNumber: input.tableNumber.startsWith("Table #")
+        ? input.tableNumber
+        : input.tableNumber.startsWith("#")
+          ? `Table ${input.tableNumber}`
+          : `Table #${input.tableNumber}`,
+      tableNumberRaw: rawNum,
+      capacity: input.capacity,
+      currentGuests: 0,
+      shape: input.shape || defaultShape,
+      area: input.area || "Dining Area",
+      status: "vacant",
+    };
+
+    store().tables = [...store().tables, newTable];
+    return newTable;
+  },
+
+  deleteTable: async (tableId: string): Promise<boolean> => {
+    const cid = cleanOutletId(scopedOutletId);
+    if (cid && isBackendOutletId(tableId)) {
+      await httpClient.delete(`${API_ENDPOINTS.TABLES.LIST}${tableId}/`);
+      return true;
+    }
+    store().tables = store().tables.filter((t) => t.id !== tableId);
+    return true;
+  },
+
+  getTables: async (area?: DiningArea): Promise<RestaurantTable[]> => {
+    const cid = cleanOutletId(scopedOutletId);
+    if (cid) {
+      let mapped: RestaurantTable[] = [];
+      try {
+        const res = await httpClient.get(API_ENDPOINTS.TABLES.LIST, {
+          params: { outlet_id: cid, outletId: cid, page_size: 500 },
+        });
+        mapped = unwrapRows<any>(res.data).map((row) => mapApiTable(row, area));
+      } catch (err) {
+        console.error("Failed to fetch tables from DB", err);
+        mapped = [];
+      }
+<<<<<<< HEAD
       mapped = mapped.filter((t) => Boolean(t.area && t.area.trim()));
 
       // Hydrate active orders on occupied tables if order details/amount are missing
@@ -418,13 +870,26 @@ export const posTablesService = {
       }
 
       if (area && area.trim()) {
+=======
+      // Guarantee each table has an area label
+      mapped = mapped.map((t) => ({
+        ...t,
+        area: t.area && t.area.trim() ? t.area : "Outdoor",
+      }));
+      // Fallback to default tables if DB table list is empty
+      if (mapped.length === 0) {
+        mapped = DEFAULT_FALLBACK_TABLES;
+      }
+      if (area && area.trim() && area !== "All Zones" && area !== "All Areas") {
+>>>>>>> origin/main
         const target = area.trim().toLowerCase();
         return mapped.filter((t) => (t.area || "").trim().toLowerCase() === target);
       }
       return mapped;
     }
     // Re-link reservations in case status changed
-    const current = store().tables.map((tbl) => {
+    const rawTables = store().tables.length > 0 ? store().tables : DEFAULT_FALLBACK_TABLES;
+    const current = rawTables.map((tbl) => {
       const activeRes = store().reservations.find(
         (r) => r.tableId === tbl.id && (r.status === "reserved" || r.status === "seated"),
       );
@@ -435,8 +900,9 @@ export const posTablesService = {
     });
 
     const forOutlet = scopedHighwayDemo ? mergeHighwayDemoTables(current) : current;
-    if (area) {
-      return forOutlet.filter((t) => t.area === area);
+    if (area && area.trim() && area !== "All Zones" && area !== "All Areas") {
+      const target = area.trim().toLowerCase();
+      return forOutlet.filter((t) => (t.area || "").trim().toLowerCase() === target);
     }
     return forOutlet;
   },
