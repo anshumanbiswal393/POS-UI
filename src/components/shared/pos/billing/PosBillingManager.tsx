@@ -28,6 +28,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { CurrentOrderRecord } from "@/services/posOrdersService";
 import { useCurrentOrdersTimeline } from "@/hooks/queries/usePosOrders";
 import { calculateEffectivePrice } from "@/utils/commissionUtils";
+import { cn } from "@/lib/utils";
 import {
   liveCreateOrder,
   livePatchOrder,
@@ -163,6 +164,7 @@ export function PosBillingManager() {
   const [guestCount, setGuestCount] = useState(0);
   const [billNumber, setBillNumber] = useState("NEW");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isTablesPanelCollapsed, setIsTablesPanelCollapsed] = useState(false);
   const [specialNote, setSpecialNote] = useState("");
   const [waiterFromUrl, setWaiterFromUrl] = useState("");
   const [billingTableId, setBillingTableId] = useState("");
@@ -1332,13 +1334,20 @@ export function PosBillingManager() {
 
       {/* 2. Main Workspace: Tables & Orders (Left) + Menu Catalog (Center) + Cart Register (Right) */}
       <div className="flex flex-col lg:flex-row gap-2.5 flex-1 min-h-0 lg:overflow-hidden items-stretch px-2.5 pb-2.5">
-        {/* Left: Tables & Orders Panel (Matches Design System, responsive & collapsible) */}
-        <div className="hidden lg:flex shrink-0 w-80 xl:w-[340px] 2xl:w-[380px] h-full min-h-0">
+        {/* Left: Tables & Orders Panel (Responsive & Auto-adjusts screen space) */}
+        <div
+          className={cn(
+            "hidden lg:flex shrink-0 h-full min-h-0 transition-all duration-200 ease-in-out",
+            isTablesPanelCollapsed ? "w-14" : "w-80 xl:w-[340px] 2xl:w-[380px]"
+          )}
+        >
           <BillingTablesOrdersSidebar
             activeTable={activeTable}
             onSelectTable={handleSelectTableFromSidebar}
             onSelectOrder={handleSelectOrderFromSidebar}
             activeOutletId={activeOutlet?.id}
+            isCollapsed={isTablesPanelCollapsed}
+            onToggleCollapse={() => setIsTablesPanelCollapsed((c) => !c)}
           />
         </div>
 

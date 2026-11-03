@@ -123,3 +123,4 @@ export function savePosCustomer(
   }
   return newCustomer;
 }
+

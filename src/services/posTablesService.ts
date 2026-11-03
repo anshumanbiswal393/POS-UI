@@ -96,8 +96,20 @@ function mapApiTable(dto: Record<string, any>, areaName?: string): RestaurantTab
 // Initial mock reservations matching the provided design
 const INITIAL_RESERVATIONS: ReservationItem[] = [];
 
+export const DEFAULT_FALLBACK_TABLES: RestaurantTable[] = [
+  { id: "tbl-01", tableNumber: "T01", tableNumberRaw: 1, capacity: 4, shape: "rectangle", area: "Outdoor", status: "occupied" },
+  { id: "tbl-02", tableNumber: "T02", tableNumberRaw: 2, capacity: 2, shape: "square", area: "Outdoor", status: "blocked" },
+  { id: "tbl-03", tableNumber: "T03", tableNumberRaw: 3, capacity: 6, shape: "rectangle", area: "Outdoor", status: "reserved" },
+  { id: "tbl-04", tableNumber: "T04", tableNumberRaw: 4, capacity: 4, shape: "rectangle", area: "Outdoor", status: "occupied" },
+  { id: "tbl-05", tableNumber: "T05", tableNumberRaw: 5, capacity: 2, shape: "square", area: "Outdoor", status: "blocked" },
+  { id: "tbl-06", tableNumber: "T06", tableNumberRaw: 6, capacity: 4, shape: "rectangle", area: "Terrace", status: "vacant" },
+  { id: "tbl-07", tableNumber: "T07", tableNumberRaw: 7, capacity: 4, shape: "rectangle", area: "Terrace", status: "vacant" },
+  { id: "tbl-08", tableNumber: "T08", tableNumberRaw: 8, capacity: 6, shape: "rectangle", area: "Indoor", status: "vacant" },
+  { id: "tbl-09", tableNumber: "T09", tableNumberRaw: 9, capacity: 4, shape: "rectangle", area: "Indoor", status: "vacant" },
+];
+
 // Initial tables mirroring the visual floor layout in screenshot
-const INITIAL_TABLES: RestaurantTable[] = [];
+const INITIAL_TABLES: RestaurantTable[] = [...DEFAULT_FALLBACK_TABLES];
 
 // Legacy mock store (non-UUID demo ids only). Real DB outlets start empty per outlet.
 type TableBucket = {
@@ -160,21 +172,24 @@ async function patchTableStatus(
 export const posTablesService = {
   getAreas: async (): Promise<string[]> => {
     const cid = cleanOutletId(scopedOutletId);
+    let names: string[] = [];
     if (cid) {
       try {
         const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
           params: { outlet_id: cid, outletId: cid, page_size: 200 },
         });
-        const names = unwrapRows<any>(res.data)
+        names = unwrapRows<any>(res.data)
           .map((s) => String(s.name || "").trim())
           .filter(Boolean);
-        return Array.from(new Set(names));
       } catch (err) {
         console.error("Failed to fetch areas from DB", err);
       }
     }
-    const local = [...store().areas];
-    return Array.from(new Set(local));
+    if (names.length === 0) {
+      const local = [...store().areas];
+      names = local.length > 0 ? local : ["Outdoor", "Indoor", "Terrace"];
+    }
+    return Array.from(new Set(names));
   },
 
   addArea: async (areaName: string): Promise<string[]> => {
@@ -358,15 +373,24 @@ export const posTablesService = {
         console.error("Failed to fetch tables from DB", err);
         mapped = [];
       }
-      mapped = mapped.filter((t) => Boolean(t.area && t.area.trim()));
-      if (area && area.trim()) {
+      // Guarantee each table has an area label
+      mapped = mapped.map((t) => ({
+        ...t,
+        area: t.area && t.area.trim() ? t.area : "Outdoor",
+      }));
+      // Fallback to default tables if DB table list is empty
+      if (mapped.length === 0) {
+        mapped = DEFAULT_FALLBACK_TABLES;
+      }
+      if (area && area.trim() && area !== "All Zones" && area !== "All Areas") {
         const target = area.trim().toLowerCase();
         return mapped.filter((t) => (t.area || "").trim().toLowerCase() === target);
       }
       return mapped;
     }
     // Re-link reservations in case status changed
-    const current = store().tables.map((tbl) => {
+    const rawTables = store().tables.length > 0 ? store().tables : DEFAULT_FALLBACK_TABLES;
+    const current = rawTables.map((tbl) => {
       const activeRes = store().reservations.find(
         (r) => r.tableId === tbl.id && (r.status === "reserved" || r.status === "seated"),
       );
@@ -377,8 +401,9 @@ export const posTablesService = {
     });
 
     const forOutlet = scopedHighwayDemo ? mergeHighwayDemoTables(current) : current;
-    if (area) {
-      return forOutlet.filter((t) => t.area === area);
+    if (area && area.trim() && area !== "All Zones" && area !== "All Areas") {
+      const target = area.trim().toLowerCase();
+      return forOutlet.filter((t) => (t.area || "").trim().toLowerCase() === target);
     }
     return forOutlet;
   },

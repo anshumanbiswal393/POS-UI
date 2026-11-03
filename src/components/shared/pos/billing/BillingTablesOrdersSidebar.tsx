@@ -12,18 +12,12 @@ import {
   ChevronRight,
   Clock,
   User,
-  CheckCircle2,
-  AlertCircle,
-  Sparkles,
   ShoppingBag,
-  ExternalLink,
-  Printer,
   Edit,
-  UtensilsCrossed,
 } from "lucide-react";
 import { useDiningAreas, usePosTables } from "@/hooks/queries/usePosTables";
 import { useCurrentOrdersTimeline } from "@/hooks/queries/usePosOrders";
-import type { RestaurantTable, TableStatus } from "@/types/posTables";
+import type { RestaurantTable } from "@/types/posTables";
 import type { CurrentOrderRecord } from "@/services/posOrdersService";
 import {
   DropdownMenu,
@@ -37,10 +31,12 @@ type BillingTablesOrdersSidebarProps = {
   onSelectTable: (table: RestaurantTable) => void;
   onSelectOrder?: (order: CurrentOrderRecord) => void;
   activeOutletId?: string;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
   className?: string;
 };
 
-// Accurate dining table + 2 chairs SVG matching screenshot
+// Dining table with 2 flanking chairs outline SVG
 function TableChairsIcon({ className = "h-10 w-12 text-slate-500" }: { className?: string }) {
   return (
     <svg
@@ -79,6 +75,8 @@ export function BillingTablesOrdersSidebar({
   onSelectTable,
   onSelectOrder,
   activeOutletId,
+  isCollapsed = false,
+  onToggleCollapse,
   className = "",
 }: BillingTablesOrdersSidebarProps) {
   const [activeTab, setActiveTab] = useState<"tables" | "orders">("tables");
@@ -86,17 +84,19 @@ export function BillingTablesOrdersSidebar({
   const [selectedZone, setSelectedZone] = useState<string>("All Zones");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [orderSearchQuery, setOrderSearchQuery] = useState("");
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Data queries
+  // Data queries — call usePosTables() with no arg to fetch all tables for the active outlet
   const { data: areasData = [] } = useDiningAreas();
-  const { data: tables = [], isLoading: tablesLoading } = usePosTables(activeOutletId);
+  const { data: tables = [], isLoading: tablesLoading } = usePosTables();
   const { data: currentOrders = [], isLoading: ordersLoading } = useCurrentOrdersTimeline(activeOutletId);
 
-  const zones = useMemo(
-    () => ["All Zones", ...areasData.filter((a) => a && a !== "All Areas" && a !== "All Zones")],
-    [areasData]
-  );
+  // Dynamic zones list from areas query and actual table data
+  const zones = useMemo(() => {
+    const fromAreas = areasData.filter((a) => a && a !== "All Areas" && a !== "All Zones");
+    const fromTables = Array.from(new Set(tables.map((t) => t.area).filter(Boolean)));
+    const merged = Array.from(new Set([...fromAreas, ...fromTables]));
+    return ["All Zones", ...(merged.length > 0 ? merged : ["Outdoor", "Indoor", "Terrace"])];
+  }, [areasData, tables]);
 
   // Filtered Tables
   const filteredTables = useMemo(() => {
@@ -135,7 +135,7 @@ export function BillingTablesOrdersSidebar({
     return `T${String(num).padStart(2, "0")}`;
   };
 
-  // Status config mapping
+  // Status config mapping using theme patterns
   const getTableStatusConfig = (table: RestaurantTable) => {
     if (table.status === "occupied") {
       return {
@@ -171,33 +171,33 @@ export function BillingTablesOrdersSidebar({
     };
   };
 
-  // If collapsed on desktop, render a slim interactive strip
+  // ==================== COLLAPSED VIEW (SLIM 56px STRIP) ====================
   if (isCollapsed) {
     return (
       <aside
-        className={`bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col items-center py-3 px-1.5 w-14 shrink-0 transition-all select-none ${className}`}
+        className={`bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col items-center py-3 px-1.5 w-full h-full select-none ${className}`}
       >
         <button
           type="button"
-          onClick={() => setIsCollapsed(false)}
-          title="Expand Tables &amp; Orders"
-          className="p-1.5 rounded-lg bg-slate-100 hover:bg-orange-50 text-slate-600 hover:text-orange-600 transition cursor-pointer mb-4"
+          onClick={onToggleCollapse}
+          title="Expand Tables & Orders"
+          className="p-2 rounded-lg bg-slate-100 hover:bg-primary/10 text-slate-600 hover:text-primary transition cursor-pointer mb-3 shadow-2xs"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
 
-        <div className="flex flex-col gap-2 w-full">
+        <div className="flex flex-col gap-2 w-full items-center">
           <button
             type="button"
             onClick={() => {
               setActiveTab("tables");
-              setIsCollapsed(false);
+              if (onToggleCollapse) onToggleCollapse();
             }}
             title="Tables View"
-            className={`h-10 w-full rounded-lg flex items-center justify-center transition cursor-pointer ${
+            className={`h-10 w-10 rounded-lg flex items-center justify-center transition cursor-pointer ${
               activeTab === "tables"
-                ? "bg-[#f97316] text-white shadow-xs"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
             }`}
           >
             <Armchair className="h-4.5 w-4.5" />
@@ -206,13 +206,13 @@ export function BillingTablesOrdersSidebar({
             type="button"
             onClick={() => {
               setActiveTab("orders");
-              setIsCollapsed(false);
+              if (onToggleCollapse) onToggleCollapse();
             }}
             title="Orders View"
-            className={`h-10 w-full rounded-lg flex items-center justify-center transition cursor-pointer relative ${
+            className={`h-10 w-10 rounded-lg flex items-center justify-center transition cursor-pointer relative ${
               activeTab === "orders"
-                ? "bg-[#f97316] text-white shadow-xs"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
             }`}
           >
             <ClipboardList className="h-4.5 w-4.5" />
@@ -225,11 +225,12 @@ export function BillingTablesOrdersSidebar({
     );
   }
 
+  // ==================== EXPANDED VIEW ====================
   return (
     <aside
       className={`bg-white rounded-xl border border-slate-200/90 shadow-2xs flex flex-col h-full max-h-full overflow-hidden w-full select-none ${className}`}
     >
-      {/* 1. Header Tabs: [ Tables ] & [ Orders ] */}
+      {/* 1. Header Tabs: [ Tables ] & [ Orders ] with Theme Colors */}
       <div className="p-2 border-b border-slate-100 bg-slate-50/60 shrink-0">
         <div className="flex items-center gap-2">
           {/* Tabs Container */}
@@ -240,7 +241,7 @@ export function BillingTablesOrdersSidebar({
               onClick={() => setActiveTab("tables")}
               className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === "tables"
-                  ? "bg-[#f97316] text-white shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-xs"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
               }`}
             >
@@ -254,7 +255,7 @@ export function BillingTablesOrdersSidebar({
               onClick={() => setActiveTab("orders")}
               className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer relative ${
                 activeTab === "orders"
-                  ? "bg-[#f97316] text-white shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-xs"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
               }`}
             >
@@ -263,7 +264,7 @@ export function BillingTablesOrdersSidebar({
               {currentOrders.length > 0 && (
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-0.5 ${
-                    activeTab === "orders" ? "bg-white text-orange-600" : "bg-orange-500 text-white"
+                    activeTab === "orders" ? "bg-white text-primary" : "bg-primary text-white"
                   }`}
                 >
                   {currentOrders.length}
@@ -273,14 +274,16 @@ export function BillingTablesOrdersSidebar({
           </div>
 
           {/* Quick Collapse Arrow */}
-          <button
-            type="button"
-            onClick={() => setIsCollapsed(true)}
-            title="Collapse Panel"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition cursor-pointer shrink-0"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
+          {onToggleCollapse && (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              title="Collapse Tables & Orders Panel"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/10 transition cursor-pointer shrink-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -304,7 +307,7 @@ export function BillingTablesOrdersSidebar({
                 <DropdownMenuItem
                   key={zone}
                   onClick={() => setSelectedZone(zone)}
-                  className={`cursor-pointer ${selectedZone === zone ? "font-bold text-orange-600" : ""}`}
+                  className={`cursor-pointer ${selectedZone === zone ? "font-bold text-primary" : ""}`}
                 >
                   {zone}
                 </DropdownMenuItem>
@@ -322,8 +325,8 @@ export function BillingTablesOrdersSidebar({
                   title="Filter Tables by Status"
                   className={`p-1.5 rounded-lg transition cursor-pointer ${
                     statusFilter !== "all"
-                      ? "bg-orange-500 text-white"
-                      : "bg-orange-50 hover:bg-orange-100 text-orange-600"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-primary/10 hover:bg-primary/20 text-primary"
                   }`}
                 >
                   <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -332,31 +335,31 @@ export function BillingTablesOrdersSidebar({
               <DropdownMenuContent align="end" className="w-36 text-xs">
                 <DropdownMenuItem
                   onClick={() => setStatusFilter("all")}
-                  className={`cursor-pointer ${statusFilter === "all" ? "font-bold text-orange-600" : ""}`}
+                  className={`cursor-pointer ${statusFilter === "all" ? "font-bold text-primary" : ""}`}
                 >
                   All Statuses
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setStatusFilter("vacant")}
-                  className={`cursor-pointer ${statusFilter === "vacant" ? "font-bold text-orange-600" : ""}`}
+                  className={`cursor-pointer ${statusFilter === "vacant" ? "font-bold text-primary" : ""}`}
                 >
                   Available only
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setStatusFilter("occupied")}
-                  className={`cursor-pointer ${statusFilter === "occupied" ? "font-bold text-orange-600" : ""}`}
+                  className={`cursor-pointer ${statusFilter === "occupied" ? "font-bold text-primary" : ""}`}
                 >
                   Occupied only
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setStatusFilter("cleaning")}
-                  className={`cursor-pointer ${statusFilter === "cleaning" ? "font-bold text-orange-600" : ""}`}
+                  className={`cursor-pointer ${statusFilter === "cleaning" ? "font-bold text-primary" : ""}`}
                 >
                   Cleaning only
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setStatusFilter("reserved")}
-                  className={`cursor-pointer ${statusFilter === "reserved" ? "font-bold text-orange-600" : ""}`}
+                  className={`cursor-pointer ${statusFilter === "reserved" ? "font-bold text-primary" : ""}`}
                 >
                   Reserved only
                 </DropdownMenuItem>
@@ -370,7 +373,7 @@ export function BillingTablesOrdersSidebar({
               title="Grid View"
               className={`p-1.5 rounded-lg transition cursor-pointer ${
                 viewMode === "grid"
-                  ? "bg-[#f97316] text-white shadow-2xs"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
                   : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
               }`}
             >
@@ -384,7 +387,7 @@ export function BillingTablesOrdersSidebar({
               title="List View"
               className={`p-1.5 rounded-lg transition cursor-pointer ${
                 viewMode === "list"
-                  ? "bg-[#f97316] text-white shadow-2xs"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
                   : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
               }`}
             >
@@ -443,7 +446,7 @@ export function BillingTablesOrdersSidebar({
                       statusCfg.cardBg
                     } ${
                       isSelected
-                        ? "!border-[#f97316] ring-2 ring-[#f97316] shadow-sm bg-orange-50/50"
+                        ? "!border-primary ring-2 ring-primary/40 shadow-sm bg-primary/5"
                         : ""
                     }`}
                   >
@@ -451,7 +454,7 @@ export function BillingTablesOrdersSidebar({
                     <div className="mb-1.5 flex items-center justify-center">
                       <TableChairsIcon
                         className={`h-9 w-12 ${
-                          isSelected ? "text-orange-600" : "text-slate-500"
+                          isSelected ? "text-primary" : "text-slate-500"
                         }`}
                       />
                     </div>
@@ -493,7 +496,7 @@ export function BillingTablesOrdersSidebar({
                     className={`w-full px-3 py-2 rounded-lg border text-left flex items-center justify-between transition cursor-pointer ${
                       statusCfg.cardBg
                     } ${
-                      isSelected ? "!border-[#f97316] ring-2 ring-[#f97316]" : ""
+                      isSelected ? "!border-primary ring-2 ring-primary/40 bg-primary/5" : ""
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -537,7 +540,7 @@ export function BillingTablesOrdersSidebar({
                 return (
                   <div
                     key={ord.id}
-                    className="p-3 rounded-xl border border-slate-200/90 bg-white hover:border-orange-200 transition shadow-2xs space-y-2"
+                    className="p-3 rounded-xl border border-slate-200/90 bg-white hover:border-primary/40 transition shadow-2xs space-y-2"
                   >
                     {/* Top Row: Order # + Type + Status */}
                     <div className="flex items-center justify-between gap-2">
@@ -597,7 +600,7 @@ export function BillingTablesOrdersSidebar({
                           <button
                             type="button"
                             onClick={() => onSelectOrder(ord)}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-bold bg-orange-500 hover:bg-orange-600 text-white transition cursor-pointer shadow-2xs"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-primary hover:bg-primary-pressed text-primary-foreground transition cursor-pointer shadow-2xs"
                           >
                             <Edit className="h-3 w-3" />
                             <span>Edit Check</span>
