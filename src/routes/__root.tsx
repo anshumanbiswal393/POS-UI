@@ -43,20 +43,47 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+
+  const isChunkError =
+    error?.message?.includes("Failed to fetch dynamically imported module") ||
+    error?.message?.includes("Importing a module script failed") ||
+    error?.message?.includes("error loading dynamically imported module");
+
+  useEffect(() => {
+    if (isChunkError && typeof window !== "undefined") {
+      const reloadKey = "retrod:chunk_reload:" + window.location.pathname;
+      const last = sessionStorage.getItem(reloadKey);
+      if (!last || Date.now() - Number(last) > 10000) {
+        sessionStorage.setItem(reloadKey, String(Date.now()));
+        window.location.reload();
+      }
+    }
+  }, [isChunkError]);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold text-foreground">This page didn't load</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+        <h1 className="text-xl font-semibold text-foreground">
+          {isChunkError ? "New update available" : "This page didn't load"}
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {isChunkError
+            ? "A newer version was deployed. Reloading page..."
+            : error.message}
+        </p>
         <div className="mt-6 flex justify-center gap-2">
           <button
             onClick={() => {
-              router.invalidate();
-              reset();
+              if (isChunkError && typeof window !== "undefined") {
+                window.location.reload();
+              } else {
+                router.invalidate();
+                reset();
+              }
             }}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-pressed"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-pressed cursor-pointer"
           >
-            Try again
+            {isChunkError ? "Reload page" : "Try again"}
           </button>
         </div>
       </div>
@@ -103,6 +130,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
         />
       </head>
       <body>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: 'window.addEventListener("vite:preloadError", function() { window.location.reload(); });',
+          }}
+        />
         {children}
         <Scripts />
       </body>
