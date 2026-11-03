@@ -346,7 +346,7 @@ export function PosDueSettlementManager() {
     const amt = parseFloat(settlementAmount) || selectedBill.dueAmount;
     return (
       <div className="flex flex-col flex-1 min-h-0 w-full h-[calc(100dvh-3.5rem)] overflow-hidden bg-slate-50/50">
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
           <button
             type="button"
             onClick={handleCloseSettle}
@@ -490,7 +490,7 @@ export function PosDueSettlementManager() {
   }
 
   return (
-    <div className="space-y-2.5 pb-8">
+    <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50 pb-8">
       <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8.5 w-8.5 items-center justify-center rounded-lg bg-teal-50 border border-teal-300 text-teal-700">
@@ -507,7 +507,8 @@ export function PosDueSettlementManager() {
         <ExportToExcelButton onClick={handleExportExcel} />
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="responsive-page-x py-4 sm:py-5 space-y-4">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <div className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 shadow-2xs">
           <div className="flex items-center justify-between gap-2 text-slate-500">
             <div className="flex items-center gap-1.5">
@@ -580,6 +581,7 @@ export function PosDueSettlementManager() {
         columnVisibility={columnVisibility}
         onColumnVisibilityChange={handleColumnVisibilityChange}
       />
+      </div>
     </div>
   );
 }

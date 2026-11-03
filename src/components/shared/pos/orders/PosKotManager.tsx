@@ -159,36 +159,37 @@ export function PosKotManager() {
   };
 
   return (
-    <div className="flex flex-col gap-3 pb-4 lg:h-[calc(100dvh-5.5rem)] lg:max-h-[calc(100dvh-5.5rem)] lg:overflow-hidden">
-      <header className="flex flex-wrap items-center justify-between gap-2 shrink-0 px-0.5">
+    <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden bg-slate-50/50">
+      {/* 1. Top Header Row - Flush with TopBar */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-e1">
-            <ChefHat className="h-5 w-5" />
+          <div className="flex h-8.5 w-8.5 items-center justify-center rounded-lg bg-teal-50 border border-teal-300 text-teal-700">
+            <ChefHat className="h-4.5 w-4.5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-[17px] font-extrabold tracking-tight text-text-primary">
+              <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">
                 Kitchen Display
-              </h2>
+              </h1>
               <span className="inline-flex items-center gap-1 rounded-md bg-primary-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary border border-primary/20">
                 <Flame className="h-3 w-3" />
                 Live
               </span>
             </div>
-            <p className="text-[11.5px] text-text-secondary">
+            <p className="text-[11px] text-slate-500">
               FCFS · timer orange at 10m · red at 15m · Ready leaves KOT and notifies waiter
             </p>
           </div>
         </div>
-        <div className="rounded-lg border border-border bg-surface px-3 py-1.5 text-[12px] font-bold text-text-primary shadow-e1">
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-bold text-slate-800 shadow-2xs">
           Open orders{" "}
           <span className="ml-1 inline-flex min-w-[1.4rem] justify-center rounded-md bg-primary px-1.5 py-0.5 text-white tabular-nums">
             {tickets.length}
           </span>
         </div>
-      </header>
+      </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto responsive-page-x py-4 sm:py-5">
         {tickets.length === 0 ? (
           <div className="flex h-[min(50vh,22rem)] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-surface-2/50 text-center">
             <ChefHat className="h-8 w-8 text-text-secondary/50" />

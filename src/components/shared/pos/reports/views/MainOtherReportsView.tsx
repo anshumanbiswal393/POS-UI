@@ -679,9 +679,9 @@ export function MainOtherReportsView() {
   // ---------------------------------------------------------
   if (selectedReport) {
     return (
-      <div className="responsive-page-x pt-2.5 pb-6 sm:pt-3 space-y-4 print:p-0">
-        {/* Top Breadcrumb / Title Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3 print:hidden">
+      <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50">
+        {/* Top Breadcrumb / Title Bar - Flush with TopBar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0 print:hidden">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -1049,14 +1049,14 @@ export function MainOtherReportsView() {
   // RENDER: REPORTS CATALOG & DASHBOARD (ALIGNED WITH PMS/POS DESIGN)
   // ---------------------------------------------------------
   return (
-    <div className="responsive-page-x pt-2.5 pb-6 sm:pt-3 space-y-6">
-      {/* 1. Header Toolbar (Title + Subtitle + Search + View Mode Switcher) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50">
+      {/* 1. Header Toolbar - Flush with TopBar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
         <div>
-          <h1 className="font-serif text-[22px] sm:text-[24px] font-bold text-slate-900 tracking-tight">
+          <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">
             Reports & Graphs
           </h1>
-          <p className="text-[13px] text-slate-500 font-medium mt-0.5">
+          <p className="text-[11px] text-slate-500 font-medium">
             Access operational, financial, and restaurant performance reports in one place.
           </p>
         </div>

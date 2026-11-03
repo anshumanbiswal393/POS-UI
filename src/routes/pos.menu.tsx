@@ -13,9 +13,11 @@ function MenuLayoutRoute() {
 
   return (
     <GuardedRoute permission="pos.menu.view">
-      <div className="space-y-4">
+      <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50">
         <PosMenuHeader />
-        {isRootMenu ? <MenuListManagerView /> : <Outlet />}
+        <div className="responsive-page-x py-4 sm:py-5 space-y-4">
+          {isRootMenu ? <MenuListManagerView /> : <Outlet />}
+        </div>
       </div>
     </GuardedRoute>
   );
