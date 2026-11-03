@@ -1,3 +1,37 @@
+
+function mapBackendReservation(r: any): ReservationItem {
+  const tableNumbers = Array.isArray(r.table_numbers) ? r.table_numbers : [];
+  const tableIds = Array.isArray(r.table_ids) ? r.table_ids : [];
+  const primaryTableId = tableIds[0] || "";
+  const primaryTableNumber = tableNumbers[0] || "Table";
+
+  let status: "reserved" | "seated" | "completed" | "cancelled" = "reserved";
+  const st = String(r.status || "").toUpperCase();
+  if (st === "SEATED") status = "seated";
+  else if (st === "COMPLETED") status = "completed";
+  else if (st === "CANCELLED" || st === "NO_SHOW") status = "cancelled";
+
+  return {
+    id: r.id,
+    tableId: primaryTableId,
+    tableNumber: primaryTableNumber,
+    mergedTableIds: tableIds.length > 1 ? tableIds : undefined,
+    mergedTableNumbers: tableNumbers.length > 1 ? tableNumbers : undefined,
+    isMerged: tableIds.length > 1,
+    customerName: r.guest_name || "Guest",
+    customerPhone: r.guest_phone || "",
+    customerEmail: r.guest_email || undefined,
+    guests: r.pax || 2,
+    reservationDate: r.reservation_date || "",
+    reservationTime: r.start_time || "",
+    endTime: r.end_time || undefined,
+    status,
+    notes: r.notes || r.special_requests || undefined,
+    isVip: Boolean(r.is_vip),
+    createdAt: r.created_at || new Date().toISOString(),
+  };
+}
+
 import type {
   RestaurantTable,
   ReservationItem,
@@ -350,6 +384,17 @@ export const posTablesService = {
 
   getReservations: async (): Promise<ReservationItem[]> => {
     if (isLiveFloor()) {
+      try {
+        const res = await httpClient.get(API_ENDPOINTS.TABLES.RESERVATIONS, {
+          params: { outlet_id: scopedOutletId, page_size: 100 },
+        });
+        const rows = unwrapRows<any>(res.data);
+        if (rows.length > 0) {
+          return rows.map(mapBackendReservation);
+        }
+      } catch (err) {
+        console.warn("Could not fetch live table reservations, falling back to local:", err);
+      }
       const tables = await posTablesService.getTables();
       const liveReservations: ReservationItem[] = [];
       tables.forEach((t) => {
@@ -395,21 +440,51 @@ export const posTablesService = {
         data.mergedTableIds && data.mergedTableIds.length > 0
           ? Array.from(new Set([data.tableId, ...data.mergedTableIds]))
           : [data.tableId];
-      for (const id of mergedIds) {
-        if (isBackendOutletId(id)) {
-          await patchTableStatus(id, "RESERVED", {
-            notes: data.notes || `Reserved for ${data.customerName}`,
-            active_waiter_name: data.customerName,
-          });
+
+      try {
+        const payload = {
+          outlet: scopedOutletId,
+          guest_name: data.customerName,
+          guest_phone: data.customerPhone || "N/A",
+          guest_email: data.customerEmail || undefined,
+          pax: data.guests,
+          reservation_date: data.reservationDate.includes("Today") || !data.reservationDate ? new Date().toISOString().split("T")[0] : data.reservationDate,
+          start_time: data.reservationTime.length === 5 ? `${data.reservationTime}:00` : data.reservationTime,
+          table_ids: mergedIds.filter(isBackendOutletId),
+          notes: data.notes || undefined,
+          is_vip: Boolean(data.isVip),
+        };
+        const res = await httpClient.post(API_ENDPOINTS.TABLES.RESERVATIONS, payload);
+        const saved = mapBackendReservation(res.data);
+
+        // Also update table statuses on floor
+        for (const id of mergedIds) {
+          if (isBackendOutletId(id)) {
+            await patchTableStatus(id, "RESERVED", {
+              notes: data.notes || `Reserved for ${data.customerName}`,
+              active_waiter_name: data.customerName,
+            });
+          }
         }
+        return saved;
+      } catch (err) {
+        console.warn("Backend reservation creation failed, applying floor status:", err);
+        for (const id of mergedIds) {
+          if (isBackendOutletId(id)) {
+            await patchTableStatus(id, "RESERVED", {
+              notes: data.notes || `Reserved for ${data.customerName}`,
+              active_waiter_name: data.customerName,
+            });
+          }
+        }
+        return {
+          ...data,
+          tableId: mergedIds[0],
+          id: mergedIds[0],
+          status: "reserved",
+          createdAt: new Date().toISOString(),
+        };
       }
-      return {
-        ...data,
-        tableId: mergedIds[0],
-        id: mergedIds[0],
-        status: "reserved",
-        createdAt: new Date().toISOString(),
-      };
     }
     const mergedIds =
       data.mergedTableIds && data.mergedTableIds.length > 0
@@ -452,6 +527,13 @@ export const posTablesService = {
 
   seatGuests: async (tableId: string, reservationId?: string): Promise<RestaurantTable> => {
     if (isLiveFloor()) {
+      if (reservationId && isBackendOutletId(reservationId)) {
+        try {
+          await httpClient.post(API_ENDPOINTS.TABLES.SEAT_RESERVATION(reservationId));
+        } catch (e) {
+          console.warn("Could not post seat to backend reservation:", e);
+        }
+      }
       await patchTableStatus(tableId, "OCCUPIED");
       const tables = await posTablesService.getTables();
       const found = tables.find((t) => t.id === tableId);
@@ -509,6 +591,13 @@ export const posTablesService = {
   },
 
   cancelReservation: async (reservationId: string): Promise<void> => {
+    if (isLiveFloor() && isBackendOutletId(reservationId)) {
+      try {
+        await httpClient.post(API_ENDPOINTS.TABLES.CANCEL_RESERVATION(reservationId));
+      } catch (e) {
+        console.warn("Could not cancel reservation on backend:", e);
+      }
+    }
     let linkedTableIds: string[] = [];
 
     store().reservations = store().reservations.map((r) => {

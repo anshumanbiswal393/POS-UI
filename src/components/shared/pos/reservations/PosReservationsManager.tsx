@@ -1,3 +1,18 @@
+
+function toStandardIsoDate(rawDate?: string, fallbackIso?: string): string {
+  if (!rawDate || rawDate === "Today") return fallbackIso || new Date().toISOString().split("T")[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) return rawDate;
+  // Try parsing human formatted date like "Mon, Nov 2, 2026"
+  const parsed = new Date(rawDate);
+  if (!isNaN(parsed.getTime())) {
+    const yyyy = parsed.getFullYear();
+    const mm = String(parsed.getMonth() + 1).padStart(2, "0");
+    const dd = String(parsed.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return fallbackIso || new Date().toISOString().split("T")[0];
+}
+
 import React, { useState, useMemo } from "react";
 import {
   Table as TableIcon,
@@ -144,12 +159,11 @@ export function PosReservationsManager() {
 
       // 4. Date Range Filter
       if (fromDate || toDate) {
-        let resDate = res.reservationDate;
-        if (resDate === "Today" || !resDate) {
-          resDate = todayIso;
-        }
-        if (fromDate && resDate < fromDate) return false;
-        if (toDate && resDate > toDate) return false;
+        const resDate = toStandardIsoDate(res.reservationDate, todayIso);
+        const normFrom = fromDate ? toStandardIsoDate(fromDate, todayIso) : "";
+        const normTo = toDate ? toStandardIsoDate(toDate, todayIso) : "";
+        if (normFrom && resDate < normFrom) return false;
+        if (normTo && resDate > normTo) return false;
       }
 
       return true;

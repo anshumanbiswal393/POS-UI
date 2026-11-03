@@ -42,7 +42,11 @@ export const API_ENDPOINTS = {
     UPDATE_ORDER: (id: string) => `/api/pos/orders/${id}/`,
     SEAT_GUESTS: "/api/pos/tables/seat",
     VACATE: (id: string) => `/api/pos/tables/${id}/status/`,
-    RESERVATIONS: "/api/pos/tables/reservations",
+    RESERVATIONS: "/api/pos/table-reservations/",
+    CHECK_AVAILABILITY: "/api/pos/table-reservations/check-availability/",
+    SEAT_RESERVATION: (id: string) => `/api/pos/table-reservations/${id}/seat/`,
+    CANCEL_RESERVATION: (id: string) => `/api/pos/table-reservations/${id}/cancel/`,
+    NO_SHOW_RESERVATION: (id: string) => `/api/pos/table-reservations/${id}/no-show/`,
     STATUS: (id: string) => `/api/pos/tables/${id}/status/`,
   },
   ROOM_SERVICE: {
