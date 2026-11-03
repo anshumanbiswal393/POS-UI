@@ -363,10 +363,10 @@ export function MenuItemEditModal({
         </>
       }
     >
-          {/* 1. Basic Info Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {/* Name */}
-            <div className="sm:col-span-2">
+          {/* 1. Basic Info Grid: Name, Code/SKU, Category (in one clean row) */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            {/* Item Name */}
+            <div className="md:col-span-5">
               <label className="block text-[12.5px] font-semibold text-slate-700 mb-1">
                 Item Name <span className="text-red-500">*</span>
               </label>
@@ -374,14 +374,17 @@ export function MenuItemEditModal({
                 type="text"
                 placeholder="e.g. Butter Chicken Boneless Gravy"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-hidden"
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setOnlineDisplayName(e.target.value);
+                }}
+                className="w-full h-10 rounded-lg border border-slate-300 px-3 py-2 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-hidden"
                 required
               />
             </div>
 
-            {/* Code / SKU */}
-            <div>
+            {/* Item Code / SKU */}
+            <div className="md:col-span-3">
               <label className="block text-[12.5px] font-semibold text-slate-700 mb-1">
                 Item Code / SKU <span className="text-red-500">*</span>
               </label>
@@ -390,27 +393,13 @@ export function MenuItemEditModal({
                 placeholder="e.g. FD-104"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[13px] text-slate-900 font-mono focus:border-teal-500 focus:outline-hidden uppercase"
+                className="w-full h-10 rounded-lg border border-slate-300 px-3 py-2 text-[13px] text-slate-900 font-mono focus:border-teal-500 focus:outline-hidden uppercase"
                 required
               />
             </div>
 
-            {/* Online Display Name */}
-            <div className="sm:col-span-2">
-              <label className="block text-[12.5px] font-semibold text-slate-700 mb-1">
-                Online Display Name (Direct QR Menu)
-              </label>
-              <input
-                type="text"
-                placeholder="Name shown on Direct QR digital menu..."
-                value={onlineDisplayName}
-                onChange={(e) => setOnlineDisplayName(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-hidden"
-              />
-            </div>
-
             {/* Category — select existing or create inline on the fly */}
-            <div>
+            <div className="md:col-span-4">
               <div className="flex items-center justify-between mb-1">
                 <label className="text-[12.5px] font-semibold text-slate-700">
                   Category <span className="text-red-500">*</span>
@@ -435,7 +424,7 @@ export function MenuItemEditModal({
                   <input
                     type="text"
                     autoFocus
-                    placeholder="Enter category name (e.g. Starters)..."
+                    placeholder="Category name..."
                     value={newCategoryName}
                     onChange={(e) => setNewCategoryName(e.target.value)}
                     onKeyDown={(e) => {
@@ -495,9 +484,6 @@ export function MenuItemEditModal({
                   </option>
                 </select>
               )}
-              <p className="mt-1 text-[11px] text-slate-500">
-                Select an existing category or click &quot;+ Add Category&quot; to create one.
-              </p>
             </div>
           </div>
 

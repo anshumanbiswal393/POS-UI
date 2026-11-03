@@ -31,6 +31,7 @@ import {
   useAddPhysicalMenu,
 } from "@/hooks/queries/usePosMenu";
 import { useOutletContext } from "@/context/PosOutletContext";
+import { calculateEffectivePrice } from "@/utils/commissionUtils";
 import { toast } from "sonner";
 
 export type MenuTemplateId = "diner" | "showcase" | "royal" | "modern" | "lounge";
