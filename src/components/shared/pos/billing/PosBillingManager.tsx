@@ -165,6 +165,10 @@ export function PosBillingManager() {
   const [billNumber, setBillNumber] = useState("NEW");
   const [searchQuery, setSearchQuery] = useState("");
   const [isTablesPanelCollapsed, setIsTablesPanelCollapsed] = useState(false);
+  const [discountType, setDiscountType] = useState<"percent" | "flat">("percent");
+  const [discountValue, setDiscountValue] = useState<number>(0);
+  const [taxType, setTaxType] = useState<"percent" | "flat">("percent");
+  const [taxValue, setTaxValue] = useState<number>(5);
   const [specialNote, setSpecialNote] = useState("");
   const [waiterFromUrl, setWaiterFromUrl] = useState("");
   const [billingTableId, setBillingTableId] = useState("");
@@ -604,6 +608,10 @@ export function PosBillingManager() {
     setKotSentForCart(false);
     setLinkedOrderNumber(null);
     setLinkedOrderId(null);
+    setDiscountType("percent");
+    setDiscountValue(0);
+    setTaxType("percent");
+    setTaxValue(5);
     toast.info("Cleared order cart");
   };
 
@@ -650,12 +658,22 @@ export function PosBillingManager() {
       return sum + (bp + mp) * item.quantity;
     }, 0);
 
-    const discountAmount = 0;
-    const taxableAmount = subtotal - discountAmount;
-    const cgst = Math.round((taxableAmount * taxSettings.cgstPercent) / 100);
-    const sgst = Math.round((taxableAmount * taxSettings.sgstPercent) / 100);
-    const serviceCharge = Math.round((taxableAmount * taxSettings.serviceChargePercent) / 100);
-    const rawTotal = taxableAmount + cgst + sgst + serviceCharge;
+    const discountAmount =
+      discountType === "percent"
+        ? Math.round((subtotal * Math.min(100, Math.max(0, discountValue))) / 100)
+        : Math.min(subtotal, Math.max(0, Math.round(discountValue)));
+
+    const taxableAmount = Math.max(0, subtotal - discountAmount);
+
+    const taxAmount =
+      taxType === "percent"
+        ? Math.round((taxableAmount * Math.max(0, taxValue)) / 100)
+        : Math.max(0, Math.round(taxValue));
+
+    const cgst = Math.round(taxAmount / 2);
+    const sgst = taxAmount - cgst;
+    const serviceCharge = 0;
+    const rawTotal = taxableAmount + taxAmount;
     const grandTotal = Math.round(rawTotal);
     const roundOff = Number((grandTotal - rawTotal).toFixed(2));
 
@@ -687,7 +705,7 @@ export function PosBillingManager() {
       roundOff,
       tableLabel,
     };
-  }, [cartItems, orderType, activeTable, roomNumber]);
+  }, [cartItems, orderType, activeTable, roomNumber, discountType, discountValue, taxType, taxValue]);
 
   const invalidateOrderSurfaces = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
@@ -1393,6 +1411,18 @@ export function PosBillingManager() {
             busyAction={busyAction}
             selectedCustomer={selectedCustomer}
             onSelectCustomer={setSelectedCustomer}
+            discountType={discountType}
+            discountValue={discountValue}
+            onDiscountChange={(type, val) => {
+              setDiscountType(type);
+              setDiscountValue(val);
+            }}
+            taxType={taxType}
+            taxValue={taxValue}
+            onTaxChange={(type, val) => {
+              setTaxType(type);
+              setTaxValue(val);
+            }}
           />
         </div>
       </div>
