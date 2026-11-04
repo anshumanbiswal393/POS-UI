@@ -13,7 +13,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isBillingPage = pathname === "/pos/billing" || pathname.startsWith("/pos/billing");
 
-  // On POS Billing, hide sidebar by default; on other routes, keep it open
+  // On POS Billing, default to collapsed so full workspace is visible; on other routes keep open
   const [desktopCollapsed, setDesktopCollapsed] = useState(() => isBillingPage);
 
   useEffect(() => {
@@ -27,6 +27,9 @@ export function PosShell({ children }: { children: React.ReactNode }) {
   const isSidebarCollapsed = isMobile ? false : desktopCollapsed;
   const showMobileSidebar = isMobile && mobileOpen;
 
+  // On billing page, when user opens/expands the sidebar, it floats above the content on the left
+  const isFloatingSidebar = !isMobile && isBillingPage && !desktopCollapsed;
+
   return (
     <div
       className={cn(
@@ -34,6 +37,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         mobileOpen && isMobile ? "h-screen overflow-hidden" : "",
       )}
     >
+      {/* Mobile backdrop */}
       {isMobile && mobileOpen && (
         <button
           type="button"
@@ -43,20 +47,40 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      {/* Sidebar container — matches PMS layout */}
+      {/* Desktop floating backdrop on POS billing page */}
+      {isFloatingSidebar && (
+        <button
+          type="button"
+          aria-label="Close floating sidebar"
+          className="fixed inset-0 z-45 bg-foreground/20 backdrop-blur-[1px] transition-opacity"
+          onClick={() => setDesktopCollapsed(true)}
+        />
+      )}
+
+      {/* Sidebar container:
+          - Normal routes: standard flex column on left
+          - Mobile: fixed off-canvas drawer
+          - POS Billing: fixed floating overlay on left side when opened, hidden when collapsed
+      */}
       <div
         className={cn(
-          "z-50 shrink-0 print:hidden",
+          "print:hidden",
           isMobile
-            ? "fixed left-0 top-0 h-screen transition-transform duration-200"
-            : "",
+            ? "fixed left-0 top-0 h-screen z-50 transition-transform duration-200"
+            : isBillingPage
+              ? isFloatingSidebar
+                ? "fixed left-0 top-0 h-screen z-50 shadow-2xl animate-in slide-in-from-left duration-200"
+                : "hidden"
+              : "z-30 shrink-0 block",
           isMobile && !showMobileSidebar ? "-translate-x-full" : "translate-x-0",
-          !isMobile && isBillingPage && desktopCollapsed ? "hidden" : "block",
         )}
       >
         <PosSidebar
           collapsed={isSidebarCollapsed}
-          onNavigate={isMobile ? () => setMobileOpen(false) : undefined}
+          onNavigate={() => {
+            if (isMobile) setMobileOpen(false);
+            if (isBillingPage) setDesktopCollapsed(true);
+          }}
           onToggle={() =>
             isMobile ? setMobileOpen(false) : setDesktopCollapsed((c) => !c)
           }
