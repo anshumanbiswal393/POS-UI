@@ -1,4 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { usePosDate, getTodayIso } from "@/hooks/usePosDate";
+import { formatINR } from "@/services/posDashboardService";
 import {
   Search,
   ChevronDown,
@@ -28,6 +30,44 @@ import { exportToExcel } from "@/utils/exportUtils";
 import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 import { toast } from "sonner";
 
+
+function getOrderDateIso(r: any): string {
+  if (typeof r?.createdTimestamp === "number" && r.createdTimestamp > 0) {
+    const d = new Date(r.createdTimestamp);
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+  }
+  const candidate = r?.createdAt || r?.settledAt || r?.placedAt || "";
+  if (!candidate || typeof candidate !== "string") return "";
+
+  const isoMatch = candidate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+
+  const dmyMatch = candidate.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (dmyMatch) {
+    const day = dmyMatch[1].padStart(2, "0");
+    const month = dmyMatch[2].padStart(2, "0");
+    const year = dmyMatch[3];
+    return `${year}-${month}-${day}`;
+  }
+
+  const parsed = new Date(candidate);
+  if (!isNaN(parsed.getTime())) {
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const day = String(parsed.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  return "";
+}
+
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -53,19 +93,22 @@ export function PosAllOrdersManager() {
   // Toggle state: collapsed (Picture 1) vs expanded (Picture 2)
   const [showMoreFilters, setShowMoreFilters] = useState(false);
 
+  const { selectedDateStr } = usePosDate();
+  const initialDate = selectedDateStr || getTodayIso();
+
   // Filter input form state
-  const [startDate, setStartDate] = useState(todayIso);
-  const [endDate, setEndDate] = useState(todayIso);
+  const [startDate, setStartDate] = useState(initialDate);
+  const [endDate, setEndDate] = useState(initialDate);
   const [orderType, setOrderType] = useState("All Order Type");
   const [orderIdInput, setOrderIdInput] = useState("");
   const [customerNameInput, setCustomerNameInput] = useState("");
   const [customerPhoneInput, setCustomerPhoneInput] = useState("");
   const [tableNoInput, setTableNoInput] = useState("");
   const [statusInput, setStatusInput] = useState("All");
-  // Applied filter state triggered by "Search" button
+  // Applied filter state triggered by date picker or "Search" button
   const [appliedFilters, setAppliedFilters] = useState({
-    startDate: todayIso(),
-    endDate: todayIso(),
+    startDate: initialDate,
+    endDate: initialDate,
     orderType: "All Order Type",
     orderId: "",
     customerName: "",
@@ -73,6 +116,32 @@ export function PosAllOrdersManager() {
     tableNo: "",
     status: "All",
   });
+
+  const lastGlobalDateRef = useRef(selectedDateStr);
+  useEffect(() => {
+    if (selectedDateStr && selectedDateStr !== lastGlobalDateRef.current) {
+      lastGlobalDateRef.current = selectedDateStr;
+      setStartDate(selectedDateStr);
+      setEndDate(selectedDateStr);
+      setAppliedFilters((prev) => ({
+        ...prev,
+        startDate: selectedDateStr,
+        endDate: selectedDateStr,
+      }));
+      setCurrentPage(1);
+    }
+  }, [selectedDateStr]);
+
+  const handleDateRangeChange = ({ from, to }: { from: string; to: string }) => {
+    setStartDate(from);
+    setEndDate(to);
+    setAppliedFilters((prev) => ({
+      ...prev,
+      startDate: from,
+      endDate: to,
+    }));
+    setCurrentPage(1);
+  };
 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
@@ -82,7 +151,17 @@ export function PosAllOrdersManager() {
   const [viewingOrder, setViewingOrder] = useState<AllOrderItem | null>(null);
   const [printingOrder, setPrintingOrder] = useState<AllOrderItem | null>(null);
 
-  const { data } = useAllOrders();
+  const queryFilters = useMemo(
+    () => ({
+      startDate: appliedFilters.startDate,
+      endDate: appliedFilters.endDate,
+      start_date: appliedFilters.startDate,
+      end_date: appliedFilters.endDate,
+      status: appliedFilters.status !== "All" ? appliedFilters.status : undefined,
+    }),
+    [appliedFilters.startDate, appliedFilters.endDate, appliedFilters.status]
+  );
+  const { data } = useAllOrders(queryFilters);
   const { activeOutlet } = useOutletContext();
   const liveOutlet = isBackendOutletId(activeOutlet?.id);
 
@@ -114,6 +193,18 @@ export function PosAllOrdersManager() {
       // Tab filter
       if (activeTab === "advance_order" && !r.isAdvanceOrder) return false;
       if (activeTab === "order" && r.isAdvanceOrder) return false;
+
+      // Date range filter
+      const orderDate = getOrderDateIso(r);
+      if (appliedFilters.startDate && orderDate) {
+        if (orderDate < appliedFilters.startDate) return false;
+      }
+      if (appliedFilters.endDate && orderDate) {
+        if (orderDate > appliedFilters.endDate) return false;
+      }
+      if ((appliedFilters.startDate || appliedFilters.endDate) && !orderDate) {
+        return false;
+      }
 
       // Order Type
       if (appliedFilters.orderType !== "All Order Type") {
@@ -172,6 +263,18 @@ export function PosAllOrdersManager() {
       return true;
     });
   }, [activeTab, appliedFilters, sourceRecords]);
+
+  const filteredGrandTotal = useMemo(() => {
+    if (!filteredRecords.length) return formatINR(0);
+    const sum = filteredRecords.reduce((acc, r) => {
+      const rawNum =
+        typeof (r as any).grandTotal === "number"
+          ? (r as any).grandTotal
+          : Number(String(r.grandTotalFormatted || "0").replace(/[^0-9.-]+/g, "")) || 0;
+      return acc + rawNum;
+    }, 0);
+    return formatINR(sum);
+  }, [filteredRecords]);
 
   // Pagination calculation
   const totalRecords = filteredRecords.length;
@@ -535,7 +638,7 @@ export function PosAllOrdersManager() {
           <div className="text-[13px] font-bold text-slate-900">
             Grand Total :{" "}
             <span className="text-teal-700">
-              {data?.grandTotalFormatted ?? (liveOutlet ? "₹ 0.00" : "₹ 643,388.00")}
+              {filteredGrandTotal}
             </span>
           </div>
           <ExportToExcelButton onClick={handleExportExcel} />
@@ -557,10 +660,7 @@ export function PosAllOrdersManager() {
               <PosDateRangePicker
                 from={startDate}
                 to={endDate}
-                onSelect={({ from, to }) => {
-                  setStartDate(from);
-                  setEndDate(to);
-                }}
+                onSelect={handleDateRangeChange}
                 className="w-full h-10"
               />
             </div>
@@ -641,10 +741,7 @@ export function PosAllOrdersManager() {
                 <PosDateRangePicker
                   from={startDate}
                   to={endDate}
-                  onSelect={({ from, to }) => {
-                    setStartDate(from);
-                    setEndDate(to);
-                  }}
+                  onSelect={handleDateRangeChange}
                   className="w-full h-10"
                 />
               </div>
