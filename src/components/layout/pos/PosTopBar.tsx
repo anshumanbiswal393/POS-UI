@@ -26,6 +26,8 @@ import {
   ShoppingBag,
   Wifi,
   Building2,
+  Maximize,
+  Minimize,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -90,6 +92,66 @@ export function PosTopBar({
   const { user, roleLabel, logout } = useAuth();
   const { activeOutlet } = useOutletContext();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = usePosNotifications();
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const doc = document as any;
+      setIsFullscreen(
+        Boolean(
+          doc.fullscreenElement ||
+            doc.webkitFullscreenElement ||
+            doc.mozFullScreenElement ||
+            doc.msFullscreenElement,
+        ),
+      );
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      const doc = document as any;
+      const docEl = document.documentElement as any;
+
+      const isFs = Boolean(
+        doc.fullscreenElement ||
+          doc.webkitFullscreenElement ||
+          doc.mozFullScreenElement ||
+          doc.msFullscreenElement,
+      );
+
+      if (!isFs) {
+        if (docEl.requestFullscreen) {
+          await docEl.requestFullscreen();
+        } else if (docEl.webkitRequestFullscreen) {
+          await docEl.webkitRequestFullscreen();
+        } else if (docEl.msRequestFullscreen) {
+          await docEl.msRequestFullscreen();
+        }
+      } else {
+        if (doc.exitFullscreen) {
+          await doc.exitFullscreen();
+        } else if (doc.webkitExitFullscreen) {
+          await doc.webkitExitFullscreen();
+        } else if (doc.msExitFullscreen) {
+          await doc.msExitFullscreen();
+        }
+      }
+    } catch {
+      // Ignored: Fullscreen change denied or aborted
+    }
+  };
 
   // Operational date is managed by PosDateCalendarPopover and usePosDate
 
@@ -294,6 +356,21 @@ export function PosTopBar({
         >
           <BookOpen className="h-3.5 w-3.5 text-primary" />
           <span>User Guide</span>
+        </button>
+
+        {/* Fullscreen Toggle Button */}
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          aria-label={isFullscreen ? "Exit Fullscreen" : "Full Screen"}
+          title={isFullscreen ? "Exit Full Screen (Esc)" : "Full Screen"}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/80 bg-surface text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer outline-none shadow-2xs"
+        >
+          {isFullscreen ? (
+            <Minimize className="h-4.5 w-4.5" />
+          ) : (
+            <Maximize className="h-4.5 w-4.5" />
+          )}
         </button>
 
         <div className="hidden sm:block h-6 w-px bg-border" />
