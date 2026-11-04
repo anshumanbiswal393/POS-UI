@@ -95,6 +95,8 @@ export interface PosDashboardData {
 }
 
 export interface DashboardFilterParams {
-  dateRange?: "today" | "yesterday" | "this_week" | "this_month";
+  dateRange?: "today" | "yesterday" | "this_week" | "this_month" | string;
+  startDate?: string;
+  endDate?: string;
   outletId?: string;
 }
