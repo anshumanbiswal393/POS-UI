@@ -24,7 +24,7 @@ import { useOutletContext } from "@/context/PosOutletContext";
 import { useAuth } from "@/hooks/useAuth";
 import { getPosCustomers } from "@/services/posCustomerStore";
 import { AddCustomerDrawer } from "./AddCustomerDrawer";
-import { useSpecialNotes, useAddSpecialNote } from "@/hooks/queries/usePosMenu";
+import { useSpecialNotes } from "@/hooks/queries/usePosMenu";
 import { toast } from "sonner";
 
 type BillingCartRegisterProps = {
@@ -102,65 +102,48 @@ export function BillingCartRegister({
   const [isCustomerSelectOpen, setIsCustomerSelectOpen] = useState(false);
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const [customerSearchQuery, setCustomerSearchQuery] = useState("");
-  const [isNoteDropdownOpen, setIsNoteDropdownOpen] = useState(false);
   const { data: dbSpecialNotes = [] } = useSpecialNotes(activeOutlet?.id);
-  const addNoteMutation = useAddSpecialNote(activeOutlet?.id);
+  const [selectedDropdownNote, setSelectedDropdownNote] = useState("");
+  const [customNote, setCustomNote] = useState("");
 
-  const availableNotes = useMemo(() => {
-    const list: string[] = [];
-    dbSpecialNotes.forEach((n) => {
-      if (n.name && !list.includes(n.name)) {
-        list.push(n.name);
-      }
-    });
-    const DEFAULT_NOTES = [
-      "Less Spicy",
-      "Extra Spicy",
-      "No Onion / No Garlic",
-      "Less Oil",
-      "Serve Hot",
-      "Pack Separately",
-      "Jain Preparation",
-      "Crispy",
-      "Extra Gravy",
-      "No Sugar",
-    ];
-    DEFAULT_NOTES.forEach((d) => {
-      if (!list.includes(d)) {
-        list.push(d);
-      }
-    });
-    return list;
-  }, [dbSpecialNotes]);
-
-  const filteredNotes = useMemo(() => {
-    const q = (specialNote || "").trim().toLowerCase();
-    if (!q) return availableNotes;
-    return availableNotes.filter((n) => n.toLowerCase().includes(q));
-  }, [availableNotes, specialNote]);
-
-  const handleSelectNote = (noteText: string) => {
-    if (specialNote.trim()) {
-      if (!specialNote.includes(noteText)) {
-        onSpecialNoteChange(`${specialNote.trim()}, ${noteText}`);
-      }
-    } else {
-      onSpecialNoteChange(noteText);
+  // Sync internal dropdown & custom text when specialNote changes externally
+  useEffect(() => {
+    if (!specialNote) {
+      setSelectedDropdownNote("");
+      setCustomNote("");
+      return;
     }
-    setIsNoteDropdownOpen(false);
+    const exactMatch = dbSpecialNotes.find(
+      (n) => n.name.trim().toLowerCase() === specialNote.trim().toLowerCase()
+    );
+    if (exactMatch) {
+      setSelectedDropdownNote(exactMatch.name);
+      setCustomNote("");
+    } else {
+      const prefixMatch = dbSpecialNotes.find(
+        (n) => specialNote.toLowerCase().startsWith(n.name.toLowerCase() + ",")
+      );
+      if (prefixMatch) {
+        setSelectedDropdownNote(prefixMatch.name);
+        setCustomNote(specialNote.slice(prefixMatch.name.length + 1).trim());
+      } else {
+        setSelectedDropdownNote("");
+        setCustomNote(specialNote);
+      }
+    }
+  }, [specialNote, dbSpecialNotes]);
+
+  const handleDropdownChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setSelectedDropdownNote(val);
+    const combined = [val.trim(), customNote.trim()].filter(Boolean).join(", ");
+    onSpecialNoteChange(combined);
   };
 
-  const handleSaveCustomNote = (newNoteName: string) => {
-    const trimmed = newNoteName.trim();
-    if (!trimmed) return;
-    addNoteMutation.mutate(
-      { name: trimmed, available: true },
-      {
-        onSuccess: () => {
-          toast.success(`Saved "${trimmed}" to special notes`);
-        },
-      }
-    );
+  const handleCustomNoteChange = (val: string) => {
+    setCustomNote(val);
+    const combined = [selectedDropdownNote.trim(), val.trim()].filter(Boolean).join(", ");
+    onSpecialNoteChange(combined);
   };
 
   // Real customers store only — zero hardcoded mock data
@@ -307,8 +290,8 @@ export function BillingCartRegister({
         </div>
       </div>
 
-      {/* 2. Customer dropdown + Special Note Bar */}
-      <div className="relative px-2.5 py-1.5 bg-slate-50 border-b border-slate-200 text-xs shrink-0 space-y-1.5">
+      {/* 2. Customer dropdown + (+) button - 2 fields only */}
+      <div className="relative px-2.5 py-1.5 bg-slate-50 border-b border-slate-200 text-xs shrink-0">
         <div className="flex items-center gap-1.5">
           {/* Dropdown for choosing customer */}
           <div className="relative flex-1 min-w-0">
@@ -447,99 +430,6 @@ export function BillingCartRegister({
             <Plus className="h-4 w-4" />
           </button>
         </div>
-
-        {/* Special Note Input Bar with Dropdown */}
-        <div className="relative">
-          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-md h-8 px-2.5 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary shadow-2xs transition">
-            <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-            <input
-              type="text"
-              value={specialNote}
-              onChange={(e) => {
-                onSpecialNoteChange(e.target.value);
-                if (!isNoteDropdownOpen) setIsNoteDropdownOpen(true);
-              }}
-              onFocus={() => setIsNoteDropdownOpen(true)}
-              placeholder="Special note (e.g. Less spicy, No onion)..."
-              className="w-full text-[11.5px] bg-transparent border-none outline-none text-slate-800 placeholder:text-slate-400 font-medium"
-            />
-            {specialNote ? (
-              <button
-                type="button"
-                onClick={() => onSpecialNoteChange("")}
-                title="Clear note"
-                className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 shrink-0 cursor-pointer"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => setIsNoteDropdownOpen((prev) => !prev)}
-              title="Select existing note"
-              className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 shrink-0 cursor-pointer"
-            >
-              <ChevronDown className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
-          {/* Special Notes Dropdown Popover */}
-          {isNoteDropdownOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setIsNoteDropdownOpen(false)}
-              />
-              <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-lg shadow-xl border border-slate-200 z-50 overflow-hidden flex flex-col max-h-[220px] animate-in fade-in zoom-in-95 duration-150">
-                <div className="p-2 border-b border-slate-100 bg-slate-50 flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  <span>Special Notes & Requests</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Click to insert</span>
-                </div>
-
-                <div className="overflow-y-auto flex-1 p-1 space-y-0.5">
-                  {filteredNotes.map((note) => {
-                    const isSelected = specialNote.includes(note);
-                    return (
-                      <button
-                        key={note}
-                        type="button"
-                        onClick={() => handleSelectNote(note)}
-                        className={`w-full px-2.5 py-1.5 text-left text-xs rounded hover:bg-slate-100 flex items-center justify-between transition cursor-pointer ${
-                          isSelected ? "bg-primary/10 text-primary font-semibold" : "text-slate-800"
-                        }`}
-                      >
-                        <span className="truncate">{note}</span>
-                        {isSelected && <Check className="h-3.5 w-3.5 text-primary shrink-0 ml-1" />}
-                      </button>
-                    );
-                  })}
-
-                  {filteredNotes.length === 0 && (
-                    <div className="p-2 text-center text-xs text-slate-400">
-                      No matching note. Type above for custom note.
-                    </div>
-                  )}
-
-                  {specialNote.trim() && !availableNotes.some((n) => n.toLowerCase() === specialNote.trim().toLowerCase()) && (
-                    <div className="border-t border-slate-100 pt-1 mt-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleSaveCustomNote(specialNote);
-                          setIsNoteDropdownOpen(false);
-                        }}
-                        className="w-full px-2.5 py-1.5 text-left text-[11px] rounded hover:bg-emerald-50 text-emerald-700 flex items-center gap-1.5 font-semibold transition cursor-pointer"
-                      >
-                        <Plus className="h-3 w-3" />
-                        <span>Save "{specialNote.trim()}" as preset note</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
       </div>
 
       {/* 3. Cart Line Items List (Compact, Tight, Stretchable without extra gaps) */}
@@ -670,6 +560,52 @@ export function BillingCartRegister({
             );
           })
         )}
+      </div>
+
+      {/* Special Notes & Custom Request Bar (Below items list, Above Totals) */}
+      <div className="px-2.5 py-2 bg-slate-50/90 border-t border-slate-200 shrink-0">
+        <div className="grid grid-cols-2 gap-2">
+          {/* Half 1: Dropdown showing notes from Menu -> Special Notes only */}
+          <div className="relative">
+            <select
+              value={selectedDropdownNote}
+              onChange={handleDropdownChange}
+              className="w-full h-8 pl-2.5 pr-7 text-[11.5px] font-medium bg-white border border-slate-200 rounded-md text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer appearance-none shadow-2xs truncate"
+              title="Special Notes from Menu"
+            >
+              <option value="">Select Special Note</option>
+              {dbSpecialNotes
+                .filter((n) => n.available !== false)
+                .map((note) => (
+                  <option key={note.id} value={note.name}>
+                    {note.name}
+                  </option>
+                ))}
+            </select>
+            <ChevronDown className="h-3.5 w-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
+          {/* Half 2: Text box with placeholder 'Custom special note' */}
+          <div className="relative">
+            <input
+              type="text"
+              value={customNote}
+              onChange={(e) => handleCustomNoteChange(e.target.value)}
+              placeholder="Custom special note"
+              className="w-full h-8 px-2.5 text-[11.5px] bg-white border border-slate-200 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs font-medium"
+            />
+            {customNote ? (
+              <button
+                type="button"
+                onClick={() => handleCustomNoteChange("")}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 rounded cursor-pointer"
+                title="Clear custom note"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       {/* 4. Totals, Taxes & Discount Breakdown (Exact POS Terminal Layout) */}
