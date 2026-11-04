@@ -616,7 +616,7 @@ export function PosBillingManager() {
   };
 
   // New Bill
-  const handleNewBill = useCallback(() => {
+  const handleNewBill = useCallback((silent = false) => {
     const nextNum = "NEW";
     setBillNumber(nextNum);
     setCartItems([]);
@@ -625,11 +625,23 @@ export function PosBillingManager() {
     setKotSentForCart(false);
     setLinkedOrderNumber(null);
     setLinkedOrderId(null);
+    setActiveTable("");
+    setBillingTableId("");
+    setGuestCount(0);
+    setDiscountType("percent");
+    setDiscountValue(0);
+    setTaxType("percent");
+    setTaxValue(5);
     if (orderType === "room_service") {
       setRoomNumber("");
+      setRoomUnitId("");
+      setReservationId("");
+      setFolioId("");
       setGuestCount(0);
     }
-    toast.success(`New check ${nextNum} started`);
+    if (!silent) {
+      toast.success(`New check ${nextNum} started`);
+    }
   }, [orderType]);
 
   const buildOrderPayload = useCallback(() => {
@@ -837,6 +849,7 @@ export function PosBillingManager() {
     folioId,
     linkedOrderId,
     invalidateOrderSurfaces,
+    handleNewBill,
   ]);
 
   // Resume Held Check
@@ -1009,25 +1022,23 @@ export function PosBillingManager() {
         try {
           if (linkedOrderId) {
             const updated = await livePatchOrder(linkedOrderId, payload);
-            setKotSentForCart(true);
             queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
             queryClient.invalidateQueries({ queryKey: ["pos", "tables"] });
             invalidateOrderSurfaces();
             toast.success(`KOT updated → Preparing`, {
-              description: `${updated.orderNumber || linkedOrderNumber || ""} · Current Orders · Pending Payments`,
+              description: `${updated.orderNumber || linkedOrderNumber || ""} · New check generated`,
             });
+            handleNewBill(true);
             return;
           }
           const created = await liveCreateOrder(payload);
-          setKotSentForCart(true);
-          setLinkedOrderId(created.id);
-          setLinkedOrderNumber(created.orderNumber);
-          setBillNumber(created.orderNumber);
-          if (created.tableId) setBillingTableId(created.tableId);
+          queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
+          queryClient.invalidateQueries({ queryKey: ["pos", "tables"] });
           invalidateOrderSurfaces();
           toast.success(`KOT #${created.kotId || ""} → Preparing`, {
-            description: `${created.orderNumber} · Current Orders · Pending Payments`,
+            description: `${created.orderNumber} · New check generated`,
           });
+          handleNewBill(true);
         } catch (err: any) {
           toast.error(err?.response?.data?.detail || err?.message || "Could not send KOT");
         } finally {

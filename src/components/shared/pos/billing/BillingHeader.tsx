@@ -3,7 +3,6 @@ import {
   ShoppingBag,
   BedDouble,
   PauseCircle,
-  PlusCircle,
 } from "lucide-react";
 import type { BillingOrderType } from "@/types/posBilling";
 
@@ -26,7 +25,7 @@ type BillingHeaderProps = {
   setGuestCount: (count: number) => void;
   heldCount: number;
   onOpenHeldDrawer: () => void;
-  onNewBill: () => void;
+  onNewBill?: () => void;
   roomNumber?: string;
   occupiedRooms?: OccupiedRoomOption[];
   onSelectRoom?: (roomNumber: string) => void;
@@ -164,18 +163,6 @@ export function BillingHeader({
             )}
             <kbd className="hidden sm:inline-block ml-0.5 rounded bg-amber-200/60 px-1 text-[10px] text-amber-800 font-mono">
               F4
-            </kbd>
-          </button>
-
-          <button
-            type="button"
-            onClick={onNewBill}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-primary bg-primary/10 border border-primary/20 hover:bg-primary/20 transition cursor-pointer shadow-2xs"
-          >
-            <PlusCircle className="h-3.5 w-3.5 text-primary" />
-            <span>New Check</span>
-            <kbd className="hidden sm:inline-block ml-0.5 rounded bg-primary/20 px-1 text-[10px] text-primary font-mono">
-              F2
             </kbd>
           </button>
         </div>
