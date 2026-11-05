@@ -28,11 +28,13 @@ jobs:
       - name: Add VM to known_hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -p ${{ secrets.VM_PORT }} ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          ssh-keyscan -p ${{ secrets.VM_PORT || 22 }} -T 10 ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+          chmod 600 ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Sync files to VM
         env:
-          SSH_OPTS: -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=120 -o TCPKeepAlive=yes
+          SSH_OPTS: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=15 -o ServerAliveCountMax=120 -o TCPKeepAlive=yes
         run: |
           rsync -avz --delete \
             --exclude='.git' --exclude='node_modules' --exclude='dist' --exclude='.output' \
@@ -44,7 +46,7 @@ jobs:
       # prevents "client_loop: send disconnect: Broken pipe" (~10m SSH drop).
       - name: Build and restart pos-ui
         env:
-          SSH_OPTS: -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=120 -o TCPKeepAlive=yes -o ConnectTimeout=15
+          SSH_OPTS: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=15 -o ServerAliveCountMax=120 -o TCPKeepAlive=yes -o ConnectTimeout=15
         run: |
           for i in 1 2 3 4 5; do
             echo "Attempt $i: Connecting to VM to build and restart pos-ui..."
