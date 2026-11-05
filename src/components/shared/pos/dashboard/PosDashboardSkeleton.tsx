@@ -6,9 +6,10 @@ import { Loader2 } from "lucide-react";
  * High-fidelity responsive skeleton loader displayed while dashboard data is fetching.
  * Mirrors the exact layout of PosDashboardManager with smooth pulse animations.
  */
-export function PosDashboardSkeleton() {
+export function PosDashboardSkeleton({ banner }: { banner?: React.ReactNode } = {}) {
   return (
     <div className="relative flex flex-col flex-1 gap-2 p-3 sm:p-4 lg:p-5 pt-2 sm:pt-2.5 lg:pt-3 lg:min-h-0 lg:overflow-hidden">
+      {banner}
       {/* Subtle loading indicator pill */}
       <div className="flex items-center justify-between px-0.5">
         <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-[11px] font-semibold text-primary">

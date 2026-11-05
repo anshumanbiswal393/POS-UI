@@ -4,9 +4,10 @@ import type { TopDishItem } from "@/types/posDashboard";
 
 interface TopSellingItemsCardProps {
   items: TopDishItem[];
+  isToday?: boolean;
 }
 
-export function TopSellingItemsCard({ items }: TopSellingItemsCardProps) {
+export function TopSellingItemsCard({ items, isToday = true }: TopSellingItemsCardProps) {
   return (
     <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
       <div className="flex shrink-0 items-center justify-between">
@@ -22,7 +23,7 @@ export function TopSellingItemsCard({ items }: TopSellingItemsCardProps) {
       {items.length === 0 ? (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center p-3 text-slate-400">
           <Utensils className="h-6 w-6 stroke-[1.5] mb-1.5 opacity-40 text-slate-400" />
-          <p className="text-[12px] font-medium text-slate-600">No dishes sold today</p>
+          <p className="text-[12px] font-medium text-slate-600">{isToday ? "No dishes sold today" : "No dishes sold on this date"}</p>
           <p className="text-[10.5px] text-slate-400">Items will appear here as bills are placed</p>
         </div>
       ) : (
@@ -44,11 +45,13 @@ export function TopSellingItemsCard({ items }: TopSellingItemsCardProps) {
                 </div>
                 <div>
                   <div className="text-[13.5px] font-bold text-slate-900">{item.name}</div>
-                  <div className="text-[11.5px] text-slate-400">{item.platesText}</div>
+
                 </div>
               </div>
 
-              <div className="text-[14px] font-bold text-slate-900">{item.revenueFormatted}</div>
+              <div className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-[12.5px] font-bold text-slate-700 shrink-0">
+                {item.platesText}
+              </div>
             </div>
           ))}
         </div>
