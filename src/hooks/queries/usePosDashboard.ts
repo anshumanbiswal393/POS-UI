@@ -1,17 +1,29 @@
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getPosDashboardData } from "@/services/posDashboardService";
+import { setTablesOutletScope } from "@/services/posTablesService";
 import type { DashboardFilterParams, PosDashboardData } from "@/types/posDashboard";
 import { useOutletContext } from "@/context/PosOutletContext";
+import { isBackendOutletId } from "@/utils/outletId";
 
 export const POS_DASHBOARD_QUERY_KEY = ["pos", "dashboard"] as const;
 
 /**
  * Custom TanStack Query hook for POS Dashboard
  * Supports auto-refetching, smooth background updates, and filter state caching.
+ * Synchronizes tables outlet scope and only activates when a valid backend outlet is loaded.
  */
 export function usePosDashboard(filters?: DashboardFilterParams) {
-  const { activeOutlet } = useOutletContext();
+  const { activeOutlet, isLoadingOutlets } = useOutletContext();
   const outletId = activeOutlet?.id || filters?.outletId;
+  const isRealBackendOutlet = Boolean(outletId && isBackendOutletId(outletId));
+
+  useEffect(() => {
+    if (isRealBackendOutlet && outletId) {
+      setTablesOutletScope(outletId, false);
+    }
+  }, [outletId, isRealBackendOutlet]);
+
   const mergedFilters: DashboardFilterParams = { ...filters, outletId };
 
   return useQuery<PosDashboardData, Error>({
@@ -20,6 +32,6 @@ export function usePosDashboard(filters?: DashboardFilterParams) {
     placeholderData: (previousData) => previousData,
     staleTime: 1000 * 5,
     refetchInterval: 1000 * 10,
-    enabled: Boolean(outletId),
+    enabled: isRealBackendOutlet && !isLoadingOutlets,
   });
 }

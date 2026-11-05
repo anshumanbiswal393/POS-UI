@@ -29,42 +29,50 @@ export function LiveOrdersWidget({ orders }: LiveOrdersWidgetProps) {
         </Link>
       </div>
 
-      {/* Three rows only — View opens the full current-orders screen */}
-      <div className="my-1.5 flex min-h-0 flex-1 flex-col justify-center gap-1.5">
-        {visibleOrders.map((ord) => (
-          <div
-            key={ord.id}
-            className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 py-1.5 hover:bg-slate-100 hover:border-slate-300 transition"
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-md bg-white border border-slate-300 text-[10px] font-extrabold text-slate-800 shadow-2xs">
-                {ord.title.replace(/[^0-9]/g, "")
-                  ? `#${ord.title.replace(/[^0-9]/g, "")}`
-                  : ord.title.slice(0, 3)}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[12px] font-bold text-slate-900 truncate">{ord.title}</span>
-                  <span className="rounded px-1 py-0.2 text-[9px] font-semibold bg-white border border-slate-300 text-slate-600 shrink-0">
-                    {ord.orderType}
-                  </span>
+      {visibleOrders.length === 0 ? (
+        <div className="my-1.5 flex min-h-0 flex-1 flex-col items-center justify-center text-center p-3 text-slate-400">
+          <Clock className="h-6 w-6 stroke-[1.5] mb-1.5 opacity-40 text-slate-400" />
+          <p className="text-[12px] font-medium text-slate-600">No active kitchen orders</p>
+          <p className="text-[10.5px] text-slate-400">Running dine-in and takeaway orders appear here</p>
+        </div>
+      ) : (
+        /* Three rows only — View opens the full current-orders screen */
+        <div className="my-1.5 flex min-h-0 flex-1 flex-col justify-center gap-1.5">
+          {visibleOrders.map((ord) => (
+            <div
+              key={ord.id}
+              className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 py-1.5 hover:bg-slate-100 hover:border-slate-300 transition"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-md bg-white border border-slate-300 text-[10px] font-extrabold text-slate-800 shadow-2xs">
+                  {ord.title.replace(/[^0-9]/g, "")
+                    ? `#${ord.title.replace(/[^0-9]/g, "")}`
+                    : ord.title.slice(0, 3)}
                 </div>
-                <div className="flex items-center gap-1 text-[10.5px] text-slate-500">
-                  <Clock className="h-2.5 w-2.5 text-slate-400 shrink-0" />
-                  <span>{ord.elapsedMinutes}m elapsed</span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[12px] font-bold text-slate-900 truncate">{ord.title}</span>
+                    <span className="rounded px-1 py-0.2 text-[9px] font-semibold bg-white border border-slate-300 text-slate-600 shrink-0">
+                      {ord.orderType}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[10.5px] text-slate-500">
+                    <Clock className="h-2.5 w-2.5 text-slate-400 shrink-0" />
+                    <span>{ord.elapsedMinutes}m elapsed</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="shrink-0">
-              <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10.5px] font-bold text-primary">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                {ord.statusLabel}
-              </span>
+              <div className="shrink-0">
+                <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10.5px] font-bold text-primary">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  {ord.statusLabel}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Footer Link */}
       <div className="shrink-0 border-t border-slate-200 pt-1.5 text-center">
@@ -78,3 +86,5 @@ export function LiveOrdersWidget({ orders }: LiveOrdersWidgetProps) {
     </div>
   );
 }
+
+export default LiveOrdersWidget;

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { usePosDashboard } from "@/hooks/queries/usePosDashboard";
 import { usePosDate } from "@/hooks/usePosDate";
+import { useOutletContext } from "@/context/PosOutletContext";
 import { DashboardKpiCards } from "./dashboard/DashboardKpiCards";
 import { OrderTypesDonutChart } from "./dashboard/OrderTypesDonutChart";
 import { LiveOrdersWidget } from "./dashboard/LiveOrdersWidget";
@@ -20,20 +21,22 @@ import type { DashboardFilterParams } from "@/types/posDashboard";
  */
 export function PosDashboardManager() {
   const { selectedDateStr, isToday } = usePosDate();
+  const { activeOutlet, isLoadingOutlets } = useOutletContext();
 
   const filters: DashboardFilterParams = useMemo(
     () => ({
       dateRange: (isToday ? "today" : selectedDateStr) as any,
       startDate: selectedDateStr,
       endDate: selectedDateStr,
+      outletId: activeOutlet?.id,
     }),
-    [isToday, selectedDateStr],
+    [isToday, selectedDateStr, activeOutlet?.id],
   );
 
   const { data, isLoading, isFetching } = usePosDashboard(filters);
 
-  // If loading initial data or waiting for first data response, show skeleton loader
-  if (isLoading || !data) {
+  // If loading outlets, loading dashboard data, or no data yet: render the skeleton loader!
+  if (isLoadingOutlets || isLoading || !data) {
     return <PosDashboardSkeleton />;
   }
 
