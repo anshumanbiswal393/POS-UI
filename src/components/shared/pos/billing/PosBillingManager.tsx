@@ -409,7 +409,7 @@ export function PosBillingManager() {
             open.items.map((line, idx) => ({
               cartId: `edit-${open.orderNumber}-${idx}`,
               item: {
-                id: line.id,
+                id: (line as any).menuItemId || line.id,
                 code: line.code || `#${line.id}`,
                 name: line.name,
                 category: (line.category as BillingMenuItem["category"]) || "All Items",
@@ -459,7 +459,7 @@ export function PosBillingManager() {
           open.items.map((line, idx) => ({
             cartId: `edit-${open.orderNumber}-${idx}`,
             item: {
-              id: line.id,
+              id: (line as any).menuItemId || line.id,
               code: line.code || `#${line.id}`,
               name: line.name,
               category: (line.category as BillingMenuItem["category"]) || "All Items",
@@ -1025,8 +1025,11 @@ export function PosBillingManager() {
             queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
             queryClient.invalidateQueries({ queryKey: ["pos", "tables"] });
             invalidateOrderSurfaces();
+            const checkDesc = updated.kotNumber
+              ? `${updated.kotNumber} · New check sent to kitchen`
+              : `${updated.orderNumber || linkedOrderNumber || ""} · Order updated`;
             toast.success(`KOT updated → Preparing`, {
-              description: `${updated.orderNumber || linkedOrderNumber || ""} · New check generated`,
+              description: checkDesc,
             });
             handleNewBill(true);
             return;
