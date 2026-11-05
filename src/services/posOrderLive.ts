@@ -136,7 +136,13 @@ export function mapSerializedOrderToCurrent(o: Record<string, any>) {
     source: o.source || "",
     customerName: o.customerName || "Walk-in Guest",
     customerPhone: o.customerPhone || "--",
-    tableOrRoom: o.tableOrRoom || o.tableNumber || o.roomNumber || "",
+    tableOrRoom:
+      (o.meta as any)?.tableLabel ||
+      (o.meta as any)?.fullTableNumber ||
+      o.tableOrRoom ||
+      o.tableNumber ||
+      o.roomNumber ||
+      "",
     tableId: o.tableId || "",
     section: o.section || "",
     waiterName: o.waiterName || "Captain",
@@ -289,7 +295,13 @@ export async function liveGetHistory(outletId?: string, filters?: Record<string,
     isOnlineOrder: Boolean(r.isOnlineOrder),
     isAdvanceOrder: Boolean(r.isAdvanceOrder),
     isSplitBill: Boolean(r.isSplitBill),
-    tableNo: r.tableNo || r.tableNumber || r.tableOrRoom || "",
+    tableNo:
+      (r.meta as any)?.tableLabel ||
+      (r.meta as any)?.fullTableNumber ||
+      r.tableNo ||
+      r.tableNumber ||
+      r.tableOrRoom ||
+      "",
     customerPhone: r.customerPhone || "",
   }));
   const grand = Number(data.grandTotal || 0);
@@ -319,7 +331,37 @@ export async function liveGetKot(outletId?: string): Promise<KotData> {
   return { records, totalCount: Number(res.data?.totalCount ?? res.data?.count ?? records.length) };
 }
 
+export function compactTableNumber(table?: string): string | undefined {
+  if (!table) return undefined;
+  const trimmed = String(table).trim();
+  if (!trimmed) return undefined;
+  if (trimmed.length <= 32 && !trimmed.includes("+")) return trimmed;
+  if (trimmed.includes("+")) {
+    const parts = trimmed
+      .split("+")
+      .map((p) => p.trim().replace(/^Table\s*#?/i, "T").replace(/^T\s*/i, "T"))
+      .filter(Boolean);
+    const compact = parts.join("+");
+    if (compact.length <= 32) return compact;
+    const nums = parts.map((p) => p.replace(/\D/g, "")).filter(Boolean).join(",");
+    if (nums && nums.length <= 32) return nums;
+    return (nums || compact).slice(0, 32);
+  }
+  return trimmed.slice(0, 32);
+}
+
 function toOrderWriteBody(payload: Partial<LiveOrderPayload>) {
+  const rawTable = payload.tableNumber;
+  const sanitizedTable = compactTableNumber(rawTable);
+  const incomingMeta =
+    payload.meta && typeof payload.meta === "object"
+      ? (payload.meta as Record<string, unknown>)
+      : {};
+  const enrichedMeta: Record<string, unknown> = {
+    ...incomingMeta,
+    ...(rawTable ? { tableLabel: rawTable, fullTableNumber: rawTable } : {}),
+  };
+
   const body = omitEmpty({
     ...payload,
     outletId: payload.outletId,
@@ -328,18 +370,32 @@ function toOrderWriteBody(payload: Partial<LiveOrderPayload>) {
     order_type: payload.orderType,
     tableId: asUuid(payload.tableId),
     table_id: asUuid(payload.tableId),
+    tableNumber: sanitizedTable,
+    table_number: sanitizedTable,
+    roomNumber: payload.roomNumber
+      ? String(payload.roomNumber).replace(/^Room\s+/i, "").slice(0, 32)
+      : undefined,
+    room_number: payload.roomNumber
+      ? String(payload.roomNumber).replace(/^Room\s+/i, "").slice(0, 32)
+      : undefined,
     roomUnitId: asUuid(payload.roomUnitId),
     room_unit_id: asUuid(payload.roomUnitId),
     reservationId: asUuid(payload.reservationId),
     reservation_id: asUuid(payload.reservationId),
     folioId: asUuid(payload.folioId),
     folio_id: asUuid(payload.folioId),
+    guestName: payload.guestName ? String(payload.guestName).slice(0, 160) : undefined,
+    guest_name: payload.guestName ? String(payload.guestName).slice(0, 160) : undefined,
+    guestPhone: payload.guestPhone ? String(payload.guestPhone).slice(0, 32) : undefined,
+    guest_phone: payload.guestPhone ? String(payload.guestPhone).slice(0, 32) : undefined,
+    waiterName: payload.waiterName ? String(payload.waiterName).slice(0, 100) : undefined,
+    waiter_name: payload.waiterName ? String(payload.waiterName).slice(0, 100) : undefined,
     sendKot: payload.sendKot,
     send_kot: payload.sendKot,
     markSettled: payload.markSettled,
     held: payload.held,
     heldCart: payload.heldCart,
-    meta: payload.meta,
+    meta: enrichedMeta,
     mark_settled: payload.markSettled,
     paymentMode: payload.paymentMode,
     payment_mode: payload.paymentMode,

@@ -434,7 +434,17 @@ export function BillingTablesOrdersSidebar({
                 const isSelected =
                   activeTable === table.tableNumber ||
                   activeTable === code ||
-                  activeTable === `Table #${table.tableNumberRaw}`;
+                  activeTable === `Table #${table.tableNumberRaw}` ||
+                  (activeTable.includes("+") &&
+                    activeTable.split("+").some((p) => {
+                      const t = p.trim();
+                      return (
+                        t === table.tableNumber ||
+                        t === code ||
+                        t === `Table #${table.tableNumberRaw}` ||
+                        t.replace(/\D/g, "") === String(table.tableNumberRaw)
+                      );
+                    }));
                 const floorSubtitle = `${table.area || "Outdoor"} · Floor 1`;
 
                 return (
@@ -486,7 +496,20 @@ export function BillingTablesOrdersSidebar({
               {filteredTables.map((table) => {
                 const code = getTableCode(table);
                 const statusCfg = getTableStatusConfig(table);
-                const isSelected = activeTable === table.tableNumber || activeTable === code;
+                const isSelected =
+                  activeTable === table.tableNumber ||
+                  activeTable === code ||
+                  activeTable === `Table #${table.tableNumberRaw}` ||
+                  (activeTable.includes("+") &&
+                    activeTable.split("+").some((p) => {
+                      const t = p.trim();
+                      return (
+                        t === table.tableNumber ||
+                        t === code ||
+                        t === `Table #${table.tableNumberRaw}` ||
+                        t.replace(/\D/g, "") === String(table.tableNumberRaw)
+                      );
+                    }));
 
                 return (
                   <button
