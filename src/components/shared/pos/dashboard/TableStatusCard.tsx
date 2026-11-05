@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { Utensils } from "lucide-react";
 import type { TableStatusItem } from "@/types/posDashboard";
 
 interface TableStatusCardProps {
@@ -31,20 +32,33 @@ export function TableStatusCard({ tables }: TableStatusCardProps) {
         </Link>
       </div>
 
-      {/* Grid of 18 Tables (6 columns x 3 rows) */}
-      <div className="mt-2 grid min-h-0 flex-1 grid-cols-6 grid-rows-3 gap-1.5">
-        {tables.slice(0, 18).map((t) => (
-          <div
-            key={t.tableNumber}
-            className={`flex min-h-0 items-center justify-center rounded-lg border text-[12px] font-semibold transition-all cursor-pointer shadow-xs ${getTableStyle(
-              t.status,
-            )}`}
-            title={`Table ${t.tableNumber} - ${t.status}`}
+      {tables.length === 0 ? (
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center p-3 text-slate-400">
+          <Utensils className="h-6 w-6 stroke-[1.5] mb-1.5 opacity-40 text-slate-400" />
+          <p className="text-[12px] font-medium text-slate-600">No tables configured</p>
+          <Link
+            to="/pos/tables"
+            className="text-[11px] font-semibold text-primary hover:underline mt-0.5"
           >
-            {t.tableNumber}
-          </div>
-        ))}
-      </div>
+            Add tables in Floor Plan →
+          </Link>
+        </div>
+      ) : (
+        /* Grid of 18 Tables (6 columns x 3 rows) */
+        <div className="mt-2 grid min-h-0 flex-1 grid-cols-6 grid-rows-3 gap-1.5">
+          {tables.slice(0, 18).map((t) => (
+            <div
+              key={t.tableNumber}
+              className={`flex min-h-0 items-center justify-center rounded-lg border text-[12px] font-semibold transition-all cursor-pointer shadow-xs ${getTableStyle(
+                t.status,
+              )}`}
+              title={`Table ${t.tableNumber} - ${t.status}`}
+            >
+              {t.tableNumber}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Legend */}
       <div className="mt-2 flex shrink-0 items-center justify-center gap-4 border-t border-slate-100 pt-2 text-[11px]">
@@ -64,3 +78,5 @@ export function TableStatusCard({ tables }: TableStatusCardProps) {
     </div>
   );
 }
+
+export default TableStatusCard;

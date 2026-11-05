@@ -19,32 +19,42 @@ export function TopSellingItemsCard({ items }: TopSellingItemsCardProps) {
         </Link>
       </div>
 
-      <div className="mt-1 flex min-h-0 flex-1 flex-col justify-around divide-y divide-slate-100">
-        {items.map((item, idx) => (
-          <div key={item.id} className="flex items-center justify-between py-1.5">
-            <div className="flex items-center gap-3">
-              {/* Dish Icon / Thumbnail */}
-              <div
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-bold text-[12px] shadow-2xs ${
-                  idx === 0
-                    ? "bg-primary text-primary-foreground"
-                    : idx === 1
-                      ? "bg-primary/80 text-primary-foreground"
-                      : "bg-slate-700 text-white"
-                }`}
-              >
-                <Utensils className="h-4 w-4" />
+      {items.length === 0 ? (
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center p-3 text-slate-400">
+          <Utensils className="h-6 w-6 stroke-[1.5] mb-1.5 opacity-40 text-slate-400" />
+          <p className="text-[12px] font-medium text-slate-600">No dishes sold today</p>
+          <p className="text-[10.5px] text-slate-400">Items will appear here as bills are placed</p>
+        </div>
+      ) : (
+        <div className="mt-1 flex min-h-0 flex-1 flex-col justify-around divide-y divide-slate-100">
+          {items.map((item, idx) => (
+            <div key={item.id} className="flex items-center justify-between py-1.5">
+              <div className="flex items-center gap-3">
+                {/* Dish Icon / Thumbnail */}
+                <div
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-bold text-[12px] shadow-2xs ${
+                    idx === 0
+                      ? "bg-primary text-primary-foreground"
+                      : idx === 1
+                        ? "bg-primary/80 text-primary-foreground"
+                        : "bg-slate-700 text-white"
+                  }`}
+                >
+                  <Utensils className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-[13.5px] font-bold text-slate-900">{item.name}</div>
+                  <div className="text-[11.5px] text-slate-400">{item.platesText}</div>
+                </div>
               </div>
-              <div>
-                <div className="text-[13.5px] font-bold text-slate-900">{item.name}</div>
-                <div className="text-[11.5px] text-slate-400">{item.platesText}</div>
-              </div>
-            </div>
 
-            <div className="text-[14px] font-bold text-slate-900">{item.revenueFormatted}</div>
-          </div>
-        ))}
-      </div>
+              <div className="text-[14px] font-bold text-slate-900">{item.revenueFormatted}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
+export default TopSellingItemsCard;

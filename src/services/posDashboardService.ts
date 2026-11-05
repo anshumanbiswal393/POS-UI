@@ -221,34 +221,38 @@ export function getInitialDashboardData(_outletId?: string): PosDashboardData {
 export async function getPosDashboardData(
   filters?: DashboardFilterParams,
 ): Promise<PosDashboardData> {
-  const outletId = filters?.outletId;
+  const effectiveOutletId =
+    filters?.outletId ||
+    (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null) ||
+    "";
   if (typeof window === "undefined") {
-    return getInitialDashboardData(outletId);
+    return getInitialDashboardData(effectiveOutletId);
   }
 
-  const isLive = isBackendOutletId(outletId);
+  const isLive = isBackendOutletId(effectiveOutletId);
   const targetDate = filters?.startDate || filters?.dateRange || "today";
 
   // Execute queries in parallel with a fast 2500ms timeout for the monolithic dashboard endpoint
-  // This eliminates long wait times and guarantees sub-second responsiveness!
-  const dashboardPromise = httpClient
-    .get<PosDashboardApiResponse>("/api/pos/dashboard/", {
-      params: filters,
-      timeout: 2500,
-    })
-    .then((res) => (res.data?.success ? res.data : null))
-    .catch(() => null);
+  const dashboardPromise = isLive
+    ? httpClient
+        .get<PosDashboardApiResponse>("/api/pos/dashboard/", {
+          params: { ...filters, outletId: effectiveOutletId },
+          timeout: 2500,
+        })
+        .then((res) => (res.data?.success ? res.data : null))
+        .catch(() => null)
+    : Promise.resolve(null);
 
   const currentOrdersPromise = isLive
-    ? liveGetCurrent(outletId).catch(() => [])
+    ? liveGetCurrent(effectiveOutletId).catch(() => [])
     : Promise.resolve([]);
 
   const tablesPromise = posTablesService
-    .getTables()
+    .getTables(undefined, effectiveOutletId)
     .catch(() => []);
 
   const historyPromise = isLive
-    ? liveGetHistory(outletId, {
+    ? liveGetHistory(effectiveOutletId, {
         start_date: targetDate !== "today" ? targetDate : undefined,
         end_date: targetDate !== "today" ? targetDate : undefined,
       }).catch(() => ({ records: [], orders: [] } as any))
@@ -523,7 +527,25 @@ export async function getPosDashboardData(
     });
 
     operationalSettled.forEach((rec: any) => {
-      (rec.items || []).forEach(recordDishItem);
+      if (Array.isArray(rec.items) && rec.items.length > 0) {
+        rec.items.forEach(recordDishItem);
+      } else if (rec.itemsSummary) {
+        const parts = String(rec.itemsSummary).split(",");
+        parts.forEach((p) => {
+          const match = p.trim().match(/^(.+?)\s*(?:\(.*?\))?\s*x\s*(\d+)/i);
+          if (match) {
+            const dishName = match[1].trim();
+            const qty = parseInt(match[2], 10) || 1;
+            const curr = dishCountMap.get(dishName) || {
+              count: 0,
+              rev: 0,
+              cat: "General",
+            };
+            curr.count += qty;
+            dishCountMap.set(dishName, curr);
+          }
+        });
+      }
     });
 
     const topSellingItems = Array.from(dishCountMap.entries())
@@ -538,23 +560,37 @@ export async function getPosDashboardData(
       .sort((a, b) => b.quantitySold - a.quantitySold)
       .slice(0, 5);
 
-    // Tables status and occupancy
-    const tableItems = outletTables.map((t: any) => ({
-      tableNumber: String(t.tableNumberRaw || t.tableNumber).replace(/^Table\s*#?/i, ""),
-      status:
+    // Tables status and occupancy synchronized with live orders
+    const tableItems = outletTables.map((t: any) => {
+      let status: "occupied" | "reserved" | "available" =
         t.status === "occupied"
-          ? ("occupied" as const)
+          ? "occupied"
           : t.status === "reserved"
-            ? ("reserved" as const)
-            : ("available" as const),
-      guests: t.capacity,
-      currentOrderAmount: t.activeOrder?.totalAmount || 0,
-    }));
+            ? "reserved"
+            : "available";
 
-    const occupiedTablesCount = outletTables.filter((t: any) => t.status === "occupied").length;
+      if (status === "available") {
+        const hasOrder = activeCurrentOrders.some((co: any) => {
+          if (co.tableId && String(co.tableId) === String(t.id)) return true;
+          const tNum = String(t.tableNumberRaw || t.tableNumber).replace(/\D/g, "");
+          const coNum = String(co.tableOrRoom || co.tableNumber || "").replace(/\D/g, "");
+          return tNum && coNum && tNum === coNum;
+        });
+        if (hasOrder) status = "occupied";
+      }
+
+      return {
+        tableNumber: String(t.tableNumberRaw || t.tableNumber).replace(/^Table\s*#?/i, ""),
+        status,
+        guests: t.capacity,
+        currentOrderAmount: t.activeOrder?.totalAmount || 0,
+      };
+    });
+
+    const occupiedTablesCount = tableItems.filter((t) => t.status === "occupied").length;
     const activeTablesCount =
       occupiedTablesCount || activeCurrentOrders.filter((co: any) => co.type === "dine_in").length;
-    const totalTablesCount = Math.max(outletTables.length, activeTablesCount, 1);
+    const totalTablesCount = outletTables.length;
 
     // Attention alerts
     const attentionAlerts: AttentionItem[] = [];
@@ -581,7 +617,7 @@ export async function getPosDashboardData(
 
     const synthesizedDto: PosDashboardApiResponse = {
       success: true,
-      outletId: outletId || "",
+      outletId: effectiveOutletId || "",
       outletName: "",
       date: targetDate === "today" ? "Today" : targetDate,
       currency: "INR",
