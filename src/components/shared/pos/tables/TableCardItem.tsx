@@ -1,5 +1,5 @@
 import React from "react";
-import { Users, Clock, Receipt, CalendarCheck, Trash2, Plus } from "lucide-react";
+import { Users, Clock, CalendarCheck, Trash2, Plus } from "lucide-react";
 import type { RestaurantTable, ReservationItem } from "@/types/posTables";
 
 interface TableCardItemProps {
@@ -86,10 +86,10 @@ export function TableCardItem({
     maxTopBottom >= 5
       ? "w-36 max-w-[144px]"
       : maxTopBottom >= 3
-        ? "w-28"
+        ? "w-32"
         : maxTopBottom >= 2
-          ? "w-24"
-          : "w-20";
+          ? "w-28"
+          : "w-24";
 
   // Card styles by status
   let cardBgClass = "bg-[#fbfcfc] hover:bg-white border-slate-200/90 hover:border-slate-300";
@@ -97,11 +97,6 @@ export function TableCardItem({
   let surfaceStyle = "bg-white text-slate-800 border-slate-300 shadow-2xs ring-1 ring-slate-200/80";
   let statusBadge = (
     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-      Available
-    </span>
-  );
-  let innerBadge = (
-    <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[8.5px] font-semibold text-slate-400 bg-slate-100">
       Available
     </span>
   );
@@ -113,11 +108,6 @@ export function TableCardItem({
     statusBadge = (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-200">
         <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-        Occupied
-      </span>
-    );
-    innerBadge = (
-      <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[8.5px] font-bold bg-orange-600 text-white shadow-xs">
         On Dine
       </span>
     );
@@ -131,9 +121,13 @@ export function TableCardItem({
         Reserved
       </span>
     );
-    innerBadge = (
-      <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[8.5px] font-bold bg-teal-600 text-white shadow-xs">
-        Reserved
+  } else if (status === "blocked") {
+    cardBgClass = "bg-slate-100/60 border-slate-200";
+    footerBgClass = "bg-slate-100/80 border-slate-200";
+    surfaceStyle = "bg-slate-200/60 text-slate-500 border-slate-300 shadow-none";
+    statusBadge = (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-200 text-slate-700 border border-slate-300">
+        Blocked
       </span>
     );
   }
@@ -207,23 +201,37 @@ export function TableCardItem({
 
             {/* Physical Table Surface */}
             <div
-              className={`relative flex flex-col items-center justify-center rounded-xl border transition-all duration-200 h-13 sm:h-14 py-1 px-1.5 ${surfaceStyle} ${surfaceWidthClass}`}
+              className={`relative flex flex-col items-center justify-center rounded-xl border transition-all duration-200 h-13 sm:h-14 py-1 px-2 ${surfaceStyle} ${surfaceWidthClass}`}
             >
-              {/* Table Number inside surface */}
-              <span className="text-[11.5px] font-extrabold tracking-tight leading-tight truncate max-w-full">
-                {tableNumber}
-              </span>
-
-              {/* Capacity indicator inside surface */}
-              <div className="flex items-center gap-0.5 text-[9.5px] opacity-80 mt-0.5 font-semibold">
-                <Users className="w-2.5 h-2.5 opacity-75 shrink-0" />
-                <span>{capacity} Seats</span>
-              </div>
-
-              {/* Inner Status Tag */}
-              <div className="mt-0.5 flex items-center justify-center">
-                {innerBadge}
-              </div>
+              {status === "occupied" ? (
+                <div className="flex flex-col items-center justify-center gap-1 w-full">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-orange-600 text-white shadow-xs leading-none">
+                    On Dine
+                  </span>
+                  <div className="flex items-center justify-center gap-1 text-[9.5px] font-bold text-orange-950 leading-tight whitespace-nowrap">
+                    <span className="inline-flex items-center gap-0.5 text-orange-800">
+                      <Clock className="w-2.5 h-2.5 text-orange-600 shrink-0" />
+                      <span>{formatElapsed(activeOrder?.elapsedMinutes || 0)}</span>
+                    </span>
+                    <span className="text-orange-300 font-normal">•</span>
+                    <span className="text-orange-950 font-extrabold">
+                      ₹{Math.round(activeOrder?.totalAmount || 0).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </div>
+              ) : status === "reserved" ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-teal-600 text-white shadow-xs leading-none">
+                  Reserved
+                </span>
+              ) : status === "blocked" ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9.5px] font-semibold text-slate-500 bg-slate-200/80 leading-none">
+                  Blocked
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9.5px] font-semibold text-slate-500 bg-slate-100 border border-slate-200/70 leading-none">
+                  Available
+                </span>
+              )}
             </div>
 
             {rightChairs > 0 && (
@@ -255,11 +263,11 @@ export function TableCardItem({
                 ₹{Math.round(activeOrder?.totalAmount || 0).toLocaleString("en-IN")}
               </div>
               <div className="text-[9.5px] font-medium text-slate-500 mt-0.5">
-                1 active order
+                {activeOrder?.orderNumber ? `Order #${activeOrder.orderNumber}` : "1 active order"}
               </div>
             </div>
-            <div className="flex items-center gap-1 text-[10.5px] font-semibold text-slate-600 shrink-0">
-              <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-1 text-[10.5px] font-semibold text-orange-800 shrink-0">
+              <Clock className="w-3 h-3 text-orange-600 shrink-0" />
               <span>{formatElapsed(activeOrder?.elapsedMinutes || 0)}</span>
             </div>
           </>
@@ -278,6 +286,15 @@ export function TableCardItem({
               <span>{activeReservation?.reservationTime || "Scheduled"}</span>
             </div>
           </>
+        ) : status === "blocked" ? (
+          <div className="min-w-0 pr-2">
+            <div className="text-[11.5px] font-semibold text-slate-700 leading-tight">
+              Unavailable
+            </div>
+            <div className="text-[9.5px] font-normal text-slate-400 mt-0.5">
+              Table blocked
+            </div>
+          </div>
         ) : (
           <>
             <div className="min-w-0 pr-2">
@@ -285,7 +302,7 @@ export function TableCardItem({
                 Ready for guests
               </div>
               <div className="text-[9.5px] font-normal text-slate-400 mt-0.5">
-                Available
+                Tap to take order
               </div>
             </div>
             <div className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100/80 text-emerald-700 shrink-0">
