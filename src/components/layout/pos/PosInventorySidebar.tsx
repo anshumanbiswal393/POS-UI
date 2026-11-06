@@ -90,7 +90,7 @@ export function PosInventorySidebar({
             <LayoutDashboard
               className={cn("h-4 w-4", isDashboardActive ? "text-teal-600" : "text-slate-500")}
             />
-            <span>Dashboard</span>
+            <span>Stock Overview</span>
           </Link>
         </div>
 
