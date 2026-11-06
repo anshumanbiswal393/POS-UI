@@ -32,7 +32,6 @@ describe("POS Navigation - Stock Reports placement", () => {
     }));
 
     expect(subRoutes).toEqual([
-      { id: "inv-rep-current", label: "Stock Report", to: "/pos/inventory/reports" },
       { id: "inv-rep-summary", label: "Stock Summary", to: "/pos/inventory/reports/stock-summary" },
       { id: "inv-rep-orderwise", label: "Usage by Order", to: "/pos/inventory/reports/orderwise-consumption" },
       { id: "inv-rep-other", label: "More Reports", to: "/pos/inventory/reports/other-reports" },
@@ -43,7 +42,6 @@ describe("POS Navigation - Stock Reports placement", () => {
     const allRoutes = getAllPosRouteNodes();
     const routePaths = allRoutes.map((r) => r.to);
 
-    expect(routePaths).toContain("/pos/inventory/reports");
     expect(routePaths).toContain("/pos/inventory/reports/stock-summary");
     expect(routePaths).toContain("/pos/inventory/reports/orderwise-consumption");
     expect(routePaths).toContain("/pos/inventory/reports/other-reports");

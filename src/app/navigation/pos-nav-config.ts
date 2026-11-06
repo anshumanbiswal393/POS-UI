@@ -230,7 +230,6 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
         icon: Boxes,
         permission: "pos.reports.view",
         children: [
-          { id: "inv-rep-current", label: "Stock Report", to: "/pos/inventory/reports", icon: BarChart3, permission: "pos.reports.view" },
           {
             id: "inv-rep-summary",
             label: "Stock Summary",

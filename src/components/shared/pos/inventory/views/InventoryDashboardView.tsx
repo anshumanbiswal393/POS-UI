@@ -382,7 +382,7 @@ export function InventoryDashboardView() {
 
         {/* Today's Consumption */}
         <Link
-          to="/pos/inventory/reports"
+          to="/pos/inventory/reports/stock-summary"
           className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-2xs hover:border-blue-400 transition"
         >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-200/80 bg-blue-50 text-blue-700">
