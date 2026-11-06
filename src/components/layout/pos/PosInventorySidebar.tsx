@@ -124,7 +124,7 @@ export function PosInventorySidebar({
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-50",
                 )}
               >
-                Stock Purchase
+                Purchase Entry
               </Link>
               <Link
                 to="/pos/inventory/order"
