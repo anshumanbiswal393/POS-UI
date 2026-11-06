@@ -13,7 +13,9 @@ function InventoryLayoutRoute() {
   if (isRootInventory) {
     return (
       <GuardedRoute permission="pos.inventory.view">
-        <InventoryDashboardView />
+        <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50">
+          <InventoryDashboardView />
+        </div>
       </GuardedRoute>
     );
   }
