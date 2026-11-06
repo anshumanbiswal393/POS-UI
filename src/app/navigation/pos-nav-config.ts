@@ -181,36 +181,6 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
         ],
       },
       {
-        id: "reports-group",
-        label: "Reports",
-        icon: BarChart3,
-        permission: "pos.reports.view",
-        children: [
-          { id: "inv-rep-current", label: "Stock Report", to: "/pos/inventory/reports", icon: BarChart3, permission: "pos.reports.view" },
-          {
-            id: "inv-rep-summary",
-            label: "Stock Summary",
-            to: "/pos/inventory/reports/stock-summary",
-            icon: PieChart,
-            permission: "pos.reports.view",
-          },
-          {
-            id: "inv-rep-orderwise",
-            label: "Usage by Order",
-            to: "/pos/inventory/reports/orderwise-consumption",
-            icon: ClipboardList,
-            permission: "pos.reports.view",
-          },
-          {
-            id: "inv-rep-other",
-            label: "More Reports",
-            to: "/pos/inventory/reports/other-reports",
-            icon: FileText,
-            permission: "pos.reports.view",
-          },
-        ],
-      },
-      {
         id: "masters-group",
         label: "Stock Setup",
         icon: Settings2,
@@ -254,6 +224,36 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
     children: [
       { id: "rep-day-end", label: "Day End Summary", to: "/pos/reports/day-end", icon: ClipboardList, permission: "pos.reports.view" },
       { id: "rep-other", label: "Other Reports", to: "/pos/reports/other", icon: FileText, permission: "pos.reports.view" },
+      {
+        id: "stock-reports-group",
+        label: "Stock Reports",
+        icon: Boxes,
+        permission: "pos.reports.view",
+        children: [
+          { id: "inv-rep-current", label: "Stock Report", to: "/pos/inventory/reports", icon: BarChart3, permission: "pos.reports.view" },
+          {
+            id: "inv-rep-summary",
+            label: "Stock Summary",
+            to: "/pos/inventory/reports/stock-summary",
+            icon: PieChart,
+            permission: "pos.reports.view",
+          },
+          {
+            id: "inv-rep-orderwise",
+            label: "Usage by Order",
+            to: "/pos/inventory/reports/orderwise-consumption",
+            icon: ClipboardList,
+            permission: "pos.reports.view",
+          },
+          {
+            id: "inv-rep-other",
+            label: "More Reports",
+            to: "/pos/inventory/reports/other-reports",
+            icon: FileText,
+            permission: "pos.reports.view",
+          },
+        ],
+      },
       { id: "rep-notifications", label: "Report Notification", to: "/pos/reports/notifications", icon: StickyNote, permission: "pos.settings.manage" },
     ],
   },

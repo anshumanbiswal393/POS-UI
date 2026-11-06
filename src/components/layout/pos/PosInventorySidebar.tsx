@@ -258,23 +258,6 @@ export function PosInventorySidebar({
           </Link>
 
           <Link
-            to="/pos/inventory/reports"
-            onClick={onNavigate}
-            className={cn(
-              "flex items-center justify-between rounded-lg px-3 py-2 font-medium transition",
-              isExact("/pos/inventory/reports")
-                ? "text-teal-600 font-bold bg-teal-50"
-                : "text-slate-700 hover:bg-slate-50 hover:text-slate-900",
-            )}
-          >
-            <div className="flex items-center gap-2.5">
-              <BarChart2 className="h-4 w-4 text-slate-500" />
-              <span>Reports</span>
-            </div>
-            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-          </Link>
-
-          <Link
             to="/pos/inventory/masters"
             onClick={onNavigate}
             className={cn(
