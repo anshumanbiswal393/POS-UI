@@ -33,6 +33,11 @@ function MenuImageCell({
 }) {
   const [loadError, setLoadError] = useState(false);
   const primaryImg = item.images?.find((i) => i.isPrimary) || item.images?.[0];
+
+  useEffect(() => {
+    setLoadError(false);
+  }, [primaryImg?.url]);
+
   const isStaleBlob = Boolean(primaryImg?.url && primaryImg.url.startsWith("blob:"));
   const canShowImg = Boolean(primaryImg?.url && !isStaleBlob && !loadError);
 

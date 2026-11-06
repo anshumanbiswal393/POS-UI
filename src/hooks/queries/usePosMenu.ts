@@ -155,7 +155,6 @@ export function useToggleMenuStock() {
 }
 
 // Keep menu item lists in sync after local image mutations without refetching from API
-// (refetch would overwrite in-memory image changes when the backend has no image endpoints yet).
 function patchMenuItemInCache(
   queryClient: ReturnType<typeof useQueryClient>,
   updated: MenuItem | null | undefined,
@@ -164,15 +163,22 @@ function patchMenuItemInCache(
   queryClient.setQueriesData<MenuItem[]>(
     { queryKey: ["pos", "menu", "items"] },
     (old) => {
-      if (!old) return old;
-      return old.map((item) => (item.id === updated.id ? updated : item));
+      if (!old || !Array.isArray(old)) return old;
+      return old.map((item) => (item.id === updated.id ? { ...item, ...updated } : item));
+    },
+  );
+  queryClient.setQueriesData<MenuItem[]>(
+    { queryKey: ["pos", "billing", "menu"] },
+    (old) => {
+      if (!old || !Array.isArray(old)) return old;
+      return old.map((item) => (item.id === updated.id ? { ...item, ...updated } : item));
     },
   );
   queryClient.setQueriesData<MenuItem[]>(
     { queryKey: ["pos", "menu", "stock-items"] },
     (old) => {
-      if (!old) return old;
-      return old.map((item) => (item.id === updated.id ? updated : item));
+      if (!old || !Array.isArray(old)) return old;
+      return old.map((item) => (item.id === updated.id ? { ...item, ...updated } : item));
     },
   );
 }
@@ -181,10 +187,24 @@ function patchMenuItemInCache(
 export function useAddItemImages() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ itemId, images }: { itemId: string; images: MenuItemImage[] }) =>
-      posMenuService.addItemImages(itemId, images),
+    mutationFn: ({
+      itemId,
+      images,
+      currentImages,
+      outletId,
+    }: {
+      itemId: string;
+      images: MenuItemImage[];
+      currentImages?: MenuItemImage[];
+      outletId?: string;
+    }) => posMenuService.addItemImages(itemId, images, currentImages, outletId),
     onSuccess: (updated) => {
       patchMenuItemInCache(queryClient, updated);
+      if (updated?.outletId) {
+        queryClient.invalidateQueries({
+          queryKey: MENU_QUERY_KEYS.menuItems(updated.outletId),
+        });
+      }
     },
   });
 }
@@ -192,10 +212,24 @@ export function useAddItemImages() {
 export function useRemoveItemImage() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ itemId, imageId }: { itemId: string; imageId: string }) =>
-      posMenuService.removeItemImage(itemId, imageId),
+    mutationFn: ({
+      itemId,
+      imageId,
+      currentImages,
+      outletId,
+    }: {
+      itemId: string;
+      imageId: string;
+      currentImages?: MenuItemImage[];
+      outletId?: string;
+    }) => posMenuService.removeItemImage(itemId, imageId, currentImages, outletId),
     onSuccess: (updated) => {
       patchMenuItemInCache(queryClient, updated);
+      if (updated?.outletId) {
+        queryClient.invalidateQueries({
+          queryKey: MENU_QUERY_KEYS.menuItems(updated.outletId),
+        });
+      }
     },
   });
 }
@@ -203,10 +237,24 @@ export function useRemoveItemImage() {
 export function useSetPrimaryImage() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ itemId, imageId }: { itemId: string; imageId: string }) =>
-      posMenuService.setPrimaryImage(itemId, imageId),
+    mutationFn: ({
+      itemId,
+      imageId,
+      currentImages,
+      outletId,
+    }: {
+      itemId: string;
+      imageId: string;
+      currentImages?: MenuItemImage[];
+      outletId?: string;
+    }) => posMenuService.setPrimaryImage(itemId, imageId, currentImages, outletId),
     onSuccess: (updated) => {
       patchMenuItemInCache(queryClient, updated);
+      if (updated?.outletId) {
+        queryClient.invalidateQueries({
+          queryKey: MENU_QUERY_KEYS.menuItems(updated.outletId),
+        });
+      }
     },
   });
 }

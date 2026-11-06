@@ -55,12 +55,27 @@ export type InventoryVendor = {
   category: string;
 };
 
+export type StockSubCategory = {
+  id: string;
+  name: string;
+  unit: string;
+};
+
+export type StockCategory = {
+  id: string;
+  name: string;
+  subCategories: StockSubCategory[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type StockItem = {
   id: string;
   code?: string;
   name?: string;
   rawMaterial: string;
   category: string;
+  subCategory?: string;
   unit: string;
   availableStock: number;
   closingStock: number;
@@ -68,7 +83,12 @@ export type StockItem = {
   parLevel?: number;
   reorderLevel?: number;
   minThreshold?: number;
+  alertQuantity?: number;
   unitCost?: number;
+  pricePerUnit?: number;
+  sku?: string;
+  isReturnable?: boolean;
+  expiryDate?: string | null;
   itemKind?: "RAW" | "PREPARED";
   isFavorite?: boolean;
   isLow?: boolean;

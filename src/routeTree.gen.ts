@@ -97,6 +97,7 @@ import { Route as PosInventoryMastersRecipesRouteImport } from './routes/pos.inv
 import { Route as PosInventoryMastersRawMaterialsRouteImport } from './routes/pos.inventory.masters.raw-materials'
 import { Route as PosInventoryMastersPurchasePaymentsRouteImport } from './routes/pos.inventory.masters.purchase-payments'
 import { Route as PosInventoryMastersInvoiceTemplatesRouteImport } from './routes/pos.inventory.masters.invoice-templates'
+import { Route as PosInventoryMastersCategoriesRouteImport } from './routes/pos.inventory.masters.categories'
 import { Route as PosManagementConfigurationOutletTimingsRouteImport } from './routes/pos.management.configuration.outlet.timings'
 import { Route as PosManagementConfigurationOutletServiceModeRouteImport } from './routes/pos.management.configuration.outlet.service-mode'
 import { Route as PosManagementConfigurationOutletPrintLogoRouteImport } from './routes/pos.management.configuration.outlet.print-logo'
@@ -604,6 +605,12 @@ const PosInventoryMastersInvoiceTemplatesRoute =
     path: '/invoice-templates',
     getParentRoute: () => PosInventoryMastersRoute,
   } as any)
+const PosInventoryMastersCategoriesRoute =
+  PosInventoryMastersCategoriesRouteImport.update({
+    id: '/categories',
+    path: '/categories',
+    getParentRoute: () => PosInventoryMastersRoute,
+  } as any)
 const PosManagementConfigurationOutletTimingsRoute =
   PosManagementConfigurationOutletTimingsRouteImport.update({
     id: '/timings',
@@ -758,6 +765,7 @@ export interface FileRoutesByFullPath {
   '/pos/reports/delivery': typeof PosReportsDeliveryRoute
   '/pos/reports/notifications': typeof PosReportsNotificationsRoute
   '/pos/reports/other': typeof PosReportsOtherRoute
+  '/pos/inventory/masters/categories': typeof PosInventoryMastersCategoriesRoute
   '/pos/inventory/masters/invoice-templates': typeof PosInventoryMastersInvoiceTemplatesRoute
   '/pos/inventory/masters/purchase-payments': typeof PosInventoryMastersPurchasePaymentsRoute
   '/pos/inventory/masters/raw-materials': typeof PosInventoryMastersRawMaterialsRoute
@@ -866,6 +874,7 @@ export interface FileRoutesByTo {
   '/pos/reports/delivery': typeof PosReportsDeliveryRoute
   '/pos/reports/notifications': typeof PosReportsNotificationsRoute
   '/pos/reports/other': typeof PosReportsOtherRoute
+  '/pos/inventory/masters/categories': typeof PosInventoryMastersCategoriesRoute
   '/pos/inventory/masters/invoice-templates': typeof PosInventoryMastersInvoiceTemplatesRoute
   '/pos/inventory/masters/purchase-payments': typeof PosInventoryMastersPurchasePaymentsRoute
   '/pos/inventory/masters/raw-materials': typeof PosInventoryMastersRawMaterialsRoute
@@ -975,6 +984,7 @@ export interface FileRoutesById {
   '/pos/reports/delivery': typeof PosReportsDeliveryRoute
   '/pos/reports/notifications': typeof PosReportsNotificationsRoute
   '/pos/reports/other': typeof PosReportsOtherRoute
+  '/pos/inventory/masters/categories': typeof PosInventoryMastersCategoriesRoute
   '/pos/inventory/masters/invoice-templates': typeof PosInventoryMastersInvoiceTemplatesRoute
   '/pos/inventory/masters/purchase-payments': typeof PosInventoryMastersPurchasePaymentsRoute
   '/pos/inventory/masters/raw-materials': typeof PosInventoryMastersRawMaterialsRoute
@@ -1085,6 +1095,7 @@ export interface FileRouteTypes {
     | '/pos/reports/delivery'
     | '/pos/reports/notifications'
     | '/pos/reports/other'
+    | '/pos/inventory/masters/categories'
     | '/pos/inventory/masters/invoice-templates'
     | '/pos/inventory/masters/purchase-payments'
     | '/pos/inventory/masters/raw-materials'
@@ -1193,6 +1204,7 @@ export interface FileRouteTypes {
     | '/pos/reports/delivery'
     | '/pos/reports/notifications'
     | '/pos/reports/other'
+    | '/pos/inventory/masters/categories'
     | '/pos/inventory/masters/invoice-templates'
     | '/pos/inventory/masters/purchase-payments'
     | '/pos/inventory/masters/raw-materials'
@@ -1301,6 +1313,7 @@ export interface FileRouteTypes {
     | '/pos/reports/delivery'
     | '/pos/reports/notifications'
     | '/pos/reports/other'
+    | '/pos/inventory/masters/categories'
     | '/pos/inventory/masters/invoice-templates'
     | '/pos/inventory/masters/purchase-payments'
     | '/pos/inventory/masters/raw-materials'
@@ -1989,6 +2002,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PosInventoryMastersInvoiceTemplatesRouteImport
       parentRoute: typeof PosInventoryMastersRoute
     }
+    '/pos/inventory/masters/categories': {
+      id: '/pos/inventory/masters/categories'
+      path: '/categories'
+      fullPath: '/pos/inventory/masters/categories'
+      preLoaderRoute: typeof PosInventoryMastersCategoriesRouteImport
+      parentRoute: typeof PosInventoryMastersRoute
+    }
     '/pos/management/configuration/outlet/timings': {
       id: '/pos/management/configuration/outlet/timings'
       path: '/timings'
@@ -2119,6 +2139,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface PosInventoryMastersRouteChildren {
+  PosInventoryMastersCategoriesRoute: typeof PosInventoryMastersCategoriesRoute
   PosInventoryMastersInvoiceTemplatesRoute: typeof PosInventoryMastersInvoiceTemplatesRoute
   PosInventoryMastersPurchasePaymentsRoute: typeof PosInventoryMastersPurchasePaymentsRoute
   PosInventoryMastersRawMaterialsRoute: typeof PosInventoryMastersRawMaterialsRoute
@@ -2128,6 +2149,7 @@ interface PosInventoryMastersRouteChildren {
 }
 
 const PosInventoryMastersRouteChildren: PosInventoryMastersRouteChildren = {
+  PosInventoryMastersCategoriesRoute: PosInventoryMastersCategoriesRoute,
   PosInventoryMastersInvoiceTemplatesRoute:
     PosInventoryMastersInvoiceTemplatesRoute,
   PosInventoryMastersPurchasePaymentsRoute:

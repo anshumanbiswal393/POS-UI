@@ -6,6 +6,7 @@ import type {
   PurchaseOrderRecord,
   PurchaseReturnRecord,
   StockItem,
+  StockCategory,
   DishRecipe,
   InventorySettings,
 } from "@/types/posInventory";
@@ -16,6 +17,7 @@ export const INVENTORY_QUERY_KEYS = {
   purchaseOrders: ["pos", "inventory", "purchase-orders"] as const,
   purchaseReturns: ["pos", "inventory", "purchase-returns"] as const,
   stockItems: ["pos", "inventory", "stock-items"] as const,
+  categories: ["pos", "inventory", "categories"] as const,
   overview: ["pos", "inventory", "overview"] as const,
   alerts: ["pos", "inventory", "alerts"] as const,
   recipes: ["pos", "inventory", "recipes"] as const,
@@ -362,5 +364,36 @@ export function useStockMovements(params?: {
     queryKey: ["pos", "inventory", "movements", activeOutlet?.id, params],
     queryFn: () => posInventoryService.getMovements(activeOutlet?.id, params),
     enabled: Boolean(activeOutlet?.id),
+  });
+}
+
+export function useStockCategories() {
+  const { activeOutlet } = useOutletContext();
+  return useQuery({
+    queryKey: [...INVENTORY_QUERY_KEYS.categories, activeOutlet?.id],
+    queryFn: () => posInventoryService.getCategories(activeOutlet?.id),
+  });
+}
+
+export function useUpsertStockCategory() {
+  const queryClient = useQueryClient();
+  const { activeOutlet } = useOutletContext();
+  return useMutation({
+    mutationFn: (data: Partial<StockCategory> & { name: string }) =>
+      posInventoryService.upsertCategory(data, activeOutlet?.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.categories });
+    },
+  });
+}
+
+export function useDeleteStockCategory() {
+  const queryClient = useQueryClient();
+  const { activeOutlet } = useOutletContext();
+  return useMutation({
+    mutationFn: (id: string) => posInventoryService.deleteCategory(id, activeOutlet?.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.categories });
+    },
   });
 }

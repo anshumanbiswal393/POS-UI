@@ -14,6 +14,7 @@ import {
   Flame,
   ShieldCheck,
   CheckCircle2,
+  Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useStockItems, useStockOverview } from "@/hooks/queries/usePosInventory";
@@ -58,24 +59,53 @@ const EMPTY_CATEGORIES = [
 export function InventoryDashboardView() {
   const navigate = useNavigate();
   const { activeOutlet } = useOutletContext();
-  const { refetch: refetchStock } = useStockItems();
+  const { data: stockItems = [], refetch: refetchStock } = useStockItems();
   const { data: overview } = useStockOverview();
 
-  const liveLowStock: LowStockRadarItem[] = (overview?.lowStock || []).map((item: StockItem) => {
-    const current = item.availableStock;
-    const min = item.minThreshold || item.reorderLevel || 0;
+  const itemsWithLow = useMemo(() => {
+    const rawLow: StockItem[] = [];
+    stockItems.forEach((sku) => {
+      const threshold = sku.alertQuantity ?? sku.minThreshold ?? sku.reorderLevel ?? 0;
+      if (threshold > 0 && (sku.availableStock ?? 0) <= threshold) {
+        rawLow.push(sku);
+      }
+    });
+    const existingIds = new Set(rawLow.map((i) => i.id));
+    (overview?.lowStock || []).forEach((item: StockItem) => {
+      if (!existingIds.has(item.id)) {
+        rawLow.push(item);
+      }
+    });
+    return rawLow;
+  }, [stockItems, overview?.lowStock]);
+
+  const nearExpiryItems = useMemo(() => {
+    const today = new Date();
+    return stockItems
+      .filter((item) => Boolean(item.expiryDate))
+      .map((item) => {
+        const exp = new Date(item.expiryDate!);
+        const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        return { ...item, diffDays };
+      })
+      .filter((item) => item.diffDays <= 15);
+  }, [stockItems]);
+
+  const liveLowStock: LowStockRadarItem[] = itemsWithLow.map((item: StockItem) => {
+    const current = item.availableStock ?? 0;
+    const min = item.alertQuantity || item.minThreshold || item.reorderLevel || 1;
     const percent = min > 0 ? Math.round((current / Math.max(min, 1)) * 100) : 100;
     return {
       id: item.id,
-      name: item.rawMaterial,
-      category: item.category,
+      name: item.rawMaterial || item.name || "",
+      category: item.category || "General",
       currentStock: current,
       minThreshold: min,
-      unit: item.unit,
+      unit: item.unit || "Kg",
       daysRemaining: 0,
       percent,
       supplier: "—",
-      status: item.isLow ? "critical" : item.isAtPar ? "low" : "optimal",
+      status: current <= min ? "critical" : "low",
     };
   });
 
@@ -256,6 +286,31 @@ export function InventoryDashboardView() {
           </button>
         </div>
       </div>
+
+      {nearExpiryItems.length > 0 && (
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-300/80 bg-rose-50 px-3 py-1.5 text-[11.5px] text-rose-950">
+          <div className="flex min-w-0 items-center gap-2">
+            <Calendar className="h-3.5 w-3.5 shrink-0 text-rose-600" />
+            <span className="truncate">
+              <strong className="font-bold">{nearExpiryItems.length} item(s) near expiry:</strong>
+              {nearExpiryItems
+                .slice(0, 3)
+                .map(
+                  (item) =>
+                    ` ${item.rawMaterial || item.name} (${item.diffDays < 0 ? "Expired" : `${item.diffDays}d left`})`,
+                )
+                .join(", ")}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/pos/inventory/masters/raw-materials" })}
+            className="rounded-md bg-rose-600 px-2 py-0.5 text-[11px] font-bold text-white hover:bg-rose-700 cursor-pointer"
+          >
+            Review Items
+          </button>
+        </div>
+      )}
 
       {showAlert && (
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-1.5 text-[11.5px] text-amber-950">

@@ -37,6 +37,7 @@ import {
   Coins,
   PlusCircle,
   CalendarCheck2,
+  FolderTree,
 } from "lucide-react";
 import type { Permission } from "@/types/rbac";
 
@@ -216,13 +217,20 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
         permission: "pos.inventory.manage",
         children: [
           {
+            id: "inv-categories",
+            label: "Categories",
+            to: "/pos/inventory/masters/categories",
+            icon: FolderTree,
+            permission: "pos.inventory.manage",
+          },
+          {
             id: "inv-raw-materials",
             label: "Raw Materials",
             to: "/pos/inventory/masters/raw-materials",
             icon: Package,
             permission: "pos.inventory.manage",
           },
-          { id: "inv-recipes", label: "Recipes", to: "/pos/inventory/masters/recipes", icon: BookOpen, permission: "pos.recipes.view" },
+          // { id: "inv-recipes", label: "Recipes", to: "/pos/inventory/masters/recipes", icon: BookOpen, permission: "pos.recipes.view" },
           { id: "inv-suppliers-list", label: "Suppliers", to: "/pos/inventory/masters/suppliers", icon: Store, permission: "pos.inventory.manage" },
           {
             id: "inv-invoice-templates",

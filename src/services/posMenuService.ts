@@ -322,7 +322,12 @@ export const posMenuService = {
         const res = await httpClient.get(API_ENDPOINTS.MENU.ITEMS, {
           params: { outletId, outlet_id: outletId, page_size: 500 },
         });
-        return unwrapList<MenuItem>(res.data);
+        const items = unwrapList<MenuItem>(res.data);
+        menuItemsStore = [
+          ...menuItemsStore.filter((m) => m.outletId !== outletId),
+          ...items,
+        ];
+        return items;
       } catch {
         return [];
       }
@@ -463,92 +468,239 @@ export const posMenuService = {
   },
 
   // 3. Multi-Image Management per Item
-  addItemImages: async (itemId: string, newImages: MenuItemImage[]) => {
+  addItemImages: async (
+    itemId: string,
+    newImages: MenuItemImage[],
+    existingImages?: MenuItemImage[],
+    outletId?: string,
+  ) => {
+    let existing = existingImages;
+    if (!existing) {
+      const found = menuItemsStore.find((i) => i.id === itemId);
+      existing = found?.images || [];
+    }
+    const hasExistingPrimary = existing.some((img) => img.isPrimary);
+    const processed = newImages.map((img, idx) => ({
+      ...img,
+      isPrimary: !hasExistingPrimary && idx === 0 ? true : !!img.isPrimary,
+    }));
+    const mergedImages = [...existing, ...processed];
+
+    let updated: MenuItem | null = null;
+    const isBackend = isBackendOutletId(outletId) || /^[0-9a-f-]{36}$/i.test(itemId);
+
+    if (isBackend) {
+      try {
+        const res = await httpClient.patch<MenuItem>(API_ENDPOINTS.MENU.UPDATE_ITEM(itemId), {
+          images: mergedImages,
+        });
+        if (res.data) updated = res.data;
+      } catch {
+        try {
+          const res = await httpClient.put<MenuItem>(API_ENDPOINTS.MENU.ITEM_IMAGES(itemId), {
+            images: mergedImages,
+          });
+          if (res.data) updated = res.data;
+        } catch {
+          // Fallback to local
+        }
+      }
+    }
+
+    let foundInStore = false;
     menuItemsStore = menuItemsStore.map((item) => {
       if (item.id === itemId) {
-        const existing = item.images || [];
-        const hasExistingPrimary = existing.some((img) => img.isPrimary);
-        const processed = newImages.map((img, idx) => ({
-          ...img,
-          isPrimary: !hasExistingPrimary && idx === 0 ? true : !!img.isPrimary,
-        }));
-        return {
+        foundInStore = true;
+        const patched = {
           ...item,
-          images: [...existing, ...processed],
+          images: mergedImages,
           updatedAt: "Just now",
         };
+        if (!updated) updated = patched;
+        return patched;
       }
       return item;
     });
-    const updated = menuItemsStore.find((i) => i.id === itemId) || null;
-    try {
-      if (updated) {
-        await httpClient.put(API_ENDPOINTS.MENU.ITEM_IMAGES(itemId), {
-          images: updated.images,
-        });
-      }
-    } catch {
-      // Fallback to local store
+
+    if (!foundInStore && !updated) {
+      updated = {
+        id: itemId,
+        outletId: outletId || "",
+        name: "",
+        code: "",
+        category: "",
+        itemType: "Veg",
+        price: 0,
+        taxRate: 5,
+        status: "Active",
+        baseMenu: true,
+        zomato: true,
+        swiggy: true,
+        direct: true,
+        images: mergedImages,
+      } as MenuItem;
+      menuItemsStore.push(updated);
+    } else if (updated && !foundInStore) {
+      menuItemsStore.push(updated);
     }
+
     saveMenuItemsToStorage(menuItemsStore);
     return updated;
   },
 
-  removeItemImage: async (itemId: string, imageId: string) => {
+  removeItemImage: async (
+    itemId: string,
+    imageId: string,
+    existingImages?: MenuItemImage[],
+    outletId?: string,
+  ) => {
+    let existing = existingImages;
+    if (!existing) {
+      const found = menuItemsStore.find((i) => i.id === itemId);
+      existing = found?.images || [];
+    }
+    const filtered = existing.filter((img) => img.id !== imageId);
+    const hasPrimary = filtered.some((img) => img.isPrimary);
+    if (!hasPrimary && filtered.length > 0) {
+      filtered[0] = { ...filtered[0], isPrimary: true };
+    }
+
+    let updated: MenuItem | null = null;
+    const isBackend = isBackendOutletId(outletId) || /^[0-9a-f-]{36}$/i.test(itemId);
+
+    if (isBackend) {
+      try {
+        const res = await httpClient.patch<MenuItem>(API_ENDPOINTS.MENU.UPDATE_ITEM(itemId), {
+          images: filtered,
+        });
+        if (res.data) updated = res.data;
+      } catch {
+        try {
+          const res = await httpClient.put<MenuItem>(API_ENDPOINTS.MENU.ITEM_IMAGES(itemId), {
+            images: filtered,
+          });
+          if (res.data) updated = res.data;
+        } catch {
+          // Fallback
+        }
+      }
+    }
+
+    let foundInStore = false;
     menuItemsStore = menuItemsStore.map((item) => {
       if (item.id === itemId) {
-        const filtered = (item.images || []).filter((img) => img.id !== imageId);
-        // If we removed the primary image and there are remaining images, set the first as primary
-        const hasPrimary = filtered.some((img) => img.isPrimary);
-        if (!hasPrimary && filtered.length > 0) {
-          filtered[0] = { ...filtered[0], isPrimary: true };
-        }
-        return {
+        foundInStore = true;
+        const patched = {
           ...item,
           images: filtered,
           updatedAt: "Just now",
         };
+        if (!updated) updated = patched;
+        return patched;
       }
       return item;
     });
-    const updated = menuItemsStore.find((i) => i.id === itemId) || null;
-    try {
-      if (updated) {
-        await httpClient.put(API_ENDPOINTS.MENU.ITEM_IMAGES(itemId), {
-          images: updated.images,
-        });
-      }
-    } catch {
-      // Fallback to local store
+
+    if (!foundInStore && !updated) {
+      updated = {
+        id: itemId,
+        outletId: outletId || "",
+        name: "",
+        code: "",
+        category: "",
+        itemType: "Veg",
+        price: 0,
+        taxRate: 5,
+        status: "Active",
+        baseMenu: true,
+        zomato: true,
+        swiggy: true,
+        direct: true,
+        images: filtered,
+      } as MenuItem;
+      menuItemsStore.push(updated);
+    } else if (updated && !foundInStore) {
+      menuItemsStore.push(updated);
     }
+
     saveMenuItemsToStorage(menuItemsStore);
     return updated;
   },
 
-  setPrimaryImage: async (itemId: string, imageId: string) => {
+  setPrimaryImage: async (
+    itemId: string,
+    imageId: string,
+    existingImages?: MenuItemImage[],
+    outletId?: string,
+  ) => {
+    let existing = existingImages;
+    if (!existing) {
+      const found = menuItemsStore.find((i) => i.id === itemId);
+      existing = found?.images || [];
+    }
+    const updatedImages = existing.map((img) => ({
+      ...img,
+      isPrimary: img.id === imageId,
+    }));
+
+    let updated: MenuItem | null = null;
+    const isBackend = isBackendOutletId(outletId) || /^[0-9a-f-]{36}$/i.test(itemId);
+
+    if (isBackend) {
+      try {
+        const res = await httpClient.patch<MenuItem>(API_ENDPOINTS.MENU.UPDATE_ITEM(itemId), {
+          images: updatedImages,
+        });
+        if (res.data) updated = res.data;
+      } catch {
+        try {
+          const res = await httpClient.put<MenuItem>(API_ENDPOINTS.MENU.ITEM_IMAGES(itemId), {
+            images: updatedImages,
+          });
+          if (res.data) updated = res.data;
+        } catch {
+          // Fallback
+        }
+      }
+    }
+
+    let foundInStore = false;
     menuItemsStore = menuItemsStore.map((item) => {
       if (item.id === itemId) {
-        return {
+        foundInStore = true;
+        const patched = {
           ...item,
-          images: (item.images || []).map((img) => ({
-            ...img,
-            isPrimary: img.id === imageId,
-          })),
+          images: updatedImages,
           updatedAt: "Just now",
         };
+        if (!updated) updated = patched;
+        return patched;
       }
       return item;
     });
-    const updated = menuItemsStore.find((i) => i.id === itemId) || null;
-    try {
-      if (updated) {
-        await httpClient.put(API_ENDPOINTS.MENU.ITEM_IMAGES(itemId), {
-          images: updated.images,
-        });
-      }
-    } catch {
-      // Fallback to local store
+
+    if (!foundInStore && !updated) {
+      updated = {
+        id: itemId,
+        outletId: outletId || "",
+        name: "",
+        code: "",
+        category: "",
+        itemType: "Veg",
+        price: 0,
+        taxRate: 5,
+        status: "Active",
+        baseMenu: true,
+        zomato: true,
+        swiggy: true,
+        direct: true,
+        images: updatedImages,
+      } as MenuItem;
+      menuItemsStore.push(updated);
+    } else if (updated && !foundInStore) {
+      menuItemsStore.push(updated);
     }
+
     saveMenuItemsToStorage(menuItemsStore);
     return updated;
   },
