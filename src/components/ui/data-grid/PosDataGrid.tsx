@@ -547,12 +547,7 @@ export function PosDataGrid<T>({
       )}
 
       {/* Main Grid Table Container */}
-      <div
-        className={cn(
-          "overflow-x-auto",
-          (isGridLoading || paginatedData.length === 0) && "min-h-[160px]"
-        )}
-      >
+      <div className="overflow-x-auto">
         <table className="w-full min-w-full border-collapse text-left text-[12.5px]">
           <DataTableHeader
             columns={columns}

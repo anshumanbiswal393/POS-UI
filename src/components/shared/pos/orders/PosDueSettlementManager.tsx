@@ -97,7 +97,7 @@ export function PosDueSettlementManager() {
         accessorKey: "billNo",
         sortable: true,
         filterable: true,
-        defaultWidth: 190,
+        defaultWidth: 160,
         render: (_, bill) => (
           <div>
             <div className="font-mono text-[13px] font-black text-slate-900">{bill.billNo}</div>
@@ -112,7 +112,7 @@ export function PosDueSettlementManager() {
         accessorKey: "customerName",
         sortable: true,
         filterable: true,
-        defaultWidth: 210,
+        defaultWidth: 180,
         render: (_, bill) => (
           <div>
             <div className="font-bold text-slate-900 text-[12.5px] flex items-center gap-1">
@@ -138,7 +138,7 @@ export function PosDueSettlementManager() {
         accessorKey: "itemsSummary",
         sortable: false,
         filterable: false,
-        defaultWidth: 230,
+        defaultWidth: 200,
         render: (_, bill) => (
           <div className="font-semibold text-slate-700 max-w-xs text-[11.5px] leading-relaxed">
             {bill.itemsSummary || "Dishes & Beverages"}
@@ -151,7 +151,7 @@ export function PosDueSettlementManager() {
         accessorKey: "totalAmount",
         sortable: true,
         align: "right",
-        defaultWidth: 130,
+        defaultWidth: 110,
         render: (_, bill) => (
           <div>
             <div className="font-bold text-slate-900 text-[12.5px]">
@@ -171,7 +171,7 @@ export function PosDueSettlementManager() {
         accessorKey: "dueAmount",
         sortable: true,
         align: "right",
-        defaultWidth: 140,
+        defaultWidth: 120,
         render: (_, bill) => (
           <div className="font-black text-[14px] text-teal-800">
             ₹ {bill.dueAmount.toLocaleString("en-IN")}.00
@@ -185,7 +185,7 @@ export function PosDueSettlementManager() {
         sortable: true,
         filterable: true,
         align: "center",
-        defaultWidth: 110,
+        defaultWidth: 90,
         render: (_, bill) => (
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10.5px] font-bold border ${
@@ -204,7 +204,7 @@ export function PosDueSettlementManager() {
         sortable: false,
         filterable: false,
         align: "right",
-        defaultWidth: 100,
+        defaultWidth: 90,
         render: (_, bill) => (
           <button
             type="button"
