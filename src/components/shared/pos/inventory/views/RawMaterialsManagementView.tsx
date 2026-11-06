@@ -19,10 +19,14 @@ import {
   Package,
   Layers,
   X,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
-import { PosDataGrid } from "@/components/ui/data-grid";
-import type { DataGridColumn } from "@/components/ui/data-grid/types";
+import {
+  DataTableHeader,
+  DataTableFooter,
+  type DataTableColumn,
+} from "@/components/common/DataTableHeader";
 import {
   PosCreateCancelButton,
   PosCreatePanel,
@@ -82,6 +86,7 @@ export function RawMaterialsManagementView() {
   const [unit, setUnit] = useState("Kg");
   const [pricePerUnit, setPricePerUnit] = useState<number | string>("");
   const [sku, setSku] = useState("");
+  const [quantity, setQuantity] = useState<number | string>("");
   const [alertQuantity, setAlertQuantity] = useState<number | string>(5);
   const [isReturnable, setIsReturnable] = useState(false);
   const [expiryDate, setExpiryDate] = useState("");
@@ -159,6 +164,7 @@ export function RawMaterialsManagementView() {
 
     const parsedPrice = pricePerUnit !== "" ? Number(pricePerUnit) : 0;
     const parsedAlert = alertQuantity !== "" ? Number(alertQuantity) : 5;
+    const parsedQty = quantity !== "" ? Math.max(0, Number(quantity)) : 0;
 
     upsertItem.mutate(
       {
@@ -177,7 +183,9 @@ export function RawMaterialsManagementView() {
         isReturnable,
         expiryDate: expiryDate ? expiryDate : null,
         itemKind: "RAW",
-        availableStock: 0,
+        availableStock: parsedQty,
+        quantityOnHand: parsedQty,
+        quantity_on_hand: parsedQty,
         parLevel: parsedAlert * 2,
       },
       {
@@ -188,6 +196,7 @@ export function RawMaterialsManagementView() {
           setIsCustomSubCategory(false);
           setPricePerUnit("");
           setSku("");
+          setQuantity("");
           setAlertQuantity(5);
           setIsReturnable(false);
           setExpiryDate("");
@@ -264,198 +273,69 @@ export function RawMaterialsManagementView() {
   const activeCategory = categories.find((c) => c.name === selectedCategory);
   const currentSubCategories = activeCategory?.subCategories || [];
 
-  const columns: DataGridColumn<RawMaterialRow>[] = [
-    {
-      id: "code",
-      header: "SKU / Code",
-      sortable: true,
-      filterable: true,
-      width: 130,
-      render: (val: any) => <span className="font-mono font-bold text-teal-700 dark:text-teal-400">{val}</span>,
-    },
-    {
-      id: "name",
-      header: "Material Name",
-      sortable: true,
-      filterable: true,
-      width: 240,
-      render: (val: any) => <span className="font-semibold text-foreground">{val}</span>,
-    },
-    {
-      id: "category",
-      header: "Category & Subcategory",
-      sortable: true,
-      filterable: true,
-      width: 220,
-      render: (_: any, row: RawMaterialRow) => (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 dark:bg-surface-2 text-foreground">
-            {row.category}
-          </span>
-          {row.subCategory && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-teal-50 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300 border border-teal-200/80">
-              {row.subCategory}
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      id: "stock",
-      header: "Stock / Alert Qty",
-      sortable: true,
-      width: 170,
-      render: (_: any, row: RawMaterialRow) => {
-        const isLow = row.availableStock <= row.alertQuantity;
-        return (
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className={`font-bold ${isLow ? "text-rose-600 font-extrabold" : "text-slate-900 dark:text-foreground"}`}>
-              {row.availableStock} {row.unit}
-            </span>
-            <span className="text-muted-foreground text-[11px]">/ min {row.alertQuantity}</span>
-            {isLow && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.2 text-[9.5px] font-extrabold" title="Stock is below alert threshold">
-                <AlertTriangle className="h-2.5 w-2.5" /> Low
-              </span>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      id: "pricePerUnit",
-      header: "Price / Unit",
-      sortable: true,
-      width: 130,
-      render: (val: any, row: RawMaterialRow) => (
-        <span className="font-semibold text-xs text-foreground font-mono">
-          {val ? `₹${Number(val).toLocaleString("en-IN")}` : "—"}{" "}
-          <span className="text-[10px] text-muted-foreground font-sans">/{row.unit}</span>
-        </span>
-      ),
-    },
-    {
-      id: "isReturnable",
-      header: "Returnable",
-      sortable: true,
-      align: "center",
-      width: 120,
-      render: (val: any) =>
-        val ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 px-2 py-0.5 text-[10.5px] font-bold">
-            <RotateCcw className="h-3 w-3" /> Yes
-          </span>
-        ) : (
-          <span className="inline-flex items-center rounded-full bg-slate-100 text-slate-500 dark:bg-surface-2 px-2 py-0.5 text-[10.5px] font-medium">
-            No
-          </span>
-        ),
-    },
-    {
-      id: "expiryDate",
-      header: "Expiry Date",
-      sortable: true,
-      width: 150,
-      render: (val: any) => {
-        if (!val) return <span className="text-muted-foreground text-xs">—</span>;
-        const exp = new Date(val);
-        const today = new Date();
-        const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        const isNear = diffDays <= 15 && diffDays >= 0;
-        const isExpired = diffDays < 0;
+  // Table search, filter, sort & pagination state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortConfig, setSortConfig] = useState<{ colId: string; direction: "asc" | "desc" } | null>(null);
 
-        return (
-          <div className="flex flex-col text-xs">
-            <span className="font-semibold text-foreground flex items-center gap-1">
-              <Calendar className="h-3 w-3 text-slate-400" />
-              {val}
-            </span>
-            {isExpired ? (
-              <span className="text-[10px] font-bold text-rose-600">Expired</span>
-            ) : isNear ? (
-              <span className="text-[10px] font-bold text-amber-600">{diffDays} days left</span>
-            ) : null}
-          </div>
-        );
-      },
-    },
-    {
-      id: "isFavorite",
-      header: "Favourite",
-      sortable: true,
-      align: "center",
-      width: 90,
-      render: (_: any, row: RawMaterialRow) => (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleFavorite(row.id);
-          }}
-          className={`p-1.5 rounded-md transition cursor-pointer ${
-            row.isFavorite
-              ? "text-amber-500 hover:text-amber-600 bg-amber-50 dark:bg-amber-950/40"
-              : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
-          }`}
-          title={row.isFavorite ? "Remove from favourites" : "Mark as favourite"}
-        >
-          <Star className={`h-4 w-4 ${row.isFavorite ? "fill-amber-400 text-amber-500" : ""}`} />
-        </button>
-      ),
-    },
-    {
-      id: "isActive",
-      header: "Status",
-      sortable: true,
-      filterable: true,
-      align: "center",
-      width: 110,
-      render: (_: any, row: RawMaterialRow) => (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleActive(row.id);
-          }}
-          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition cursor-pointer ${
-            row.isActive
-              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
-              : "bg-slate-100 text-muted-foreground dark:bg-surface-2"
-          }`}
-        >
-          {row.isActive ? (
-            <>
-              <Check className="h-3 w-3" />
-              <span>Active</span>
-            </>
-          ) : (
-            <span>Inactive</span>
-          )}
-        </button>
-      ),
-    },
-    {
-      id: "actions",
-      header: "Actions",
-      align: "right",
-      width: 80,
-      render: (_: any, row: RawMaterialRow) => (
-        <div className="flex items-center justify-end gap-1 text-muted-foreground">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDelete(row.id);
-            }}
-            className="p-1 hover:text-red-500 hover:bg-surface-2 rounded transition cursor-pointer"
-            title="Delete Item"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      ),
-    },
+  const columns: DataTableColumn<RawMaterialRow>[] = [
+    { id: "code", label: "CODE", sortable: true },
+    { id: "name", label: "MATERIAL NAME", sortable: true },
+    { id: "category", label: "CATEGORY & SUBCATEGORY", sortable: true },
+    { id: "stock", label: "STOCK / ALERT QTY", sortable: true },
+    { id: "pricePerUnit", label: "PRICE / UNIT", sortable: true },
+    { id: "isReturnable", label: "RETURNABLE", align: "center", sortable: true },
+    { id: "expiryDate", label: "EXPIRY DATE", sortable: true },
+    { id: "isFavorite", label: "FAVOURITE", align: "center" },
+    { id: "isActive", label: "STATUS", align: "center", sortable: true },
+    { id: "actions", label: "ACTIONS", align: "right" },
   ];
+
+  // Filtering
+  const filteredItems = items.filter((item) => {
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      !query ||
+      item.name.toLowerCase().includes(query) ||
+      item.code.toLowerCase().includes(query) ||
+      item.category.toLowerCase().includes(query) ||
+      item.subCategory.toLowerCase().includes(query);
+    const matchesCategory =
+      categoryFilter === "All" || item.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
+  // Sorting
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    if (!sortConfig) return 0;
+    const { colId, direction } = sortConfig;
+    let aVal: any;
+    let bVal: any;
+    if (colId === "stock") {
+      aVal = a.availableStock;
+      bVal = b.availableStock;
+    } else {
+      aVal = a[colId as keyof RawMaterialRow];
+      bVal = b[colId as keyof RawMaterialRow];
+    }
+    if (aVal === bVal) return 0;
+    if (aVal === null || aVal === undefined) return 1;
+    if (bVal === null || bVal === undefined) return -1;
+    if (typeof aVal === "string") {
+      return direction === "asc"
+        ? aVal.localeCompare(String(bVal))
+        : String(bVal).localeCompare(aVal);
+    }
+    return direction === "asc" ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
+  });
+
+  // Pagination
+  const paginatedRows = sortedItems.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
   return (
     <div className="space-y-4">
@@ -473,7 +353,10 @@ export function RawMaterialsManagementView() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => setIsCreateOpen(true)}
+            onClick={() => {
+              setQuantity("");
+              setIsCreateOpen(true);
+            }}
             className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-teal-700 shadow-xs transition cursor-pointer"
           >
             <Plus className="h-4 w-4" />
@@ -482,19 +365,210 @@ export function RawMaterialsManagementView() {
         </div>
       </div>
 
-      {/* 2. Interactive Data Grid */}
-      <PosDataGrid
-        data={items}
-        columns={columns}
-        keyField="id"
-        title="Raw Material Items"
-        subtitle="Manage ingredient catalog, unit linkages, alert thresholds, and expiry"
-        showToolbar
-        selectable
-        storageKey="pos-raw-materials-management-v2"
-        themeVariant="primary"
-        pageSize={10}
-      />
+      {/* 2. Structured Data Table with DataTableHeader & DataTableFooter */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+        {/* Table Toolbar */}
+        <div className="p-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/60">
+          <div className="flex flex-wrap items-center gap-2.5 flex-1 max-w-xl">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search raw materials by name, SKU, category..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-500"
+              />
+            </div>
+
+            <select
+              value={categoryFilter}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500 cursor-pointer"
+            >
+              <option value="All">All Categories ({items.length})</option>
+              {categories.map((c) => (
+                <option key={c.id || c.name} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="text-xs font-semibold text-slate-500">
+            Showing {paginatedRows.length} of {filteredItems.length} records
+          </div>
+        </div>
+
+        {/* Table Content */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-[13px] border-collapse">
+            <DataTableHeader
+              columns={columns}
+              data={filteredItems}
+              sortConfig={sortConfig}
+              onSortChange={setSortConfig}
+              themeVariant="primary"
+            />
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {paginatedRows.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length} className="py-12 text-center text-slate-400">
+                    <Package className="mx-auto mb-2 h-7 w-7 text-slate-300" />
+                    <p className="text-xs font-semibold text-slate-600">No raw materials found</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {searchQuery || categoryFilter !== "All"
+                        ? "Try clearing filters to see items."
+                        : "Click 'Add Raw Material' above to get started."}
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                paginatedRows.map((row) => {
+                  const isLow = row.availableStock <= row.alertQuantity;
+                  return (
+                    <tr key={row.id} className="hover:bg-slate-50/70 transition">
+                      <td className="px-4 py-3 font-mono font-bold text-teal-700 text-xs">
+                        {row.code}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-slate-900 text-xs">
+                        {row.name}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-800">
+                            {row.category}
+                          </span>
+                          {row.subCategory && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-teal-50 text-teal-800 border border-teal-200/80">
+                              {row.subCategory}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <span className={`font-bold ${isLow ? "text-rose-600 font-extrabold" : "text-slate-900"}`}>
+                            {row.availableStock} {row.unit}
+                          </span>
+                          <span className="text-slate-400 text-[11px]">/ min {row.alertQuantity}</span>
+                          {isLow && (
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.2 text-[9.5px] font-extrabold" title="Stock is below alert threshold">
+                              <AlertTriangle className="h-2.5 w-2.5" /> Low
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-xs text-slate-900 font-mono">
+                        {row.pricePerUnit ? `₹${Number(row.pricePerUnit).toLocaleString("en-IN")}` : "—"}{" "}
+                        <span className="text-[10px] text-slate-500 font-sans">/{row.unit}</span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {row.isReturnable ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10.5px] font-bold">
+                            <RotateCcw className="h-3 w-3" /> Yes
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-slate-100 text-slate-500 px-2 py-0.5 text-[10.5px] font-medium">
+                            No
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {row.expiryDate ? (() => {
+                          const exp = new Date(row.expiryDate);
+                          const today = new Date();
+                          const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                          const isNear = diffDays <= 15 && diffDays >= 0;
+                          const isExpired = diffDays < 0;
+                          return (
+                            <div className="flex flex-col text-xs">
+                              <span className="font-semibold text-slate-900 flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-slate-400" />
+                                {row.expiryDate}
+                              </span>
+                              {isExpired ? (
+                                <span className="text-[10px] font-bold text-rose-600">Expired</span>
+                              ) : isNear ? (
+                                <span className="text-[10px] font-bold text-amber-600">{diffDays} days left</span>
+                              ) : null}
+                            </div>
+                          );
+                        })() : (
+                          <span className="text-slate-400 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => toggleFavorite(row.id)}
+                          className={`p-1.5 rounded-md transition cursor-pointer ${
+                            row.isFavorite
+                              ? "text-amber-500 hover:text-amber-600 bg-amber-50"
+                              : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                          }`}
+                          title={row.isFavorite ? "Remove from favourites" : "Mark as favourite"}
+                        >
+                          <Star className={`h-4 w-4 ${row.isFavorite ? "fill-amber-400 text-amber-500" : ""}`} />
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => toggleActive(row.id)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition cursor-pointer ${
+                            row.isActive
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {row.isActive ? (
+                            <>
+                              <Check className="h-3 w-3" />
+                              <span>Active</span>
+                            </>
+                          ) : (
+                            <span>Inactive</span>
+                          )}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(row.id)}
+                          className="p-1 hover:text-red-500 hover:bg-rose-50 text-slate-400 rounded transition cursor-pointer"
+                          title="Delete Item"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer */}
+        <DataTableFooter
+          currentPage={currentPage}
+          totalCount={filteredItems.length}
+          pageSize={pageSize}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          onPageChange={setCurrentPage}
+          itemName="raw materials"
+        />
+      </div>
 
       {/* 3. Add Raw Material Slide-Over Panel */}
       <PosCreatePanel
@@ -640,17 +714,34 @@ export function RawMaterialsManagementView() {
             </div>
           </div>
 
-          {/* SKU & Alert Quantity */}
+          {/* SKU / Item Code */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground">SKU / Item Code</label>
+            <input
+              type="text"
+              placeholder="e.g. RAW-GRO-001"
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+            />
+          </div>
+
+          {/* Quantity & Alert Quantity Side-by-Side */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-foreground">SKU / Item Code</label>
+              <label className="text-xs font-semibold text-foreground">
+                Quantity {unit ? `(${unit})` : ""}
+              </label>
               <input
-                type="text"
-                placeholder="e.g. RAW-GRO-001"
-                value={sku}
-                onChange={(e) => setSku(e.target.value)}
+                type="number"
+                min="0"
+                step="any"
+                placeholder="e.g. 10"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono"
               />
+              <p className="text-[10px] text-muted-foreground">Initial stock count to add</p>
             </div>
 
             <div className="space-y-1">
