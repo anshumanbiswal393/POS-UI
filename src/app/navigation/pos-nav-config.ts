@@ -242,7 +242,7 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
           { id: "inv-units", label: "Units", to: "/pos/inventory/masters/units", icon: SlidersHorizontal, permission: "pos.inventory.manage" },
         ],
       },
-      { id: "inv-settings", label: "Stock Settings", to: "/pos/inventory/settings", icon: Settings, permission: "pos.settings.manage" },
+      // { id: "inv-settings", label: "Stock Settings", to: "/pos/inventory/settings", icon: Settings, permission: "pos.settings.manage" },
     ],
   },
   {

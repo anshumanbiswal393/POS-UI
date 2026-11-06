@@ -4,3 +4,4 @@ import { CategoriesManagementView } from "@/components/shared/pos/inventory/view
 export const Route = createFileRoute("/pos/inventory/masters/categories")({
   component: CategoriesManagementView,
 });
+

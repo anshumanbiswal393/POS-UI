@@ -365,3 +365,4 @@ export function CategoriesManagementView() {
     </div>
   );
 }
+
