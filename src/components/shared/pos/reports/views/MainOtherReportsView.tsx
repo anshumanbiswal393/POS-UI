@@ -681,7 +681,7 @@ export function MainOtherReportsView() {
     return (
       <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50">
         {/* Top Breadcrumb / Title Bar - Flush with TopBar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0 print:hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 responsive-page-x py-3 bg-white border-b border-slate-200 shrink-0 print:hidden">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -759,6 +759,8 @@ export function MainOtherReportsView() {
           </div>
         </div>
 
+        {/* Content Area with balanced responsive padding */}
+        <div className="responsive-page-x py-5 pb-10 space-y-5 flex-1 print:p-0">
         {/* Filter Toolbar: Date Filter + Global Search */}
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3 print:hidden">
           <div className="flex flex-wrap items-end justify-between gap-3">
@@ -1041,6 +1043,7 @@ export function MainOtherReportsView() {
             />
           </div>
         )}
+        </div>
       </div>
     );
   }
@@ -1051,7 +1054,7 @@ export function MainOtherReportsView() {
   return (
     <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50">
       {/* 1. Header Toolbar - Flush with TopBar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 responsive-page-x py-3 bg-white border-b border-slate-200 shrink-0">
         <div>
           <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">
             Reports & Graphs
@@ -1112,8 +1115,10 @@ export function MainOtherReportsView() {
         </div>
       </div>
 
-      {/* 2. Horizontal Filter Tabs / Category Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+      {/* Main Content Area with balanced responsive padding */}
+      <div className="responsive-page-x py-5 pb-12 space-y-6 flex-1">
+        {/* 2. Horizontal Filter Tabs / Category Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
         {CATEGORY_PILLS.map((pill) => {
           const isActive = activePill === pill.id;
           const label =
@@ -1391,6 +1396,7 @@ export function MainOtherReportsView() {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
