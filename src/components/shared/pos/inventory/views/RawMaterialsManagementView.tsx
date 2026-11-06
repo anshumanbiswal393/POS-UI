@@ -97,27 +97,20 @@ export function RawMaterialsManagementView() {
     { name: "", unit: "Kg" },
   ]);
 
-  // Set default category when categories load
-  useEffect(() => {
-    if (categories.length > 0 && !selectedCategory) {
-      setSelectedCategory(categories[0].name);
-    }
-  }, [categories, selectedCategory]);
-
-  // When selected category changes, update subcategory and auto-fetch unit
-  useEffect(() => {
-    const cat = categories.find((c) => c.name === selectedCategory);
-    if (cat && cat.subCategories && cat.subCategories.length > 0) {
-      setSelectedSubCategory(cat.subCategories[0].name);
-      setIsCustomSubCategory(false);
-      setCustomSubCategory("");
-      if (cat.subCategories[0].unit) {
-        setUnit(cat.subCategories[0].unit);
-      }
-    } else {
-      setSelectedSubCategory("");
-    }
-  }, [selectedCategory, categories]);
+  const resetForm = () => {
+    setName("");
+    setSelectedCategory("");
+    setSelectedSubCategory("");
+    setIsCustomSubCategory(false);
+    setCustomSubCategory("");
+    setUnit("Kg");
+    setPricePerUnit("");
+    setSku("");
+    setQuantity("");
+    setAlertQuantity(5);
+    setIsReturnable(false);
+    setExpiryDate("");
+  };
 
   // When subcategory changes, auto-fetch unit from category setup
   const handleSubCategoryChange = (val: string) => {
@@ -150,6 +143,11 @@ export function RawMaterialsManagementView() {
     e.preventDefault();
     if (!name.trim()) {
       toast.error("Please enter material name");
+      return;
+    }
+
+    if (!selectedCategory.trim()) {
+      toast.error("Please choose a category");
       return;
     }
 
@@ -191,15 +189,7 @@ export function RawMaterialsManagementView() {
       {
         onSuccess: () => {
           setIsCreateOpen(false);
-          setName("");
-          setCustomSubCategory("");
-          setIsCustomSubCategory(false);
-          setPricePerUnit("");
-          setSku("");
-          setQuantity("");
-          setAlertQuantity(5);
-          setIsReturnable(false);
-          setExpiryDate("");
+          resetForm();
           toast.success(`Raw material '${name.trim()}' created successfully.`);
         },
         onError: () => toast.error("Could not create raw material"),
@@ -354,7 +344,7 @@ export function RawMaterialsManagementView() {
           <button
             type="button"
             onClick={() => {
-              setQuantity("");
+              resetForm();
               setIsCreateOpen(true);
             }}
             className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-teal-700 shadow-xs transition cursor-pointer"
@@ -613,16 +603,23 @@ export function RawMaterialsManagementView() {
               </button>
             </div>
             <select
+              required
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedCategory(val);
+                setSelectedSubCategory("");
+                setIsCustomSubCategory(false);
+                setCustomSubCategory("");
+              }}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-medium"
             >
+              <option value="">— Select Category —</option>
               {categories.map((c) => (
                 <option key={c.id || c.name} value={c.name}>
                   {c.name}
                 </option>
               ))}
-              {categories.length === 0 && <option value="General">General</option>}
             </select>
           </div>
 
@@ -665,15 +662,20 @@ export function RawMaterialsManagementView() {
               <select
                 value={selectedSubCategory}
                 onChange={(e) => handleSubCategoryChange(e.target.value)}
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                disabled={!selectedCategory}
+                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <option value="">— Select subcategory —</option>
+                <option value="">
+                  {selectedCategory ? "— Select Subcategory —" : "— Choose Category First —"}
+                </option>
                 {currentSubCategories.map((s) => (
                   <option key={s.id || s.name} value={s.name}>
                     {s.name} ({s.unit || "Kg"})
                   </option>
                 ))}
-                <option value="__custom__">+ Enter new subcategory...</option>
+                {selectedCategory && (
+                  <option value="__custom__">+ Enter new subcategory...</option>
+                )}
               </select>
             )}
           </div>
