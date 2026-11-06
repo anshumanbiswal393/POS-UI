@@ -146,12 +146,17 @@ export function PosBillingManager() {
   const resolveTableMatch = useCallback(
     (label: string) => {
       if (!label) return undefined;
+      const primary = label.includes("+") ? label.split("+")[0].trim() : label.trim();
       return restaurantTables.find(
         (t) =>
           t.tableNumber === label ||
+          t.tableNumber === primary ||
           `Table #${t.tableNumberRaw}` === label ||
+          `Table #${t.tableNumberRaw}` === primary ||
           `T-${t.tableNumberRaw}` === label ||
-          String(t.tableNumberRaw) === label,
+          `T-${t.tableNumberRaw}` === primary ||
+          String(t.tableNumberRaw) === label ||
+          String(t.tableNumberRaw) === primary,
       );
     },
     [restaurantTables],

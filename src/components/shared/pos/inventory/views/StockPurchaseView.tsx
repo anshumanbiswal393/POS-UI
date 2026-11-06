@@ -484,23 +484,32 @@ export function StockPurchaseView() {
   };
 
   // Add Purchase Handlers
-  const handleOpenAdd = () => {
+  const handleOpenAdd = async () => {
     setFormVendor(vendors[0]?.name || "Metro Cash & Carry");
-    setFormInvoiceNo(`INV-${new Date().getFullYear()}${Math.floor(1000 + Math.random() * 9000)}`);
+    setFormInvoiceNo("Generating...");
     setFormInvoiceDate(todayStr);
     setFormPaymentStatus("Done");
     setFormPaidAmount("");
     setFormPaymentMethod("Cash");
     setFormTax("0");
     setFormNotes("");
-    setFormItems([{ stockItemId: "", name: "", quantity: 1, unit: "Kg", unitPrice: 0, lineTotal: 0 }]);
+    setFormItems([{ stockItemId: "", sku: "", name: "", quantity: 1, unit: "Kg", unitPrice: 0, lineTotal: 0 }]);
     setIsAddOpen(true);
+
+    try {
+      const nextNo = await posPurchasesService.getNextInvoiceNumber(activeOutlet.id);
+      setFormInvoiceNo(nextNo);
+    } catch {
+      const now = new Date();
+      const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+      setFormInvoiceNo(`INV-${datePart}-0001`);
+    }
   };
 
   const handleAddItemRow = () => {
     setFormItems((prev) => [
       ...prev,
-      { stockItemId: "", name: "", quantity: 1, unit: "Kg", unitPrice: 0, lineTotal: 0 },
+      { stockItemId: "", sku: "", name: "", quantity: 1, unit: "Kg", unitPrice: 0, lineTotal: 0 },
     ]);
   };
 
@@ -526,13 +535,43 @@ export function StockPurchaseView() {
     const subtotal = formItems.reduce((acc, it) => acc + (it.lineTotal || 0), 0);
     const tax = parseFloat(formTax) || 0;
     const total = Math.round((subtotal + tax) * 100) / 100;
-    return { subtotal, tax, total };
-  }, [formItems, formTax]);
+    let paid = 0;
+    if (formPaymentStatus === "Done") {
+      paid = total;
+    } else if (formPaymentStatus === "Pending") {
+      paid = 0;
+    } else {
+      paid = formPaidAmount === "" ? 0 : Math.min(total, parseFloat(formPaidAmount) || 0);
+    }
+    const due = Math.max(0, Math.round((total - paid) * 100) / 100);
+    return { subtotal, tax, total, paid, due };
+  }, [formItems, formTax, formPaymentStatus, formPaidAmount]);
+
+  const handlePaymentStatusChange = (status: "Done" | "Pending" | "Partial") => {
+    setFormPaymentStatus(status);
+    if (status === "Done") {
+      setFormPaidAmount(String(formCalculations.total));
+    } else if (status === "Pending") {
+      setFormPaidAmount("0");
+    }
+  };
+
+  const handleReceivedAmountChange = (val: string) => {
+    setFormPaidAmount(val);
+    const num = parseFloat(val);
+    if (isNaN(num) || num <= 0) {
+      setFormPaymentStatus("Pending");
+    } else if (num >= formCalculations.total && formCalculations.total > 0) {
+      setFormPaymentStatus("Done");
+    } else {
+      setFormPaymentStatus("Partial");
+    }
+  };
 
   const handleSubmitAddPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formInvoiceNo.trim()) {
-      toast.error("Please enter an invoice number");
+    if (!formInvoiceNo.trim() || formInvoiceNo === "Generating...") {
+      toast.error("Please enter or generate an invoice number");
       return;
     }
     if (formItems.length === 0 || formItems.every((it) => !it.stockItemId && !it.name.trim())) {
@@ -541,6 +580,13 @@ export function StockPurchaseView() {
     }
 
     try {
+      const paidAmount =
+        formPaymentStatus === "Done"
+          ? formCalculations.total
+          : formPaymentStatus === "Pending"
+            ? 0
+            : parseFloat(formPaidAmount) || 0;
+
       const payload = {
         vendorName: formVendor,
         invoiceNo: formInvoiceNo.trim(),
@@ -548,7 +594,9 @@ export function StockPurchaseView() {
         totalAmount: formCalculations.total,
         taxAmount: formCalculations.tax,
         paymentStatus: formPaymentStatus,
-        paidAmount: formPaymentStatus === "Partial" ? parseFloat(formPaidAmount) || 0 : undefined,
+        paidAmount,
+        receivedAmount: paidAmount,
+        dueAmount: formCalculations.due,
         paymentMethod: formPaymentMethod,
         notes: formNotes.trim(),
         items: formItems,
@@ -561,6 +609,13 @@ export function StockPurchaseView() {
       setPurchases((prev) => [created, ...prev]);
       queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.stockItems });
       queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.overview });
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.purchases });
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.movements });
+      queryClient.invalidateQueries({ queryKey: ["pos", "inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "stock"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "stock-items"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "stockItems"] });
+      loadData();
       setIsAddOpen(false);
       toast.success(`Purchase ${created.invoiceNo} recorded successfully! Stock adjusted.`);
     } catch {
@@ -621,7 +676,7 @@ export function StockPurchaseView() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h2 className="font-serif text-[20px] font-bold text-slate-900 tracking-tight">Purchases</h2>
+            <h2 className="font-serif text-[20px] font-bold text-slate-900 tracking-tight">Purchase Entry</h2>
             <span className="rounded-full bg-teal-50 border border-teal-200 px-2.5 py-0.5 text-[11px] font-semibold text-teal-700">
               {filteredPurchases.length} Invoices
             </span>
@@ -812,65 +867,7 @@ export function StockPurchaseView() {
         </Popover>
       </div>
 
-      {/* 3. KPI Metrics Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[12px] font-medium text-slate-500">Total Purchase Spend</span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
-              <DollarSign className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono text-slate-900">
-              ₹ {metrics.totalSpend.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-        </div>
 
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[12px] font-medium text-slate-500">Bills Paid (Done)</span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-              <CheckCircle2 className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono text-slate-900">
-              ₹ {metrics.doneValue.toLocaleString()}
-            </span>
-            <span className="text-[11.5px] text-emerald-600 font-semibold">{metrics.doneCount} Paid</span>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[12px] font-medium text-slate-500">Payment Pending</span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
-              <Clock className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono text-amber-950">
-              ₹ {metrics.pendingBalance.toLocaleString()}
-            </span>
-            <span className="text-[11.5px] text-amber-700 font-semibold">{metrics.pendingCount} Bills</span>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[12px] font-medium text-slate-500">Suppliers Sourced</span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-              <Building2 className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900">{metrics.vendorCount}</span>
-            <span className="text-[11.5px] text-blue-600 font-medium">Active Vendors</span>
-          </div>
-        </div>
-      </div>
 
       {/* 4. Filter Toolbar (Search & Choose Columns) */}
       <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs">
@@ -1195,7 +1192,7 @@ export function StockPurchaseView() {
       <PosCreatePanel
         open={isAddOpen}
         onClose={() => setIsAddOpen(false)}
-        title="Record Inward Stock Purchase"
+        title="Record Purchase Entry"
         description="Record received vendor bill, incoming raw materials and payment terms."
         icon={PackageCheck}
         size="lg"
@@ -1207,15 +1204,29 @@ export function StockPurchaseView() {
           </>
         }
       >
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2 space-y-1">
-                    <label className="text-[12px] font-semibold text-slate-700">
-                      Vendor / Supplier <span className="text-rose-500">*</span>
-                    </label>
+                {/* Form fields: 2-column clean grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[12px] font-semibold text-slate-700">
+                        Vendor / Supplier <span className="text-rose-500">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsVendorModalOpen(true);
+                          setShowAddVendorForm(true);
+                        }}
+                        className="text-[11px] font-semibold text-teal-600 hover:text-teal-700 flex items-center gap-0.5 cursor-pointer"
+                      >
+                        <Plus className="h-3 w-3" />
+                        New Vendor
+                      </button>
+                    </div>
                     <select
                       value={formVendor}
                       onChange={(e) => setFormVendor(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-800 focus:border-teal-500 focus:outline-none cursor-pointer"
                     >
                       {vendors.map((v) => (
                         <option key={v.id} value={v.name}>
@@ -1226,15 +1237,20 @@ export function StockPurchaseView() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[12px] font-semibold text-slate-700">
-                      Invoice No <span className="text-rose-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[12px] font-semibold text-slate-700">
+                        Invoice No <span className="text-rose-500">*</span>
+                      </label>
+                      <span className="text-[10px] font-medium text-teal-700 bg-teal-50 border border-teal-200/80 px-1.5 py-0.5 rounded-md">
+                        Auto-generated
+                      </span>
+                    </div>
                     <input
                       type="text"
                       required
                       value={formInvoiceNo}
                       onChange={(e) => setFormInvoiceNo(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[13px] font-mono text-slate-800 focus:border-teal-500 focus:outline-none"
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[13px] font-mono font-medium text-slate-800 focus:border-teal-500 focus:outline-none"
                     />
                   </div>
 
@@ -1248,64 +1264,22 @@ export function StockPurchaseView() {
                     />
                   </div>
 
-                  <div className="sm:col-span-2 space-y-1">
+                  <div className="space-y-1">
                     <label className="text-[12px] font-semibold text-slate-700">Payment Status</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: "Done" as const, label: "Done (Paid Now)" },
-                        { id: "Pending" as const, label: "Pending (Credit)" },
-                        { id: "Partial" as const, label: "Partial Advance" },
-                      ].map((opt) => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => setFormPaymentStatus(opt.id)}
-                          className={`rounded-xl px-2 py-1.5 text-[11.5px] font-semibold border transition ${formPaymentStatus === opt.id
-                            ? "bg-teal-50 border-teal-500 text-teal-800"
-                            : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                            }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
+                    <select
+                      value={formPaymentStatus}
+                      onChange={(e) => handlePaymentStatusChange(e.target.value as "Done" | "Pending" | "Partial")}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] font-medium text-slate-800 focus:border-teal-500 focus:outline-none cursor-pointer"
+                    >
+                      <option value="Done">Done (Paid Now)</option>
+                      <option value="Pending">Pending (Credit)</option>
+                      <option value="Partial">Partial Advance</option>
+                    </select>
                   </div>
                 </div>
 
-                {/* Conditional Partial amount / payment method */}
-                {formPaymentStatus !== "Pending" && (
-                  <div className="grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 border border-slate-200">
-                    <div className="space-y-1">
-                      <label className="text-[11.5px] font-semibold text-slate-700">Payment Mode</label>
-                      <select
-                        value={formPaymentMethod}
-                        onChange={(e) => setFormPaymentMethod(e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12.5px] text-slate-800 focus:border-teal-500 focus:outline-none"
-                      >
-                        <option value="Cash">Cash</option>
-                        <option value="UPI / QR">UPI / QR Code</option>
-                        <option value="Bank Transfer">Bank Transfer / NEFT</option>
-                        <option value="Cheque">Cheque</option>
-                      </select>
-                    </div>
-
-                    {formPaymentStatus === "Partial" && (
-                      <div className="space-y-1">
-                        <label className="text-[11.5px] font-semibold text-slate-700">Initial Paid Amount (₹)</label>
-                        <input
-                          type="number"
-                          placeholder="e.g. 5000"
-                          value={formPaidAmount}
-                          onChange={(e) => setFormPaidAmount(e.target.value)}
-                          className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-[12.5px] font-mono text-slate-800 focus:border-teal-500 focus:outline-none"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-
                 {/* Items Table */}
-                <div className="space-y-2 pt-1">
+                <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between">
                     <h4 className="text-[13px] font-bold text-slate-800">Raw Material Items Received</h4>
                     <button
@@ -1319,13 +1293,14 @@ export function StockPurchaseView() {
                   </div>
 
                   <div className="rounded-xl border border-slate-200 overflow-x-auto">
-                    <table className="w-full min-w-[420px] text-left text-[12px]">
+                    <table className="w-full min-w-[540px] text-left text-[12px]">
                       <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
                         <tr>
                           <th className="px-3 py-2">Item Name</th>
+                          <th className="px-2 py-2 w-28">SKU</th>
                           <th className="px-2 py-2 w-20 text-right">Qty</th>
                           <th className="px-2 py-2 w-16">Unit</th>
-                          <th className="px-2 py-2 w-24 text-right">Rate (₹)</th>
+                          <th className="px-2 py-2 w-28 text-right">Cost / Unit (₹)</th>
                           <th className="px-3 py-2 w-24 text-right">Total</th>
                           <th className="px-2 py-2 w-8"></th>
                         </tr>
@@ -1337,19 +1312,23 @@ export function StockPurchaseView() {
                               <select
                                 value={it.stockItemId || ""}
                                 onChange={(e) => {
-                                  const sku = stockItems.find((s) => s.id === e.target.value);
+                                  const selectedId = e.target.value;
+                                  const sku = stockItems.find((s) => s.id === selectedId);
                                   setFormItems((prev) => {
                                     const copy = [...prev];
+                                    const skuCode = sku?.code || (sku as any)?.sku || "";
+                                    const itemName = sku?.rawMaterial || (sku as any)?.name || "";
+                                    const unit = sku?.unit || copy[idx].unit || "Kg";
+                                    const unitCost = sku?.unitCost ?? copy[idx].unitPrice ?? 0;
                                     copy[idx] = {
                                       ...copy[idx],
-                                      stockItemId: e.target.value,
-                                      name: sku?.rawMaterial || "",
-                                      unit: sku?.unit || copy[idx].unit,
-                                      unitPrice: sku?.unitCost ?? copy[idx].unitPrice,
-                                      lineTotal:
-                                        Math.round(
-                                          (copy[idx].quantity || 0) * (sku?.unitCost ?? copy[idx].unitPrice) * 100,
-                                        ) / 100,
+                                      stockItemId: selectedId,
+                                      sku: skuCode,
+                                      skuCode: skuCode,
+                                      name: itemName,
+                                      unit: unit,
+                                      unitPrice: unitCost,
+                                      lineTotal: Math.round((copy[idx].quantity || 0) * unitCost * 100) / 100,
                                     };
                                     return copy;
                                   });
@@ -1361,15 +1340,24 @@ export function StockPurchaseView() {
                                 </option>
                                 {stockItems.map((sku) => (
                                   <option key={sku.id} value={sku.id}>
-                                    {sku.rawMaterial}
+                                    {sku.rawMaterial || (sku as any).name || sku.code || "Item"} {sku.code ? `(${sku.code})` : ""}
                                   </option>
                                 ))}
                               </select>
                             </td>
+                            <td className="p-1.5">
+                              <input
+                                type="text"
+                                placeholder="SKU"
+                                value={it.sku || ""}
+                                onChange={(e) => handleItemChange(idx, "sku" as any, e.target.value)}
+                                className="w-full rounded-lg border border-slate-200 px-2 py-1 text-[11.5px] font-mono text-slate-700 bg-slate-50/60 focus:bg-white focus:border-teal-500 focus:outline-none"
+                              />
+                            </td>
                             <td className="p-1.5 text-right">
                               <input
                                 type="number"
-                                min="0.1"
+                                min="0.01"
                                 step="any"
                                 value={it.quantity}
                                 onChange={(e) => handleItemChange(idx, "quantity", e.target.value)}
@@ -1402,7 +1390,8 @@ export function StockPurchaseView() {
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveItemRow(idx)}
-                                  className="text-slate-400 hover:text-rose-600"
+                                  className="text-slate-400 hover:text-rose-600 transition"
+                                  title="Remove item"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
@@ -1413,43 +1402,92 @@ export function StockPurchaseView() {
                       </tbody>
                     </table>
                   </div>
+                </div>
 
-                  {/* Subtotal & Total Box */}
-                  <div className="flex justify-end gap-6 pt-2 text-[12.5px] border-t border-slate-100">
-                    <div className="text-right space-y-1">
-                      <span className="text-slate-500 block">Subtotal:</span>
-                      <span className="text-slate-500 block">GST / Tax:</span>
-                      <span className="font-bold text-slate-900 block text-[14px]">Total Bill:</span>
+                {/* Bottom Section: Payment Mode & Remarks on Left, Totals on Right */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-200">
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-[12px] font-semibold text-slate-700">Payment Mode</label>
+                      <select
+                        value={formPaymentMethod}
+                        onChange={(e) => setFormPaymentMethod(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12.5px] text-slate-800 focus:border-teal-500 focus:outline-none cursor-pointer"
+                      >
+                        <option value="Cash">Cash</option>
+                        <option value="UPI / QR">UPI / QR Code</option>
+                        <option value="Bank Transfer">Bank Transfer / NEFT</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Card">Card</option>
+                      </select>
                     </div>
-                    <div className="text-right space-y-1 font-mono font-semibold">
-                      <span className="text-slate-700 block">₹ {formCalculations.subtotal.toFixed(2)}</span>
-                      <div className="flex items-center justify-end gap-1">
-                        <span>₹</span>
+
+                    <div className="space-y-1">
+                      <label className="text-[12px] font-semibold text-slate-700">Remarks</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Delivery received via vehicle MH-12-8822"
+                        value={formNotes}
+                        onChange={(e) => setFormNotes(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[12.5px] text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Totals Summary: Subtotal, GST, Total Bill, Received Amount, Due */}
+                  <div className="rounded-xl bg-slate-50/80 p-3.5 border border-slate-200/80 space-y-2 text-[12.5px]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600 font-medium">Subtotal:</span>
+                      <span className="font-mono font-semibold text-slate-800">
+                        ₹ {formCalculations.subtotal.toFixed(2)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600 font-medium">GST / Tax:</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-slate-500 font-mono text-[11px]">₹</span>
                         <input
                           type="number"
                           step="any"
+                          min="0"
                           value={formTax}
                           onChange={(e) => setFormTax(e.target.value)}
-                          className="w-20 rounded border border-slate-200 px-1 py-0.5 text-right font-mono text-[12px]"
+                          className="w-24 rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-right font-mono text-[12px] text-slate-800 focus:border-teal-500 focus:outline-none"
                         />
                       </div>
-                      <span className="font-bold text-teal-800 block text-[15px]">
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-200 font-bold">
+                      <span className="text-slate-900 text-[13.5px]">Total Bill:</span>
+                      <span className="font-mono text-slate-900 text-[14px]">
                         ₹ {formCalculations.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </span>
                     </div>
-                  </div>
-                </div>
 
-                {/* Notes */}
-                <div className="space-y-1">
-                  <label className="text-[12px] font-semibold text-slate-700">Remarks</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Delivery received via vehicle MH-12-8822"
-                    value={formNotes}
-                    onChange={(e) => setFormNotes(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[13px] text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
-                  />
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-emerald-800 font-semibold">Received Amount:</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-emerald-700 font-mono text-[11px]">₹</span>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          value={formPaymentStatus === "Pending" ? "0" : (formPaidAmount !== "" ? formPaidAmount : formCalculations.total.toFixed(2))}
+                          onChange={(e) => handleReceivedAmountChange(e.target.value)}
+                          disabled={formPaymentStatus === "Pending"}
+                          className={`w-28 rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-right font-mono text-[12.5px] font-bold text-emerald-800 focus:border-teal-500 focus:outline-none ${formPaymentStatus === "Pending" ? "opacity-50 cursor-not-allowed bg-slate-100" : ""}`}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-dashed border-slate-200 font-bold">
+                      <span className={formCalculations.due > 0 ? "text-rose-700" : "text-emerald-700"}>Due:</span>
+                      <span className={`font-mono text-[14px] ${formCalculations.due > 0 ? "text-rose-700" : "text-emerald-700"}`}>
+                        ₹ {formCalculations.due.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
                 </div>
       </PosCreatePanel>
 
@@ -1510,8 +1548,9 @@ export function StockPurchaseView() {
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
                       <tr>
                         <th className="px-3 py-2">Item</th>
+                        <th className="px-2 py-2">SKU</th>
                         <th className="px-2 py-2 text-right">Qty</th>
-                        <th className="px-2 py-2 text-right">Rate</th>
+                        <th className="px-2 py-2 text-right">Cost / Unit</th>
                         <th className="px-3 py-2 text-right">Total</th>
                       </tr>
                     </thead>
@@ -1519,6 +1558,7 @@ export function StockPurchaseView() {
                       {detailsModalInvoice.items.map((it, idx) => (
                         <tr key={idx}>
                           <td className="px-3 py-2 font-medium text-slate-800">{it.name}</td>
+                          <td className="px-2 py-2 font-mono text-[11px] text-slate-500">{it.sku || it.skuCode || "—"}</td>
                           <td className="px-2 py-2 text-right text-slate-600 font-mono">{it.quantity} {it.unit}</td>
                           <td className="px-2 py-2 text-right text-slate-500">₹ {it.unitPrice}</td>
                           <td className="px-3 py-2 text-right font-mono font-semibold text-slate-900">

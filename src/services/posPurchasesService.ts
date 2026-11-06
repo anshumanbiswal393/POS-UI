@@ -5,6 +5,8 @@ import { posInventoryService } from "@/services/posInventoryService";
 export interface PurchaseLineItem {
   id?: string;
   stockItemId?: string;
+  sku?: string;
+  skuCode?: string;
   name: string;
   quantity: number;
   unit: string;
@@ -248,6 +250,26 @@ export const posPurchasesService = {
     return items;
   },
 
+  async getNextInvoiceNumber(outletId?: string): Promise<string> {
+    try {
+      const res = await httpClient.get<{ success: boolean; invoiceNo?: string; invoice_no?: string }>(
+        "/api/pos/stock/purchases/next-number/",
+        { params: { outlet_id: outletId } },
+      );
+      if (res?.data?.invoiceNo || res?.data?.invoice_no) {
+        return (res.data.invoiceNo || res.data.invoice_no)!;
+      }
+    } catch {
+      // Fallback local format
+    }
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+    const stored = getStoredPurchases();
+    const todayPrefix = `INV-${todayStr}-`;
+    const count = stored.filter((p) => p.invoiceNo.startsWith(todayPrefix)).length + 1;
+    return `${todayPrefix}${String(count).padStart(4, "0")}`;
+  },
+
   async createPurchase(payload: {
     vendorName: string;
     invoiceNo?: string;
@@ -272,6 +294,17 @@ export const posPurchasesService = {
           const stored = getStoredPurchases();
           const updated = [res.data, ...stored];
           saveStoredPurchases(updated);
+          for (const line of payload.items || []) {
+            if (line.stockItemId) {
+              posInventoryService.adjustMockStock(
+                line.stockItemId,
+                Number(line.quantity) || 0,
+                "PURCHASE_IN",
+                res.data.invoiceNo || payload.invoiceNo || "PUR",
+                { unitCost: line.unitPrice },
+              );
+            }
+          }
           return res.data;
         }
       } catch {
