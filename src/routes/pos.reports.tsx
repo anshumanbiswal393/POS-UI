@@ -12,26 +12,33 @@ function ReportsMainLayoutRoute() {
   if (pathname === "/pos/reports/day-end") {
     return (
       <GuardedRoute permission="pos.reports.view">
-        <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50">
-          <div className="responsive-page-x py-5 pb-12 space-y-5 flex-1">
+        <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50 pb-8">
+          <div className="responsive-page-x py-4 sm:py-5 space-y-4 flex-1">
             <DayEndSummaryView />
           </div>
         </div>
       </GuardedRoute>
     );
   }
-  const isRoot = pathname === "/pos/reports" || pathname === "/pos/reports/";
-  return (
-    <GuardedRoute permission="pos.reports.view">
-      {isRoot ? (
-        <MainOtherReportsView />
-      ) : (
-        <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50">
-          <div className="responsive-page-x py-5 pb-12 space-y-5 flex-1">
+  if (pathname === "/pos/reports/notifications") {
+    return (
+      <GuardedRoute permission="pos.reports.view">
+        <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50 pb-8">
+          <div className="responsive-page-x py-4 sm:py-5 space-y-4 flex-1">
             <Outlet />
           </div>
         </div>
-      )}
+      </GuardedRoute>
+    );
+  }
+  const isReportsView =
+    pathname === "/pos/reports" ||
+    pathname === "/pos/reports/" ||
+    pathname === "/pos/reports/other" ||
+    pathname === "/pos/reports/other/";
+  return (
+    <GuardedRoute permission="pos.reports.view">
+      {isReportsView ? <MainOtherReportsView /> : <Outlet />}
     </GuardedRoute>
   );
 }
