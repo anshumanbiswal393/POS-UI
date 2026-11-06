@@ -72,11 +72,120 @@ const WAITER_OPTIONS = [
   "Pooja (Captain)",
 ];
 
-function tableCapacitySum(tables: RestaurantTable[], ids: string[]) {
+export function tableCapacitySum(tables: RestaurantTable[], ids: string[]) {
   return ids.reduce((sum, id) => {
     const t = tables.find((x) => x.id === id);
     return sum + (t?.capacity || 0);
   }, 0);
+}
+
+export function findOptimalMergeIds(tables: RestaurantTable[], targetPax: number): string[] {
+  if (tables.length === 0) return [];
+
+  // Sort tables: higher capacity first for efficient coverage
+  const sorted = [...tables].sort((a, b) => b.capacity - a.capacity);
+  const totalAvailable = sorted.reduce((sum, t) => sum + t.capacity, 0);
+  if (totalAvailable <= targetPax) {
+    return sorted.map((t) => t.id);
+  }
+
+  let bestCombo: RestaurantTable[] | null = null;
+  let bestWaste = Infinity;
+  let bestCount = Infinity;
+
+  // Branch and bound search for best subset with sum >= targetPax
+  function search(idx: number, current: RestaurantTable[], currentSum: number) {
+    if (currentSum >= targetPax) {
+      const waste = currentSum - targetPax;
+      const count = current.length;
+      if (waste < bestWaste || (waste === bestWaste && count < bestCount)) {
+        bestCombo = [...current];
+        bestWaste = waste;
+        bestCount = count;
+      }
+      return;
+    }
+
+    if (idx >= sorted.length) return;
+
+    // Option 1: include table
+    current.push(sorted[idx]);
+    search(idx + 1, current, currentSum + sorted[idx].capacity);
+    current.pop();
+
+    // Option 2: skip table
+    search(idx + 1, current, currentSum);
+  }
+
+  search(0, [], 0);
+
+  if (bestCombo && (bestCombo as RestaurantTable[]).length > 0) {
+    return (bestCombo as RestaurantTable[]).map((t) => t.id);
+  }
+
+  // Fallback greedy
+  const fallback: string[] = [];
+  let s = 0;
+  for (const t of sorted) {
+    fallback.push(t.id);
+    s += t.capacity;
+    if (s >= targetPax) break;
+  }
+  return fallback;
+}
+
+export function findBestTableSelection(
+  tables: RestaurantTable[],
+  targetPax: number,
+  preferredId?: string,
+): { tableIds: string[]; isMerge: boolean } {
+  if (tables.length === 0) {
+    return { tableIds: [], isMerge: false };
+  }
+
+  // 1. If preferredId is provided and its capacity matches targetPax exactly, use it
+  if (preferredId) {
+    const pref = tables.find((t) => t.id === preferredId);
+    if (pref && pref.capacity === targetPax) {
+      return { tableIds: [pref.id], isMerge: false };
+    }
+  }
+
+  // 2. Check for exact single table match (t.capacity === targetPax)
+  const exactSingle = tables.find((t) => t.capacity === targetPax);
+  if (exactSingle) {
+    return { tableIds: [exactSingle.id], isMerge: false };
+  }
+
+  // 3. Check for single tables that can fit (t.capacity >= targetPax)
+  const fittingSingles = tables
+    .filter((t) => t.capacity >= targetPax)
+    .sort((a, b) => a.capacity - b.capacity);
+
+  const smallestFittingSingle = fittingSingles[0];
+
+  // If no single table fits at all, we MUST merge multiple tables
+  if (!smallestFittingSingle) {
+    const mergedIds = findOptimalMergeIds(tables, targetPax);
+    return { tableIds: mergedIds, isMerge: true };
+  }
+
+  // If a single table fits, but targetPax is relatively large (>= 5) and the smallest single table
+  // has large waste (>= 3 seats excess, e.g. 12-seater for 6 pax = 6 excess), check if an exact/closer merge exists
+  const waste = smallestFittingSingle.capacity - targetPax;
+  if (waste >= 3 && targetPax >= 5) {
+    const mergedIds = findOptimalMergeIds(tables, targetPax);
+    const mergedCapacity = tables
+      .filter((t) => mergedIds.includes(t.id))
+      .reduce((sum, t) => sum + t.capacity, 0);
+    const mergeWaste = mergedCapacity - targetPax;
+    if (mergedIds.length > 1 && mergeWaste < waste) {
+      return { tableIds: mergedIds, isMerge: true };
+    }
+  }
+
+  // Otherwise, use the best fitting single table
+  return { tableIds: [smallestFittingSingle.id], isMerge: false };
 }
 
 export function TableOrderWizardModal({
@@ -172,38 +281,48 @@ export function TableOrderWizardModal({
     setGuestPhone("");
     setNotes("");
     setCart({});
-    setPax(2);
     setStep1Error("");
-  }, [isOpen, heldOrder]);
 
-  // Auto pick single / merge when pax or vacancy changes
-  useEffect(() => {
-    if (!isOpen || heldOrder) return;
+    // Auto choose pax and selection based on chosen table or best fit
+    const preTable = preselectedTableId
+      ? vacantTables.find((t) => t.id === preselectedTableId) ||
+        availableTables.find((t) => t.id === preselectedTableId)
+      : null;
 
-    const preferMerge = vacantTables.every((t) => t.capacity < pax) && vacantTables.length > 0;
-    setMergeMode(preferMerge);
-
-    if (preferMerge) {
-      const picks: string[] = [];
-      let seats = 0;
-      for (const table of vacantTables) {
-        if (seats >= pax) break;
-        picks.push(table.id);
-        seats += table.capacity;
-      }
-      setSelectedTableIds(picks);
-      return;
+    if (preTable) {
+      // Auto choose pax based on the table's capacity
+      setPax(preTable.capacity);
+      setSelectedTableIds([preTable.id]);
+      setMergeMode(false);
+    } else if (vacantTables.length > 0) {
+      // Pick first available table and auto-choose pax to its capacity
+      const defaultTable = vacantTables[0];
+      setPax(defaultTable.capacity);
+      setSelectedTableIds([defaultTable.id]);
+      setMergeMode(false);
+    } else {
+      setPax(2);
+      setSelectedTableIds([]);
+      setMergeMode(false);
     }
+  }, [isOpen, heldOrder, preselectedTableId]);
 
-    const preferred =
-      (preselectedTableId &&
-        vacantTables.find((t) => t.id === preselectedTableId && t.capacity >= pax)) ||
-      fittingSingleTables[0] ||
-      vacantTables.find((t) => t.id === preselectedTableId) ||
-      vacantTables[0];
+  const handlePaxChange = (newPax: number) => {
+    const validPax = Math.max(1, newPax);
+    setPax(validPax);
+    setStep1Error("");
 
-    setSelectedTableIds(preferred ? [preferred.id] : []);
-  }, [isOpen, heldOrder, pax, vacantTables, fittingSingleTables, preselectedTableId]);
+    const selection = findBestTableSelection(vacantTables, validPax);
+    setSelectedTableIds(selection.tableIds);
+    setMergeMode(selection.isMerge);
+  };
+
+  const handleSelectSingleTable = (table: RestaurantTable) => {
+    setSelectedTableIds([table.id]);
+    setPax(table.capacity);
+    setMergeMode(false);
+    setStep1Error("");
+  };
 
   function toggleMergedTable(tableId: string) {
     setSelectedTableIds((prev) => {
@@ -411,7 +530,7 @@ export function TableOrderWizardModal({
                   <button
                     key={num}
                     type="button"
-                    onClick={() => setPax(num)}
+                    onClick={() => handlePaxChange(num)}
                     className={`min-w-[2.25rem] py-1.5 px-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                       pax === num
                         ? "bg-primary text-primary-foreground border-primary shadow-xs"
@@ -424,7 +543,7 @@ export function TableOrderWizardModal({
                 <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-white px-1.5 py-0.5">
                   <button
                     type="button"
-                    onClick={() => setPax(Math.max(1, pax - 1))}
+                    onClick={() => handlePaxChange(pax - 1)}
                     className="px-1.5 py-1 text-slate-600 hover:bg-slate-100 rounded-md cursor-pointer"
                   >
                     <Minus className="w-3 h-3" />
@@ -432,7 +551,7 @@ export function TableOrderWizardModal({
                   <span className="px-2 text-xs font-black text-slate-900">{pax}</span>
                   <button
                     type="button"
-                    onClick={() => setPax(pax + 1)}
+                    onClick={() => handlePaxChange(pax + 1)}
                     className="px-1.5 py-1 text-slate-600 hover:bg-slate-100 rounded-md cursor-pointer"
                   >
                     <Plus className="w-3 h-3" />
@@ -464,17 +583,19 @@ export function TableOrderWizardModal({
                   onClick={() => {
                     const next = !mergeMode;
                     setMergeMode(next);
-                    if (!next && fittingSingleTables[0]) {
-                      setSelectedTableIds([fittingSingleTables[0].id]);
-                    } else if (next && selectedTableIds.length <= 1) {
-                      const picks: string[] = [];
-                      let seats = 0;
-                      for (const table of vacantTables) {
-                        if (seats >= pax) break;
-                        picks.push(table.id);
-                        seats += table.capacity;
+                    if (!next) {
+                      // Switch back to single: pick exact or fitting single table
+                      const single =
+                        vacantTables.find((t) => t.capacity === pax) ||
+                        fittingSingleTables[0] ||
+                        vacantTables[0];
+                      if (single) {
+                        setSelectedTableIds([single.id]);
+                        setPax(single.capacity);
                       }
-                      setSelectedTableIds(picks);
+                    } else if (next && selectedTableIds.length <= 1) {
+                      const merged = findOptimalMergeIds(vacantTables, pax);
+                      setSelectedTableIds(merged);
                     }
                   }}
                   className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-bold border transition cursor-pointer ${
@@ -490,21 +611,18 @@ export function TableOrderWizardModal({
 
               {!showMergeUi ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto pr-1">
-                  {fittingSingleTables.length === 0 && vacantTables.length === 0 ? (
+                  {vacantTables.length === 0 ? (
                     <div className="col-span-full p-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-medium">
                       No available tables right now.
                     </div>
                   ) : (
-                    fittingSingleTables.map((tbl) => {
-                      const isSelected = selectedTableIds[0] === tbl.id;
+                    vacantTables.map((tbl) => {
+                      const isSelected = selectedTableIds.length === 1 && selectedTableIds[0] === tbl.id;
                       return (
                         <button
                           key={tbl.id}
                           type="button"
-                          onClick={() => {
-                            setSelectedTableIds([tbl.id]);
-                            setStep1Error("");
-                          }}
+                          onClick={() => handleSelectSingleTable(tbl)}
                           className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                             isSelected
                               ? "bg-primary/10 border-primary ring-1 ring-primary shadow-xs"
