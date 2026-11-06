@@ -29,6 +29,7 @@ import {
   ChevronLeft,
   ChevronRight,
   XCircle,
+  ArrowLeftRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -39,12 +40,14 @@ import {
   useSeatGuestsMutation,
   useVacateTableMutation,
   useDiningAreas,
+  useSwitchTableMutation,
 } from "@/hooks/queries/usePosTables";
 import type { ReservationItem, RestaurantTable } from "@/types/posTables";
 import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 import { usePosDate } from "@/hooks/usePosDate";
 import { NewReservationModal } from "../tables/NewReservationModal";
 import { ReservationDetailSlide } from "../tables/ReservationDetailSlide";
+import { SwitchTableModal } from "../tables/SwitchTableModal";
 import { exportToExcel } from "@/utils/exportUtils";
 import {
   PosDataGrid,
@@ -99,6 +102,7 @@ export function PosReservationsManager() {
   const cancelReservationMutation = useCancelReservationMutation();
   const seatGuestsMutation = useSeatGuestsMutation();
   const vacateTableMutation = useVacateTableMutation();
+  const switchTableMutation = useSwitchTableMutation();
 
   // View state
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
@@ -106,6 +110,7 @@ export function PosReservationsManager() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [switchReservation, setSwitchReservation] = useState<ReservationItem | null>(null);
 
   // Date filter (defaults to operational date from top nav calendar)
   const { selectedDateStr } = usePosDate();
@@ -433,6 +438,16 @@ export function PosReservationsManager() {
                 Seat
               </button>
             )}
+            {res.status === "reserved" && (
+              <button
+                type="button"
+                onClick={() => setSwitchReservation(res)}
+                title="Switch Table"
+                className="p-1.5 text-slate-400 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition cursor-pointer"
+              >
+                <ArrowLeftRight className="w-3.5 h-3.5" />
+              </button>
+            )}
             <button
               type="button"
               onClick={() => handleOpenDetail(res)}
@@ -616,6 +631,7 @@ export function PosReservationsManager() {
                 setCurrentPage(1);
               }}
               showPresets={true}
+              showClear={true}
               size="sm"
             />
 
@@ -860,14 +876,32 @@ export function PosReservationsManager() {
         onClose={() => setIsDetailSlideOpen(false)}
         selectedTable={selectedTable}
         selectedReservation={selectedReservation}
+        tables={tables}
         onSeatGuests={handleSeatGuests}
         onCancelReservation={handleCancelReservation}
+        onSwitchTable={(reservationId, newTableId) =>
+          switchTableMutation.mutate({ reservationId, newTableId })
+        }
         onVacateTable={(tableId) => vacateTableMutation.mutate(tableId)}
         onOpenNewBooking={() => {
           setIsDetailSlideOpen(false);
           setIsNewBookingOpen(true);
         }}
       />
+
+      {/* Switch Table Modal */}
+      {switchReservation && (
+        <SwitchTableModal
+          isOpen={!!switchReservation}
+          onClose={() => setSwitchReservation(null)}
+          reservation={switchReservation}
+          tables={tables}
+          isPending={switchTableMutation.isPending}
+          onConfirmSwitch={(reservationId, newTableId) =>
+            switchTableMutation.mutate({ reservationId, newTableId })
+          }
+        />
+      )}
     </div>
   );
 }

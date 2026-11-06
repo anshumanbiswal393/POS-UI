@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -23,16 +23,20 @@ import {
   AlertCircle,
   Receipt,
   UserCheck,
+  ArrowLeftRight,
 } from "lucide-react";
 import type { RestaurantTable, ReservationItem } from "@/types/posTables";
+import { SwitchTableModal } from "./SwitchTableModal";
 
 interface ReservationDetailSlideProps {
   isOpen: boolean;
   onClose: () => void;
   selectedTable: RestaurantTable | null;
   selectedReservation: ReservationItem | null;
+  tables?: RestaurantTable[];
   onSeatGuests: (tableId: string, reservationId?: string) => void;
   onCancelReservation: (reservationId: string) => void;
+  onSwitchTable?: (reservationId: string, newTableId: string) => void;
   onVacateTable: (tableId: string) => void;
   onOpenNewBooking: (tableId?: string) => void;
   onOpenEditOrder?: (table: RestaurantTable) => void;
@@ -43,12 +47,16 @@ export function ReservationDetailSlide({
   onClose,
   selectedTable,
   selectedReservation,
+  tables = [],
   onSeatGuests,
   onCancelReservation,
+  onSwitchTable,
   onVacateTable,
   onOpenNewBooking,
   onOpenEditOrder,
 }: ReservationDetailSlideProps) {
+  const [isSwitchModalOpen, setIsSwitchModalOpen] = useState(false);
+
   if (!selectedTable && !selectedReservation) return null;
 
   const res = selectedReservation || selectedTable?.activeReservation;
@@ -395,6 +403,16 @@ export function ReservationDetailSlide({
               </button>
 
               <div className="flex items-center gap-2">
+                {onSwitchTable && (
+                  <button
+                    type="button"
+                    onClick={() => setIsSwitchModalOpen(true)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-teal-200 text-teal-700 bg-teal-50 hover:bg-teal-100 font-semibold text-xs transition-colors cursor-pointer"
+                  >
+                    <ArrowLeftRight className="w-3.5 h-3.5" />
+                    Switch Table
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -404,7 +422,7 @@ export function ReservationDetailSlide({
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-rose-200 text-rose-600 font-semibold text-xs hover:bg-rose-50 transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Cancel Reservation
+                  Cancel
                 </button>
                 <button
                   type="button"
@@ -482,6 +500,20 @@ export function ReservationDetailSlide({
           )}
         </div>
       </SheetContent>
+
+      {isSwitchModalOpen && res && tables && onSwitchTable && (
+        <SwitchTableModal
+          isOpen={isSwitchModalOpen}
+          onClose={() => setIsSwitchModalOpen(false)}
+          reservation={res}
+          tables={tables}
+          onConfirmSwitch={(rId, nId) => {
+            onSwitchTable(rId, nId);
+            setIsSwitchModalOpen(false);
+            onClose();
+          }}
+        />
+      )}
     </Sheet>
   );
 }

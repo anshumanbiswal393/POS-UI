@@ -1,3 +1,126 @@
+export function toIsoDate(str?: string): string {
+  if (!str || str.toLowerCase().includes("today")) {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    const yyyy = parsed.getFullYear();
+    const mm = String(parsed.getMonth() + 1).padStart(2, "0");
+    const dd = String(parsed.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+export function to24HourTime(str?: string): string {
+  if (!str) return "19:00:00";
+  const trimmed = str.trim();
+  const m24 = trimmed.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
+  if (m24) {
+    return `${m24[1].padStart(2, "0")}:${m24[2]}:${m24[3] || "00"}`;
+  }
+  const m12 = trimmed.match(/^([0-1]?\d):([0-5]\d)\s*(AM|PM)$/i);
+  if (m12) {
+    let h = parseInt(m12[1], 10);
+    const m = m12[2];
+    const mer = m12[3].toUpperCase();
+    if (mer === "PM" && h < 12) h += 12;
+    if (mer === "AM" && h === 12) h = 0;
+    return `${String(h).padStart(2, "0")}:${m}:00`;
+  }
+  return "19:00:00";
+}
+
+export function toDisplayTime(str?: string): string {
+  if (!str) return "";
+  const trimmed = str.trim();
+  const m12 = trimmed.match(/^([0-1]?\d):([0-5]\d)\s*(AM|PM)$/i);
+  if (m12) return trimmed;
+  const m24 = trimmed.match(/^([01]?\d|2[0-3]):([0-5]\d)/);
+  if (m24) {
+    let h = parseInt(m24[1], 10);
+    const m = m24[2];
+    const mer = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return `${String(h).padStart(2, "0")}:${m} ${mer}`;
+  }
+  return trimmed;
+}
+
+export function parseReservationDateTime(dateStr?: string, timeStr?: string): Date | null {
+  if (!dateStr || !timeStr) return null;
+  const iso = toIsoDate(dateStr);
+  const t24 = to24HourTime(timeStr);
+  const [yyyy, mm, dd] = iso.split("-").map(Number);
+  const [hh, min, ss] = t24.split(":").map(Number);
+  if (isNaN(yyyy) || isNaN(mm) || isNaN(dd) || isNaN(hh) || isNaN(min)) return null;
+  const d = new Date(yyyy, mm - 1, dd, hh, min, ss || 0);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export function isReservationActiveNow(res: ReservationItem, now: Date = new Date()): boolean {
+  if (res.status !== "reserved") return false;
+  const start = parseReservationDateTime(res.reservationDate, res.reservationTime);
+  if (!start) return false;
+  let end: Date;
+  if (res.endTime) {
+    end = parseReservationDateTime(res.reservationDate, res.endTime) || new Date(start.getTime() + 2 * 60 * 60 * 1000);
+  } else {
+    end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+  }
+  return now.getTime() >= start.getTime() && now.getTime() <= end.getTime();
+}
+
+export function minutesUntilReservation(res: ReservationItem, now: Date = new Date()): number {
+  const start = parseReservationDateTime(res.reservationDate, res.reservationTime);
+  if (!start) return 9999;
+  return Math.round((start.getTime() - now.getTime()) / (60 * 1000));
+}
+
+export function isReservationUpcomingWithin30Min(res: ReservationItem, now: Date = new Date()): boolean {
+  if (res.status !== "reserved") return false;
+  const mins = minutesUntilReservation(res, now);
+  return mins >= 0 && mins <= 30;
+}
+
+function getStoredReservations(outletId?: string): ReservationItem[] {
+  const effective =
+    outletId ||
+    scopedOutletId ||
+    (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null) ||
+    "default";
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem(`retrod_pos_reservations_${effective}`) : null;
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredReservations(outletId: string | undefined, list: ReservationItem[]): void {
+  const effective =
+    outletId ||
+    scopedOutletId ||
+    (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null) ||
+    "default";
+  try {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`retrod_pos_reservations_${effective}`, JSON.stringify(list));
+    }
+  } catch (e) {
+    console.warn("Failed to save reservations to localStorage:", e);
+  }
+}
+
 function mapBackendReservation(r: any): ReservationItem {
 
   const tableNumbers = Array.isArray(r.table_numbers) ? r.table_numbers : [];
@@ -721,6 +844,51 @@ export const posTablesService = {
         }
       }
 
+      // Dynamic table reservation state based on actual reservation timing
+      const allReservations = getStoredReservations(cid);
+      const now = new Date();
+
+      mapped = mapped.map((tbl) => {
+        // Occupied tables with active dining orders always stay occupied
+        if (tbl.status === "occupied" || tbl.activeOrder?.orderId) {
+          return tbl;
+        }
+
+        // Find active reservation for this table whose scheduled time has arrived
+        const activeRes = allReservations.find(
+          (r) =>
+            r.status === "reserved" &&
+            (r.tableId === tbl.id ||
+              r.mergedTableIds?.includes(tbl.id) ||
+              r.tableNumber === tbl.tableNumber) &&
+            isReservationActiveNow(r, now),
+        );
+
+        if (activeRes) {
+          return {
+            ...tbl,
+            status: "reserved" as const,
+            activeReservation: activeRes,
+          };
+        }
+
+        // If the table was marked RESERVED in backend DB previously, but the reservation
+        // time has not arrived yet (or is past/completed), display table as VACANT ("Available")
+        if (tbl.status === "reserved") {
+          // Asynchronously self-heal backend status back to VACANT
+          if (isBackendOutletId(tbl.id)) {
+            patchTableStatus(tbl.id, "VACANT").catch(() => {});
+          }
+          return {
+            ...tbl,
+            status: "vacant" as const,
+            activeReservation: undefined,
+          };
+        }
+
+        return tbl;
+      });
+
       if (area && area.trim() && area !== "All Zones" && area !== "All Areas") {
         const target = area.trim().toLowerCase();
         return mapped.filter((t) => (t.area || "").trim().toLowerCase() === target);
@@ -728,59 +896,70 @@ export const posTablesService = {
       return mapped;
     }
 
-    return [];
+    return store().tables;
   },
 
   getReservations: async (): Promise<ReservationItem[]> => {
+    const effectiveOutlet =
+      scopedOutletId ||
+      (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null) ||
+      undefined;
+    const localStored = getStoredReservations(effectiveOutlet);
 
+    let backendRows: ReservationItem[] = [];
     if (isLiveFloor()) {
-
       try {
-
         const res = await httpClient.get(API_ENDPOINTS.TABLES.RESERVATIONS, {
-
-          params: { outlet_id: scopedOutletId, page_size: 100 },
-
+          params: { outlet_id: scopedOutletId, page_size: 200 },
         });
-
         const rows = unwrapRows<any>(res.data);
-
         if (rows.length > 0) {
-
-          return rows.map(mapBackendReservation);
-
+          backendRows = rows.map(mapBackendReservation);
         }
-
       } catch (err) {
-
         console.warn("Could not fetch live table reservations, falling back to local:", err);
-
       }
-
-      const tables = await posTablesService.getTables();
-
-      const liveReservations: ReservationItem[] = [];
-
-      tables.forEach((t) => {
-
-        if (t.status === "reserved" && t.activeReservation) {
-
-          liveReservations.push(t.activeReservation);
-
-        }
-
-      });
-
-      const liveIds = new Set(liveReservations.map((r) => r.id));
-
-      const extra = store().reservations.filter((r) => !liveIds.has(r.id));
-
-      return [...liveReservations, ...extra];
-
     }
 
-    return [...store().reservations];
+    // Merge backend and local reservations by ID
+    const map = new Map<string, ReservationItem>();
+    localStored.forEach((r) => map.set(r.id, r));
+    store().reservations.forEach((r) => {
+      const existing = map.get(r.id);
+      if (!existing || existing.status === "reserved" || r.status === "completed") {
+        map.set(r.id, { ...existing, ...r });
+      }
+    });
 
+    backendRows.forEach((r) => {
+      const existing = map.get(r.id);
+      if (existing) {
+        map.set(r.id, {
+          ...r,
+          status: existing.status === "completed" ? "completed" : r.status,
+          reservationDate: toIsoDate(r.reservationDate),
+          reservationTime: toDisplayTime(r.reservationTime),
+        });
+      } else {
+        map.set(r.id, {
+          ...r,
+          reservationDate: toIsoDate(r.reservationDate),
+          reservationTime: toDisplayTime(r.reservationTime),
+        });
+      }
+    });
+
+    const result = Array.from(map.values()).sort((a, b) => {
+      const dateA = a.reservationDate || "";
+      const dateB = b.reservationDate || "";
+      if (dateA !== dateB) return dateB.localeCompare(dateA);
+      return (b.reservationTime || "").localeCompare(a.reservationTime || "");
+    });
+
+    saveStoredReservations(effectiveOutlet, result);
+    store().reservations = result;
+
+    return result;
   },
 
   getStats: async (area?: DiningArea): Promise<TableManagementStats> => {
@@ -826,379 +1005,345 @@ export const posTablesService = {
   },
 
   addReservation: async (
-
     data: Omit<ReservationItem, "id" | "createdAt" | "status">,
-
   ): Promise<ReservationItem> => {
+    const effectiveOutlet =
+      scopedOutletId ||
+      (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null) ||
+      undefined;
+
+    const mergedIds =
+      data.mergedTableIds && data.mergedTableIds.length > 0
+        ? Array.from(new Set([data.tableId, ...data.mergedTableIds]))
+        : [data.tableId];
+
+    const tables = store().tables.length > 0 ? store().tables : await posTablesService.getTables();
+    const mergedNumbers = mergedIds.map(
+      (id) => tables.find((t) => t.id === id)?.tableNumber || id,
+    );
+    const isMerged = mergedIds.length > 1;
+
+    const isoDate = toIsoDate(data.reservationDate);
+    const time24 = to24HourTime(data.reservationTime);
+    const displayTime = toDisplayTime(data.reservationTime);
+    const displayEndTime = data.endTime ? toDisplayTime(data.endTime) : undefined;
+
+    const newReservation: ReservationItem = {
+      ...data,
+      id: `res-${Date.now()}`,
+      tableId: mergedIds[0],
+      tableNumber: mergedNumbers.join(" + ") || data.tableNumber,
+      mergedTableIds: isMerged ? mergedIds : undefined,
+      mergedTableNumbers: isMerged ? mergedNumbers : undefined,
+      isMerged,
+      reservationDate: isoDate,
+      reservationTime: displayTime,
+      endTime: displayEndTime,
+      status: "reserved",
+      createdAt: new Date().toISOString(),
+    };
+
+    const isCurrentActive = isReservationActiveNow(newReservation);
 
     if (isLiveFloor()) {
-
-      const mergedIds =
-
-        data.mergedTableIds && data.mergedTableIds.length > 0
-
-          ? Array.from(new Set([data.tableId, ...data.mergedTableIds]))
-
-          : [data.tableId];
-
       try {
-
         const payload = {
-
           outlet: scopedOutletId,
-
           guest_name: data.customerName,
-
           guest_phone: data.customerPhone || "N/A",
-
           guest_email: data.customerEmail || undefined,
-
           pax: data.guests,
-
-          reservation_date: data.reservationDate.includes("Today") || !data.reservationDate ? new Date().toISOString().split("T")[0] : data.reservationDate,
-
-          start_time: data.reservationTime.length === 5 ? `${data.reservationTime}:00` : data.reservationTime,
-
+          reservation_date: isoDate,
+          start_time: time24,
           table_ids: mergedIds.filter(isBackendOutletId),
-
           notes: data.notes || undefined,
-
           is_vip: Boolean(data.isVip),
-
         };
 
         const res = await httpClient.post(API_ENDPOINTS.TABLES.RESERVATIONS, payload);
-
         const saved = mapBackendReservation(res.data);
-
-        // Also update table statuses on floor
-
-        for (const id of mergedIds) {
-
-          if (isBackendOutletId(id)) {
-
-            await patchTableStatus(id, "RESERVED", {
-
-              notes: data.notes || `Reserved for ${data.customerName}`,
-
-              active_waiter_name: data.customerName,
-
-            });
-
-          }
-
-        }
-
-        return saved;
-
+        newReservation.id = saved.id;
+        newReservation.tableNumber = saved.tableNumber || newReservation.tableNumber;
       } catch (err) {
-
-        console.warn("Backend reservation creation failed, applying floor status:", err);
-
-        for (const id of mergedIds) {
-
-          if (isBackendOutletId(id)) {
-
-            await patchTableStatus(id, "RESERVED", {
-
-              notes: data.notes || `Reserved for ${data.customerName}`,
-
-              active_waiter_name: data.customerName,
-
-            });
-
-          }
-
-        }
-
-        return {
-
-          ...data,
-
-          tableId: mergedIds[0],
-
-          id: mergedIds[0],
-
-          status: "reserved",
-
-          createdAt: new Date().toISOString(),
-
-        };
-
+        console.warn("Backend reservation creation failed or offline, saving locally:", err);
       }
 
+      // ONLY mark table as RESERVED if the scheduled reservation time has arrived!
+      // Do not mark reserved before the reservation time.
+      if (isCurrentActive) {
+        for (const id of mergedIds) {
+          if (isBackendOutletId(id)) {
+            await patchTableStatus(id, "RESERVED", {
+              notes: data.notes || `Reserved for ${data.customerName}`,
+              active_waiter_name: data.customerName,
+            }).catch(() => {});
+          }
+        }
+      }
     }
 
-    const mergedIds =
+    // Persist to localStorage and in-memory store
+    const stored = getStoredReservations(effectiveOutlet);
+    const updatedStored = [newReservation, ...stored.filter((r) => r.id !== newReservation.id)];
+    saveStoredReservations(effectiveOutlet, updatedStored);
+    store().reservations = [newReservation, ...store().reservations.filter((r) => r.id !== newReservation.id)];
 
-      data.mergedTableIds && data.mergedTableIds.length > 0
-
-        ? Array.from(new Set([data.tableId, ...data.mergedTableIds]))
-
-        : [data.tableId];
-
-    const mergedNumbers = mergedIds.map(
-
-      (id) => store().tables.find((t) => t.id === id)?.tableNumber || id,
-
-    );
-
-    const isMerged = mergedIds.length > 1;
-
-    const newReservation: ReservationItem = {
-
-      ...data,
-
-      tableId: mergedIds[0],
-
-      tableNumber: mergedNumbers[0],
-
-      mergedTableIds: isMerged ? mergedIds : undefined,
-
-      mergedTableNumbers: isMerged ? mergedNumbers : undefined,
-
-      isMerged,
-
-      id: `res-${Date.now()}`,
-
-      status: "reserved",
-
-      createdAt: new Date().toISOString(),
-
-    };
-
-    store().reservations = [newReservation, ...store().reservations];
-
-    // Book every linked table under the same guest reservation
-
-    store().tables = store().tables.map((tbl) => {
-
-      if (mergedIds.includes(tbl.id)) {
-
-        return {
-
-          ...tbl,
-
-          status: "reserved" as const,
-
-          currentGuests: data.guests,
-
-          activeReservation: newReservation,
-
-        };
-
-      }
-
-      return tbl;
-
-    });
+    // Only mark table reserved on the floor if reservation is currently active
+    if (isCurrentActive) {
+      store().tables = store().tables.map((tbl) => {
+        if (mergedIds.includes(tbl.id)) {
+          return {
+            ...tbl,
+            status: "reserved" as const,
+            currentGuests: data.guests,
+            activeReservation: newReservation,
+          };
+        }
+        return tbl;
+      });
+    }
 
     return newReservation;
-
   },
 
   seatGuests: async (tableId: string, reservationId?: string): Promise<RestaurantTable> => {
+    const effectiveOutlet =
+      scopedOutletId ||
+      (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null) ||
+      undefined;
 
     if (isLiveFloor()) {
-
       if (reservationId && isBackendOutletId(reservationId)) {
-
         try {
-
           await httpClient.post(API_ENDPOINTS.TABLES.SEAT_RESERVATION(reservationId));
-
         } catch (e) {
-
           console.warn("Could not post seat to backend reservation:", e);
-
         }
-
       }
-
-      await patchTableStatus(tableId, "OCCUPIED");
-
-      const tables = await posTablesService.getTables();
-
-      const found = tables.find((t) => t.id === tableId);
-
-      if (!found) throw new Error("Table not found");
-
-      return found;
-
+      await patchTableStatus(tableId, "OCCUPIED").catch(() => {});
     }
 
-    let reservation: ReservationItem | undefined;
+    // Mark reservation status as "completed" (maintained in reservation list)
+    let seatedReservation: ReservationItem | undefined;
+    const stored = getStoredReservations(effectiveOutlet);
+    const updatedStored = stored.map((r) => {
+      const isTarget = reservationId
+        ? r.id === reservationId
+        : (r.tableId === tableId || r.mergedTableIds?.includes(tableId)) && r.status === "reserved";
+      if (isTarget) {
+        seatedReservation = { ...r, status: "completed" as const };
+        return seatedReservation;
+      }
+      return r;
+    });
+    saveStoredReservations(effectiveOutlet, updatedStored);
 
-    if (reservationId) {
-
-      store().reservations = store().reservations.map((r) => {
-
-        if (r.id === reservationId) {
-
-          reservation = { ...r, status: "seated" };
-
-          return reservation;
-
-        }
-
-        return r;
-
-      });
-
-    }
+    store().reservations = store().reservations.map((r) => {
+      const isTarget = reservationId
+        ? r.id === reservationId
+        : (r.tableId === tableId || r.mergedTableIds?.includes(tableId)) && r.status === "reserved";
+      if (isTarget) {
+        return { ...r, status: "completed" as const };
+      }
+      return r;
+    });
 
     const linkedIds =
-
-      reservation?.mergedTableIds && reservation.mergedTableIds.length > 0
-
-        ? reservation.mergedTableIds
-
+      seatedReservation?.mergedTableIds && seatedReservation.mergedTableIds.length > 0
+        ? seatedReservation.mergedTableIds
         : [tableId];
 
     const activeOrder = {
-
       orderId: `ord-${Date.now()}`,
-
       orderNumber: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
-
       serverName: "Captain Jack",
-
       seatedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-
       elapsedMinutes: 1,
-
       itemsCount: 0,
-
       subtotal: 0,
-
       totalAmount: 0,
-
       status: "in_prep" as const,
-
-      guestName: reservation?.customerName,
-
-      guestPhone: reservation?.customerPhone,
-
+      guestName: seatedReservation?.customerName,
+      guestPhone: seatedReservation?.customerPhone,
     };
 
     let updatedTable!: RestaurantTable;
-
     store().tables = store().tables.map((tbl) => {
-
       if (linkedIds.includes(tbl.id)) {
-
-        const next = {
-
+        const next: RestaurantTable = {
           ...tbl,
-
           status: "occupied" as const,
-
-          currentGuests: reservation ? reservation.guests : tbl.capacity,
-
-          activeReservation: reservation,
-
+          currentGuests: seatedReservation ? seatedReservation.guests : tbl.capacity,
+          activeReservation: seatedReservation,
           activeOrder,
-
         };
-
         if (tbl.id === tableId || tbl.id === linkedIds[0]) updatedTable = next;
-
         return next;
-
       }
-
       return tbl;
-
     });
 
-    return updatedTable;
+    if (isLiveFloor()) {
+      const tables = await posTablesService.getTables();
+      const found = tables.find((t) => t.id === tableId);
+      if (found) return found;
+    }
 
+    return updatedTable || {
+      id: tableId,
+      tableNumber: `Table #${tableId}`,
+      tableNumberRaw: 1,
+      capacity: 4,
+      shape: "square",
+      area: "Main",
+      status: "occupied",
+    };
+  },
+
+  switchReservationTable: async (
+    reservationId: string,
+    newTableId: string,
+  ): Promise<ReservationItem> => {
+    const effectiveOutlet =
+      scopedOutletId ||
+      (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null) ||
+      undefined;
+
+    const allReservations = await posTablesService.getReservations();
+    const res = allReservations.find((r) => r.id === reservationId);
+    if (!res) throw new Error("Reservation not found");
+
+    const tables = await posTablesService.getTables();
+    const targetTable = tables.find((t) => t.id === newTableId);
+    if (!targetTable) throw new Error("Target table not found");
+
+    const oldTableId = res.tableId;
+    const isTimeActive = isReservationActiveNow(res);
+
+    const updatedRes: ReservationItem = {
+      ...res,
+      tableId: targetTable.id,
+      tableNumber: targetTable.tableNumber,
+      mergedTableIds: undefined,
+      mergedTableNumbers: undefined,
+      isMerged: false,
+    };
+
+    // Update backend reservation if live
+    if (isLiveFloor() && isBackendOutletId(reservationId)) {
+      try {
+        await httpClient.patch(`${API_ENDPOINTS.TABLES.RESERVATIONS}${reservationId}/`, {
+          table_ids: [targetTable.id],
+        });
+      } catch (e) {
+        console.warn("Could not patch reservation table on backend:", e);
+      }
+    }
+
+    // If reservation is currently active, switch table statuses
+    if (isTimeActive) {
+      if (isBackendOutletId(oldTableId)) {
+        await patchTableStatus(oldTableId, "VACANT").catch(() => {});
+      }
+      if (isBackendOutletId(targetTable.id)) {
+        await patchTableStatus(targetTable.id, "RESERVED", {
+          notes: updatedRes.notes || `Reserved for ${updatedRes.customerName}`,
+          active_waiter_name: updatedRes.customerName,
+        }).catch(() => {});
+      }
+    }
+
+    // Update localStorage & store
+    const stored = getStoredReservations(effectiveOutlet);
+    const updatedStored = stored.map((r) => (r.id === reservationId ? updatedRes : r));
+    saveStoredReservations(effectiveOutlet, updatedStored);
+    store().reservations = store().reservations.map((r) => (r.id === reservationId ? updatedRes : r));
+
+    return updatedRes;
   },
 
   cancelReservation: async (reservationId: string): Promise<void> => {
+    const effectiveOutlet =
+      scopedOutletId ||
+      (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null) ||
+      undefined;
 
     if (isLiveFloor() && isBackendOutletId(reservationId)) {
-
       try {
-
         await httpClient.post(API_ENDPOINTS.TABLES.CANCEL_RESERVATION(reservationId));
-
       } catch (e) {
-
         console.warn("Could not cancel reservation on backend:", e);
-
       }
-
     }
 
     let linkedTableIds: string[] = [];
+    const stored = getStoredReservations(effectiveOutlet);
+    const updatedStored = stored.map((r) => {
+      if (r.id === reservationId) {
+        linkedTableIds =
+          r.mergedTableIds && r.mergedTableIds.length > 0
+            ? r.mergedTableIds
+            : r.tableId
+              ? [r.tableId]
+              : [];
+        return { ...r, status: "cancelled" as const };
+      }
+      return r;
+    });
+    saveStoredReservations(effectiveOutlet, updatedStored);
 
     store().reservations = store().reservations.map((r) => {
-
       if (r.id === reservationId) {
-
-        linkedTableIds =
-
-          r.mergedTableIds && r.mergedTableIds.length > 0
-
-            ? r.mergedTableIds
-
-            : r.tableId
-
-              ? [r.tableId]
-
-              : [];
-
-        return { ...r, status: "cancelled" };
-
+        return { ...r, status: "cancelled" as const };
       }
-
       return r;
-
     });
 
     if (linkedTableIds.length > 0) {
-
-      store().tables = store().tables.map((tbl) => {
-
-        if (linkedTableIds.includes(tbl.id)) {
-
-          return {
-
-            ...tbl,
-
-            status: "vacant",
-
-            currentGuests: 0,
-
-            activeReservation: undefined,
-
-          };
-
+      for (const tid of linkedTableIds) {
+        if (isLiveFloor() && isBackendOutletId(tid)) {
+          patchTableStatus(tid, "VACANT").catch(() => {});
         }
-
+      }
+      store().tables = store().tables.map((tbl) => {
+        if (linkedTableIds.includes(tbl.id)) {
+          return {
+            ...tbl,
+            status: "vacant" as const,
+            currentGuests: 0,
+            activeReservation: undefined,
+          };
+        }
         return tbl;
-
       });
-
     }
-
   },
 
   vacateTable: async (tableId: string): Promise<RestaurantTable> => {
+    const effectiveOutlet =
+      scopedOutletId ||
+      (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null) ||
+      undefined;
+
+    // Mark any active reservation for this table as completed in storage
+    const stored = getStoredReservations(effectiveOutlet);
+    const updatedStored = stored.map((r) => {
+      if (
+        (r.tableId === tableId || r.mergedTableIds?.includes(tableId)) &&
+        (r.status === "reserved" || r.status === "seated")
+      ) {
+        return { ...r, status: "completed" as const };
+      }
+      return r;
+    });
+    saveStoredReservations(effectiveOutlet, updatedStored);
 
     if (isLiveFloor()) {
-
       await patchTableStatus(tableId, "VACANT");
-
       const tables = await posTablesService.getTables();
-
       const found = tables.find((t) => t.id === tableId);
-
       if (!found) throw new Error("Table not found");
-
       return found;
-
     }
 
     let updatedTable!: RestaurantTable;

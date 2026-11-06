@@ -4,6 +4,8 @@ import {
   usePosTables,
   useDiningAreas,
   usePosTableStats,
+  usePosReservations,
+  useSwitchTableMutation,
   useSeatGuestsMutation,
   useCancelReservationMutation,
   useVacateTableMutation,
@@ -32,6 +34,7 @@ import { TableOrderWizardModal } from "./tables/TableOrderWizardModal";
 import { TableOrderEditModal } from "./tables/TableOrderEditModal";
 import { ReservationDetailSlide } from "./tables/ReservationDetailSlide";
 import { NewReservationModal } from "./tables/NewReservationModal";
+import { SwitchTableModal } from "./tables/SwitchTableModal";
 import { RoomOrderCategoryGridView } from "./roomService/RoomOrderCategoryGridView";
 import { RoomOrderDetailSlide } from "./roomService/RoomOrderDetailSlide";
 import { RoomOrderWizardModal, type HeldRoomOrder } from "./roomService/RoomOrderWizardModal";
@@ -65,15 +68,18 @@ export function PosTakeOrderManager() {
   const [editingTable, setEditingTable] = useState<RestaurantTable | null>(null);
   const [wizardTableId, setWizardTableId] = useState<string | undefined>(undefined);
   const [bookingTableId, setBookingTableId] = useState<string | undefined>(undefined);
+  const [switchModalReservation, setSwitchModalReservation] = useState<ReservationItem | null>(null);
 
   // Table queries & mutations
   const { data: diningAreas = [] } = useDiningAreas();
   const { data: tables = [], refetch: refetchTables } = usePosTables(activeArea);
   const { data: allTables = [] } = usePosTables();
   const { data: stats } = usePosTableStats(activeArea);
+  const { data: reservations = [], refetch: refetchReservations } = usePosReservations();
 
   const seatGuestsMutation = useSeatGuestsMutation();
   const cancelReservationMutation = useCancelReservationMutation();
+  const switchTableMutation = useSwitchTableMutation();
   const vacateTableMutation = useVacateTableMutation();
   const addReservationMutation = useAddReservationMutation();
   const addAreaMutation = useAddAreaMutation();
@@ -364,6 +370,7 @@ export function PosTakeOrderManager() {
           // RESTAURANT (TABLE) SLIDE
           <TableFloorPlan
             tables={tables}
+            reservations={reservations}
             areas={diningAreas}
             activeArea={activeArea}
             onSelectArea={setActiveArea}
@@ -381,8 +388,17 @@ export function PosTakeOrderManager() {
               setWizardTableId(tblId);
               setIsTakeOrderWizardOpen(true);
             }}
+            onSwitchTable={(res) => setSwitchModalReservation(res)}
+            onSeatReservation={(tableId, resId) => {
+              seatGuestsMutation.mutate({ tableId, reservationId: resId });
+              setWizardTableId(tableId);
+              setIsTakeOrderWizardOpen(true);
+            }}
             stats={stats}
-            onRefresh={() => refetchTables()}
+            onRefresh={() => {
+              refetchTables();
+              refetchReservations();
+            }}
             onDeleteArea={handleDeleteArea}
             onDeleteTable={(tblId) => deleteTableMutation.mutate(tblId)}
           />
@@ -456,11 +472,19 @@ export function PosTakeOrderManager() {
         onClose={() => setIsDetailSlideOpen(false)}
         selectedTable={selectedTable}
         selectedReservation={selectedReservation}
-        onSeatGuests={(tableId) => {
+        tables={allTables}
+        onSeatGuests={(tableId, resId) => {
+          seatGuestsMutation.mutate({
+            tableId,
+            reservationId: resId || selectedReservation?.id,
+          });
           setIsDetailSlideOpen(false);
           setWizardTableId(tableId);
           setIsTakeOrderWizardOpen(true);
         }}
+        onSwitchTable={(rId, nId) =>
+          switchTableMutation.mutate({ reservationId: rId, newTableId: nId })
+        }
         onCancelReservation={(resId) => cancelReservationMutation.mutate(resId)}
         onVacateTable={(tableId) => vacateTableMutation.mutate(tableId)}
         onOpenNewBooking={(tableId) => {
@@ -479,6 +503,20 @@ export function PosTakeOrderManager() {
           });
         }}
       />
+
+      {/* Switch Table Modal from Floor Plan alert */}
+      {switchModalReservation && (
+        <SwitchTableModal
+          isOpen={!!switchModalReservation}
+          onClose={() => setSwitchModalReservation(null)}
+          reservation={switchModalReservation}
+          tables={allTables}
+          isPending={switchTableMutation.isPending}
+          onConfirmSwitch={(rId, nId) =>
+            switchTableMutation.mutate({ reservationId: rId, newTableId: nId })
+          }
+        />
+      )}
 
       {/* 5. New Reservation Modal */}
       <NewReservationModal

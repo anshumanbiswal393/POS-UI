@@ -221,7 +221,7 @@ export function NewReservationModal({
       customerPhone: customerPhone.trim(),
       customerEmail: customerEmail || undefined,
       guests,
-      reservationDate: displayDate,
+      reservationDate: reservationDate || displayDate,
       reservationTime: displayTime,
       endTime: formatDisplayTime(
         (() => {

@@ -228,6 +228,30 @@ export function useCancelReservationMutation() {
   });
 }
 
+export function useSwitchTableMutation() {
+  const { outletId, highwayDemo } = useOutletScopedTables();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reservationId, newTableId }: { reservationId: string; newTableId: string }) => {
+      setTablesOutletScope(outletId, highwayDemo);
+      return posTablesService.switchReservationTable(reservationId, newTableId);
+    },
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_RESERVATIONS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_TABLE_STATS_QUERY_KEY });
+      toast.success(`Reservation switched to ${updated.tableNumber}`);
+    },
+    onError: (err: unknown) => {
+      const message =
+        (err as { message?: string })?.message ||
+        (err as { data?: { detail?: string } })?.data?.detail ||
+        "Could not switch table";
+      toast.error(String(message));
+    },
+  });
+}
+
 export function useVacateTableMutation() {
   const { outletId, highwayDemo } = useOutletScopedTables();
   const queryClient = useQueryClient();

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { TableCardItem } from "./TableCardItem";
 import type {
   RestaurantTable,
@@ -6,10 +6,28 @@ import type {
   DiningArea,
   TableManagementStats,
 } from "@/types/posTables";
-import { Users, Sparkles, LayoutGrid, RotateCw, Plus, CalendarPlus, UserPlus, Utensils, AlertCircle, X, Trash2 } from "lucide-react";
+import {
+  Users,
+  Sparkles,
+  LayoutGrid,
+  RotateCw,
+  Plus,
+  CalendarPlus,
+  UserPlus,
+  Utensils,
+  AlertCircle,
+  X,
+  Trash2,
+  BellRing,
+  ArrowLeftRight,
+  UserCheck,
+} from "lucide-react";
+import { toast } from "sonner";
+import { parseReservationDateTime } from "@/services/posTablesService";
 
 interface TableFloorPlanProps {
   tables: RestaurantTable[];
+  reservations?: ReservationItem[];
   areas?: string[];
   activeArea: DiningArea;
   onSelectArea: (area: DiningArea) => void;
@@ -20,6 +38,8 @@ interface TableFloorPlanProps {
   onOpenBookReservation?: () => void;
   onOpenSeatGuest?: () => void;
   onOpenTakeOrder?: (tableId?: string) => void;
+  onSwitchTable?: (reservation: ReservationItem) => void;
+  onSeatReservation?: (tableId: string, reservationId?: string) => void;
   stats?: TableManagementStats;
   onRefresh?: () => void;
   onDeleteArea?: (area: string) => void;
@@ -30,6 +50,7 @@ const DEFAULT_AREAS: string[] = [];
 
 export function TableFloorPlan({
   tables,
+  reservations = [],
   areas = DEFAULT_AREAS,
   activeArea,
   onSelectArea,
@@ -40,13 +61,56 @@ export function TableFloorPlan({
   onOpenBookReservation,
   onOpenSeatGuest,
   onOpenTakeOrder,
+  onSwitchTable,
+  onSeatReservation,
   stats,
   onRefresh,
   onDeleteArea,
   onDeleteTable,
 }: TableFloorPlanProps) {
   const [showNoAreaWarning, setShowNoAreaWarning] = useState(false);
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(new Set());
+  const [now, setNow] = useState<Date>(() => new Date());
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Periodic clock ticker to refresh upcoming 30m countdown and status
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 20000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Compute upcoming reservations starting within 30 minutes
+  const upcomingAlerts = useMemo(() => {
+    return reservations.filter((r) => {
+      if (r.status !== "reserved") return false;
+      if (dismissedAlertIds.has(r.id)) return false;
+      const start = parseReservationDateTime(r.reservationDate, r.reservationTime);
+      if (!start) return false;
+      const diffMs = start.getTime() - now.getTime();
+      const diffMins = Math.round(diffMs / (60 * 1000));
+      // Trigger between -15 mins (due/just started) and 30 mins before
+      return diffMins >= -15 && diffMins <= 30;
+    });
+  }, [reservations, now, dismissedAlertIds]);
+
+  // Show notification popup / toast on first detection of upcoming reservations
+  useEffect(() => {
+    upcomingAlerts.forEach((r) => {
+      const start = parseReservationDateTime(r.reservationDate, r.reservationTime);
+      if (!start) return;
+      const diffMins = Math.round((start.getTime() - Date.now()) / (60 * 1000));
+      const timingText = diffMins <= 0 ? "due now" : `in ${diffMins} min${diffMins === 1 ? "" : "s"}`;
+      toast.info(
+        `Upcoming Reservation: ${r.tableNumber} for ${r.customerName} is ${timingText} (${r.reservationTime}). Hoteliers please prepare the table.`,
+        {
+          id: `upcoming-toast-${r.id}`,
+          duration: 9000,
+        },
+      );
+    });
+  }, [upcomingAlerts]);
 
   useEffect(() => {
     return () => {
@@ -268,6 +332,92 @@ export function TableFloorPlan({
           </div>
         </div>
       </div>
+
+      {/* 2.5 Upcoming 30-Minute Reservation Alert Notification Banner */}
+      {upcomingAlerts.length > 0 && (
+        <div className="px-5 pt-3 sm:px-6 space-y-2 shrink-0">
+          {upcomingAlerts.map((res) => {
+            const start = parseReservationDateTime(res.reservationDate, res.reservationTime);
+            const diffMins = start
+              ? Math.round((start.getTime() - now.getTime()) / (60 * 1000))
+              : 0;
+            const timingBadge =
+              diffMins <= 0
+                ? "Due Now"
+                : `in ${diffMins} min${diffMins === 1 ? "" : "s"}`;
+
+            return (
+              <div
+                key={res.id}
+                className="rounded-2xl bg-amber-50 border border-amber-300 p-3.5 sm:p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2"
+              >
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-800 flex items-center justify-center shrink-0">
+                    <BellRing className="w-5 h-5 text-amber-700 animate-pulse" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full">
+                        Upcoming Reservation • {timingBadge}
+                      </span>
+                      <span className="text-[11px] font-bold text-amber-800">
+                        Prepare Table
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-800 font-semibold mt-1">
+                      <span className="text-amber-950 font-extrabold">
+                        {res.tableNumber}
+                      </span>{" "}
+                      is reserved for{" "}
+                      <span className="text-slate-900 font-bold">
+                        {res.customerName}
+                      </span>{" "}
+                      ({res.guests} Pax) at{" "}
+                      <span className="text-amber-950 font-bold">
+                        {res.reservationTime}
+                      </span>
+                      . Hoteliers please prepare the table for reservation.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                  {onSwitchTable && (
+                    <button
+                      type="button"
+                      onClick={() => onSwitchTable(res)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-amber-300 text-amber-900 text-xs font-bold hover:bg-amber-100 transition shadow-2xs cursor-pointer"
+                    >
+                      <ArrowLeftRight className="w-3.5 h-3.5" />
+                      <span>Switch Table</span>
+                    </button>
+                  )}
+                  {onSeatReservation && (
+                    <button
+                      type="button"
+                      onClick={() => onSeatReservation(res.tableId, res.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition shadow-2xs cursor-pointer"
+                    >
+                      <UserCheck className="w-3.5 h-3.5" />
+                      <span>Seat Guests</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDismissedAlertIds((prev) => new Set([...prev, res.id]))
+                    }
+                    className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg transition cursor-pointer"
+                    title="Dismiss alert"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* 3. The Floor Plan Grid (Compact Single Page View) */}
       <div className="flex-1 p-3 sm:p-5 flex items-start justify-center overflow-y-auto">
