@@ -159,12 +159,16 @@ export function PosDateRangePicker({
     const toDate = parseDateSafe(to);
 
     if (fromDate && toDate) {
-      const fromFmt = format(fromDate, "MMM dd, yyyy");
-      const toFmt = format(toDate, "MMM dd, yyyy");
-      if (fromFmt === toFmt) {
-        return fromFmt;
+      const sameDay = format(fromDate, "yyyy-MM-dd") === format(toDate, "yyyy-MM-dd");
+      if (sameDay) {
+        return format(fromDate, "MMM dd, yyyy");
       }
-      return `${fromFmt} – ${toFmt}`;
+      // If same year, compact into "Nov 04 – Nov 07, 2026"
+      if (fromDate.getFullYear() === toDate.getFullYear()) {
+        return `${format(fromDate, "MMM dd")} – ${format(toDate, "MMM dd, yyyy")}`;
+      }
+      // Across different years: "Nov 04, 2026 – Jan 02, 2027"
+      return `${format(fromDate, "MMM dd, yyyy")} – ${format(toDate, "MMM dd, yyyy")}`;
     }
     if (fromDate) {
       return format(fromDate, "MMM dd, yyyy");
@@ -189,7 +193,7 @@ export function PosDateRangePicker({
   }, [from, to]);
 
   return (
-    <div className="inline-flex flex-col gap-1">
+    <div className={cn("inline-flex flex-col gap-1", className?.includes("w-full") && "w-full")}>
       {label ? (
         <span className="text-[11.5px] font-semibold text-slate-700 dark:text-slate-300">
           {label}
@@ -197,14 +201,14 @@ export function PosDateRangePicker({
       ) : null}
 
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
+        <PopoverTrigger asChild className={className?.includes("w-full") ? "w-full" : undefined}>
           <button
             type="button"
             disabled={disabled}
             className={cn(
-              "inline-flex items-center gap-2 rounded-xl border border-slate-200/90 bg-white font-medium text-slate-700 shadow-2xs hover:bg-slate-50/80 hover:border-slate-300 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:opacity-50 disabled:cursor-not-allowed",
-              size === "sm" ? "px-2.5 py-1 text-xs h-8" : "px-3.5 py-2 text-xs h-9",
-              hasSelection && "border-teal-500/40 bg-teal-50/20 text-slate-900 font-semibold",
+              "inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white font-medium text-slate-700 shadow-2xs hover:bg-slate-50/80 hover:border-slate-400 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:opacity-50 disabled:cursor-not-allowed",
+              size === "sm" ? "px-2.5 py-1 text-xs h-8" : "px-3 py-2 text-[12.5px] h-10",
+              hasSelection && "border-teal-500/50 bg-teal-50/20 text-slate-900 font-semibold",
               className,
             )}
           >
@@ -216,33 +220,37 @@ export function PosDateRangePicker({
               )}
             />
 
-            <span className="truncate max-w-[220px] sm:max-w-none">{displayText}</span>
+            <span className="truncate whitespace-nowrap text-[12.5px] font-medium text-slate-800">
+              {displayText}
+            </span>
 
-            {daysDiff && daysDiff > 1 ? (
-              <span className="ml-0.5 rounded-md bg-teal-100/80 px-1.5 py-0.2 text-[10px] font-bold text-teal-800">
-                {daysDiff} Days
-              </span>
-            ) : isTodayActive ? (
-              <span className="ml-0.5 rounded-md bg-emerald-100/80 px-1.5 py-0.2 text-[10px] font-bold text-emerald-800">
-                Today
-              </span>
-            ) : null}
+            <div className="ml-auto flex items-center gap-1.5 shrink-0">
+              {daysDiff && daysDiff > 1 ? (
+                <span className="rounded-md bg-teal-100/90 px-1.5 py-0.5 text-[10px] font-bold text-teal-800 leading-none">
+                  {daysDiff} Days
+                </span>
+              ) : isTodayActive ? (
+                <span className="rounded-md bg-emerald-100/90 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800 leading-none">
+                  Today
+                </span>
+              ) : null}
 
-            {showClear && hasSelection ? (
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  commitRange(undefined);
-                }}
-                className="ml-1 rounded-full p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition"
-              >
-                <X className="h-3 w-3" />
-              </span>
-            ) : (
-              <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0 ml-auto" />
-            )}
+              {showClear && hasSelection ? (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    commitRange(undefined);
+                  }}
+                  className="rounded-full p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition cursor-pointer"
+                >
+                  <X className="h-3 w-3" />
+                </span>
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              )}
+            </div>
           </button>
         </PopoverTrigger>
 

@@ -653,7 +653,7 @@ export function PosAllOrdersManager() {
           /* PICTURE 1: DEFAULT COMPACT SINGLE-ROW FILTER TOOLBAR */
           <div className="flex flex-wrap items-end gap-3.5">
             {/* Order Date Range */}
-            <div className="min-w-[240px] flex-1">
+            <div className="min-w-[270px] sm:min-w-[285px] flex-1">
               <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
                 Order Date Range
               </label>
