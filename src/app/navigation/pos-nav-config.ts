@@ -38,6 +38,7 @@ import {
   PlusCircle,
   CalendarCheck2,
   FolderTree,
+  ShieldCheck,
 } from "lucide-react";
 import type { Permission } from "@/types/rbac";
 
@@ -369,26 +370,18 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
         icon: Users,
         permission: "pos.users.manage",
         children: [
-          { id: "usr-biller-app", label: "Biller App", to: "/pos/management/users/biller-app", icon: Smartphone, permission: "pos.users.manage" },
           {
-            id: "usr-biller-groups",
-            label: "Biller Group Management",
-            to: "/pos/management/users/biller-groups",
+            id: "usr-users",
+            label: "Users",
+            to: "/pos/management/users",
             icon: Users,
             permission: "pos.users.manage",
           },
           {
-            id: "usr-admin-groups",
-            label: "Admin Group Management",
-            to: "/pos/management/users/admin-groups",
-            icon: Users,
-            permission: "pos.users.manage",
-          },
-          {
-            id: "usr-admin-mgmt",
-            label: "Admin Management",
-            to: "/pos/management/users/admin-management",
-            icon: UserCog,
+            id: "usr-roles",
+            label: "User roles",
+            to: "/pos/management/users/roles",
+            icon: ShieldCheck,
             permission: "pos.users.manage",
           },
         ],

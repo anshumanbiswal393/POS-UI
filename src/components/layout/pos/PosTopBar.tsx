@@ -174,6 +174,8 @@ export function PosTopBar({
     if (pathname.includes("/menu")) return "Food Menu";
     if (pathname.includes("/inventory")) return "Stock & Inventory";
     if (pathname.includes("/reports")) return "Reports & Graphs";
+    if (pathname.includes("/management/users/roles")) return "User Roles";
+    if (pathname.includes("/management/users")) return "Users";
     if (pathname.includes("/management")) return "Management";
     if (pathname.includes("/settings")) return "Settings";
     if (pathname.includes("/help")) return "Help Guide";

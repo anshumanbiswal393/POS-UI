@@ -55,5 +55,41 @@ describe("POS Navigation - Stock Reports placement", () => {
     expect(helpItem?.to).toBe("/pos/help");
     expect(helpItem?.icon).toBe(BookOpen);
   });
+
+  it("configures User Management with only Users and User roles (removing biller and admin groups)", () => {
+    const mgmtSection = POS_NAV_ITEMS.find((item) => item.id === "management");
+    expect(mgmtSection).toBeDefined();
+
+    const userGroup = mgmtSection?.children?.find(
+      (c) => c.id === "user-management-group"
+    );
+    expect(userGroup).toBeDefined();
+    expect(userGroup?.label).toBe("User Management");
+
+    const children = userGroup?.children || [];
+    expect(children.length).toBe(2);
+
+    expect(children[0]).toMatchObject({
+      id: "usr-users",
+      label: "Users",
+      to: "/pos/management/users",
+    });
+
+    expect(children[1]).toMatchObject({
+      id: "usr-roles",
+      label: "User roles",
+      to: "/pos/management/users/roles",
+    });
+
+    // Verify biller and admin groups are completely removed
+    const hasBiller = children.some(
+      (c) => c.id.includes("biller") || c.label.toLowerCase().includes("biller")
+    );
+    const hasAdminGroup = children.some(
+      (c) => c.id.includes("admin-group") || c.label.toLowerCase().includes("admin group")
+    );
+    expect(hasBiller).toBe(false);
+    expect(hasAdminGroup).toBe(false);
+  });
 });
 

@@ -53,7 +53,9 @@ import { Route as PosInventoryOrderRouteImport } from './routes/pos.inventory.or
 import { Route as PosInventoryMastersRouteImport } from './routes/pos.inventory.masters'
 import { Route as PosInventoryClosingStockRouteImport } from './routes/pos.inventory.closing-stock'
 import { Route as PosInventoryAvailableStockRouteImport } from './routes/pos.inventory.available-stock'
+import { Route as PosManagementUsersIndexRouteImport } from './routes/pos.management.users.index'
 import { Route as PosManagementMarketplaceIndexRouteImport } from './routes/pos.management.marketplace.index'
+import { Route as PosManagementUsersRolesRouteImport } from './routes/pos.management.users.roles'
 import { Route as PosManagementUsersBillerGroupsRouteImport } from './routes/pos.management.users.biller-groups'
 import { Route as PosManagementUsersBillerAppRouteImport } from './routes/pos.management.users.biller-app'
 import { Route as PosManagementUsersAdminManagementRouteImport } from './routes/pos.management.users.admin-management'
@@ -342,12 +344,22 @@ const PosInventoryAvailableStockRoute =
     path: '/available-stock',
     getParentRoute: () => PosInventoryRoute,
   } as any)
+const PosManagementUsersIndexRoute = PosManagementUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => PosManagementRoute,
+} as any)
 const PosManagementMarketplaceIndexRoute =
   PosManagementMarketplaceIndexRouteImport.update({
     id: '/marketplace/',
     path: '/marketplace/',
     getParentRoute: () => PosManagementRoute,
   } as any)
+const PosManagementUsersRolesRoute = PosManagementUsersRolesRouteImport.update({
+  id: '/users/roles',
+  path: '/users/roles',
+  getParentRoute: () => PosManagementRoute,
+} as any)
 const PosManagementUsersBillerGroupsRoute =
   PosManagementUsersBillerGroupsRouteImport.update({
     id: '/users/biller-groups',
@@ -809,7 +821,9 @@ export interface FileRoutesByFullPath {
   '/pos/management/users/admin-management': typeof PosManagementUsersAdminManagementRoute
   '/pos/management/users/biller-app': typeof PosManagementUsersBillerAppRoute
   '/pos/management/users/biller-groups': typeof PosManagementUsersBillerGroupsRoute
+  '/pos/management/users/roles': typeof PosManagementUsersRolesRoute
   '/pos/management/marketplace/': typeof PosManagementMarketplaceIndexRoute
+  '/pos/management/users/': typeof PosManagementUsersIndexRoute
   '/pos/management/accounting/payments/information': typeof PosManagementAccountingPaymentsInformationRoute
   '/pos/management/accounting/payments/wallet': typeof PosManagementAccountingPaymentsWalletRoute
   '/pos/management/configuration/outlet/add': typeof PosManagementConfigurationOutletAddRoute
@@ -918,7 +932,9 @@ export interface FileRoutesByTo {
   '/pos/management/users/admin-management': typeof PosManagementUsersAdminManagementRoute
   '/pos/management/users/biller-app': typeof PosManagementUsersBillerAppRoute
   '/pos/management/users/biller-groups': typeof PosManagementUsersBillerGroupsRoute
+  '/pos/management/users/roles': typeof PosManagementUsersRolesRoute
   '/pos/management/marketplace': typeof PosManagementMarketplaceIndexRoute
+  '/pos/management/users': typeof PosManagementUsersIndexRoute
   '/pos/management/accounting/payments/information': typeof PosManagementAccountingPaymentsInformationRoute
   '/pos/management/accounting/payments/wallet': typeof PosManagementAccountingPaymentsWalletRoute
   '/pos/management/configuration/outlet/add': typeof PosManagementConfigurationOutletAddRoute
@@ -1028,7 +1044,9 @@ export interface FileRoutesById {
   '/pos/management/users/admin-management': typeof PosManagementUsersAdminManagementRoute
   '/pos/management/users/biller-app': typeof PosManagementUsersBillerAppRoute
   '/pos/management/users/biller-groups': typeof PosManagementUsersBillerGroupsRoute
+  '/pos/management/users/roles': typeof PosManagementUsersRolesRoute
   '/pos/management/marketplace/': typeof PosManagementMarketplaceIndexRoute
+  '/pos/management/users/': typeof PosManagementUsersIndexRoute
   '/pos/management/accounting/payments/information': typeof PosManagementAccountingPaymentsInformationRoute
   '/pos/management/accounting/payments/wallet': typeof PosManagementAccountingPaymentsWalletRoute
   '/pos/management/configuration/outlet/add': typeof PosManagementConfigurationOutletAddRoute
@@ -1139,7 +1157,9 @@ export interface FileRouteTypes {
     | '/pos/management/users/admin-management'
     | '/pos/management/users/biller-app'
     | '/pos/management/users/biller-groups'
+    | '/pos/management/users/roles'
     | '/pos/management/marketplace/'
+    | '/pos/management/users/'
     | '/pos/management/accounting/payments/information'
     | '/pos/management/accounting/payments/wallet'
     | '/pos/management/configuration/outlet/add'
@@ -1248,7 +1268,9 @@ export interface FileRouteTypes {
     | '/pos/management/users/admin-management'
     | '/pos/management/users/biller-app'
     | '/pos/management/users/biller-groups'
+    | '/pos/management/users/roles'
     | '/pos/management/marketplace'
+    | '/pos/management/users'
     | '/pos/management/accounting/payments/information'
     | '/pos/management/accounting/payments/wallet'
     | '/pos/management/configuration/outlet/add'
@@ -1357,7 +1379,9 @@ export interface FileRouteTypes {
     | '/pos/management/users/admin-management'
     | '/pos/management/users/biller-app'
     | '/pos/management/users/biller-groups'
+    | '/pos/management/users/roles'
     | '/pos/management/marketplace/'
+    | '/pos/management/users/'
     | '/pos/management/accounting/payments/information'
     | '/pos/management/accounting/payments/wallet'
     | '/pos/management/configuration/outlet/add'
@@ -1694,11 +1718,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PosInventoryAvailableStockRouteImport
       parentRoute: typeof PosInventoryRoute
     }
+    '/pos/management/users/': {
+      id: '/pos/management/users/'
+      path: '/users'
+      fullPath: '/pos/management/users/'
+      preLoaderRoute: typeof PosManagementUsersIndexRouteImport
+      parentRoute: typeof PosManagementRoute
+    }
     '/pos/management/marketplace/': {
       id: '/pos/management/marketplace/'
       path: '/marketplace'
       fullPath: '/pos/management/marketplace/'
       preLoaderRoute: typeof PosManagementMarketplaceIndexRouteImport
+      parentRoute: typeof PosManagementRoute
+    }
+    '/pos/management/users/roles': {
+      id: '/pos/management/users/roles'
+      path: '/users/roles'
+      fullPath: '/pos/management/users/roles'
+      preLoaderRoute: typeof PosManagementUsersRolesRouteImport
       parentRoute: typeof PosManagementRoute
     }
     '/pos/management/users/biller-groups': {
@@ -2325,7 +2363,9 @@ interface PosManagementRouteChildren {
   PosManagementUsersAdminManagementRoute: typeof PosManagementUsersAdminManagementRoute
   PosManagementUsersBillerAppRoute: typeof PosManagementUsersBillerAppRoute
   PosManagementUsersBillerGroupsRoute: typeof PosManagementUsersBillerGroupsRoute
+  PosManagementUsersRolesRoute: typeof PosManagementUsersRolesRoute
   PosManagementMarketplaceIndexRoute: typeof PosManagementMarketplaceIndexRoute
+  PosManagementUsersIndexRoute: typeof PosManagementUsersIndexRoute
   PosManagementAccountingPaymentsInformationRoute: typeof PosManagementAccountingPaymentsInformationRoute
   PosManagementAccountingPaymentsWalletRoute: typeof PosManagementAccountingPaymentsWalletRoute
 }
@@ -2378,7 +2418,9 @@ const PosManagementRouteChildren: PosManagementRouteChildren = {
     PosManagementUsersAdminManagementRoute,
   PosManagementUsersBillerAppRoute: PosManagementUsersBillerAppRoute,
   PosManagementUsersBillerGroupsRoute: PosManagementUsersBillerGroupsRoute,
+  PosManagementUsersRolesRoute: PosManagementUsersRolesRoute,
   PosManagementMarketplaceIndexRoute: PosManagementMarketplaceIndexRoute,
+  PosManagementUsersIndexRoute: PosManagementUsersIndexRoute,
   PosManagementAccountingPaymentsInformationRoute:
     PosManagementAccountingPaymentsInformationRoute,
   PosManagementAccountingPaymentsWalletRoute:

@@ -1,7 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { BillerAppManagementView } from "@/components/shared/pos/management/views/users/BillerAppManagementView";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/pos/management/users/biller-app")({
-  
-  component: BillerAppManagementView,
+  component: () => <Navigate to="/pos/management/users" replace />,
 });
