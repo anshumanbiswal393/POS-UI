@@ -269,6 +269,21 @@ export const DEFAULT_POS_ROLES: POSRole[] = [
 
 export const DEFAULT_SEED_USERS: POSUser[] = [
   {
+    id: "usr-admin-samprita",
+    name: "Samprita Patra",
+    username: "sampritapatra",
+    email: "sampritapatra@gmail.com",
+    phone: "9937884878",
+    role: "pos_admin",
+    role_name: "POS Administrator",
+    role_code: "pos_admin",
+    outlet_name: "Anshu Suite Restaurant",
+    user_code: "ADM-SAMPRITA",
+    pin: "9988",
+    is_active: true,
+    created_at: "2026-11-01T00:00:00.000Z",
+  },
+  {
     id: "usr-admin-01",
     name: "Aarav Sharma",
     username: "aarav",
@@ -287,8 +302,8 @@ export const DEFAULT_SEED_USERS: POSUser[] = [
     id: "usr-kitchen-01",
     name: "Kitchen Chef Station",
     username: "kitchen",
-    email: "kitchen@retrod.in",
-    phone: "9876543219",
+    email: "samkhusi123@gmail.com",
+    phone: "9937884878",
     role: "pos_kitchen",
     role_name: "Kitchen Staff",
     role_code: "pos_kitchen",

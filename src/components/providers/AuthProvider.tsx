@@ -79,6 +79,19 @@ export const KITCHEN_USER: AppUser = {
   ],
 };
 
+export const SAMPRITA_ADMIN_USER: AppUser = {
+  id: "usr-admin-samprita",
+  name: "Samprita Patra",
+  email: "sampritapatra@gmail.com",
+  role: "pos_admin",
+  phone: "9937884878",
+  active: true,
+  lastActive: "Now",
+  initials: "SP",
+  property: "Anshu Suite Restaurant · Main Outlet",
+  permissions: ["*:*"],
+};
+
 export const ADMIN_USER: AppUser = {
   id: "usr-admin-01",
   name: "Aarav Sharma",
@@ -92,7 +105,7 @@ export const ADMIN_USER: AppUser = {
   permissions: ["*:*"],
 };
 
-const SEED_USERS: AppUser[] = [ADMIN_USER, KITCHEN_USER];
+const SEED_USERS: AppUser[] = [SAMPRITA_ADMIN_USER, ADMIN_USER, KITCHEN_USER];
 
 const DEFAULT_ENTITLEMENTS: TenantEntitlements = {
   tenantId: "retrod-pos-tenant",
@@ -120,7 +133,7 @@ const DEFAULT_ENTITLEMENTS: TenantEntitlements = {
 };
 
 function loadCachedUsers(): AppUser[] {
-  let list: AppUser[] = [ADMIN_USER, KITCHEN_USER];
+  let list: AppUser[] = [SAMPRITA_ADMIN_USER, ADMIN_USER, KITCHEN_USER];
   if (typeof window !== "undefined") {
     try {
       const raw = localStorage.getItem(LS_USERS);
@@ -132,7 +145,10 @@ function loadCachedUsers(): AppUser[] {
             list.push(KITCHEN_USER);
           }
           if (!list.some((u) => u.id === ADMIN_USER.id)) {
-            list.unshift(ADMIN_USER);
+            list.push(ADMIN_USER);
+          }
+          if (!list.some((u) => u.id === SAMPRITA_ADMIN_USER.id || u.email === SAMPRITA_ADMIN_USER.email)) {
+            list.unshift(SAMPRITA_ADMIN_USER);
           }
         }
       }
@@ -370,17 +386,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       can: (perm: Permission | string) => {
         if (!user) return false;
 
-        // 1. Super Admin and Owner have master access
+        // 1. Super Admin, Owner, and POS Admin have master access
         const roleStr = String(user.role || "").toLowerCase();
         if (
           roleStr === "super_admin" ||
           roleStr === "owner" ||
           roleStr === "tenant_owner" ||
+          roleStr === "general_manager" ||
+          roleStr === "pos_admin" ||
+          roleStr === "admin" ||
           user.is_superuser ||
           user.permissions?.includes("*:*") ||
           user.permissions?.includes("*")
         ) {
           return true;
+        }
+
+        // Kitchen staff has full operational access to KOT, recipes, and complete Stock
+        const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
+        if (isKitchen) {
+          const raw = String(perm).toLowerCase();
+          if (
+            raw.startsWith("pos.kot") ||
+            raw.startsWith("pos:kot") ||
+            raw.startsWith("pos.inventory") ||
+            raw.startsWith("pos:inventory") ||
+            raw.startsWith("pos.recipes") ||
+            raw.startsWith("pos:recipes")
+          ) {
+            return true;
+          }
         }
 
         // 2. Pure dynamic database permission evaluation from backend

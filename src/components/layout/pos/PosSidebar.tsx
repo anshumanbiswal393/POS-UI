@@ -223,6 +223,14 @@ export function PosSidebar({
       ) {
         return true;
       }
+      // If node is an expandable group folder, check if it belongs to Stock or has allowed children
+      if (node.children?.length) {
+        const hasAllowedChild = (n: PosNavChild): boolean => {
+          if (n.to && allowedPrefixes.some((p) => n.to === p || n.to?.startsWith(p + "/"))) return true;
+          return Boolean(n.children?.some(hasAllowedChild));
+        };
+        if (node.children.some(hasAllowedChild)) return true;
+      }
       if (
         node.id === "inventory" ||
         node.id === "kot" ||

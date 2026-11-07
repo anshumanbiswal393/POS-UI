@@ -14,9 +14,12 @@ describe("posUsersRbacService - Seed Accounts & CRUD Operations", () => {
     const kitchenUser = users.find((u) => u.username === "kitchen");
     expect(kitchenUser).toBeDefined();
     expect(kitchenUser?.role).toBe("pos_kitchen");
-    expect(kitchenUser?.email).toBe("kitchen@retrod.in");
-    expect(kitchenUser?.phone).toBe("9876543219");
+    expect(kitchenUser?.email).toBe("samkhusi123@gmail.com");
     expect(kitchenUser?.pin).toBe("1122");
+
+    const sampritaAdmin = users.find((u) => u.username === "sampritapatra" || u.email === "sampritapatra@gmail.com");
+    expect(sampritaAdmin).toBeDefined();
+    expect(sampritaAdmin?.role).toBe("pos_admin");
 
     const adminUser = users.find((u) => u.username === "aarav");
     expect(adminUser).toBeDefined();

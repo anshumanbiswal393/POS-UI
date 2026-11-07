@@ -152,3 +152,4 @@ describe("Kitchen User UI Access & Visibility Flow", () => {
     expect(adminSettingsTabs.length).toBe(6);
   });
 });
+

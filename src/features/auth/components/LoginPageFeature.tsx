@@ -419,16 +419,16 @@ export function LoginPageFeature() {
                 <button
                   type="button"
                   onClick={() => {
-                    const a = users.find((u) => u.role === "pos_admin");
-                    if (a) {
-                      setSelected(a.id);
-                      setUsername("aarav");
-                      setContact(a.phone || "9876543210");
+                    const s = users.find((u) => u.email === "sampritapatra@gmail.com") || users.find((u) => u.role === "pos_admin");
+                    if (s) {
+                      setSelected(s.id);
+                      setUsername("sampritapatra");
+                      setContact(s.phone || "9937884878");
                     }
                   }}
                   className="rounded bg-surface-2 px-2 py-0.5 text-text-secondary hover:text-text-primary transition cursor-pointer font-sans font-semibold"
                 >
-                  Admin
+                  Samprita (Admin)
                 </button>
               </div>
             </div>
