@@ -1325,7 +1325,7 @@ export function PosBillingManager() {
     handleNewBill,
   ]);
 
-  // Keyboard Shortcuts (F2, F4, F8, F10)
+  // Keyboard Shortcuts (F2, F4, F8, F9, F10)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "F2") {
@@ -1337,16 +1337,31 @@ export function PosBillingManager() {
       } else if (e.key === "F8") {
         e.preventDefault();
         handlePrintKot();
-      } else if (e.key === "F10") {
+      } else if (e.key === "F9" || e.key === "F10") {
         e.preventDefault();
         if (cartItems.length > 0) {
           setIsPayNowOpen(true);
+        } else {
+          toast.info("Cart is empty — add items to settle bill");
         }
       }
     };
 
+    const handleCustomKot = () => handlePrintKot();
+    const handleCustomPay = () => {
+      if (cartItems.length > 0) {
+        setIsPayNowOpen(true);
+      }
+    };
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("pos:send-kot", handleCustomKot);
+    window.addEventListener("pos:pay-settle", handleCustomPay);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("pos:send-kot", handleCustomKot);
+      window.removeEventListener("pos:pay-settle", handleCustomPay);
+    };
   }, [handleNewBill, handleHoldBill, handlePrintKot, cartItems.length]);
 
   return (

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { POS_NAV_ITEMS } from "../pos-nav-config";
+import { POS_NAV_ITEMS, POS_FOOTER_NAV_ITEMS } from "../pos-nav-config";
 import { getAllPosRouteNodes } from "../nav-personalization";
+import { BookOpen } from "lucide-react";
 
 describe("POS Navigation - Stock Reports placement", () => {
   it("removes Reports group from Stock (inventory) section", () => {
@@ -45,6 +46,14 @@ describe("POS Navigation - Stock Reports placement", () => {
     expect(routePaths).toContain("/pos/inventory/reports/stock-summary");
     expect(routePaths).toContain("/pos/inventory/reports/orderwise-consumption");
     expect(routePaths).toContain("/pos/inventory/reports/other-reports");
+  });
+
+  it("configures Help Guide correctly in footer navigation", () => {
+    const helpItem = POS_FOOTER_NAV_ITEMS.find((item) => item.id === "help");
+    expect(helpItem).toBeDefined();
+    expect(helpItem?.label).toBe("Help Guide");
+    expect(helpItem?.to).toBe("/pos/help");
+    expect(helpItem?.icon).toBe(BookOpen);
   });
 });
 

@@ -5,9 +5,11 @@ import { PosTopBar } from "@/components/layout/pos/PosTopBar";
 import { PosSubscriptionRenewalBanner } from "@/components/common/PosSubscriptionRenewalBanner";
 // import { OnlineOrderAlertModal } from "@/components/shared/pos/orders/OnlineOrderAlertModal";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePosKeyboardShortcuts } from "@/hooks/usePosKeyboardShortcuts";
 import { cn } from "@/lib/utils";
 
 export function PosShell({ children }: { children: React.ReactNode }) {
+  usePosKeyboardShortcuts();
   const [mobileOpen, setMobileOpen] = useState(false);
   const isMobile = useIsMobile();
   const pathname = useRouterState({ select: (s) => s.location.pathname });

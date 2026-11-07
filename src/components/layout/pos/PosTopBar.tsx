@@ -3,7 +3,6 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   Bell,
-  BookOpen,
   Bug,
   Calendar,
   ChevronDown,
@@ -177,7 +176,7 @@ export function PosTopBar({
     if (pathname.includes("/reports")) return "Reports & Graphs";
     if (pathname.includes("/management")) return "Management";
     if (pathname.includes("/settings")) return "Settings";
-    if (pathname.includes("/help")) return "Help & Support";
+    if (pathname.includes("/help")) return "Help Guide";
     return "Point of Sale";
   };
 
@@ -232,13 +231,15 @@ export function PosTopBar({
       <div className="relative min-w-0 flex-1 max-w-xs sm:max-w-sm lg:max-w-md">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-disabled" />
         <input
+          id="pos-global-search"
+          data-pos-search
           type="text"
-          placeholder="Search orders, tables, rooms, menu..."
+          placeholder="Search orders, tables, rooms, menu... (F3)"
           aria-label="Search orders, tables, rooms"
-          className="h-9 w-full rounded-md border border-border bg-surface-2/60 pl-9 pr-12 text-[12.5px] text-text-primary placeholder:text-text-disabled focus:border-primary focus:bg-surface focus:outline-hidden transition-all"
+          className="h-9 w-full rounded-md border border-border bg-surface-2/60 pl-9 pr-14 text-[12.5px] text-text-primary placeholder:text-text-disabled focus:border-primary focus:bg-surface focus:outline-hidden transition-all"
         />
-        <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center rounded border border-border bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-text-disabled">
-          ⌘K
+        <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center rounded border border-border bg-surface px-1.5 py-0.5 text-[9.5px] font-semibold text-text-disabled">
+          F3 / ⌘K
         </kbd>
       </div>
 
@@ -348,16 +349,6 @@ export function PosTopBar({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* User Guide pill */}
-        <button
-          type="button"
-          onClick={() => navigate({ to: "/pos/help" })}
-          className="hidden xl:inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary-tint/60 px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-primary-tint transition cursor-pointer"
-        >
-          <BookOpen className="h-3.5 w-3.5 text-primary" />
-          <span>User Guide</span>
-        </button>
-
         {/* Fullscreen Toggle Button */}
         <button
           type="button"
@@ -441,16 +432,7 @@ export function PosTopBar({
                   className="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-[12px] font-medium"
                 >
                   <HelpCircle className="h-4 w-4 text-text-secondary" />
-                  <span>Help center</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() =>
-                    toast.info("Retrod POS user guide — documentation is available in Help & Support.")
-                  }
-                  className="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-[12px] font-medium"
-                >
-                  <ScrollText className="h-4 w-4 text-text-secondary" />
-                  <span>User guide</span>
+                  <span>Help Guide</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="my-1 bg-border" />
                 <DropdownMenuItem
