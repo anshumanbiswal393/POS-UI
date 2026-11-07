@@ -12,6 +12,7 @@ import {
   PinOff,
   Plus,
   Store,
+  ChefHat,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -209,6 +210,31 @@ export function PosSidebar({
     ) {
       return true;
     }
+
+    // Kitchen access: Strictly KOT, Stock folder completely, Settings, and Help
+    const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
+    if (isKitchen) {
+      const allowedPrefixes = ["/pos/kot", "/pos/inventory", "/pos/settings", "/pos/help"];
+      if (
+        node.to &&
+        allowedPrefixes.some(
+          (p) => node.to === p || node.to?.startsWith(p + "/") || node.to?.startsWith(p + "?"),
+        )
+      ) {
+        return true;
+      }
+      if (
+        node.id === "inventory" ||
+        node.id === "kot" ||
+        node.id === "kitchen-orders" ||
+        node.id === "settings" ||
+        node.id === "help"
+      ) {
+        return true;
+      }
+      return false;
+    }
+
     if (node.permission && !can(node.permission)) {
       return false;
     }
@@ -240,6 +266,27 @@ export function PosSidebar({
   };
 
   const visibleNavItems = useMemo(() => {
+    const roleStr = String(user?.role || "").toLowerCase();
+    const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
+
+    if (isKitchen) {
+      const stockItem = POS_NAV_ITEMS.find((item) => item.id === "inventory");
+      const kotItem: PosNavItem = {
+        id: "kitchen-orders",
+        label: "Kitchen Orders (KOT)",
+        to: "/pos/kot",
+        icon: ChefHat,
+      };
+      const items: PosNavItem[] = [kotItem];
+      if (stockItem) {
+        items.push({
+          ...stockItem,
+          children: stockItem.children ? filterNavChildren(stockItem.children) : undefined,
+        });
+      }
+      return items;
+    }
+
     return POS_NAV_ITEMS.filter((item) => {
       if (!isNodeAllowed(item)) return false;
       if (item.children?.length) {
@@ -378,6 +425,10 @@ export function PosSidebar({
     );
   };
 
+  const roleStr = String(user?.role || "").toLowerCase();
+  const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
+  const homePath = isKitchen ? "/pos/kot" : "/pos";
+
   return (
     <aside
       className={cn(
@@ -390,20 +441,22 @@ export function PosSidebar({
         {!collapsed ? (
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <Link
-              to="/pos"
+              to={homePath}
               onClick={onNavigate}
               className="flex min-w-0 cursor-pointer items-center py-1 transition-opacity hover:opacity-90"
-              title="Go to POS Dashboard"
+              title={isKitchen ? "Go to Kitchen KOT" : "Go to POS Dashboard"}
             >
               <RetrodLogo variant="dark" size="md" />
             </Link>
-            <span className="label-uppercase shrink-0 text-[9px] !text-sidebar-muted">POS</span>
+            <span className="label-uppercase shrink-0 text-[9px] !text-sidebar-muted">
+              {isKitchen ? "KDS" : "POS"}
+            </span>
           </div>
         ) : (
           <Link
-            to="/pos"
+            to={homePath}
             onClick={onNavigate}
-            title="Go to POS Dashboard"
+            title={isKitchen ? "Go to Kitchen KOT" : "Go to POS Dashboard"}
             className="mx-auto flex cursor-pointer items-center justify-center transition-transform hover:scale-105"
           >
             <RetrodLogo collapsed variant="dark" />

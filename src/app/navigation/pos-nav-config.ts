@@ -434,7 +434,7 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
 
 export const POS_FOOTER_NAV_ITEMS: PosNavItem[] = [
   { id: "help", label: "Help Guide", to: "/pos/help", icon: BookOpen },
-  { id: "settings", label: "Settings", to: "/pos/settings", icon: Settings, permission: "pos.settings.manage" },
+  { id: "settings", label: "Settings", to: "/pos/settings", icon: Settings },
 ];
 
 export function getPosRouteMeta(pathname: string): { label: string; linkTo: string } {

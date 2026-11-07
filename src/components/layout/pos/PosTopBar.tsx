@@ -92,6 +92,9 @@ export function PosTopBar({
   const { activeOutlet } = useOutletContext();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = usePosNotifications();
 
+  const roleStr = String(user?.role || "").toLowerCase();
+  const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
+
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -247,13 +250,15 @@ export function PosTopBar({
 
       {/* Right: Actions + Date + Notifications + User Guide + Profile */}
       <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
-        <Link
-          to="/pos/billing"
-          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-primary px-3 text-[12.5px] font-semibold leading-none text-primary-foreground hover:bg-primary-pressed transition cursor-pointer"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">New Order</span>
-        </Link>
+        {!isKitchen && (
+          <Link
+            to="/pos/billing"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-primary px-3 text-[12.5px] font-semibold leading-none text-primary-foreground hover:bg-primary-pressed transition cursor-pointer"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">New Order</span>
+          </Link>
+        )}
 
         {/* Interactive Single-Date Calendar Popover */}
         <PosDateCalendarPopover />
@@ -409,13 +414,15 @@ export function PosTopBar({
                 </div>
               )}
             </div>
-            <DropdownMenuItem
-              onClick={() => navigate({ to: "/pos/settings" })}
-              className="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium"
-            >
-              <Sparkles className="h-4 w-4 text-amber-500" />
-              <span>Upgrade plan</span>
-            </DropdownMenuItem>
+            {!isKitchen && (
+              <DropdownMenuItem
+                onClick={() => navigate({ to: "/pos/settings" })}
+                className="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium"
+              >
+                <Sparkles className="h-4 w-4 text-amber-500" />
+                <span>Upgrade plan</span>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={() => navigate({ to: "/pos/settings" })}
               className="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium"

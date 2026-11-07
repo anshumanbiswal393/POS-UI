@@ -26,7 +26,7 @@ type Mode = "otp" | "password";
 type ErrorKind = null | "credentials" | "otp_expired" | "network";
 
 export function LoginPageFeature() {
-  const { users, login, loginWithPassword, isAuthenticated, redirectToPmsLogin } = useAuth();
+  const { users, user, login, loginWithPassword, isAuthenticated, redirectToPmsLogin } = useAuth();
   const nav = useNavigate();
   const [mode, setMode] = useState<Mode>("password");
   const [selected, setSelected] = useState<string>(users[0]?.id ?? "");
@@ -46,11 +46,20 @@ export function LoginPageFeature() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ErrorKind>(null);
 
-  useEffect(() => {
-    if (isAuthenticated) {
+  const navigateByRole = (targetRole?: string) => {
+    const roleLower = String(targetRole || "").toLowerCase();
+    if (roleLower === "pos_kitchen" || roleLower.includes("kitchen")) {
+      nav({ to: "/pos/kot" });
+    } else {
       nav({ to: "/pos" });
     }
-  }, [isAuthenticated, nav]);
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigateByRole(user?.role);
+    }
+  }, [isAuthenticated, user?.role]);
 
   const errorMsg = useMemo(() => {
     switch (error) {
@@ -65,37 +74,45 @@ export function LoginPageFeature() {
     }
   }, [error]);
 
-  const fakeDelay = () => new Promise<void>((r) => setTimeout(r, 700));
+  const fakeDelay = () => new Promise<void>((r) => setTimeout(r, 500));
 
   const submitPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
+    const trimmedUsername = username.trim().toLowerCase();
+    const isKitchen =
+      trimmedUsername === "kitchen" ||
+      trimmedUsername === "kitchen@retrod.in" ||
+      trimmedUsername.includes("kitchen") ||
+      trimmedUsername === "9876543219";
+
     try {
       if (loginWithPassword) {
-        await loginWithPassword(username.trim(), password);
+        const loggedInUser = await loginWithPassword(username.trim(), password);
         setLoading(false);
-        nav({ to: "/pos" });
+        navigateByRole(loggedInUser.role);
         return;
       }
     } catch (err: any) {
       console.warn("Backend auth error, falling back to local account check:", err);
     }
 
-    const trimmedUsername = username.trim().toLowerCase();
-    const match = trimmedUsername
-      ? (users.find((u) => u.email.toLowerCase().startsWith(trimmedUsername)) ??
-        users.find((u) => u.email.toLowerCase().includes(trimmedUsername)) ??
-        users.find((u) => u.name.toLowerCase().includes(trimmedUsername)) ??
-        users.find((u) => u.id === selected))
-      : users.find((u) => u.id === selected);
+    const match = isKitchen
+      ? (users.find((u) => u.role === "pos_kitchen") ?? users.find((u) => u.id === selected))
+      : trimmedUsername
+        ? (users.find((u) => u.email.toLowerCase().startsWith(trimmedUsername)) ??
+          users.find((u) => u.email.toLowerCase().includes(trimmedUsername)) ??
+          users.find((u) => u.name.toLowerCase().includes(trimmedUsername)) ??
+          users.find((u) => u.id === selected))
+        : users.find((u) => u.id === selected);
 
     setLoading(false);
     const targetUser = match ?? users.find((u) => u.id === selected) ?? users[0];
     if (targetUser) {
       login(targetUser.id);
-      nav({ to: "/pos" });
+      navigateByRole(targetUser.role);
     } else {
       setError("credentials");
     }
@@ -129,20 +146,41 @@ export function LoginPageFeature() {
       setError("otp_expired");
       return;
     }
+    const trimmedContact = contact.trim().toLowerCase();
+    const isKitchen =
+      trimmedContact === "kitchen" ||
+      trimmedContact === "kitchen@retrod.in" ||
+      trimmedContact.includes("kitchen") ||
+      trimmedContact === "9876543219";
+
     try {
       await authApi.verifyOtp(contact.trim(), otp.trim());
       setLoading(false);
-      nav({ to: "/pos" });
+      const match = isKitchen
+        ? (users.find((u) => u.role === "pos_kitchen") ?? users.find((u) => u.id === selected) ?? users[0])
+        : (users.find((u) => u.phone === trimmedContact || u.email.toLowerCase() === trimmedContact) ??
+           users.find((u) => u.id === selected) ??
+           users[0]);
+      if (match) {
+        login(match.id);
+        navigateByRole(match.role);
+      } else {
+        nav({ to: "/pos" });
+      }
       return;
     } catch {
       // Fallback local match
     }
     await fakeDelay();
     setLoading(false);
-    const match = users.find((u) => u.id === selected) ?? users[0];
+    const match = isKitchen
+      ? (users.find((u) => u.role === "pos_kitchen") ?? users.find((u) => u.id === selected) ?? users[0])
+      : (users.find((u) => u.phone === trimmedContact || u.email.toLowerCase() === trimmedContact) ??
+         users.find((u) => u.id === selected) ??
+         users[0]);
     if (match) {
       login(match.id);
-      nav({ to: "/pos" });
+      navigateByRole(match.role);
     } else {
       setError("credentials");
     }
@@ -348,17 +386,51 @@ export function LoginPageFeature() {
                   const u = users.find((x) => x.id === e.target.value);
                   if (u) {
                     setUsername(u.email.split("@")[0]);
+                    if (u.phone) setContact(u.phone);
                   }
                 }}
                 className="h-10 w-full appearance-none rounded-lg border border-border bg-surface px-3 pr-9 text-[12.5px] text-text-primary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15 transition-all"
               >
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.name} — {ROLE_LABEL[u.role]}
+                    {u.name} — {ROLE_LABEL[u.role] || u.role}
                   </option>
                 ))}
               </select>
               <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" />
+            </div>
+            <div className="mt-2.5 flex items-center justify-between text-[11px] text-text-secondary">
+              <span>Quick login:</span>
+              <div className="flex items-center gap-1.5 font-mono text-[10.5px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const k = users.find((u) => u.role === "pos_kitchen");
+                    if (k) {
+                      setSelected(k.id);
+                      setUsername("kitchen");
+                      setContact(k.phone || "9876543219");
+                    }
+                  }}
+                  className="rounded bg-primary/10 px-2 py-0.5 text-primary hover:bg-primary/20 transition cursor-pointer font-sans font-semibold"
+                >
+                  Kitchen (KDS)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const a = users.find((u) => u.role === "pos_admin");
+                    if (a) {
+                      setSelected(a.id);
+                      setUsername("aarav");
+                      setContact(a.phone || "9876543210");
+                    }
+                  }}
+                  className="rounded bg-surface-2 px-2 py-0.5 text-text-secondary hover:text-text-primary transition cursor-pointer font-sans font-semibold"
+                >
+                  Admin
+                </button>
+              </div>
             </div>
           </div>
 

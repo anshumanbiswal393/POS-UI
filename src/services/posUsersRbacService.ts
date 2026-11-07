@@ -267,6 +267,39 @@ export const DEFAULT_POS_ROLES: POSRole[] = [
   },
 ];
 
+export const DEFAULT_SEED_USERS: POSUser[] = [
+  {
+    id: "usr-admin-01",
+    name: "Aarav Sharma",
+    username: "aarav",
+    email: "aarav@retrod.in",
+    phone: "9876543210",
+    role: "pos_admin",
+    role_name: "POS Administrator",
+    role_code: "pos_admin",
+    outlet_name: "Retrod Bistro & Cafe",
+    user_code: "ADM-001",
+    pin: "1234",
+    is_active: true,
+    created_at: "2026-11-01T00:00:00.000Z",
+  },
+  {
+    id: "usr-kitchen-01",
+    name: "Kitchen Chef Station",
+    username: "kitchen",
+    email: "kitchen@retrod.in",
+    phone: "9876543219",
+    role: "pos_kitchen",
+    role_name: "Kitchen Staff",
+    role_code: "pos_kitchen",
+    outlet_name: "Main Kitchen",
+    user_code: "KITCHEN-01",
+    pin: "1122",
+    is_active: true,
+    created_at: "2026-11-01T00:00:00.000Z",
+  },
+];
+
 export const posUsersRbacService = {
   // ── Users Management ───────────────────────────────────
   getUsers: async (): Promise<POSUser[]> => {
@@ -290,6 +323,10 @@ export const posUsersRbacService = {
           is_active: u.is_active !== false,
           created_at: u.created_at || u.date_joined || new Date().toISOString(),
         }));
+        // Ensure kitchen user is included for KDS login
+        if (!mapped.some((u) => u.id === "usr-kitchen-01" || u.username === "kitchen")) {
+          mapped.push(DEFAULT_SEED_USERS[1]);
+        }
         // Cache locally for offline availability
         if (typeof window !== "undefined") {
           localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(mapped));
@@ -304,15 +341,22 @@ export const posUsersRbacService = {
       const local = localStorage.getItem(STORAGE_USERS_KEY);
       if (local) {
         try {
-          return JSON.parse(local);
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            if (!parsed.some((u: any) => u.id === "usr-kitchen-01" || u.username === "kitchen")) {
+              parsed.push(DEFAULT_SEED_USERS[1]);
+              localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(parsed));
+            }
+            return parsed;
+          }
         } catch {
-          return [];
+          // ignore
         }
       }
     }
 
-    // Zero dummy data initially
-    return [];
+    // Default seed users with Admin and Kitchen Station accounts
+    return DEFAULT_SEED_USERS;
   },
 
   createUser: async (payload: POSUserPayload): Promise<POSUser> => {
@@ -620,3 +664,4 @@ export const posUsersRbacService = {
     return [];
   },
 };
+

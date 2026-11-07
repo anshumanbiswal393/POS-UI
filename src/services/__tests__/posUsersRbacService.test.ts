@@ -1,19 +1,29 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from "vitest";
 import { posUsersRbacService } from "../posUsersRbacService";
+import { ROLE_PERMISSIONS } from "@/lib/auth/rbac";
 
-describe("posUsersRbacService - Zero Dummy Data & CRUD Operations", () => {
+describe("posUsersRbacService - Seed Accounts & CRUD Operations", () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
-  it("initializes with zero dummy users", async () => {
+  it("initializes with admin and kitchen station seed users", async () => {
     const users = await posUsersRbacService.getUsers();
-    expect(users).toEqual([]);
-    expect(users.length).toBe(0);
+    expect(users.length).toBeGreaterThanOrEqual(2);
+    const kitchenUser = users.find((u) => u.username === "kitchen");
+    expect(kitchenUser).toBeDefined();
+    expect(kitchenUser?.role).toBe("pos_kitchen");
+    expect(kitchenUser?.email).toBe("kitchen@retrod.in");
+    expect(kitchenUser?.phone).toBe("9876543219");
+    expect(kitchenUser?.pin).toBe("1122");
+
+    const adminUser = users.find((u) => u.username === "aarav");
+    expect(adminUser).toBeDefined();
+    expect(adminUser?.role).toBe("pos_admin");
   });
 
-  it("creates a new staff user without dummy data", async () => {
+  it("creates a new staff user and saves to user list", async () => {
     const newUser = await posUsersRbacService.createUser({
       name: "Ramesh Sharma",
       username: "ramesh.s",
@@ -32,8 +42,7 @@ describe("posUsersRbacService - Zero Dummy Data & CRUD Operations", () => {
     expect(newUser.is_active).toBe(true);
 
     const users = await posUsersRbacService.getUsers();
-    expect(users.length).toBe(1);
-    expect(users[0].name).toBe("Ramesh Sharma");
+    expect(users.some((u) => u.id === newUser.id)).toBe(true);
   });
 
   it("updates an existing staff user and toggles status", async () => {
@@ -56,25 +65,26 @@ describe("posUsersRbacService - Zero Dummy Data & CRUD Operations", () => {
     expect(updated.pin).toBe("9988");
 
     const users = await posUsersRbacService.getUsers();
-    expect(users[0].is_active).toBe(false);
-    expect(users[0].pin).toBe("9988");
+    const found = users.find((u) => u.id === created.id);
+    expect(found?.is_active).toBe(false);
+    expect(found?.pin).toBe("9988");
   });
 
   it("deletes a staff user", async () => {
     const created = await posUsersRbacService.createUser({
-      name: "Chef Vikas",
-      username: "vikas.chef",
-      email: "vikas@kitchen.com",
-      role: "pos_chef",
+      name: "Junior Chef Vikas",
+      username: "vikas.jr",
+      email: "vikas.jr@kitchen.com",
+      role: "pos_kitchen",
     });
 
     let users = await posUsersRbacService.getUsers();
-    expect(users.length).toBe(1);
+    expect(users.some((u) => u.id === created.id)).toBe(true);
 
     await posUsersRbacService.deleteUser(created.id);
 
     users = await posUsersRbacService.getUsers();
-    expect(users.length).toBe(0);
+    expect(users.some((u) => u.id === created.id)).toBe(false);
   });
 
   it("provides standard POS roles and permits granting & revoking permissions", async () => {
@@ -92,7 +102,7 @@ describe("posUsersRbacService - Zero Dummy Data & CRUD Operations", () => {
     const granted = await posUsersRbacService.syncRolePermissions(
       cashierRole!.id,
       [billingPerm!.id],
-      "assign"
+      "assign",
     );
     expect(granted.some((g) => g.permission === billingPerm!.id)).toBe(true);
 
@@ -100,8 +110,25 @@ describe("posUsersRbacService - Zero Dummy Data & CRUD Operations", () => {
     const revoked = await posUsersRbacService.syncRolePermissions(
       cashierRole!.id,
       [billingPerm!.id],
-      "revoke"
+      "revoke",
     );
     expect(revoked.some((g) => g.permission === billingPerm!.id)).toBe(false);
+  });
+
+  it("verifies kitchen role has KOT and full Stock inventory permissions", () => {
+    const kitchenPerms = ROLE_PERMISSIONS.pos_kitchen;
+    expect(kitchenPerms).toContain("pos.kot.view");
+    expect(kitchenPerms).toContain("pos.kot.manage");
+    expect(kitchenPerms).toContain("pos.inventory.view");
+    expect(kitchenPerms).toContain("pos.inventory.manage");
+    expect(kitchenPerms).toContain("pos.inventory.wastage");
+    expect(kitchenPerms).toContain("pos.inventory.production");
+    expect(kitchenPerms).toContain("pos.inventory.purchase_orders");
+
+    // Kitchen must NOT have access to cashier billing or management settings
+    expect(kitchenPerms).not.toContain("pos.billing.view");
+    expect(kitchenPerms).not.toContain("pos.billing.settle");
+    expect(kitchenPerms).not.toContain("pos.settings.manage");
+    expect(kitchenPerms).not.toContain("pos.users.manage");
   });
 });

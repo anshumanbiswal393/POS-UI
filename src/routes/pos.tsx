@@ -1,5 +1,7 @@
-import { Outlet, createFileRoute, useRouterState } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { PosDashboardManager } from "@/components/shared/pos/PosDashboardManager";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/pos")({
   head: () => ({
@@ -16,7 +18,22 @@ export const Route = createFileRoute("/pos")({
 
 function PosLayoutRoute() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const roleStr = String(user?.role || "").toLowerCase();
+  const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
+
+  useEffect(() => {
+    if ((pathname === "/pos" || pathname === "/pos/") && isKitchen) {
+      navigate({ to: "/pos/kot", replace: true });
+    }
+  }, [pathname, isKitchen, navigate]);
+
   if (pathname === "/pos" || pathname === "/pos/") {
+    if (isKitchen) {
+      return null;
+    }
     return <PosDashboardManager />;
   }
   return <Outlet />;

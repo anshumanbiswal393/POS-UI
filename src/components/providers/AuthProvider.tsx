@@ -57,7 +57,42 @@ export interface AuthAuditEvent {
   detail?: string;
 }
 
-const SEED_USERS: AppUser[] = [];
+export const KITCHEN_USER: AppUser = {
+  id: "usr-kitchen-01",
+  name: "Kitchen Chef Station",
+  email: "kitchen@retrod.in",
+  role: "pos_kitchen",
+  phone: "9876543219",
+  active: true,
+  lastActive: "Now",
+  initials: "KC",
+  property: "Retrod Bistro & Cafe · Connaught Place",
+  permissions: [
+    "pos.kot.view",
+    "pos.kot.manage",
+    "pos.recipes.view",
+    "pos.inventory.view",
+    "pos.inventory.manage",
+    "pos.inventory.wastage",
+    "pos.inventory.production",
+    "pos.inventory.purchase_orders",
+  ],
+};
+
+export const ADMIN_USER: AppUser = {
+  id: "usr-admin-01",
+  name: "Aarav Sharma",
+  email: "aarav@retrod.in",
+  role: "pos_admin",
+  phone: "9876543210",
+  active: true,
+  lastActive: "Now",
+  initials: "AS",
+  property: "Retrod Bistro & Cafe · Connaught Place",
+  permissions: ["*:*"],
+};
+
+const SEED_USERS: AppUser[] = [ADMIN_USER, KITCHEN_USER];
 
 const DEFAULT_ENTITLEMENTS: TenantEntitlements = {
   tenantId: "retrod-pos-tenant",
@@ -85,17 +120,27 @@ const DEFAULT_ENTITLEMENTS: TenantEntitlements = {
 };
 
 function loadCachedUsers(): AppUser[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(LS_USERS);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as AppUser[];
-    return Array.isArray(parsed)
-      ? parsed.filter((u) => !["u0", "u1", "u2"].includes(u.id))
-      : [];
-  } catch {
-    return [];
+  let list: AppUser[] = [ADMIN_USER, KITCHEN_USER];
+  if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem(LS_USERS);
+      if (raw) {
+        const parsed = JSON.parse(raw) as AppUser[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          list = parsed.filter((u) => !["u0", "u1", "u2"].includes(u.id));
+          if (!list.some((u) => u.id === KITCHEN_USER.id)) {
+            list.push(KITCHEN_USER);
+          }
+          if (!list.some((u) => u.id === ADMIN_USER.id)) {
+            list.unshift(ADMIN_USER);
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
   }
+  return list;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

@@ -281,12 +281,12 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   pos_kitchen: [
     "pos.kot.view",
     "pos.kot.manage",
-    "pos.menu.toggle",
     "pos.recipes.view",
-    "pos.menu.view",
     "pos.inventory.view",
+    "pos.inventory.manage",
     "pos.inventory.wastage",
     "pos.inventory.production",
+    "pos.inventory.purchase_orders",
   ],
   pos_bartender: [
     "pos.orders.view",

@@ -60,6 +60,13 @@ export function PosSettingsScreen() {
   const { activeOutlet } = useOutletContext();
   const [activeTab, setActiveTab] = useState<SettingsTab>("account");
 
+  const roleStr = String(user?.role || "").toLowerCase();
+  const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
+
+  const visibleMenu = isKitchen
+    ? [{ id: "account" as const, label: "Profile & Theme" }]
+    : MENU;
+
   const [profileName, setProfileName] = useState(user?.name ?? "");
   const [profilePhone, setProfilePhone] = useState(user?.phone ?? "");
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -71,6 +78,12 @@ export function PosSettingsScreen() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [taxSettings, setTaxSettings] = useState<PosTaxSettings>(() => getPosTaxSettings());
+
+  useEffect(() => {
+    if (isKitchen && activeTab !== "account") {
+      setActiveTab("account");
+    }
+  }, [isKitchen, activeTab]);
 
   useEffect(() => {
     setProfileName(user?.name ?? "");
@@ -165,7 +178,7 @@ export function PosSettingsScreen() {
           Settings Menu
         </div>
         <ul className="space-y-1 p-2">
-          {MENU.map((item) => {
+          {visibleMenu.map((item) => {
             const selected = activeTab === item.id;
             return (
               <li key={item.id}>
@@ -276,101 +289,105 @@ export function PosSettingsScreen() {
           </section>
 
           <div className="space-y-4">
-            <section className="rounded-xl border border-border bg-surface p-5 shadow-xs">
-              <div className="mb-4 border-b border-border pb-3">
-                <h2 className="text-[16px] font-bold text-text-primary">Currently using this POS</h2>
-              </div>
-              <div className="flex items-center gap-3 rounded-lg border border-primary/15 bg-primary/5 p-3">
-                {user?.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt={user?.name || "User"}
-                    className="h-11 w-11 rounded-full object-cover shrink-0"
-                  />
-                ) : (
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-primary-foreground shrink-0">
-                    {user?.initials ?? "U"}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[14px] font-bold text-text-primary">{user?.name ?? "POS User"}</div>
-                  <div className="text-[12px] font-semibold text-primary">
-                    {user?.role_name || (user ? roleLabel(user.role) : "Staff")}
-                  </div>
-                  <div className="truncate text-[11px] text-text-secondary">
-                    {activeOutlet?.name || user?.property || "Main Outlet"} · {user?.lastActive ?? "Active now"}
-                  </div>
+            {!isKitchen && (
+              <section className="rounded-xl border border-border bg-surface p-5 shadow-xs">
+                <div className="mb-4 border-b border-border pb-3">
+                  <h2 className="text-[16px] font-bold text-text-primary">Currently using this POS</h2>
                 </div>
-                <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
-                  This terminal
-                </span>
-              </div>
-
-              {othersOnPos.length > 0 && (
-                <ul className="mt-3 divide-y divide-border">
-                  {othersOnPos.map((entry) => (
-                    <li key={entry.id} className="flex items-center justify-between gap-3 py-2.5">
-                      <div className="min-w-0">
-                        <div className="truncate text-[13px] font-semibold text-text-primary">{entry.name}</div>
-                        <div className="text-[11px] text-text-secondary">
-                          {roleLabel(entry.role)} · {entry.email}
-                        </div>
-                      </div>
-                      <span className="shrink-0 text-[11px] font-medium text-text-secondary">{entry.lastActive ?? "Active"}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section className="rounded-xl border border-border bg-surface p-5 shadow-xs">
-              <div className="mb-4 border-b border-border pb-3">
-                <h2 className="text-[16px] font-bold text-text-primary">Subscription & Licensing</h2>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between rounded-lg border border-primary/10 bg-primary/5 p-3">
-                  <div>
-                    <span className="block text-[11px] font-medium uppercase text-text-secondary">Subscription Plan</span>
-                    <span className="mt-0.5 block text-[14px] font-extrabold text-primary">
-                      {user?.subscription_plan || planLabel}
-                    </span>
+                <div className="flex items-center gap-3 rounded-lg border border-primary/15 bg-primary/5 p-3">
+                  {user?.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={user?.name || "User"}
+                      className="h-11 w-11 rounded-full object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-primary-foreground shrink-0">
+                      {user?.initials ?? "U"}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[14px] font-bold text-text-primary">{user?.name ?? "POS User"}</div>
+                    <div className="text-[12px] font-semibold text-primary">
+                      {user?.role_name || (user ? roleLabel(user.role) : "Staff")}
+                    </div>
+                    <div className="truncate text-[11px] text-text-secondary">
+                      {activeOutlet?.name || user?.property || "Main Outlet"} · {user?.lastActive ?? "Active now"}
+                    </div>
                   </div>
-                  <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
-                    Active
+                  <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+                    This terminal
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-lg border border-border bg-surface-2/40 p-3">
-                    <span className="block text-[11px] text-text-secondary">Expiration Date</span>
-                    <span className="mt-1 block text-[13px] font-semibold text-text-primary">
-                      {user?.subscription_expiry || "Active (Annual License)"}
+
+                {othersOnPos.length > 0 && (
+                  <ul className="mt-3 divide-y divide-border">
+                    {othersOnPos.map((entry) => (
+                      <li key={entry.id} className="flex items-center justify-between gap-3 py-2.5">
+                        <div className="min-w-0">
+                          <div className="truncate text-[13px] font-semibold text-text-primary">{entry.name}</div>
+                          <div className="text-[11px] text-text-secondary">
+                            {roleLabel(entry.role)} · {entry.email}
+                          </div>
+                        </div>
+                        <span className="shrink-0 text-[11px] font-medium text-text-secondary">{entry.lastActive ?? "Active"}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
+
+            {!isKitchen && (
+              <section className="rounded-xl border border-border bg-surface p-5 shadow-xs">
+                <div className="mb-4 border-b border-border pb-3">
+                  <h2 className="text-[16px] font-bold text-text-primary">Subscription & Licensing</h2>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between rounded-lg border border-primary/10 bg-primary/5 p-3">
+                    <div>
+                      <span className="block text-[11px] font-medium uppercase text-text-secondary">Subscription Plan</span>
+                      <span className="mt-0.5 block text-[14px] font-extrabold text-primary">
+                        {user?.subscription_plan || planLabel}
+                      </span>
+                    </div>
+                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+                      Active
                     </span>
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg border border-border bg-surface-2/40 p-3">
+                      <span className="block text-[11px] text-text-secondary">Expiration Date</span>
+                      <span className="mt-1 block text-[13px] font-semibold text-text-primary">
+                        {user?.subscription_expiry || "Active (Annual License)"}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-border bg-surface-2/40 p-3">
+                      <span className="block text-[11px] text-text-secondary">Outlet</span>
+                      <span className="mt-1 block truncate font-mono text-[13px] font-semibold text-text-primary">
+                        {activeOutlet?.name || activeOutlet?.code || "Primary Outlet"}
+                      </span>
+                    </div>
+                  </div>
                   <div className="rounded-lg border border-border bg-surface-2/40 p-3">
-                    <span className="block text-[11px] text-text-secondary">Outlet</span>
-                    <span className="mt-1 block truncate font-mono text-[13px] font-semibold text-text-primary">
-                      {activeOutlet?.name || activeOutlet?.code || "Primary Outlet"}
-                    </span>
+                    <span className="block text-[11px] text-text-secondary">License Key</span>
+                    <div className="mt-1.5 flex items-center justify-between gap-2">
+                      <span className="rounded border border-border bg-surface px-2.5 py-1 font-mono text-[12px] font-semibold text-text-primary">
+                        {user?.license_key || licenseKey}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleCopyLicense}
+                        title="Copy license key"
+                        className="rounded-md border border-border p-1.5 text-text-secondary hover:text-text-primary cursor-pointer"
+                      >
+                        {copiedLicense ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="rounded-lg border border-border bg-surface-2/40 p-3">
-                  <span className="block text-[11px] text-text-secondary">License Key</span>
-                  <div className="mt-1.5 flex items-center justify-between gap-2">
-                    <span className="rounded border border-border bg-surface px-2.5 py-1 font-mono text-[12px] font-semibold text-text-primary">
-                      {user?.license_key || licenseKey}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleCopyLicense}
-                      title="Copy license key"
-                      className="rounded-md border border-border p-1.5 text-text-secondary hover:text-text-primary cursor-pointer"
-                    >
-                      {copiedLicense ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </section>
+              </section>
+            )}
 
             <section className="rounded-xl border border-border bg-surface p-5 shadow-xs">
               <div className="mb-4 border-b border-border pb-3">
