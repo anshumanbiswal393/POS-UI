@@ -38,6 +38,9 @@ export type BillingMenuItem = {
   category: BillingCategory;
   diet: "veg" | "non_veg" | "egg" | "drinks";
   price: number;
+  originalPrice?: number;
+  commissionType?: string;
+  commissionValue?: number | null;
   inStock: boolean;
   stockCount?: number;
   prepTimeMinutes: number;

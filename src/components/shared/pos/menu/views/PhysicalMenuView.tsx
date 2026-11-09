@@ -1057,7 +1057,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                               {showPrices && (
                                                 <span className="shrink-0 text-[12px] font-bold text-stone-900">
                                                   {showPricesWithCurrency ? "₹" : ""}
-                                                  {calculateEffectivePrice(item.price, item.commissionType, item.commissionValue)}
+                                                  {calculateEffectivePrice((item as any).originalPrice ?? item.price, item.commissionType, item.commissionValue)}
                                                 </span>
                                               )}
                                             </div>
@@ -1324,7 +1324,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                                   }
                                                 >
                                                   {showPricesWithCurrency ? "₹" : ""}
-                                                  {calculateEffectivePrice(item.price, item.commissionType, item.commissionValue)}
+                                                  {calculateEffectivePrice((item as any).originalPrice ?? item.price, item.commissionType, item.commissionValue)}
                                                 </span>
                                               </div>
                                             )}

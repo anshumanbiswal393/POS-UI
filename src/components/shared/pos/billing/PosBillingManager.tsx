@@ -287,18 +287,26 @@ export function PosBillingManager() {
                 ? "drinks"
                 : "non_veg";
 
-        // Calculate effective price: Base Price + Commission markup
-        const effectivePrice = calculateEffectivePrice(
-          item.price,
-          item.commissionType,
-          item.commissionValue,
-        );
+        // Use effective price (with commission markup already applied by useBillingMenuItems)
+        // If originalPrice exists on item, item.price is already the final effective selling price.
+        // Otherwise calculate from base price to ensure commission is never added twice.
+        const basePrice = (item as any).originalPrice ?? item.price;
+        const effectivePrice =
+          (item as any).originalPrice !== undefined
+            ? item.price
+            : calculateEffectivePrice(basePrice, item.commissionType, item.commissionValue);
 
         // Apply same commission markup to variants if defined
-        const effectiveVariants = item.variants?.map((v) => ({
-          ...v,
-          price: calculateEffectivePrice(v.price, item.commissionType, item.commissionValue),
-        }));
+        const effectiveVariants = item.variants?.map((v: any) => {
+          const vBasePrice = v.originalPrice ?? v.price;
+          return {
+            ...v,
+            price:
+              v.originalPrice !== undefined
+                ? v.price
+                : calculateEffectivePrice(vBasePrice, item.commissionType, item.commissionValue),
+          };
+        });
 
         return {
           id: item.id,
@@ -307,6 +315,9 @@ export function PosBillingManager() {
           category: item.category as any,
           diet,
           price: effectivePrice,
+          originalPrice: basePrice,
+          commissionType: item.commissionType,
+          commissionValue: item.commissionValue,
           inStock: true,
           prepTimeMinutes: 15,
           imageUrl: primaryImg,

@@ -40,20 +40,30 @@ export function useBillingMenuItems(outletId?: string) {
         raw = await posMenuService.getMenuItems(outletId);
       }
       return (raw || []).map((item) => {
-        const effectivePrice = calculateEffectivePrice(
-          item.price,
-          item.commissionType,
-          item.commissionValue,
-        );
+        const basePrice = (item as any).originalPrice ?? item.price;
+        const effectivePrice =
+          (item as any).originalPrice !== undefined
+            ? item.price
+            : calculateEffectivePrice(
+                basePrice,
+                item.commissionType,
+                item.commissionValue,
+              );
         return {
           ...item,
-          originalPrice: item.price,
+          originalPrice: basePrice,
           price: effectivePrice,
-          variants: (item.variants || []).map((v: any) => ({
-            ...v,
-            originalPrice: v.price,
-            price: calculateEffectivePrice(v.price, item.commissionType, item.commissionValue),
-          })),
+          variants: (item.variants || []).map((v: any) => {
+            const vBase = v.originalPrice ?? v.price;
+            return {
+              ...v,
+              originalPrice: vBase,
+              price:
+                v.originalPrice !== undefined
+                  ? v.price
+                  : calculateEffectivePrice(vBase, item.commissionType, item.commissionValue),
+            };
+          }),
         };
       });
     },
