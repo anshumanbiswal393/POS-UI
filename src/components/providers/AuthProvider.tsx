@@ -31,7 +31,7 @@ export interface AuthCtx {
   setEntitlementPlan: (plan: TenantEntitlements["plan"]) => void;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (userId: string) => void;
+  login: (userIdOrUser: string | AppUser) => void;
   loginWithPassword: (emailOrUsername: string, password: string) => Promise<AppUser>;
   loginWithTokens: (tokens: any, user: any, properties: any, permissions: any) => AppUser;
   logout: () => void;
@@ -114,9 +114,9 @@ export const ARNAV_STAFF_USER: AppUser = {
 export const WAITER_USER: AppUser = {
   id: "usr-waiter-01",
   name: "Rohan Kumar",
-  email: "waiter@retrod.in",
+  email: "samprita2022@gift.edu.in",
   role: "pos_waiter",
-  phone: "9876543220",
+  phone: "9937884878",
   active: true,
   lastActive: "Now",
   initials: "RK",
@@ -167,19 +167,45 @@ function loadCachedUsers(): AppUser[] {
         const parsed = JSON.parse(raw) as AppUser[];
         if (Array.isArray(parsed) && parsed.length > 0) {
           list = parsed.filter((u) => !["u0", "u1", "u2", "usr-admin-01"].includes(u.id) && u.email !== "aarav@retrod.in");
-          if (!list.some((u) => u.id === KITCHEN_USER.id || u.email === KITCHEN_USER.email)) {
-            list.push(KITCHEN_USER);
-          }
-          if (!list.some((u) => u.id === ARNAV_STAFF_USER.id || u.email === ARNAV_STAFF_USER.email)) {
-            list.push(ARNAV_STAFF_USER);
-          }
-          if (!list.some((u) => u.id === WAITER_USER.id || u.email === WAITER_USER.email)) {
-            list.push(WAITER_USER);
-          }
-          if (!list.some((u) => u.id === SAMPRITA_ADMIN_USER.id || u.email === SAMPRITA_ADMIN_USER.email)) {
-            list.unshift(SAMPRITA_ADMIN_USER);
+        }
+      }
+
+      // Also hydrate staff created in POS User Management
+      const rawPos = localStorage.getItem("retrod:pos:users:list");
+      if (rawPos) {
+        const posUsers = JSON.parse(rawPos);
+        if (Array.isArray(posUsers)) {
+          for (const pu of posUsers) {
+            if (!list.some((u) => u.id === pu.id || (pu.email && u.email?.toLowerCase() === pu.email.toLowerCase()))) {
+              list.push({
+                id: pu.id,
+                name: pu.name,
+                email: pu.email || `${pu.username || "user"}@retrod.in`,
+                role: (pu.role === "admin" ? "pos_admin" : pu.role === "kitchen" ? "pos_kitchen" : pu.role === "waiter" ? "pos_waiter" : pu.role || "pos_staff") as any,
+                phone: pu.phone || "",
+                active: pu.is_active ?? true,
+                lastActive: "Now",
+                initials: pu.initials || pu.name?.slice(0, 2).toUpperCase() || "US",
+                property: pu.outlet_name || "Anshu Suite Restaurant · Main Outlet",
+                permissions: pu.permissions || [],
+              });
+            }
           }
         }
+      }
+
+      // Always guarantee the 4 core users exist
+      if (!list.some((u) => u.id === KITCHEN_USER.id || u.email.toLowerCase() === KITCHEN_USER.email.toLowerCase())) {
+        list.push(KITCHEN_USER);
+      }
+      if (!list.some((u) => u.id === ARNAV_STAFF_USER.id || u.email.toLowerCase() === ARNAV_STAFF_USER.email.toLowerCase())) {
+        list.push(ARNAV_STAFF_USER);
+      }
+      if (!list.some((u) => u.id === WAITER_USER.id || u.email.toLowerCase() === WAITER_USER.email.toLowerCase())) {
+        list.push(WAITER_USER);
+      }
+      if (!list.some((u) => u.id === SAMPRITA_ADMIN_USER.id || u.email.toLowerCase() === SAMPRITA_ADMIN_USER.email.toLowerCase())) {
+        list.unshift(SAMPRITA_ADMIN_USER);
       }
     } catch {
       // ignore
@@ -373,10 +399,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setEntitlements((prev) => ({ ...prev, plan }));
       },
       isAuthenticated: !!user,
-      login: (userId: string) => {
-        const found = users.find((u) => u.id === userId);
+      login: (userIdOrUser: string | AppUser) => {
+        let found: AppUser | undefined;
+        if (typeof userIdOrUser === "string") {
+          const q = userIdOrUser.trim().toLowerCase();
+          found = users.find(
+            (u) =>
+              u.id === userIdOrUser ||
+              u.email?.toLowerCase() === q ||
+              (u.phone && u.phone === userIdOrUser)
+          );
+
+          if (!found && typeof window !== "undefined") {
+            try {
+              const rawPosUsers = localStorage.getItem("retrod:pos:users:list");
+              if (rawPosUsers) {
+                const list = JSON.parse(rawPosUsers);
+                if (Array.isArray(list)) {
+                  const match = list.find(
+                    (u: any) =>
+                      u.id === userIdOrUser ||
+                      u.email?.toLowerCase() === q ||
+                      (u.phone && u.phone === userIdOrUser)
+                  );
+                  if (match) {
+                    found = {
+                      id: match.id,
+                      name: match.name,
+                      email: match.email || `${match.username || "user"}@retrod.in`,
+                      role: (match.role === "admin" ? "pos_admin" : match.role === "kitchen" ? "pos_kitchen" : match.role === "waiter" ? "pos_waiter" : match.role || "pos_staff") as any,
+                      phone: match.phone || "",
+                      active: match.is_active ?? true,
+                      lastActive: "Now",
+                      initials: match.initials || match.name?.slice(0, 2).toUpperCase() || "US",
+                      property: match.outlet_name || "Anshu Suite Restaurant · Main Outlet",
+                      permissions: match.permissions || [],
+                    };
+                  }
+                }
+              }
+            } catch {}
+          }
+        } else {
+          found = userIdOrUser;
+        }
+
         if (found) {
           setUser(found);
+          if (typeof window !== "undefined") {
+            localStorage.setItem(LS_USER, JSON.stringify(found));
+            localStorage.setItem("retrod:access-token", "pos-session-" + found.id);
+          }
           addAuditEvent("User logged in", found.email, `Session started for ${found.name}.`, {
             name: found.name,
             role: found.role as Role,

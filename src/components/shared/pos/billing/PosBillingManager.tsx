@@ -38,7 +38,8 @@ import {
 } from "@/services/posOrderLive";
 import { getPosTaxSettings } from "@/lib/posTaxSettings";
 import { useHotelRooms } from "@/hooks/queries/usePosRoomService";
-import { usePosTables } from "@/hooks/queries/usePosTables";
+import { usePosTables, usePosReservations } from "@/hooks/queries/usePosTables";
+import { savePosCustomer } from "@/services/posCustomerStore";
 import { isBackendOutletId } from "@/utils/outletId";
 import { POS_ROOM_SERVICE_ROOMS_KEY } from "@/hooks/queries/usePosRoomService";
 
@@ -120,6 +121,7 @@ export function PosBillingManager() {
   const { data: menuList = [] } = useBillingMenuItems(activeOutlet?.id || "outlet-primary");
   const { data: hotelRooms = [] } = useHotelRooms();
   const { data: restaurantTables = [] } = usePosTables();
+  const { data: reservations = [] } = usePosReservations();
   const { data: currentTimeline = [] } = useCurrentOrdersTimeline();
 
   const occupiedRooms = useMemo(
@@ -147,19 +149,108 @@ export function PosBillingManager() {
     (label: string) => {
       if (!label) return undefined;
       const primary = label.includes("+") ? label.split("+")[0].trim() : label.trim();
+      const numOnly = primary.replace(/\D/g, "");
       return restaurantTables.find(
         (t) =>
           t.tableNumber === label ||
           t.tableNumber === primary ||
+          (t.tableNumber && primary && t.tableNumber.toLowerCase() === primary.toLowerCase()) ||
           `Table #${t.tableNumberRaw}` === label ||
           `Table #${t.tableNumberRaw}` === primary ||
+          `T${String(t.tableNumberRaw || "").padStart(2, "0")}` === primary ||
+          `T${t.tableNumberRaw}` === primary ||
           `T-${t.tableNumberRaw}` === label ||
           `T-${t.tableNumberRaw}` === primary ||
           String(t.tableNumberRaw) === label ||
-          String(t.tableNumberRaw) === primary,
+          String(t.tableNumberRaw) === primary ||
+          (numOnly && String(t.tableNumberRaw) === numOnly) ||
+          (numOnly && t.tableNumber && t.tableNumber.replace(/\D/g, "") === numOnly),
       );
     },
     [restaurantTables],
+  );
+
+  const findCustomerForTable = useCallback(
+    (tblLabel: string, tblId?: string): CustomerProfile | null => {
+      if (!tblLabel && !tblId) return null;
+      const matchedTable = tblId
+        ? restaurantTables.find((t) => t.id === tblId) || resolveTableMatch(tblLabel)
+        : resolveTableMatch(tblLabel);
+
+      // 1. If table has activeReservation with customer details
+      if (matchedTable?.activeReservation?.customerName) {
+        return {
+          id: `res-${matchedTable.id}`,
+          name: matchedTable.activeReservation.customerName,
+          phone: matchedTable.activeReservation.customerPhone || "",
+          tier: matchedTable.activeReservation.isVip ? "Gold" : "Silver",
+          loyaltyPoints: 0,
+          visitCount: 1,
+          lastVisit: "Today",
+        };
+      }
+
+      // 2. If table has activeOrder with guest details
+      if (matchedTable?.activeOrder?.guestName) {
+        return {
+          id: `order-guest-${matchedTable.id}`,
+          name: matchedTable.activeOrder.guestName,
+          phone: matchedTable.activeOrder.guestPhone || "",
+          tier: "Silver",
+          loyaltyPoints: 0,
+          visitCount: 1,
+          lastVisit: "Today",
+        };
+      }
+
+      // 3. Search reservations list for this table
+      const numOnly = (tblLabel || "").replace(/\D/g, "");
+      const resMatch = reservations.find((r) => {
+        if (tblId && r.tableId === tblId) return true;
+        if (matchedTable?.id && r.tableId === matchedTable.id) return true;
+        if (r.tableNumber && tblLabel && r.tableNumber.toLowerCase() === tblLabel.toLowerCase()) return true;
+        if (matchedTable?.tableNumber && r.tableNumber === matchedTable.tableNumber) return true;
+        const resNum = (r.tableNumber || "").replace(/\D/g, "");
+        if (numOnly && resNum && numOnly === resNum) return true;
+        return false;
+      });
+
+      if (resMatch?.customerName) {
+        return {
+          id: `res-${resMatch.id}`,
+          name: resMatch.customerName,
+          phone: resMatch.customerPhone || "",
+          tier: resMatch.isVip ? "Gold" : "Silver",
+          loyaltyPoints: 0,
+          visitCount: 1,
+          lastVisit: "Today",
+        };
+      }
+
+      // 4. Search activeTimeline for this table
+      const orderMatch = (currentTimeline || []).find((ord) => {
+        if (tblId && ord.tableId === tblId) return true;
+        if (ord.tableOrRoom && tblLabel && ord.tableOrRoom.toLowerCase() === tblLabel.toLowerCase()) return true;
+        const ordNum = (ord.tableOrRoom || "").replace(/\D/g, "");
+        if (numOnly && ordNum && numOnly === ordNum) return true;
+        return false;
+      });
+
+      if (orderMatch?.customerName) {
+        return {
+          id: `timeline-${orderMatch.id}`,
+          name: orderMatch.customerName,
+          phone: orderMatch.customerPhone || "",
+          tier: "Silver",
+          loyaltyPoints: 0,
+          visitCount: 1,
+          lastVisit: "Today",
+        };
+      }
+
+      return null;
+    },
+    [restaurantTables, resolveTableMatch, reservations, currentTimeline],
   );
 
   // 1. Order & Header State — blank until user picks table/pax for a new outlet
@@ -181,6 +272,30 @@ export function PosBillingManager() {
   const [reservationId, setReservationId] = useState("");
   const [folioId, setFolioId] = useState("");
   const [linkedOrderId, setLinkedOrderId] = useState<string | null>(null);
+
+  // 3. Customer Loyalty State
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerProfile | null>(null);
+
+  const handleSelectCustomer = useCallback(
+    (cust: CustomerProfile | null) => {
+      setSelectedCustomer(cust);
+      if (cust?.name) {
+        try {
+          savePosCustomer(
+            {
+              name: cust.name,
+              phone: cust.phone || "",
+              tier: cust.tier as any,
+            },
+            activeOutlet?.id,
+          );
+        } catch {
+          // ignore
+        }
+      }
+    },
+    [activeOutlet?.id],
+  );
   const captainName = user?.name?.trim() || waiterFromUrl.trim() || "Steward";
   const isBackendOutlet = isBackendOutletId(activeOutlet?.id);
   const [isPayNowOpen, setIsPayNowOpen] = useState(false);
@@ -250,6 +365,15 @@ export function PosBillingManager() {
     if (!reservationId && match.reservationId) setReservationId(match.reservationId);
     if (!roomUnitId && match.roomUnitId) setRoomUnitId(match.roomUnitId);
   }, [orderType, roomNumber, occupiedRooms, guestCount, folioId, reservationId, roomUnitId]);
+
+  // When a table is active/selected for dine-in, auto-fetch guest details from reservation if not selected
+  useEffect(() => {
+    if (orderType !== "dine_in" || !activeTable || selectedCustomer) return;
+    const autoCust = findCustomerForTable(activeTable, billingTableId);
+    if (autoCust) {
+      handleSelectCustomer(autoCust);
+    }
+  }, [orderType, activeTable, billingTableId, selectedCustomer, findCustomerForTable, handleSelectCustomer]);
 
   const handleOrderTypeChange = useCallback(
     (type: BillingOrderType) => {
@@ -378,15 +502,20 @@ export function PosBillingManager() {
     }
     if (qGuestName) {
       const phoneRaw = qGuestPhone?.trim() ? decodeURIComponent(qGuestPhone.trim()) : "";
-      setSelectedCustomer({
+      handleSelectCustomer({
         id: `guest-${Date.now()}`,
         name: decodeURIComponent(qGuestName),
-        phone: phoneRaw || "+91 98765 00000",
+        phone: phoneRaw,
         tier: "Silver",
         loyaltyPoints: 0,
         visitCount: 1,
         lastVisit: "Today",
       });
+    } else if (qTable || qTableId) {
+      const autoCust = findCustomerForTable(qTable || "", qTableId || undefined);
+      if (autoCust) {
+        handleSelectCustomer(autoCust);
+      }
     }
 
     // Edit existing Current Order → hydrate cart + link check
@@ -515,9 +644,6 @@ export function PosBillingManager() {
   /** Prevents double KOT when user clicks KOT then settles the same cart */
   const [kotSentForCart, setKotSentForCart] = useState(false);
   const [linkedOrderNumber, setLinkedOrderNumber] = useState<string | null>(null);
-
-  // 3. Customer Loyalty State
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerProfile | null>(null);
 
   // 5. Modals State
   const [modifierItem, setModifierItem] = useState<BillingMenuItem | null>(null);
@@ -886,7 +1012,7 @@ export function PosBillingManager() {
     setKotSentForCart(false);
 
     if (held.customerName) {
-      setSelectedCustomer({
+      handleSelectCustomer({
         id: `guest-${Date.now()}`,
         name: held.customerName,
         phone: held.customerPhone || "",
@@ -895,6 +1021,11 @@ export function PosBillingManager() {
         visitCount: 1,
         lastVisit: "Today",
       });
+    } else if (held.tableNumber || held.tableId) {
+      const autoCust = findCustomerForTable(held.tableNumber || "", held.tableId);
+      if (autoCust) {
+        handleSelectCustomer(autoCust);
+      }
     }
 
     setHeldBills((prev) => prev.filter((h) => h.id !== held.id));
@@ -913,17 +1044,8 @@ export function PosBillingManager() {
     setOrderType("dine_in");
     setGuestCount(table.activeReservation?.guests || table.capacity || 4);
 
-    if (table.activeReservation?.customerName) {
-      setSelectedCustomer({
-        id: `res-${table.id}`,
-        name: table.activeReservation.customerName,
-        phone: table.activeReservation.customerPhone || "",
-        tier: table.activeReservation.isVip ? "Gold" : "Silver",
-        loyaltyPoints: 0,
-        visitCount: 1,
-        lastVisit: "Today",
-      });
-    }
+    const foundCust = findCustomerForTable(code, table.id);
+    handleSelectCustomer(foundCust || null);
 
     // If table has a held check or active timeline order, resume it
     const existingHeld = heldBills.find(
@@ -934,6 +1056,9 @@ export function PosBillingManager() {
     );
     if (existingHeld) {
       handleResumeHeldBill(existingHeld);
+      if (!existingHeld.customerName && foundCust) {
+        handleSelectCustomer(foundCust);
+      }
       return;
     }
 
@@ -946,6 +1071,9 @@ export function PosBillingManager() {
     if (activeTimelineOrder) {
       const held = currentOrderToHeldBill(activeTimelineOrder);
       handleResumeHeldBill(held);
+      if (!activeTimelineOrder.customerName && foundCust) {
+        handleSelectCustomer(foundCust);
+      }
     }
   };
 
@@ -1455,7 +1583,7 @@ export function PosBillingManager() {
             onAddToRoomFolio={handleAddToRoomFolio}
             busyAction={busyAction}
             selectedCustomer={selectedCustomer}
-            onSelectCustomer={setSelectedCustomer}
+            onSelectCustomer={handleSelectCustomer}
             discountType={discountType}
             discountValue={discountValue}
             onDiscountChange={(type, val) => {
@@ -1487,17 +1615,8 @@ export function PosBillingManager() {
         onSelectTable={(table) => {
           setActiveTable(table.tableNumber);
           setGuestCount(table.activeReservation?.guests || table.capacity || 4);
-          if (table.activeReservation?.customerName) {
-            setSelectedCustomer({
-              id: `res-${table.id}`,
-              name: table.activeReservation.customerName,
-              phone: table.activeReservation.customerPhone || "",
-              tier: table.activeReservation.isVip ? "Gold" : "Silver",
-              loyaltyPoints: 0,
-              visitCount: 1,
-              lastVisit: "Today",
-            });
-          }
+          const foundCust = findCustomerForTable(table.tableNumber, table.id);
+          handleSelectCustomer(foundCust || null);
         }}
       />
 

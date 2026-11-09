@@ -291,9 +291,13 @@ export function TableOrderWizardModal({
 
     if (preTable) {
       // Auto choose pax based on the table's capacity
-      setPax(preTable.capacity);
+      setPax(preTable.activeReservation?.guests || preTable.capacity);
       setSelectedTableIds([preTable.id]);
       setMergeMode(false);
+      const autoGuest = preTable.activeReservation?.customerName || preTable.activeOrder?.guestName || "";
+      const autoPhone = preTable.activeReservation?.customerPhone || preTable.activeOrder?.guestPhone || "";
+      if (autoGuest) setGuestName(autoGuest);
+      if (autoPhone) setGuestPhone(autoPhone);
     } else if (vacantTables.length > 0) {
       // Pick first available table and auto-choose pax to its capacity
       const defaultTable = vacantTables[0];
@@ -404,8 +408,8 @@ export function TableOrderWizardModal({
         table: tableLabel || primaryTable?.tableNumber || "Table #1",
         tableId: primaryTable?.id || "",
         guests: pax > 0 ? pax : primaryTable?.capacity || 2,
-        guestName: guestName.trim() || "",
-        guestPhone: guestPhone.trim() || "",
+        guestName: guestName.trim() || undefined,
+        guestPhone: guestPhone.trim() || undefined,
         waiterName: effectiveWaiter || "",
         ...(billingNotes ? { note: billingNotes } : {}),
       },

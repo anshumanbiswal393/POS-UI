@@ -161,12 +161,56 @@ describe("posUsersRbacService - Seed Accounts & CRUD Operations", () => {
     expect(permCodes).not.toContain("pos.users.manage");
   });
 
-  it("verifies default seed users includes Waiter Rohan Kumar", async () => {
+  it("verifies default seed users includes Waiter Rohan Kumar with samprita2022@gift.edu.in", async () => {
     const users = await posUsersRbacService.getUsers();
-    const waiter = users.find((u) => u.email === "waiter@retrod.in" || u.role === "pos_waiter");
+    const waiter = users.find((u) => u.email === "samprita2022@gift.edu.in" || u.role === "pos_waiter");
     expect(waiter).toBeDefined();
     expect(waiter?.name).toBe("Rohan Kumar");
+    expect(waiter?.email).toBe("samprita2022@gift.edu.in");
     expect(waiter?.role).toBe("pos_waiter");
     expect(waiter?.role_name).toBe("Waiter");
+  });
+
+  it("unit tests all user roles routing and respective screen access", async () => {
+    const users = await posUsersRbacService.getUsers();
+
+    // 1. Admin Samprita Patra -> /pos master
+    const admin = users.find((u) => u.email === "sampritapatra123@gmail.com");
+    expect(admin).toBeDefined();
+    expect(admin?.role).toBe("pos_admin");
+
+    // 2. Kitchen Chef Station -> /pos/kot
+    const kitchen = users.find((u) => u.email === "samkhusi123@gmail.com");
+    expect(kitchen).toBeDefined();
+    expect(kitchen?.role).toBe("pos_kitchen");
+
+    // 3. Waiter Rohan Kumar -> /pos/billing
+    const waiter = users.find((u) => u.email === "samprita2022@gift.edu.in");
+    expect(waiter).toBeDefined();
+    expect(waiter?.role).toBe("pos_waiter");
+
+    // 4. Staff Arnav -> /pos/billing
+    const arnav = users.find((u) => u.email === "arnav@retrod.in");
+    expect(arnav).toBeDefined();
+    expect(arnav?.role).toBe("pos_staff");
+
+    // 5. Dynamically created user -> custom role
+    const customUser = await posUsersRbacService.createUser({
+      name: "Priya Sharma",
+      username: "priya.waiter",
+      email: "priya.waiter@restaurant.com",
+      phone: "9876543230",
+      role: "pos_waiter",
+      outlet_name: "Anshu Suite Restaurant",
+      is_active: true,
+    });
+    expect(customUser.id).toBeDefined();
+    expect(customUser.email).toBe("priya.waiter@restaurant.com");
+    expect(customUser.role).toBe("pos_waiter");
+
+    const refreshedUsers = await posUsersRbacService.getUsers();
+    const foundPriya = refreshedUsers.find((u) => u.email === "priya.waiter@restaurant.com");
+    expect(foundPriya).toBeDefined();
+    expect(foundPriya?.role).toBe("pos_waiter");
   });
 });

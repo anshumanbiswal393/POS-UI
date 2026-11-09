@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Layers,
   Sparkles,
+  Monitor,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -582,15 +583,23 @@ export function PosUserRolesView() {
                                 className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-700 cursor-pointer disabled:cursor-not-allowed"
                               />
                               <div className="min-w-0 flex-1">
-                                <div className="text-[12px] font-semibold text-slate-800 flex items-center justify-between">
-                                  <span>{perm.name}</span>
-                                  <span className="text-[9.5px] font-mono text-slate-400">
-                                    {perm.code}
-                                  </span>
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-[12.5px] font-semibold text-slate-900">{perm.name}</span>
+                                  {perm.screenName && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-200 shrink-0">
+                                      <Monitor className="h-2.5 w-2.5 text-teal-600" />
+                                      Screen: {perm.screenName}
+                                    </span>
+                                  )}
                                 </div>
                                 <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
                                   {perm.description}
                                 </p>
+                                {perm.screenPath && (
+                                  <span className="text-[9.5px] text-slate-400 font-mono mt-0.5 block">
+                                    Path: {perm.screenPath}
+                                  </span>
+                                )}
                               </div>
                             </label>
                           );

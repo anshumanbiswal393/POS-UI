@@ -64,6 +64,8 @@ export function LoginPageFeature() {
       nav({ to: "/pos/kot" });
     } else if (roleLower === "pos_waiter" || roleLower === "waiter" || roleLower.includes("waiter")) {
       nav({ to: "/pos/billing" });
+    } else if (roleLower === "pos_staff" || roleLower.includes("staff")) {
+      nav({ to: "/pos/billing" });
     } else {
       nav({ to: "/pos" });
     }
@@ -140,10 +142,17 @@ export function LoginPageFeature() {
       cleanContact === "9937884878" ||
       cleanContact === "9876543219";
 
+    const isWaiter =
+      cleanContact === "samprita2022@gift.edu.in" ||
+      cleanContact === "waiter@retrod.in" ||
+      cleanContact === "waiter" ||
+      cleanContact.includes("waiter");
+
     const isAdmin =
       cleanContact === "sampritapatra123@gmail.com" ||
       cleanContact === "sampritapatra@gmail.com" ||
-      cleanContact.includes("samprita");
+      cleanContact === "admin@retrod.in" ||
+      cleanContact === "admin";
 
     try {
       const res = await authApi.verifyOtp(cleanContact, otp.trim());
@@ -167,7 +176,8 @@ export function LoginPageFeature() {
     let match = users.find(
       (u) =>
         u.email.toLowerCase() === cleanContact ||
-        (u.phone && u.phone === cleanContact)
+        (u.phone && u.phone === cleanContact) ||
+        u.id.toLowerCase() === cleanContact
     );
 
     // Also check posUsersRbacService stored users
@@ -188,40 +198,62 @@ export function LoginPageFeature() {
         match = {
           id: foundInRbac.id,
           name: foundInRbac.name,
-          email: foundInRbac.email,
-          role: foundInRbac.role || foundInRbac.role_code || "pos_waiter",
+          email: foundInRbac.email || cleanContact,
+          role: (foundInRbac.role === "admin" ? "pos_admin" : foundInRbac.role === "kitchen" ? "pos_kitchen" : foundInRbac.role === "waiter" ? "pos_waiter" : foundInRbac.role || "pos_staff") as any,
           phone: foundInRbac.phone,
           active: true,
           lastActive: "Now",
           initials: foundInRbac.name ? foundInRbac.name.slice(0, 2).toUpperCase() : "ST",
           property: foundInRbac.outlet_name || "Anshu Suite Restaurant",
+          permissions: foundInRbac.permissions || [],
         };
       }
     }
 
     if (!match) {
-      if (isAdmin) {
+      if (isWaiter) {
+        match = users.find((u) => u.role === "pos_waiter") || {
+          id: "usr-waiter-01",
+          name: "Rohan Kumar",
+          email: "samprita2022@gift.edu.in",
+          role: "pos_waiter",
+          phone: "9937884878",
+          active: true,
+          lastActive: "Now",
+          initials: "RK",
+          property: "Anshu Suite Restaurant · Main Outlet",
+          permissions: ["pos.billing.view", "pos.billing.create", "pos.orders.view", "pos.orders.take", "pos.orders.kot", "pos.kot.view"],
+        };
+      } else if (isAdmin) {
         match = users.find((u) => u.role === "pos_admin");
       } else if (isKitchen) {
         match = users.find((u) => u.role === "pos_kitchen");
       } else if (cleanContact.includes("arnav")) {
         match = users.find((u) => u.email.includes("arnav") || u.role === "pos_staff");
-      } else if (cleanContact.includes("waiter")) {
-        match = users.find((u) => u.email.includes("waiter") || u.role === "pos_waiter");
       }
     }
 
-    if (match) {
-      login(match.id);
-      toast.success(`Welcome back, ${match.name}!`);
-      navigateByRole(match.role);
-    } else {
+    if (!match) {
       // Dynamic staff login for custom created role user
       const guestStaffId = `usr-${Date.now()}`;
-      login(guestStaffId);
-      toast.success("Signed in successfully!");
-      navigateByRole(isKitchen ? "pos_kitchen" : cleanContact.includes("waiter") ? "pos_waiter" : "pos_admin");
+      const fallbackRole = isKitchen ? "pos_kitchen" : isWaiter ? "pos_waiter" : "pos_staff";
+      match = {
+        id: guestStaffId,
+        name: cleanContact.split("@")[0].toUpperCase(),
+        email: cleanContact,
+        role: fallbackRole as any,
+        phone: "",
+        active: true,
+        lastActive: "Now",
+        initials: "ST",
+        property: "Anshu Suite Restaurant",
+        permissions: [],
+      };
     }
+
+    login(match);
+    toast.success(`Welcome back, ${match.name}!`);
+    navigateByRole(match.role);
   };
 
   const submitPassword = async (e: React.FormEvent) => {

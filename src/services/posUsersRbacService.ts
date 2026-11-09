@@ -48,6 +48,8 @@ export interface POSPermission {
   category: string;
   name: string;
   description: string;
+  screenName?: string;
+  screenPath?: string;
 }
 
 export interface POSRolePermission {
@@ -62,64 +64,80 @@ const STORAGE_ROLES_KEY = "retrod:pos:roles:list";
 const STORAGE_ROLE_PERMS_KEY = "retrod:pos:role_permissions:list";
 
 export const DEFAULT_POS_PERMISSIONS: POSPermission[] = [
-  // 1. Billing & Cashier
+  // 1. Billing & Cashier Desk
   {
     id: "perm-pos-billing-view",
     code: "pos.billing.view",
     category: "Billing & Cashier",
     name: "View Billing Terminal",
-    description: "Access cashier billing desk, open checkouts, and pending tabs.",
+    description: "Open the cashier billing desk and view active tables/checks.",
+    screenName: "Billing Terminal",
+    screenPath: "/pos/billing",
   },
   {
     id: "perm-pos-billing-create",
     code: "pos.billing.create",
     category: "Billing & Cashier",
-    name: "Create & Punch Bills",
-    description: "Add items to cart, modify quantities, and generate customer checks.",
+    name: "Punch Bills & Add Dishes",
+    description: "Add items to check, customize portion variants, and punch dining bills.",
+    screenName: "Billing Terminal",
+    screenPath: "/pos/billing",
   },
   {
     id: "perm-pos-billing-settle",
     code: "pos.billing.settle",
     category: "Billing & Cashier",
-    name: "Settle Payments",
-    description: "Accept cash, UPI/QR, credit cards, or post balance to Room Folio.",
+    name: "Accept Payments & Settle",
+    description: "Accept Cash, UPI/QR, Card settlements, or post charge to Room Folio.",
+    screenName: "Pay Now Modal",
+    screenPath: "/pos/billing",
   },
   {
     id: "perm-pos-billing-discount",
     code: "pos.billing.discount",
     category: "Billing & Cashier",
-    name: "Apply Discounts",
+    name: "Apply Bill Discounts",
     description: "Apply custom percentage or flat monetary discounts to bills.",
+    screenName: "Billing Terminal",
+    screenPath: "/pos/billing",
   },
   {
     id: "perm-pos-billing-split",
     code: "pos.billing.split",
     category: "Billing & Cashier",
-    name: "Split Bills",
-    description: "Split checks by seat, item count, or equal monetary divisions.",
+    name: "Split Customer Checks",
+    description: "Split checks by seat, item count, or equal split divisions.",
+    screenName: "Split Bill Modal",
+    screenPath: "/pos/billing",
   },
 
-  // 2. Floor Plan & Orders
+  // 2. Floor Plan & Table Ordering
   {
     id: "perm-pos-orders-view",
     code: "pos.orders.view",
     category: "Floor Plan & Orders",
     name: "View Live Orders",
-    description: "Monitor real-time floor occupancy and running orders list.",
+    description: "Monitor running dining occupancy, table status, and active order tickets.",
+    screenName: "Live Orders",
+    screenPath: "/pos/orders",
   },
   {
     id: "perm-pos-orders-take",
     code: "pos.orders.take",
     category: "Floor Plan & Orders",
     name: "Seat & Take Orders",
-    description: "Seat walk-in guests, assign table pax, and pick menu dishes.",
+    description: "Seat walk-in guests, assign table pax, and pick menu dishes from tables.",
+    screenName: "Manage Tables",
+    screenPath: "/pos/take-order",
   },
   {
     id: "perm-pos-orders-kot",
     code: "pos.orders.kot",
     category: "Floor Plan & Orders",
-    name: "Dispatch KOT",
+    name: "Dispatch KOT to Kitchen",
     description: "Send kitchen order tickets and custom cooking notes to chef stations.",
+    screenName: "Kitchen Orders",
+    screenPath: "/pos/kot",
   },
   {
     id: "perm-pos-orders-switch-table",
@@ -127,29 +145,37 @@ export const DEFAULT_POS_PERMISSIONS: POSPermission[] = [
     category: "Floor Plan & Orders",
     name: "Switch & Merge Tables",
     description: "Transfer running dining orders and open bills between tables.",
+    screenName: "Manage Tables",
+    screenPath: "/pos/take-order",
   },
   {
     id: "perm-pos-reservations-manage",
     code: "pos.reservations.manage",
     category: "Floor Plan & Orders",
     name: "Manage Table Reservations",
-    description: "Schedule advance table bookings and view upcoming 30-min arrival alerts.",
+    description: "Book advance tables, manage advance deposits (or ₹0), and seat guests.",
+    screenName: "Reservations",
+    screenPath: "/pos/reservations",
   },
 
-  // 3. Kitchen & KDS
+  // 3. Kitchen Display System (KDS)
   {
     id: "perm-pos-kot-view",
     code: "pos.kot.view",
     category: "Kitchen & KDS",
     name: "View Kitchen Display (KDS)",
-    description: "View live queue of incoming orders and preparation tickets.",
+    description: "Live queue of incoming food tickets, timer countdowns, and preparation station.",
+    screenName: "Kitchen Orders (KOT)",
+    screenPath: "/pos/kot",
   },
   {
     id: "perm-pos-kot-status",
     code: "pos.kot.status",
     category: "Kitchen & KDS",
     name: "Update Cooking Status",
-    description: "Mark tickets as In-Preparation, Food Ready, or Served.",
+    description: "Mark tickets as In-Prep, Food Ready (notifies Waiters), or Served.",
+    screenName: "Kitchen Orders (KOT)",
+    screenPath: "/pos/kot",
   },
   {
     id: "perm-pos-kot-void",
@@ -157,15 +183,19 @@ export const DEFAULT_POS_PERMISSIONS: POSPermission[] = [
     category: "Kitchen & KDS",
     name: "Void / Cancel KOT",
     description: "Cancel active cooking orders (supervisor privilege).",
+    screenName: "Kitchen Orders (KOT)",
+    screenPath: "/pos/kot",
   },
 
-  // 4. Stock & Inventory
+  // 4. Stock & Inventory Management
   {
     id: "perm-pos-inventory-view",
     code: "pos.inventory.view",
     category: "Stock & Inventory",
-    name: "View Stock Levels",
+    name: "View Stock Levels & Catalog",
     description: "Inspect available ingredients, raw material stock, and low stock warnings.",
+    screenName: "Stock & Inventory",
+    screenPath: "/pos/inventory",
   },
   {
     id: "perm-pos-inventory-manage",
@@ -173,15 +203,19 @@ export const DEFAULT_POS_PERMISSIONS: POSPermission[] = [
     category: "Stock & Inventory",
     name: "Manage Purchases & Wastage",
     description: "Receive stock inward, log food wastage, and configure recipe formulations.",
+    screenName: "Purchases & Stock",
+    screenPath: "/pos/inventory/purchases",
   },
 
-  // 5. Reports & Day End Closing
+  // 5. Reports & Financials
   {
     id: "perm-pos-reports-view",
     code: "pos.reports.view",
     category: "Reports & Financials",
-    name: "View Sales Reports",
+    name: "View Sales & Revenue Reports",
     description: "Access day-wise sales, item performance, and payment reconciliation.",
+    screenName: "POS Reports",
+    screenPath: "/pos/reports",
   },
   {
     id: "perm-pos-reports-close-day",
@@ -189,15 +223,19 @@ export const DEFAULT_POS_PERMISSIONS: POSPermission[] = [
     category: "Reports & Financials",
     name: "Execute Day End Closing",
     description: "Settle daily register, lock transactions, and roll over operational date.",
+    screenName: "Day End Closing",
+    screenPath: "/pos/reports/day-end",
   },
 
-  // 6. User & System Management
+  // 6. Users & Security Management
   {
     id: "perm-pos-users-manage",
     code: "pos.users.manage",
     category: "Users & Security",
-    name: "Manage Users & Roles",
-    description: "Create staff users, assign roles, and grant granular module access.",
+    name: "Manage Staff Users & Roles",
+    description: "Create staff users, assign roles, and grant granular screen access.",
+    screenName: "User Management",
+    screenPath: "/pos/management/users",
   },
   {
     id: "perm-pos-settings-manage",
@@ -205,6 +243,8 @@ export const DEFAULT_POS_PERMISSIONS: POSPermission[] = [
     category: "Users & Security",
     name: "Configure POS Hardware & Outlets",
     description: "Map thermal receipt printers, KOT stations, and outlet profiles.",
+    screenName: "POS Settings",
+    screenPath: "/pos/settings",
   },
 ];
 
@@ -292,9 +332,9 @@ export const DEFAULT_SEED_USERS: POSUser[] = [
   {
     id: "usr-waiter-01",
     name: "Rohan Kumar",
-    username: "waiter",
-    email: "waiter@retrod.in",
-    phone: "9876543220",
+    username: "rohan",
+    email: "samprita2022@gift.edu.in",
+    phone: "9937884878",
     role: "pos_waiter",
     role_name: "Waiter",
     role_code: "pos_waiter",
@@ -419,8 +459,25 @@ export const posUsersRbacService = {
 
     if (typeof window !== "undefined") {
       const current = await posUsersRbacService.getUsers();
-      const updated = [savedUser, ...current];
+      const updated = [savedUser, ...current.filter((u) => u.id !== savedUser!.id && u.email?.toLowerCase() !== savedUser!.email?.toLowerCase())];
       localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(updated));
+      try {
+        const rawCached = localStorage.getItem("retrod:users");
+        const cachedList: any[] = rawCached ? JSON.parse(rawCached) : [];
+        const appUser = {
+          id: savedUser.id,
+          name: savedUser.name,
+          email: savedUser.email,
+          phone: savedUser.phone || "",
+          role: savedUser.role || savedUser.role_code || "pos_waiter",
+          active: savedUser.is_active !== false,
+          lastActive: "Now",
+          initials: savedUser.name ? savedUser.name.slice(0, 2).toUpperCase() : "ST",
+          property: savedUser.outlet_name || "Anshu Suite Restaurant",
+        };
+        const nextList = [appUser, ...cachedList.filter((u: any) => u.id !== savedUser!.id && u.email?.toLowerCase() !== savedUser!.email?.toLowerCase())];
+        localStorage.setItem("retrod:users", JSON.stringify(nextList));
+      } catch {}
     }
 
     return savedUser;

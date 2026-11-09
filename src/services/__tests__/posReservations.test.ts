@@ -11,6 +11,7 @@ import {
   posTablesService,
 } from "../posTablesService";
 import type { ReservationItem, RestaurantTable } from "@/types/posTables";
+import { getPosCustomers } from "@/services/posCustomerStore";
 
 describe("POS Reservations & Dynamic Table Status", () => {
   describe("Date & Time Normalization", () => {
@@ -161,12 +162,15 @@ describe("POS Reservations & Dynamic Table Status", () => {
       // 2. Seat the guests
       const table = await posTablesService.seatGuests("tbl-seat-1", newRes.id);
       expect(table.status).toBe("occupied");
+      expect(table.activeReservation?.customerName).toBe("Amit Verma");
+      expect(table.activeOrder?.guestName).toBe("Amit Verma");
+      expect(table.activeOrder?.guestPhone).toBe("9998887771");
 
-      // 3. Verify reservation list maintains the reservation with status 'completed'
+      // 3. Verify reservation list maintains the reservation with status 'seated'
       const reservations = await posTablesService.getReservations();
       const updatedRes = reservations.find((r) => r.id === newRes.id);
       expect(updatedRes).toBeDefined();
-      expect(updatedRes?.status).toBe("completed");
+      expect(updatedRes?.status).toBe("seated");
     });
 
     it("allows switching an assigned reservation table to another table", async () => {
@@ -273,6 +277,30 @@ describe("POS Reservations & Dynamic Table Status", () => {
       expect(sanitized).toBeDefined();
       expect(sanitized?.depositAmount).toBe(0);
       expect(sanitized?.paymentStatus).toBe("unpaid");
+    });
+
+    it("auto-persists reserved customer details in posCustomerStore when booked and seated", async () => {
+      const res = await posTablesService.addReservation({
+        tableId: "tbl-22",
+        tableNumber: "Table #22",
+        customerName: "shab mohanty",
+        customerPhone: "8478477446",
+        guests: 2,
+        reservationDate: "2026-11-09",
+        reservationTime: "04:30 PM",
+      });
+
+      // Verify customer is in customer store
+      const customers = getPosCustomers();
+      const customer = customers.find((c) => c.phone === "8478477446");
+      expect(customer).toBeDefined();
+      expect(customer?.name).toBe("shab mohanty");
+
+      // Seat the reservation
+      const table = await posTablesService.seatGuests("tbl-22", res.id);
+      expect(table.activeOrder?.guestName).toBe("shab mohanty");
+      expect(table.activeOrder?.guestPhone).toBe("8478477446");
+      expect(table.activeReservation?.customerName).toBe("shab mohanty");
     });
   });
 });

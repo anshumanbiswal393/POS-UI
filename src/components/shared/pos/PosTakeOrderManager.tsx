@@ -112,6 +112,8 @@ export function PosTakeOrderManager() {
   // ===================== HANDLERS: RESTAURANT =====================
   const handleSelectTable = (table: RestaurantTable) => {
     if ((table.status === "occupied" || table.activeOrder?.orderId) && table.activeOrder?.orderId) {
+      const guestName = table.activeOrder?.guestName || table.activeReservation?.customerName;
+      const guestPhone = table.activeOrder?.guestPhone || table.activeReservation?.customerPhone;
       navigate({
         to: "/pos/billing",
         search: {
@@ -123,6 +125,8 @@ export function PosTakeOrderManager() {
           editOrder: "1",
           guests: table.currentGuests || table.capacity,
           waiterName: table.activeOrder.serverName || "",
+          ...(guestName ? { guestName } : {}),
+          ...(guestPhone ? { guestPhone } : {}),
         },
       });
       return;
@@ -493,12 +497,17 @@ export function PosTakeOrderManager() {
         }}
         onOpenEditOrder={(tbl) => {
           setIsDetailSlideOpen(false);
+          const guestName = tbl.activeOrder?.guestName || tbl.activeReservation?.customerName || selectedReservation?.customerName;
+          const guestPhone = tbl.activeOrder?.guestPhone || tbl.activeReservation?.customerPhone || selectedReservation?.customerPhone;
           navigate({
             to: "/pos/billing",
             search: {
               orderType: "dine_in",
               table: tbl.tableNumber,
-              guests: tbl.capacity,
+              tableId: tbl.id,
+              guests: tbl.currentGuests || tbl.capacity,
+              ...(guestName ? { guestName } : {}),
+              ...(guestPhone ? { guestPhone } : {}),
             },
           });
         }}

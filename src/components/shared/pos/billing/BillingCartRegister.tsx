@@ -303,14 +303,21 @@ export function BillingCartRegister({
               <div className="flex items-center gap-1.5 min-w-0 flex-1">
                 <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                 {selectedCustomer ? (
-                  <span className="truncate font-semibold text-slate-900">
-                    {selectedCustomer.name}
-                    {selectedCustomer.phone ? (
-                      <span className="font-normal text-slate-500 ml-1">
-                        ({selectedCustomer.phone})
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="truncate font-semibold text-slate-900">
+                      {selectedCustomer.name}
+                      {selectedCustomer.phone ? (
+                        <span className="font-normal text-slate-500 ml-1">
+                          ({selectedCustomer.phone})
+                        </span>
+                      ) : null}
+                    </span>
+                    {selectedCustomer.id?.startsWith("res-") && (
+                      <span className="text-[9px] px-1 py-0.2 rounded font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                        Reserved
                       </span>
-                    ) : null}
-                  </span>
+                    )}
+                  </div>
                 ) : (
                   <span className="truncate text-slate-400 font-normal">
                     Choose Customer (Walk-in)...
