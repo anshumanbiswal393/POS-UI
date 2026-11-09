@@ -62,6 +62,8 @@ export function LoginPageFeature() {
     const roleLower = String(targetRole || "").toLowerCase();
     if (roleLower === "pos_kitchen" || roleLower.includes("kitchen")) {
       nav({ to: "/pos/kot" });
+    } else if (roleLower === "pos_waiter" || roleLower === "waiter" || roleLower.includes("waiter")) {
+      nav({ to: "/pos/billing" });
     } else {
       nav({ to: "/pos" });
     }
@@ -168,6 +170,35 @@ export function LoginPageFeature() {
         (u.phone && u.phone === cleanContact)
     );
 
+    // Also check posUsersRbacService stored users
+    let rbacUserList: any[] = [];
+    try {
+      const rawRbac = localStorage.getItem("retrod:pos:users:list");
+      if (rawRbac) rbacUserList = JSON.parse(rawRbac);
+    } catch {}
+
+    if (!match && Array.isArray(rbacUserList)) {
+      const foundInRbac = rbacUserList.find(
+        (u) =>
+          u.email?.toLowerCase() === cleanContact ||
+          (u.phone && u.phone === cleanContact) ||
+          u.username?.toLowerCase() === cleanContact
+      );
+      if (foundInRbac) {
+        match = {
+          id: foundInRbac.id,
+          name: foundInRbac.name,
+          email: foundInRbac.email,
+          role: foundInRbac.role || foundInRbac.role_code || "pos_waiter",
+          phone: foundInRbac.phone,
+          active: true,
+          lastActive: "Now",
+          initials: foundInRbac.name ? foundInRbac.name.slice(0, 2).toUpperCase() : "ST",
+          property: foundInRbac.outlet_name || "Anshu Suite Restaurant",
+        };
+      }
+    }
+
     if (!match) {
       if (isAdmin) {
         match = users.find((u) => u.role === "pos_admin");
@@ -175,6 +206,8 @@ export function LoginPageFeature() {
         match = users.find((u) => u.role === "pos_kitchen");
       } else if (cleanContact.includes("arnav")) {
         match = users.find((u) => u.email.includes("arnav") || u.role === "pos_staff");
+      } else if (cleanContact.includes("waiter")) {
+        match = users.find((u) => u.email.includes("waiter") || u.role === "pos_waiter");
       }
     }
 
@@ -187,7 +220,7 @@ export function LoginPageFeature() {
       const guestStaffId = `usr-${Date.now()}`;
       login(guestStaffId);
       toast.success("Signed in successfully!");
-      navigateByRole(isKitchen ? "pos_kitchen" : "pos_admin");
+      navigateByRole(isKitchen ? "pos_kitchen" : cleanContact.includes("waiter") ? "pos_waiter" : "pos_admin");
     }
   };
 

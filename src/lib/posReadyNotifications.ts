@@ -30,10 +30,19 @@ function writeAll(rows: KotReadyNotice[]) {
   }
 }
 
+const DEFAULT_READY_NOTICE: KotReadyNotice = {
+  id: "kot-ready-demo-104",
+  title: "Order #ORD-104 · Table T-12 Ready",
+  message: "Hariyali Panner & Mushroom Pakoda prepared and hot at pickup counter.",
+  createdAt: Date.now() - 2 * 60 * 1000,
+  orderNumber: "ORD-104",
+};
+
 export function listKotReadyNotices(outletId?: string): KotReadyNotice[] {
   const rows = readAll();
-  if (!outletId) return rows;
-  return rows.filter((r) => !r.outletId || r.outletId === outletId);
+  const list = rows.length > 0 ? rows : [DEFAULT_READY_NOTICE];
+  if (!outletId) return list;
+  return list.filter((r) => !r.outletId || r.outletId === outletId);
 }
 
 export function pushKotReadyNotice(notice: KotReadyNotice) {

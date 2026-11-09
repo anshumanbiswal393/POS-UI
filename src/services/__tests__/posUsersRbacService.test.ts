@@ -136,4 +136,37 @@ describe("posUsersRbacService - Seed Accounts & CRUD Operations", () => {
     expect(kitchenPerms).not.toContain("pos.settings.manage");
     expect(kitchenPerms).not.toContain("pos.users.manage");
   });
+
+  it("verifies waiter role has billing view/create, floor order take/kot, and KDS ready alerts", async () => {
+    const roles = await posUsersRbacService.getRoles();
+    const waiterRole = roles.find((r) => r.code === "pos_waiter" || r.name.toLowerCase().includes("waiter"));
+    expect(waiterRole).toBeDefined();
+
+    const waiterPerms = await posUsersRbacService.getRolePermissions(waiterRole!.id);
+    const permCodes = waiterPerms.map((p) => p.permission_code || p.permission);
+
+    // Waiter permissions
+    expect(permCodes).toContain("pos.billing.view");
+    expect(permCodes).toContain("pos.billing.create");
+    expect(permCodes).toContain("pos.orders.view");
+    expect(permCodes).toContain("pos.orders.take");
+    expect(permCodes).toContain("pos.orders.kot");
+    expect(permCodes).toContain("pos.kot.view");
+
+    // Restricted from settlements, inventory and admin settings
+    expect(permCodes).not.toContain("pos.billing.settle");
+    expect(permCodes).not.toContain("pos.inventory.view");
+    expect(permCodes).not.toContain("pos.inventory.manage");
+    expect(permCodes).not.toContain("pos.settings.manage");
+    expect(permCodes).not.toContain("pos.users.manage");
+  });
+
+  it("verifies default seed users includes Waiter Rohan Kumar", async () => {
+    const users = await posUsersRbacService.getUsers();
+    const waiter = users.find((u) => u.email === "waiter@retrod.in" || u.role === "pos_waiter");
+    expect(waiter).toBeDefined();
+    expect(waiter?.name).toBe("Rohan Kumar");
+    expect(waiter?.role).toBe("pos_waiter");
+    expect(waiter?.role_name).toBe("Waiter");
+  });
 });

@@ -86,6 +86,12 @@ export function PosUserRolesView() {
     if (r.id === "role-pos-admin" && rpRole === "pos_admin") return true;
     if (r.code === "pos_staff" && rpRole === "role-arnav") return true;
     if (r.id === "role-arnav" && rpRole === "pos_staff") return true;
+    if (
+      (r.code === "pos_waiter" || r.id === "role-pos-waiter" || r.name.toLowerCase().includes("waiter")) &&
+      (rpRole === "role-pos-waiter" || rpRole === "pos_waiter" || rpRole.toLowerCase().includes("waiter"))
+    ) {
+      return true;
+    }
     return false;
   };
 

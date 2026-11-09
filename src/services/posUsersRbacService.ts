@@ -233,6 +233,14 @@ export const DEFAULT_POS_ROLES: POSRole[] = [
     domain: "pos",
     is_managed: false,
   },
+  {
+    id: "role-pos-waiter",
+    code: "pos_waiter",
+    name: "Waiter",
+    description: "Floor staff for taking orders from customers, KOT dispatch, and ready food pickup alerts.",
+    domain: "pos",
+    is_managed: false,
+  },
 ];
 
 export const DEFAULT_SEED_USERS: POSUser[] = [
@@ -278,6 +286,21 @@ export const DEFAULT_SEED_USERS: POSUser[] = [
     outlet_name: "Anshu Suite Restaurant",
     user_code: "STF-ARNAV",
     pin: "3344",
+    is_active: true,
+    created_at: "2026-11-01T00:00:00.000Z",
+  },
+  {
+    id: "usr-waiter-01",
+    name: "Rohan Kumar",
+    username: "waiter",
+    email: "waiter@retrod.in",
+    phone: "9876543220",
+    role: "pos_waiter",
+    role_name: "Waiter",
+    role_code: "pos_waiter",
+    outlet_name: "Anshu Suite Restaurant",
+    user_code: "WTR-01",
+    pin: "5566",
     is_active: true,
     created_at: "2026-11-01T00:00:00.000Z",
   },
@@ -453,14 +476,12 @@ export const posUsersRbacService = {
     const DUMMY_IDS = new Set([
       "role-pos-cashier",
       "role-pos-captain",
-      "role-pos-waiter",
       "role-pos-inventory",
       "role-tenant-owner",
     ]);
     const DUMMY_CODES = new Set([
       "pos_cashier",
       "pos_captain",
-      "pos_waiter",
       "pos_inventory_manager",
       "TENANT_OWNER",
     ]);
@@ -469,7 +490,7 @@ export const posUsersRbacService = {
       const filtered = list.filter(
         (r) => !DUMMY_IDS.has(r.id) && !DUMMY_CODES.has(r.code)
       );
-      // Ensure the 3 core roles exist
+      // Ensure the 4 core roles exist
       for (const core of DEFAULT_POS_ROLES) {
         if (!filtered.some((r) => r.id === core.id || r.code === core.code)) {
           filtered.push(core);
@@ -585,12 +606,10 @@ export const posUsersRbacService = {
     const DUMMY_IDS = new Set([
       "role-pos-cashier",
       "role-pos-captain",
-      "role-pos-waiter",
       "role-pos-inventory",
       "role-tenant-owner",
       "pos_cashier",
       "pos_captain",
-      "pos_waiter",
       "pos_inventory_manager",
       "TENANT_OWNER",
     ]);
@@ -648,6 +667,26 @@ export const posUsersRbacService = {
           });
         });
 
+      // 4. Waiter has billing view & create, floor order view, take, KOT, and KDS food ready alerts view
+      const waiterCodes = new Set([
+        "pos.billing.view",
+        "pos.billing.create",
+        "pos.orders.view",
+        "pos.orders.take",
+        "pos.orders.kot",
+        "pos.kot.view",
+      ]);
+      allPerms
+        .filter((p) => waiterCodes.has(p.code))
+        .forEach((p) => {
+          defs.push({
+            id: `rp-waiter-${p.id}`,
+            role: "role-pos-waiter",
+            permission: p.id,
+            permission_code: p.code,
+          });
+        });
+
       return defs;
     };
 
@@ -659,6 +698,12 @@ export const posUsersRbacService = {
       if (query === "pos_admin" && target === "role-pos-admin") return true;
       if (query === "role-arnav" && target === "pos_staff") return true;
       if (query === "pos_staff" && target === "role-arnav") return true;
+      if (
+        (query === "role-pos-waiter" || query === "pos_waiter" || query.toLowerCase().includes("waiter")) &&
+        (target === "role-pos-waiter" || target === "pos_waiter" || target.toLowerCase().includes("waiter"))
+      ) {
+        return true;
+      }
       return false;
     };
 
@@ -697,6 +742,12 @@ export const posUsersRbacService = {
             if (!hasArnav) {
               const arnavDefaults = buildDefaultPermissions().filter((rp) => rp.role === "role-arnav");
               cleanList.push(...arnavDefaults);
+            }
+            // Ensure waiter permissions exist
+            const hasWaiter = cleanList.some((rp) => isMatch(rp.role, "role-pos-waiter"));
+            if (!hasWaiter) {
+              const waiterDefaults = buildDefaultPermissions().filter((rp) => rp.role === "role-pos-waiter");
+              cleanList.push(...waiterDefaults);
             }
             localStorage.setItem(STORAGE_ROLE_PERMS_KEY, JSON.stringify(cleanList));
 

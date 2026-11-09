@@ -62,8 +62,10 @@ export function PosSettingsScreen() {
 
   const roleStr = String(user?.role || "").toLowerCase();
   const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
+  const isWaiter = roleStr === "pos_waiter" || roleStr === "waiter" || roleStr.includes("waiter");
+  const isLimitedStaff = isKitchen || isWaiter;
 
-  const visibleMenu = isKitchen
+  const visibleMenu = isLimitedStaff
     ? [{ id: "account" as const, label: "Profile & Theme" }]
     : MENU;
 

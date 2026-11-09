@@ -111,7 +111,27 @@ export const ARNAV_STAFF_USER: AppUser = {
   ],
 };
 
-const SEED_USERS: AppUser[] = [SAMPRITA_ADMIN_USER, KITCHEN_USER, ARNAV_STAFF_USER];
+export const WAITER_USER: AppUser = {
+  id: "usr-waiter-01",
+  name: "Rohan Kumar",
+  email: "waiter@retrod.in",
+  role: "pos_waiter",
+  phone: "9876543220",
+  active: true,
+  lastActive: "Now",
+  initials: "RK",
+  property: "Anshu Suite Restaurant · Main Outlet",
+  permissions: [
+    "pos.billing.view",
+    "pos.billing.create",
+    "pos.orders.view",
+    "pos.orders.take",
+    "pos.orders.kot",
+    "pos.kot.view",
+  ],
+};
+
+const SEED_USERS: AppUser[] = [SAMPRITA_ADMIN_USER, KITCHEN_USER, ARNAV_STAFF_USER, WAITER_USER];
 
 const DEFAULT_ENTITLEMENTS: TenantEntitlements = {
   tenantId: "retrod-pos-tenant",
@@ -139,7 +159,7 @@ const DEFAULT_ENTITLEMENTS: TenantEntitlements = {
 };
 
 function loadCachedUsers(): AppUser[] {
-  let list: AppUser[] = [SAMPRITA_ADMIN_USER, KITCHEN_USER, ARNAV_STAFF_USER];
+  let list: AppUser[] = [SAMPRITA_ADMIN_USER, KITCHEN_USER, ARNAV_STAFF_USER, WAITER_USER];
   if (typeof window !== "undefined") {
     try {
       const raw = localStorage.getItem(LS_USERS);
@@ -152,6 +172,9 @@ function loadCachedUsers(): AppUser[] {
           }
           if (!list.some((u) => u.id === ARNAV_STAFF_USER.id || u.email === ARNAV_STAFF_USER.email)) {
             list.push(ARNAV_STAFF_USER);
+          }
+          if (!list.some((u) => u.id === WAITER_USER.id || u.email === WAITER_USER.email)) {
+            list.push(WAITER_USER);
           }
           if (!list.some((u) => u.id === SAMPRITA_ADMIN_USER.id || u.email === SAMPRITA_ADMIN_USER.email)) {
             list.unshift(SAMPRITA_ADMIN_USER);
@@ -420,6 +443,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   if (roleStr === "pos_kitchen" && (r === "role-pos-chef" || r === "pos_chef")) return true;
                   if (roleStr === "pos_staff" && r === "role-arnav") return true;
                   if (roleStr === "pos_admin" && r === "role-pos-admin") return true;
+                  if (
+                    (roleStr === "pos_waiter" || roleStr === "waiter" || roleStr.includes("waiter")) &&
+                    (r === "role-pos-waiter" || r === "pos_waiter" || r.toLowerCase().includes("waiter"))
+                  ) {
+                    return true;
+                  }
                   return false;
                 };
 
@@ -446,6 +475,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           } catch {
             // fallback
+          }
+        }
+
+        // Waiter staff default fallback (if RBAC storage not yet seeded)
+        const isWaiter = roleStr === "pos_waiter" || roleStr === "waiter" || roleStr.includes("waiter");
+        if (isWaiter) {
+          const raw = String(perm).toLowerCase();
+          if (
+            raw.startsWith("pos.billing.view") ||
+            raw.startsWith("pos:billing:view") ||
+            raw.startsWith("pos.billing.create") ||
+            raw.startsWith("pos:billing:create") ||
+            raw.startsWith("pos.orders") ||
+            raw.startsWith("pos:orders") ||
+            raw.startsWith("pos.kot.view") ||
+            raw.startsWith("pos:kot:view") ||
+            raw.startsWith("pos.menu.view") ||
+            raw.startsWith("pos:menu:view")
+          ) {
+            if (raw.includes("settle") || raw.includes("discount") || raw.includes("void")) {
+              return false;
+            }
+            return true;
           }
         }
 

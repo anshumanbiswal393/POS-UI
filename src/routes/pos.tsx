@@ -23,15 +23,27 @@ function PosLayoutRoute() {
 
   const roleStr = String(user?.role || "").toLowerCase();
   const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
+  const isWaiter = roleStr === "pos_waiter" || roleStr === "waiter" || roleStr.includes("waiter");
 
   useEffect(() => {
     if ((pathname === "/pos" || pathname === "/pos/") && isKitchen) {
       navigate({ to: "/pos/kot", replace: true });
+    } else if ((pathname === "/pos" || pathname === "/pos/") && isWaiter) {
+      navigate({ to: "/pos/billing", replace: true });
+    } else if (
+      isWaiter &&
+      (pathname.startsWith("/pos/inventory") ||
+        pathname.startsWith("/pos/management") ||
+        pathname.startsWith("/pos/reports") ||
+        pathname.startsWith("/pos/reservations") ||
+        pathname.startsWith("/pos/menu"))
+    ) {
+      navigate({ to: "/pos/billing", replace: true });
     }
-  }, [pathname, isKitchen, navigate]);
+  }, [pathname, isKitchen, isWaiter, navigate]);
 
   if (pathname === "/pos" || pathname === "/pos/") {
-    if (isKitchen) {
+    if (isKitchen || isWaiter) {
       return null;
     }
     return <PosDashboardManager />;

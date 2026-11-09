@@ -252,6 +252,36 @@ export function PosSidebar({
       return false;
     }
 
+    // Waiter access: limited to taking orders, billing terminal, live orders, settings & help
+    const isWaiter = roleStr === "pos_waiter" || roleStr === "waiter" || roleStr.includes("waiter");
+    if (isWaiter) {
+      const allowedPrefixes: string[] = [
+        "/pos/billing",
+        "/pos/take-order",
+        "/pos/orders",
+        "/pos/settings",
+        "/pos/help",
+      ];
+      if (
+        node.to &&
+        allowedPrefixes.some(
+          (p) => node.to === p || node.to?.startsWith(p + "/") || node.to?.startsWith(p + "?"),
+        )
+      ) {
+        return true;
+      }
+      if (
+        node.id === "billing" ||
+        node.id === "take-order" ||
+        node.id === "daily" ||
+        node.id === "settings" ||
+        node.id === "help"
+      ) {
+        return true;
+      }
+      return false;
+    }
+
     if (node.permission && !can(node.permission)) {
       return false;
     }
@@ -285,6 +315,7 @@ export function PosSidebar({
   const visibleNavItems = useMemo(() => {
     const roleStr = String(user?.role || "").toLowerCase();
     const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
+    const isWaiter = roleStr === "pos_waiter" || roleStr === "waiter" || roleStr.includes("waiter");
 
     if (isKitchen) {
       const stockItem = POS_NAV_ITEMS.find((item) => item.id === "inventory");
@@ -302,6 +333,11 @@ export function PosSidebar({
         });
       }
       return items;
+    }
+
+    if (isWaiter) {
+      const allowedIds = new Set(["take-order", "billing", "daily"]);
+      return POS_NAV_ITEMS.filter((item) => allowedIds.has(item.id));
     }
 
     return POS_NAV_ITEMS.filter((item) => {
@@ -444,7 +480,8 @@ export function PosSidebar({
 
   const roleStr = String(user?.role || "").toLowerCase();
   const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
-  const homePath = isKitchen ? "/pos/kot" : "/pos";
+  const isWaiter = roleStr === "pos_waiter" || roleStr === "waiter" || roleStr.includes("waiter");
+  const homePath = isKitchen ? "/pos/kot" : isWaiter ? "/pos/billing" : "/pos";
 
   return (
     <aside
@@ -461,19 +498,19 @@ export function PosSidebar({
               to={homePath}
               onClick={onNavigate}
               className="flex min-w-0 cursor-pointer items-center py-1 transition-opacity hover:opacity-90"
-              title={isKitchen ? "Go to Kitchen KOT" : "Go to POS Dashboard"}
+              title={isKitchen ? "Go to Kitchen KOT" : isWaiter ? "Go to Waiter Terminal" : "Go to POS Dashboard"}
             >
               <RetrodLogo variant="dark" size="md" />
             </Link>
             <span className="label-uppercase shrink-0 text-[9px] !text-sidebar-muted">
-              {isKitchen ? "KDS" : "POS"}
+              {isKitchen ? "KDS" : isWaiter ? "WAITER" : "POS"}
             </span>
           </div>
         ) : (
           <Link
             to={homePath}
             onClick={onNavigate}
-            title={isKitchen ? "Go to Kitchen KOT" : "Go to POS Dashboard"}
+            title={isKitchen ? "Go to Kitchen KOT" : isWaiter ? "Go to Waiter Terminal" : "Go to POS Dashboard"}
             className="mx-auto flex cursor-pointer items-center justify-center transition-transform hover:scale-105"
           >
             <RetrodLogo collapsed variant="dark" />

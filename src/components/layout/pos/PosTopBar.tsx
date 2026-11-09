@@ -27,6 +27,7 @@ import {
   Building2,
   Maximize,
   Minimize,
+  CheckCircle2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -309,10 +310,10 @@ export function PosTopBar({
               ) : (
                 notifications.map((item) => {
                   const Icon = NOTIFICATION_ICONS[item.category];
+                  const isKot = item.category === "KOT";
                   return (
-                    <button
+                    <div
                       key={item.id}
-                      type="button"
                       onClick={() => {
                         markAsRead(item.id);
                         if (item.link) navigate({ to: item.link as never });
@@ -344,11 +345,29 @@ export function PosTopBar({
                         <div className="mt-0.5 line-clamp-2 text-[11.5px] leading-relaxed text-muted-foreground">
                           {item.message}
                         </div>
+                        {isKot && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                markAsRead(item.id);
+                                toast.success("Order picked up and marked as served to guest!", {
+                                  description: item.title,
+                                });
+                              }}
+                              className="inline-flex items-center gap-1 rounded bg-teal-800 px-2 py-1 text-[11px] font-semibold text-white shadow-xs hover:bg-teal-900 transition cursor-pointer"
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                              Pick Up & Serve
+                            </button>
+                          </div>
+                        )}
                       </div>
                       {!item.isRead ? (
                         <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                       ) : null}
-                    </button>
+                    </div>
                   );
                 })
               )}

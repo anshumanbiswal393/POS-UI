@@ -259,10 +259,13 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   pos_waiter: [
     "pos.orders.view",
     "pos.orders.create",
+    "pos.orders.take",
+    "pos.orders.kot",
     "pos.orders.edit",
     "pos.kot.view",
     "pos.kot.manage",
     "pos.billing.view",
+    "pos.billing.create",
     "pos.menu.view",
   ],
   pos_cashier: [
