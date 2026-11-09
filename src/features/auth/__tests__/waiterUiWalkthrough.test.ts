@@ -80,25 +80,23 @@ describe("Waiter Role UI & Permissions Full Walkthrough", () => {
     expect(resolveStartingRoute("pos_admin")).toBe("/pos");
   });
 
-  it("Step 4: Simulates Sidebar generation for Waiter - only Billing terminal module visible", () => {
+  it("Step 4: Simulates Sidebar generation for Waiter - only Order Taking & Billing modules visible", () => {
     const simulateWaiterSidebar = (userRole: string) => {
       const isWaiter = userRole === "pos_waiter" || userRole === "waiter" || userRole.includes("waiter");
       if (isWaiter) {
-        const allowedIds = new Set(["billing"]);
+        const allowedIds = new Set(["take-order", "billing", "daily"]);
         return POS_NAV_ITEMS.filter((item) => allowedIds.has(item.id));
       }
       return POS_NAV_ITEMS;
     };
 
     const waiterSidebar = simulateWaiterSidebar("pos_waiter");
-    expect(waiterSidebar.length).toBe(1);
+    expect(waiterSidebar.length).toBe(3);
     const visibleIds = waiterSidebar.map((i) => i.id);
-    expect(visibleIds).toEqual(["billing"]);
+    expect(visibleIds).toEqual(["take-order", "billing", "daily"]);
 
-    // Forbidden from Dashboard, Take Order, Daily Orders, Inventory/Stock, Reports, Management
+    // Forbidden from Dashboard, Inventory/Stock, Reports, Management
     expect(visibleIds).not.toContain("dashboard");
-    expect(visibleIds).not.toContain("take-order");
-    expect(visibleIds).not.toContain("daily");
     expect(visibleIds).not.toContain("inventory");
     expect(visibleIds).not.toContain("reports");
     expect(visibleIds).not.toContain("management");

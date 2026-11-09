@@ -331,8 +331,8 @@ export const DEFAULT_SEED_USERS: POSUser[] = [
   },
   {
     id: "usr-waiter-01",
-    name: "Raju waiter",
-    username: "raju.waiter",
+    name: "Rohan Kumar",
+    username: "rohan",
     email: "samprita2022@gift.edu.in",
     phone: "9937884878",
     role: "pos_waiter",

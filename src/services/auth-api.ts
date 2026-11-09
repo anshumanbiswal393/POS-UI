@@ -14,79 +14,19 @@ export function mapBackendUserToAppUser(
   backendProperties: any[] = [],
   backendPermissions: string[] = [],
 ): AppUser {
-  const emailLower = (backendUser?.email || "").toLowerCase().trim();
-
-  // 1. Check if user is registered in POS Staff & RBAC
-  let posStaff: any = null;
-  if (typeof window !== "undefined") {
-    try {
-      const rawPosUsers = localStorage.getItem("retrod:pos:users:list");
-      if (rawPosUsers) {
-        const list = JSON.parse(rawPosUsers);
-        if (Array.isArray(list)) {
-          posStaff = list.find((u: any) => u.email?.toLowerCase().trim() === emailLower);
-        }
-      }
-    } catch {}
-  }
-
-  const isSampritaAdmin = emailLower === "sampritapatra123@gmail.com" || emailLower === "sampritapatra@gmail.com";
-  const isKitchenChef = emailLower === "samkhusi123@gmail.com" || emailLower === "kitchen@retrod.in";
-  const isWaiter =
-    emailLower === "samprita2022@gift.edu.in" ||
-    emailLower === "waiter@retrod.in" ||
-    (posStaff && (posStaff.role === "pos_waiter" || posStaff.role === "waiter" || posStaff.role_code === "pos_waiter"));
-  const isArnav = emailLower === "arnav@retrod.in";
-
   let role: Role | string = backendUser?.role || "front_desk_agent";
-  let roleName: string | undefined = backendUser?.role_name || backendUser?.role;
-  let userName = backendUser?.name || "Retrod User";
-  let propertyName = "Anshu Suite Restaurant · Main Outlet";
+  let propertyName = "Main Property";
 
-  if (posStaff) {
-    role =
-      posStaff.role === "admin"
-        ? "pos_admin"
-        : posStaff.role === "kitchen"
-          ? "pos_kitchen"
-          : posStaff.role === "waiter" || posStaff.role === "pos_waiter"
-            ? "pos_waiter"
-            : posStaff.role || "pos_waiter";
-    userName = posStaff.name || userName;
-    roleName = posStaff.role_name || (role === "pos_waiter" ? "Waiter" : posStaff.role);
-    propertyName = posStaff.outlet_name || "Anshu Suite Restaurant · Main Outlet";
-  } else if (isWaiter) {
-    role = "pos_waiter";
-    userName = "Raju waiter";
-    roleName = "Waiter";
-    propertyName = "Anshu Suite Restaurant · Main Outlet";
-  } else if (isKitchenChef) {
-    role = "pos_kitchen";
-    userName = "Kitchen Chef Station";
-    roleName = "Kitchen Chef / KDS";
-    propertyName = "Anshu Suite Restaurant · Main Kitchen";
-  } else if (isSampritaAdmin) {
-    role = "pos_admin";
-    userName = "Samprita Patra";
-    roleName = "POS Administrator";
-    propertyName = "Anshu Suite Restaurant · Main Outlet";
-  } else if (isArnav) {
-    role = "pos_staff";
-    userName = "Arnav";
-    roleName = "Arnav Staff Role";
-    propertyName = "Anshu Suite Restaurant · Main Outlet";
-  } else {
-    if (backendUser && (backendUser.role === "super_admin" || backendUser.is_superuser)) {
-      role = "super_admin";
-    } else if (backendUser && backendUser.role) {
-      role = backendUser.role;
-    } else if (backendProperties && backendProperties.length > 0) {
-      role = backendProperties[0].role;
-      propertyName = backendProperties[0].name;
-    }
+  if (backendUser && (backendUser.role === "super_admin" || backendUser.is_superuser)) {
+    role = "super_admin";
+  } else if (backendUser && backendUser.role) {
+    role = backendUser.role;
+  } else if (backendProperties && backendProperties.length > 0) {
+    role = backendProperties[0].role;
+    propertyName = backendProperties[0].name;
   }
 
-  const initials = (userName || "User")
+  const initials = (backendUser?.name || "User")
     .trim()
     .split(/\s+/)
     .filter(Boolean)
@@ -107,11 +47,10 @@ export function mapBackendUserToAppUser(
         ? localStorage.getItem("retrod:active-property-id") ||
           localStorage.getItem("retrod_property_id")
         : null;
-    const anshuProp = mappedProperties.find((p) => p.name.toLowerCase().includes("anshu"));
     const matched = storedPropId
       ? mappedProperties.find((p) => p.id === storedPropId)
       : null;
-    propertyName = anshuProp ? anshuProp.name : matched ? matched.name : propertyName;
+    propertyName = matched ? matched.name : mappedProperties[0].name;
   } else if (role === "super_admin") {
     propertyName = "Retrod Global HQ";
   }
@@ -125,18 +64,18 @@ export function mapBackendUserToAppUser(
     undefined;
 
   return {
-    id: String(posStaff?.id || backendUser?.id || "u0"),
-    name: userName,
-    email: backendUser?.email || posStaff?.email || "user@retrod.in",
+    id: String(backendUser?.id || "u0"),
+    name: backendUser?.name || "Retrod User",
+    email: backendUser?.email || "user@retrod.in",
     role: role as Role,
-    role_name: roleName || (role === "pos_waiter" ? "Waiter" : role as string),
+    role_name: backendUser?.role_name || backendUser?.role,
     initials: initials,
     active: true,
     property: propertyName,
     lastActive: "Just now",
-    phone: backendUser?.phone || posStaff?.phone,
+    phone: backendUser?.phone,
     properties: mappedProperties,
-    permissions: posStaff?.permissions || backendPermissions || [],
+    permissions: backendPermissions || [],
     avatarUrl: avatar,
     tenant_subdomain: backendUser?.tenant_subdomain,
     is_superuser: backendUser?.is_superuser,

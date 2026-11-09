@@ -200,28 +200,19 @@ export function PosSidebar({
   const isNodeAllowed = (node: PosNavItem | PosNavChild): boolean => {
     if (!user) return false;
     const roleStr = String(user.role || "").toLowerCase();
-    const emailLower = (user.email || "").toLowerCase();
-
-    // 1. Waiter access: STRICTLY limited to Billing Terminal, Settings (profile & theme), and Help Guide
-    const isWaiter =
-      roleStr === "pos_waiter" ||
-      roleStr === "waiter" ||
-      roleStr.includes("waiter") ||
-      emailLower === "samprita2022@gift.edu.in";
-
-    if (isWaiter) {
-      if (node.id === "billing" || node.to === "/pos/billing") return true;
-      if (node.id === "settings" || node.to === "/pos/settings") return true;
-      if (node.id === "help" || node.to === "/pos/help") return true;
-      return false;
+    if (
+      roleStr === "super_admin" ||
+      roleStr === "owner" ||
+      roleStr === "tenant_owner" ||
+      roleStr === "general_manager" ||
+      roleStr === "pos_admin" ||
+      user.is_superuser
+    ) {
+      return true;
     }
 
-    // 2. Kitchen access: strictly governed by dynamic permissions (KOT and Stock)
-    const isKitchen =
-      roleStr === "pos_kitchen" ||
-      roleStr.includes("kitchen") ||
-      emailLower === "samkhusi123@gmail.com";
-
+    // Kitchen access: strictly governed by dynamic permissions (KOT and Stock)
+    const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
     if (isKitchen) {
       const allowedPrefixes: string[] = ["/pos/settings", "/pos/help"];
       const hasKotAccess = can("pos.kot.view") || can("pos.orders.kot") || can("pos.orders.view");
@@ -261,15 +252,34 @@ export function PosSidebar({
       return false;
     }
 
-    if (
-      roleStr === "super_admin" ||
-      roleStr === "owner" ||
-      roleStr === "tenant_owner" ||
-      roleStr === "general_manager" ||
-      roleStr === "pos_admin" ||
-      user.is_superuser
-    ) {
-      return true;
+    // Waiter access: limited to taking orders, billing terminal, live orders, settings & help
+    const isWaiter = roleStr === "pos_waiter" || roleStr === "waiter" || roleStr.includes("waiter");
+    if (isWaiter) {
+      const allowedPrefixes: string[] = [
+        "/pos/billing",
+        "/pos/take-order",
+        "/pos/orders",
+        "/pos/settings",
+        "/pos/help",
+      ];
+      if (
+        node.to &&
+        allowedPrefixes.some(
+          (p) => node.to === p || node.to?.startsWith(p + "/") || node.to?.startsWith(p + "?"),
+        )
+      ) {
+        return true;
+      }
+      if (
+        node.id === "billing" ||
+        node.id === "take-order" ||
+        node.id === "daily" ||
+        node.id === "settings" ||
+        node.id === "help"
+      ) {
+        return true;
+      }
+      return false;
     }
 
     if (node.permission && !can(node.permission)) {
