@@ -151,7 +151,10 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
       null;
 
     const matchedProp = user?.properties?.find((p) => p.id === storedPropId);
-    const propName = matchedProp?.name || user?.property || "Main Property";
+    let propName = matchedProp?.name || user?.property || "Anshu Suite Restaurant";
+    if (propName.toLowerCase().includes("bistro") && (user?.property?.toLowerCase().includes("anshu") || !matchedProp)) {
+      propName = "Anshu Suite Restaurant";
+    }
 
     return { propId: storedPropId, propName };
   }, [user]);
@@ -162,7 +165,6 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
       const { propId, propName } = getActivePropertyInfo();
 
       let remote = await posOutletsService.listOutlets({
-        propertyId: propId || undefined,
         tenantId: user?.tenant_subdomain || undefined,
       });
 
@@ -171,7 +173,6 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         if (!o) return false;
         if (isDummyOutlet(o.name, o.code) || KNOWN_DUMMY_IDS.has(o.id)) return false;
         if (propId && propId !== "1c2e5dd3-1df0-4567-9524-c4e42987751a" && DEMO_OUTLET_IDS.has(o.id)) return false;
-        if (propId && o.propertyId && o.propertyId !== propId) return false;
         return true;
       });
 
@@ -227,10 +228,15 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
 
       setOutlets(finalOutlets);
       setActiveOutletId((prevId) => {
+        const anshuOutlet = finalOutlets.find((o) => o.name.toLowerCase().includes("anshu"));
+        const currentIsAnshu = finalOutlets.find((o) => o.id === prevId)?.name.toLowerCase().includes("anshu");
+        if (anshuOutlet && (!prevId || !currentIsAnshu)) {
+          return anshuOutlet.id;
+        }
         if (prevId && isBackendOutletId(prevId) && finalOutlets.some((o) => o.id === prevId)) {
           return prevId;
         }
-        return finalOutlets[0]?.id || "";
+        return anshuOutlet?.id || finalOutlets[0]?.id || "";
       });
     } catch {
       const { propId, propName } = getActivePropertyInfo();

@@ -161,11 +161,11 @@ describe("posUsersRbacService - Seed Accounts & CRUD Operations", () => {
     expect(permCodes).not.toContain("pos.users.manage");
   });
 
-  it("verifies default seed users includes Waiter Rohan Kumar with samprita2022@gift.edu.in", async () => {
+  it("verifies default seed users includes Waiter Raju waiter with samprita2022@gift.edu.in", async () => {
     const users = await posUsersRbacService.getUsers();
     const waiter = users.find((u) => u.email === "samprita2022@gift.edu.in" || u.role === "pos_waiter");
     expect(waiter).toBeDefined();
-    expect(waiter?.name).toBe("Rohan Kumar");
+    expect(waiter?.name).toBe("Raju waiter");
     expect(waiter?.email).toBe("samprita2022@gift.edu.in");
     expect(waiter?.role).toBe("pos_waiter");
     expect(waiter?.role_name).toBe("Waiter");
@@ -184,10 +184,11 @@ describe("posUsersRbacService - Seed Accounts & CRUD Operations", () => {
     expect(kitchen).toBeDefined();
     expect(kitchen?.role).toBe("pos_kitchen");
 
-    // 3. Waiter Rohan Kumar -> /pos/billing
+    // 3. Waiter Raju waiter -> /pos/billing
     const waiter = users.find((u) => u.email === "samprita2022@gift.edu.in");
     expect(waiter).toBeDefined();
     expect(waiter?.role).toBe("pos_waiter");
+    expect(waiter?.name).toBe("Raju waiter");
 
     // 4. Staff Arnav -> /pos/billing
     const arnav = users.find((u) => u.email === "arnav@retrod.in");
