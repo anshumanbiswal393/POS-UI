@@ -102,6 +102,53 @@ describe("posInventoryService Category & Raw Material Management", () => {
       expect(item.expiryDate).toBe("2026-12-31");
     });
 
+    it("can update/edit an existing raw material item with new returnable and expiry info", async () => {
+      const created = await posInventoryService.upsertStockItem({
+        name: "Amul Pasteurised Butter 500g",
+        category: "Dairy",
+        subCategory: "Butter",
+        unit: "Pack",
+        sku: "RAW-BUTTER-001",
+        pricePerUnit: 250,
+        availableStock: 20,
+        alertQuantity: 4,
+        isReturnable: false,
+        expiryDate: null,
+      });
+
+      expect(created.isReturnable).toBe(false);
+      expect(created.expiryDate).toBeNull();
+
+      // Edit the item
+      const updated = await posInventoryService.upsertStockItem({
+        id: created.id,
+        name: "Amul Pasteurised Butter 500g",
+        category: "Dairy",
+        subCategory: "Butter",
+        unit: "Pack",
+        sku: "RAW-BUTTER-001",
+        pricePerUnit: 260,
+        availableStock: 25,
+        alertQuantity: 8,
+        isReturnable: true,
+        expiryDate: "2027-01-15",
+      });
+
+      expect(updated.id).toBe(created.id);
+      expect(updated.pricePerUnit).toBe(260);
+      expect(updated.availableStock).toBe(25);
+      expect(updated.alertQuantity).toBe(8);
+      expect(updated.isReturnable).toBe(true);
+      expect(updated.expiryDate).toBe("2027-01-15");
+
+      const allItems = await posInventoryService.getStockItems();
+      const found = allItems.find((i) => i.id === created.id);
+      expect(found).toBeDefined();
+      expect(found?.alertQuantity).toBe(8);
+      expect(found?.isReturnable).toBe(true);
+      expect(found?.expiryDate).toBe("2027-01-15");
+    });
+
     it("correctly identifies near expiry items in stock calculation", () => {
       const nearExpiryDate = new Date();
       nearExpiryDate.setDate(nearExpiryDate.getDate() + 7);

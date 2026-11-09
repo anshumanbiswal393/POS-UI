@@ -152,7 +152,7 @@ function mapStock(raw: Partial<StockItem> & { id: string }): StockItem {
     rawMaterial: name,
     name,
     category: raw.category || "",
-    subCategory: raw.subCategory || "",
+    subCategory: raw.subCategory || (raw as any).sub_category || "",
     unit: raw.unit || "Kg",
     availableStock: qty,
     closingStock: raw.closingStock ?? qty,
@@ -164,8 +164,8 @@ function mapStock(raw: Partial<StockItem> & { id: string }): StockItem {
     unitCost,
     pricePerUnit: unitCost,
     sku: raw.sku || raw.code || raw.id,
-    isReturnable: Boolean(raw.isReturnable),
-    expiryDate: raw.expiryDate || null,
+    isReturnable: Boolean(raw.isReturnable ?? (raw as any).is_returnable),
+    expiryDate: raw.expiryDate ?? (raw as any).expiry_date ?? null,
     itemKind: raw.itemKind || "RAW",
     isLow: alertQty > 0 ? qty <= alertQty : qty === 0,
   };
@@ -402,6 +402,31 @@ export const posInventoryService = {
     const skuCode = data.sku || data.code;
 
     if (isBackendOutletId(outletId)) {
+      if (data.id) {
+        const res = await httpClient.patch<StockItem>(
+          `/api/pos/stock/items/${data.id}/`,
+          {
+            code: skuCode,
+            name: data.name || data.rawMaterial,
+            rawMaterial: data.rawMaterial || data.name,
+            category: data.category,
+            subCategory: data.subCategory,
+            unit: data.unit,
+            availableStock: data.availableStock,
+            parLevel: data.parLevel,
+            reorderLevel: alertQty,
+            alertQuantity: alertQty,
+            unitCost: unitPrice,
+            pricePerUnit: unitPrice,
+            itemKind: data.itemKind || "RAW",
+            isFavorite: data.isFavorite,
+            isReturnable: data.isReturnable,
+            expiryDate: data.expiryDate,
+          },
+          { params: scopeParams(outletId) },
+        );
+        return mapStock(res.data);
+      }
       const res = await httpClient.post<StockItem>(
         "/api/pos/stock/items/",
         {
@@ -414,7 +439,9 @@ export const posInventoryService = {
           availableStock: data.availableStock,
           parLevel: data.parLevel,
           reorderLevel: alertQty,
+          alertQuantity: alertQty,
           unitCost: unitPrice,
+          pricePerUnit: unitPrice,
           itemKind: data.itemKind || "RAW",
           isFavorite: data.isFavorite,
           isReturnable: data.isReturnable,
@@ -425,7 +452,10 @@ export const posInventoryService = {
       return mapStock(res.data);
     }
     const qty = data.availableStock ?? 0;
+    const existing = data.id ? stockStore.find((s) => s.id === data.id) : null;
     const created: StockItem = {
+      ...(existing || {}),
+      ...data,
       id: data.id || `st-${Date.now()}`,
       code: skuCode,
       sku: skuCode,
@@ -445,8 +475,8 @@ export const posInventoryService = {
       isReturnable: Boolean(data.isReturnable),
       expiryDate: data.expiryDate || null,
       itemKind: data.itemKind || "RAW",
-      isFavorite: data.isFavorite,
-      isActive: data.isActive !== false,
+      isFavorite: data.isFavorite !== undefined ? data.isFavorite : existing?.isFavorite,
+      isActive: data.isActive !== undefined ? data.isActive : (existing?.isActive !== false),
       isLow: alertQty > 0 ? qty <= alertQty : qty === 0,
     };
     stockStore = [created, ...stockStore.filter((s) => s.id !== created.id)];

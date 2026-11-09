@@ -20,6 +20,7 @@ import {
   Layers,
   X,
   Search,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -78,6 +79,7 @@ export function RawMaterialsManagementView() {
   const upsertCategory = useUpsertStockCategory();
 
   // Form states
+  const [editingItem, setEditingItem] = useState<RawMaterialRow | null>(null);
   const [name, setName] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedSubCategory, setSelectedSubCategory] = useState("");
@@ -98,6 +100,7 @@ export function RawMaterialsManagementView() {
   ]);
 
   const resetForm = () => {
+    setEditingItem(null);
     setName("");
     setSelectedCategory("");
     setSelectedSubCategory("");
@@ -110,6 +113,33 @@ export function RawMaterialsManagementView() {
     setAlertQuantity(5);
     setIsReturnable(false);
     setExpiryDate("");
+  };
+
+  const handleStartEdit = (row: RawMaterialRow) => {
+    setEditingItem(row);
+    setName(row.name);
+    setSelectedCategory(row.category);
+
+    const cat = categories.find((c) => c.name === row.category);
+    const hasSub = cat?.subCategories?.some((s) => s.name === row.subCategory);
+    if (row.subCategory && !hasSub) {
+      setIsCustomSubCategory(true);
+      setCustomSubCategory(row.subCategory);
+      setSelectedSubCategory("");
+    } else {
+      setIsCustomSubCategory(false);
+      setCustomSubCategory("");
+      setSelectedSubCategory(row.subCategory || "");
+    }
+
+    setUnit(row.unit || "Kg");
+    setPricePerUnit(row.pricePerUnit !== undefined && row.pricePerUnit !== 0 ? row.pricePerUnit : "");
+    setSku(row.code || "");
+    setQuantity(row.availableStock !== undefined ? row.availableStock : "");
+    setAlertQuantity(row.alertQuantity !== undefined ? row.alertQuantity : 5);
+    setIsReturnable(Boolean(row.isReturnable));
+    setExpiryDate(row.expiryDate ? row.expiryDate.split("T")[0] : "");
+    setIsCreateOpen(true);
   };
 
   // When subcategory changes, auto-fetch unit from category setup
@@ -128,10 +158,10 @@ export function RawMaterialsManagementView() {
     }
   };
 
-  // Auto-generate suggested SKU when name changes if user hasn't typed custom SKU
+  // Auto-generate suggested SKU when name changes if user hasn't typed custom SKU and not in edit mode
   const handleNameChange = (val: string) => {
     setName(val);
-    if (!sku || sku.startsWith("RAW-")) {
+    if (!editingItem && (!sku || sku.startsWith("RAW-"))) {
       const clean = val.replace(/[^A-Za-z0-9]+/g, "-").toUpperCase().slice(0, 16);
       if (clean) {
         setSku(`RAW-${clean}`);
@@ -164,37 +194,41 @@ export function RawMaterialsManagementView() {
     const parsedAlert = alertQuantity !== "" ? Number(alertQuantity) : 5;
     const parsedQty = quantity !== "" ? Math.max(0, Number(quantity)) : 0;
 
-    upsertItem.mutate(
-      {
-        code: finalSku,
-        sku: finalSku,
-        name: name.trim(),
-        rawMaterial: name.trim(),
-        category: finalCategory,
-        subCategory: finalSubCategory,
-        unit: unit || "Kg",
-        pricePerUnit: parsedPrice,
-        unitCost: parsedPrice,
-        alertQuantity: parsedAlert,
-        reorderLevel: parsedAlert,
-        minThreshold: parsedAlert,
-        isReturnable,
-        expiryDate: expiryDate ? expiryDate : null,
-        itemKind: "RAW",
-        availableStock: parsedQty,
-        quantityOnHand: parsedQty,
-        quantity_on_hand: parsedQty,
-        parLevel: parsedAlert * 2,
+    const payload: Partial<StockItem> & { code?: string; name?: string; rawMaterial?: string } = {
+      ...(editingItem ? { id: editingItem.id } : {}),
+      code: finalSku,
+      sku: finalSku,
+      name: name.trim(),
+      rawMaterial: name.trim(),
+      category: finalCategory,
+      subCategory: finalSubCategory,
+      unit: unit || "Kg",
+      pricePerUnit: parsedPrice,
+      unitCost: parsedPrice,
+      alertQuantity: parsedAlert,
+      reorderLevel: parsedAlert,
+      minThreshold: parsedAlert,
+      isReturnable,
+      expiryDate: expiryDate ? expiryDate : null,
+      itemKind: "RAW",
+      availableStock: parsedQty,
+      quantityOnHand: parsedQty,
+      quantity_on_hand: parsedQty,
+      parLevel: parsedAlert * 2,
+    };
+
+    upsertItem.mutate(payload, {
+      onSuccess: () => {
+        setIsCreateOpen(false);
+        const actionVerb = editingItem ? "updated" : "created";
+        toast.success(`Raw material '${name.trim()}' ${actionVerb} successfully.`);
+        resetForm();
       },
-      {
-        onSuccess: () => {
-          setIsCreateOpen(false);
-          resetForm();
-          toast.success(`Raw material '${name.trim()}' created successfully.`);
-        },
-        onError: () => toast.error("Could not create raw material"),
-      },
-    );
+      onError: () =>
+        toast.error(
+          editingItem ? "Could not update raw material" : "Could not create raw material",
+        ),
+    });
   };
 
   const handleQuickAddCategory = (e: React.FormEvent) => {
@@ -529,14 +563,24 @@ export function RawMaterialsManagementView() {
                         </button>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(row.id)}
-                          className="p-1 hover:text-red-500 hover:bg-rose-50 text-slate-400 rounded transition cursor-pointer"
-                          title="Delete Item"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(row)}
+                            className="p-1.5 hover:text-teal-700 hover:bg-teal-50 text-slate-500 rounded-md transition cursor-pointer"
+                            title="Edit Raw Material"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(row.id)}
+                            className="p-1.5 hover:text-red-500 hover:bg-rose-50 text-slate-400 rounded-md transition cursor-pointer"
+                            title="Delete Item"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -560,18 +604,32 @@ export function RawMaterialsManagementView() {
         />
       </div>
 
-      {/* 3. Add Raw Material Slide-Over Panel */}
+      {/* 3. Add / Edit Raw Material Slide-Over Panel */}
       <PosCreatePanel
         open={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        title="Add New Raw Material"
-        description="Configure an ingredient with category, subcategory unit, alert quantity, and return settings."
+        onClose={() => {
+          setIsCreateOpen(false);
+          resetForm();
+        }}
+        title={editingItem ? "Edit Raw Material" : "Add New Raw Material"}
+        description={
+          editingItem
+            ? `Update specifications, stock balance, alert quantity, and expiry for ${editingItem.code}.`
+            : "Configure an ingredient with category, subcategory unit, alert quantity, and return settings."
+        }
         icon={Package}
         onSubmit={handleCreateSubmit}
         footer={
           <>
-            <PosCreateCancelButton onClick={() => setIsCreateOpen(false)} />
-            <PosCreateSubmitButton>Save Material</PosCreateSubmitButton>
+            <PosCreateCancelButton
+              onClick={() => {
+                setIsCreateOpen(false);
+                resetForm();
+              }}
+            />
+            <PosCreateSubmitButton>
+              {editingItem ? "Update Material" : "Save Material"}
+            </PosCreateSubmitButton>
           </>
         }
       >
@@ -732,7 +790,7 @@ export function RawMaterialsManagementView() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-foreground">
-                Quantity {unit ? `(${unit})` : ""}
+                {editingItem ? "Stock Quantity" : "Quantity"} {unit ? `(${unit})` : ""}
               </label>
               <input
                 type="number"
@@ -743,7 +801,9 @@ export function RawMaterialsManagementView() {
                 onChange={(e) => setQuantity(e.target.value)}
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono"
               />
-              <p className="text-[10px] text-muted-foreground">Initial stock count to add</p>
+              <p className="text-[10px] text-muted-foreground">
+                {editingItem ? "Current stock on hand" : "Initial stock count to add"}
+              </p>
             </div>
 
             <div className="space-y-1">
