@@ -57,32 +57,10 @@ export interface AuthAuditEvent {
   detail?: string;
 }
 
-export const KITCHEN_USER: AppUser = {
-  id: "usr-kitchen-01",
-  name: "Kitchen Chef Station",
-  email: "kitchen@retrod.in",
-  role: "pos_kitchen",
-  phone: "9876543219",
-  active: true,
-  lastActive: "Now",
-  initials: "KC",
-  property: "Retrod Bistro & Cafe · Connaught Place",
-  permissions: [
-    "pos.kot.view",
-    "pos.kot.manage",
-    "pos.recipes.view",
-    "pos.inventory.view",
-    "pos.inventory.manage",
-    "pos.inventory.wastage",
-    "pos.inventory.production",
-    "pos.inventory.purchase_orders",
-  ],
-};
-
 export const SAMPRITA_ADMIN_USER: AppUser = {
   id: "usr-admin-samprita",
   name: "Samprita Patra",
-  email: "sampritapatra@gmail.com",
+  email: "sampritapatra123@gmail.com",
   role: "pos_admin",
   phone: "9937884878",
   active: true,
@@ -92,20 +70,48 @@ export const SAMPRITA_ADMIN_USER: AppUser = {
   permissions: ["*:*"],
 };
 
-export const ADMIN_USER: AppUser = {
-  id: "usr-admin-01",
-  name: "Aarav Sharma",
-  email: "aarav@retrod.in",
-  role: "pos_admin",
+export const KITCHEN_USER: AppUser = {
+  id: "usr-kitchen-01",
+  name: "Kitchen Chef Station",
+  email: "samkhusi123@gmail.com",
+  role: "pos_kitchen",
+  phone: "9937884878",
+  active: true,
+  lastActive: "Now",
+  initials: "KC",
+  property: "Anshu Suite Restaurant · Main Kitchen",
+  permissions: [
+    "pos.kot.view",
+    "pos.kot.status",
+    "pos.orders.kot",
+    "pos.orders.view",
+    "pos.inventory.view",
+    "pos.inventory.manage",
+    "pos.inventory.wastage",
+    "pos.inventory.production",
+    "pos.inventory.purchase_orders",
+  ],
+};
+
+export const ARNAV_STAFF_USER: AppUser = {
+  id: "usr-staff-arnav",
+  name: "Arnav",
+  email: "arnav@retrod.in",
+  role: "pos_staff",
   phone: "9876543210",
   active: true,
   lastActive: "Now",
-  initials: "AS",
-  property: "Retrod Bistro & Cafe · Connaught Place",
-  permissions: ["*:*"],
+  initials: "AR",
+  property: "Anshu Suite Restaurant · Main Outlet",
+  permissions: [
+    "pos.billing.view",
+    "pos.billing.create",
+    "pos.orders.view",
+    "pos.orders.take",
+  ],
 };
 
-const SEED_USERS: AppUser[] = [SAMPRITA_ADMIN_USER, ADMIN_USER, KITCHEN_USER];
+const SEED_USERS: AppUser[] = [SAMPRITA_ADMIN_USER, KITCHEN_USER, ARNAV_STAFF_USER];
 
 const DEFAULT_ENTITLEMENTS: TenantEntitlements = {
   tenantId: "retrod-pos-tenant",
@@ -133,19 +139,19 @@ const DEFAULT_ENTITLEMENTS: TenantEntitlements = {
 };
 
 function loadCachedUsers(): AppUser[] {
-  let list: AppUser[] = [SAMPRITA_ADMIN_USER, ADMIN_USER, KITCHEN_USER];
+  let list: AppUser[] = [SAMPRITA_ADMIN_USER, KITCHEN_USER, ARNAV_STAFF_USER];
   if (typeof window !== "undefined") {
     try {
       const raw = localStorage.getItem(LS_USERS);
       if (raw) {
         const parsed = JSON.parse(raw) as AppUser[];
         if (Array.isArray(parsed) && parsed.length > 0) {
-          list = parsed.filter((u) => !["u0", "u1", "u2"].includes(u.id));
-          if (!list.some((u) => u.id === KITCHEN_USER.id)) {
+          list = parsed.filter((u) => !["u0", "u1", "u2", "usr-admin-01"].includes(u.id) && u.email !== "aarav@retrod.in");
+          if (!list.some((u) => u.id === KITCHEN_USER.id || u.email === KITCHEN_USER.email)) {
             list.push(KITCHEN_USER);
           }
-          if (!list.some((u) => u.id === ADMIN_USER.id)) {
-            list.push(ADMIN_USER);
+          if (!list.some((u) => u.id === ARNAV_STAFF_USER.id || u.email === ARNAV_STAFF_USER.email)) {
+            list.push(ARNAV_STAFF_USER);
           }
           if (!list.some((u) => u.id === SAMPRITA_ADMIN_USER.id || u.email === SAMPRITA_ADMIN_USER.email)) {
             list.unshift(SAMPRITA_ADMIN_USER);
@@ -183,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (user) {
       setUsers((prev) => {
-        const clean = prev.filter((u) => !["u0", "u1", "u2"].includes(u.id));
+        const clean = prev.filter((u) => !["u0", "u1", "u2", "usr-admin-01"].includes(u.id) && u.email !== "aarav@retrod.in");
         if (!clean.some((u) => u.id === user.id)) {
           return [user, ...clean];
         }
@@ -198,11 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const redirectToPmsLogin = () => {
     if (typeof window === "undefined") return;
-    const isRetrodDomain = window.location.hostname.endsWith("retrod.in");
-    if (isRetrodDomain) {
-      const returnUrl = encodeURIComponent(window.location.href);
-      window.location.href = `https://app.dev.retrod.in/login?returnUrl=${returnUrl}`;
-    } else {
+    if (window.location.pathname !== "/login") {
       window.location.href = "/login";
     }
   };
@@ -402,7 +404,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return true;
         }
 
-        // Kitchen staff has full operational access to KOT, recipes, and complete Stock
+        // 1. Check dynamic RBAC configured by Admin in User Roles & Permissions
+        if (typeof window !== "undefined") {
+          try {
+            const rawRolePerms = localStorage.getItem("retrod:pos:role_permissions:list");
+            if (rawRolePerms) {
+              const list = JSON.parse(rawRolePerms) as Array<{
+                role: string;
+                permission?: string;
+                permission_code?: string;
+              }>;
+              if (Array.isArray(list)) {
+                const roleMatches = (r: string) => {
+                  if (r === roleStr) return true;
+                  if (roleStr === "pos_kitchen" && (r === "role-pos-chef" || r === "pos_chef")) return true;
+                  if (roleStr === "pos_staff" && r === "role-arnav") return true;
+                  if (roleStr === "pos_admin" && r === "role-pos-admin") return true;
+                  return false;
+                };
+
+                const roleEntries = list.filter((rp) => roleMatches(rp.role));
+                if (roleEntries.length > 0) {
+                  const rawPerm = String(perm).toLowerCase();
+                  const dotPerm = rawPerm.replace(/:/g, ".");
+                  const colonPerm = rawPerm.replace(/\./g, ":");
+
+                  return roleEntries.some((rp) => {
+                    const c = (rp.permission_code || "").toLowerCase();
+                    const p = (rp.permission || "").toLowerCase();
+                    return (
+                      c === rawPerm ||
+                      c === dotPerm ||
+                      c === colonPerm ||
+                      p === rawPerm ||
+                      p.endsWith(rawPerm.replace("pos.", "")) ||
+                      (c.endsWith(".*") && dotPerm.startsWith(c.slice(0, -1)))
+                    );
+                  });
+                }
+              }
+            }
+          } catch {
+            // fallback
+          }
+        }
+
+        // Kitchen staff default fallback (if RBAC storage not yet seeded)
         const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
         if (isKitchen) {
           const raw = String(perm).toLowerCase();

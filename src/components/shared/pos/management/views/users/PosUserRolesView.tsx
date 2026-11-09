@@ -63,7 +63,7 @@ export function PosUserRolesView() {
       setRolePermissions(rpList);
 
       if (!selectedRoleId && rList.length > 0) {
-        const defaultRole = rList.find((r) => r.code === "pos_cashier") || rList[0];
+        const defaultRole = rList.find((r) => r.code === "pos_kitchen" || r.id === "role-pos-chef") || rList[0];
         setSelectedRoleId(defaultRole.id);
       }
     } catch (err: any) {
@@ -76,6 +76,18 @@ export function PosUserRolesView() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const roleMatches = (rpRole: string, r: POSRole | null | undefined): boolean => {
+    if (!r) return false;
+    if (rpRole === r.id || rpRole === r.code) return true;
+    if (r.code === "pos_kitchen" && (rpRole === "role-pos-chef" || rpRole === "pos_chef")) return true;
+    if (r.id === "role-pos-chef" && (rpRole === "pos_kitchen" || rpRole === "pos_chef")) return true;
+    if (r.code === "pos_admin" && rpRole === "role-pos-admin") return true;
+    if (r.id === "role-pos-admin" && rpRole === "pos_admin") return true;
+    if (r.code === "pos_staff" && rpRole === "role-arnav") return true;
+    if (r.id === "role-arnav" && rpRole === "pos_staff") return true;
+    return false;
+  };
 
   const isOwnerRole = (role: POSRole | null | undefined) => {
     if (!role) return false;
@@ -225,7 +237,7 @@ export function PosUserRolesView() {
     }
 
     const isAssigned = rolePermissions.some(
-      (rp) => rp.role === selectedRole.id && (rp.permission === perm.id || rp.permission_code === perm.code)
+      (rp) => roleMatches(rp.role, selectedRole) && (rp.permission === perm.id || rp.permission_code === perm.code)
     );
 
     if (isAssigned) {
@@ -233,7 +245,7 @@ export function PosUserRolesView() {
         prev.filter(
           (rp) =>
             !(
-              rp.role === selectedRole.id &&
+              roleMatches(rp.role, selectedRole) &&
               (rp.permission === perm.id || rp.permission_code === perm.code)
             )
         )
@@ -265,7 +277,7 @@ export function PosUserRolesView() {
         prev.filter(
           (rp) =>
             !(
-              rp.role === selectedRole.id &&
+              roleMatches(rp.role, selectedRole) &&
               catPerms.some((p) => rp.permission === p.id || rp.permission_code === p.code)
             )
         )
@@ -284,7 +296,7 @@ export function PosUserRolesView() {
         const clean = prev.filter(
           (rp) =>
             !(
-              rp.role === selectedRole.id &&
+              roleMatches(rp.role, selectedRole) &&
               catPerms.some((p) => rp.permission === p.id || rp.permission_code === p.code)
             )
         );
@@ -375,7 +387,7 @@ export function PosUserRolesView() {
               const isSelected = selectedRole?.id === r.id;
               const rolePermsCount = isOwner
                 ? permissions.length
-                : rolePermissions.filter((rp) => rp.role === r.id).length;
+                : rolePermissions.filter((rp) => roleMatches(rp.role, r)).length;
 
               return (
                 <div
@@ -499,7 +511,7 @@ export function PosUserRolesView() {
                   : catPerms.filter((p) =>
                       rolePermissions.some(
                         (rp) =>
-                          rp.role === selectedRole.id &&
+                          roleMatches(rp.role, selectedRole) &&
                           (rp.permission === p.id || rp.permission_code === p.code)
                       )
                     ).length;
@@ -543,7 +555,7 @@ export function PosUserRolesView() {
                             isOwnerRole(selectedRole) ||
                             rolePermissions.some(
                               (rp) =>
-                                rp.role === selectedRole.id &&
+                                roleMatches(rp.role, selectedRole) &&
                                 (rp.permission === perm.id || rp.permission_code === perm.code)
                             );
 

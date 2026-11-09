@@ -6,8 +6,8 @@ import { KITCHEN_USER } from "@/components/providers/AuthProvider";
 
 describe("Kitchen KDS Role & Access Restrictions", () => {
   it("confirms KITCHEN_USER credentials and default permissions", () => {
-    expect(KITCHEN_USER.email).toBe("kitchen@retrod.in");
-    expect(KITCHEN_USER.phone).toBe("9876543219");
+    expect(KITCHEN_USER.email).toBe("samkhusi123@gmail.com");
+    expect(KITCHEN_USER.phone).toBe("9937884878");
     expect(KITCHEN_USER.role).toBe("pos_kitchen");
     expect(KITCHEN_USER.permissions).toContain("pos.kot.view");
     expect(KITCHEN_USER.permissions).toContain("pos.inventory.view");

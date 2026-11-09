@@ -17,13 +17,15 @@ describe("posUsersRbacService - Seed Accounts & CRUD Operations", () => {
     expect(kitchenUser?.email).toBe("samkhusi123@gmail.com");
     expect(kitchenUser?.pin).toBe("1122");
 
-    const sampritaAdmin = users.find((u) => u.username === "sampritapatra" || u.email === "sampritapatra@gmail.com");
+    const sampritaAdmin = users.find(
+      (u) => u.username === "sampritapatra" || u.email.includes("samprita")
+    );
     expect(sampritaAdmin).toBeDefined();
     expect(sampritaAdmin?.role).toBe("pos_admin");
 
-    const adminUser = users.find((u) => u.username === "aarav");
-    expect(adminUser).toBeDefined();
-    expect(adminUser?.role).toBe("pos_admin");
+    const arnavUser = users.find((u) => u.username === "arnav" || u.email === "arnav@retrod.in");
+    expect(arnavUser).toBeDefined();
+    expect(arnavUser?.role).toBe("pos_staff");
   });
 
   it("creates a new staff user and saves to user list", async () => {
@@ -93,8 +95,8 @@ describe("posUsersRbacService - Seed Accounts & CRUD Operations", () => {
   it("provides standard POS roles and permits granting & revoking permissions", async () => {
     const roles = await posUsersRbacService.getRoles();
     expect(roles.length).toBeGreaterThan(0);
-    const cashierRole = roles.find((r) => r.code === "pos_cashier");
-    expect(cashierRole).toBeDefined();
+    const staffRole = roles.find((r) => r.code === "pos_staff" || r.code === "pos_kitchen");
+    expect(staffRole).toBeDefined();
 
     const permissions = await posUsersRbacService.getPermissions();
     expect(permissions.length).toBeGreaterThan(0);
@@ -103,7 +105,7 @@ describe("posUsersRbacService - Seed Accounts & CRUD Operations", () => {
 
     // Grant permission
     const granted = await posUsersRbacService.syncRolePermissions(
-      cashierRole!.id,
+      staffRole!.id,
       [billingPerm!.id],
       "assign",
     );
@@ -111,7 +113,7 @@ describe("posUsersRbacService - Seed Accounts & CRUD Operations", () => {
 
     // Revoke permission
     const revoked = await posUsersRbacService.syncRolePermissions(
-      cashierRole!.id,
+      staffRole!.id,
       [billingPerm!.id],
       "revoke",
     );

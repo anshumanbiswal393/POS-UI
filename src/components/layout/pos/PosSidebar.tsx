@@ -211,10 +211,20 @@ export function PosSidebar({
       return true;
     }
 
-    // Kitchen access: Strictly KOT, Stock folder completely, Settings, and Help
+    // Kitchen access: strictly governed by dynamic permissions (KOT and Stock)
     const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
     if (isKitchen) {
-      const allowedPrefixes = ["/pos/kot", "/pos/inventory", "/pos/settings", "/pos/help"];
+      const allowedPrefixes: string[] = ["/pos/settings", "/pos/help"];
+      const hasKotAccess = can("pos.kot.view") || can("pos.orders.kot") || can("pos.orders.view");
+      const hasStockAccess = can("pos.inventory.view") || can("pos.inventory.manage");
+
+      if (hasKotAccess) {
+        allowedPrefixes.push("/pos/kot");
+      }
+      if (hasStockAccess) {
+        allowedPrefixes.push("/pos/inventory");
+      }
+
       if (
         node.to &&
         allowedPrefixes.some(
@@ -232,9 +242,8 @@ export function PosSidebar({
         if (node.children.some(hasAllowedChild)) return true;
       }
       if (
-        node.id === "inventory" ||
-        node.id === "kot" ||
-        node.id === "kitchen-orders" ||
+        (node.id === "inventory" && hasStockAccess) ||
+        ((node.id === "kot" || node.id === "kitchen-orders") && hasKotAccess) ||
         node.id === "settings" ||
         node.id === "help"
       ) {

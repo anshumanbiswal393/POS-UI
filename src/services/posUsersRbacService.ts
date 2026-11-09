@@ -218,52 +218,20 @@ export const DEFAULT_POS_ROLES: POSRole[] = [
     is_managed: true,
   },
   {
-    id: "role-pos-cashier",
-    code: "pos_cashier",
-    name: "Cashier / Biller",
-    description: "Dedicated to rapid checkouts, split bills, payment collection, and daily shift cash counting.",
-    domain: "pos",
-    is_managed: false,
-  },
-  {
-    id: "role-pos-captain",
-    code: "pos_captain",
-    name: "Restaurant Captain",
-    description: "Floor supervisor managing table seating, order punching, KOTs, and table switches.",
-    domain: "pos",
-    is_managed: false,
-  },
-  {
-    id: "role-pos-waiter",
-    code: "pos_waiter",
-    name: "Service Waiter",
-    description: "Taking dine-in orders, entering guest requests, and sending tickets to the kitchen.",
-    domain: "pos",
-    is_managed: false,
-  },
-  {
     id: "role-pos-chef",
-    code: "pos_chef",
+    code: "pos_kitchen",
     name: "Kitchen Chef / KDS",
-    description: "Access to Kitchen Display System (KDS), preparation timers, and ready food marking.",
+    description: "Access to Kitchen Display System (KDS), preparation timers, and complete Stock & Inventory.",
     domain: "pos",
     is_managed: false,
   },
   {
-    id: "role-pos-inventory",
-    code: "pos_inventory_manager",
-    name: "Stock Controller",
-    description: "Managing purchases, raw materials, supplier records, recipes, and wastage logs.",
+    id: "role-arnav",
+    code: "pos_staff",
+    name: "Arnav Staff Role",
+    description: "Staff role for orders, table seating, and cashier billing operations.",
     domain: "pos",
     is_managed: false,
-  },
-  {
-    id: "role-tenant-owner",
-    code: "TENANT_OWNER",
-    name: "Hotel & POS Owner",
-    description: "Platform owner privileges spanning entire hotel operations, rooms, and restaurants.",
-    domain: "all",
-    is_managed: true,
   },
 ];
 
@@ -272,7 +240,7 @@ export const DEFAULT_SEED_USERS: POSUser[] = [
     id: "usr-admin-samprita",
     name: "Samprita Patra",
     username: "sampritapatra",
-    email: "sampritapatra@gmail.com",
+    email: "sampritapatra123@gmail.com",
     phone: "9937884878",
     role: "pos_admin",
     role_name: "POS Administrator",
@@ -284,32 +252,32 @@ export const DEFAULT_SEED_USERS: POSUser[] = [
     created_at: "2026-11-01T00:00:00.000Z",
   },
   {
-    id: "usr-admin-01",
-    name: "Aarav Sharma",
-    username: "aarav",
-    email: "aarav@retrod.in",
-    phone: "9876543210",
-    role: "pos_admin",
-    role_name: "POS Administrator",
-    role_code: "pos_admin",
-    outlet_name: "Retrod Bistro & Cafe",
-    user_code: "ADM-001",
-    pin: "1234",
-    is_active: true,
-    created_at: "2026-11-01T00:00:00.000Z",
-  },
-  {
     id: "usr-kitchen-01",
     name: "Kitchen Chef Station",
     username: "kitchen",
     email: "samkhusi123@gmail.com",
     phone: "9937884878",
     role: "pos_kitchen",
-    role_name: "Kitchen Staff",
+    role_name: "Kitchen Chef / KDS",
     role_code: "pos_kitchen",
     outlet_name: "Main Kitchen",
     user_code: "KITCHEN-01",
     pin: "1122",
+    is_active: true,
+    created_at: "2026-11-01T00:00:00.000Z",
+  },
+  {
+    id: "usr-staff-arnav",
+    name: "Arnav",
+    username: "arnav",
+    email: "arnav@retrod.in",
+    phone: "9876543210",
+    role: "pos_staff",
+    role_name: "Arnav Staff Role",
+    role_code: "pos_staff",
+    outlet_name: "Anshu Suite Restaurant",
+    user_code: "STF-ARNAV",
+    pin: "3344",
     is_active: true,
     created_at: "2026-11-01T00:00:00.000Z",
   },
@@ -338,9 +306,11 @@ export const posUsersRbacService = {
           is_active: u.is_active !== false,
           created_at: u.created_at || u.date_joined || new Date().toISOString(),
         }));
-        // Ensure kitchen user is included for KDS login
-        if (!mapped.some((u) => u.id === "usr-kitchen-01" || u.username === "kitchen")) {
-          mapped.push(DEFAULT_SEED_USERS[1]);
+        // Ensure the 3 core users are included
+        for (const seed of DEFAULT_SEED_USERS) {
+          if (!mapped.some((u) => u.email.toLowerCase() === seed.email.toLowerCase() || u.id === seed.id)) {
+            mapped.push(seed);
+          }
         }
         // Cache locally for offline availability
         if (typeof window !== "undefined") {
@@ -358,11 +328,15 @@ export const posUsersRbacService = {
         try {
           const parsed = JSON.parse(local);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            if (!parsed.some((u: any) => u.id === "usr-kitchen-01" || u.username === "kitchen")) {
-              parsed.push(DEFAULT_SEED_USERS[1]);
-              localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(parsed));
+            // Remove dummy Aarav user if present
+            const filtered = parsed.filter((u: any) => u.id !== "usr-admin-01" && u.email !== "aarav@retrod.in");
+            for (const seed of DEFAULT_SEED_USERS) {
+              if (!filtered.some((u: any) => u.email?.toLowerCase() === seed.email.toLowerCase() || u.id === seed.id)) {
+                filtered.push(seed);
+              }
             }
-            return parsed;
+            localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(filtered));
+            return filtered;
           }
         } catch {
           // ignore
@@ -370,7 +344,10 @@ export const posUsersRbacService = {
       }
     }
 
-    // Default seed users with Admin and Kitchen Station accounts
+    // Default seed users with Admin, Kitchen Station, and Arnav
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(DEFAULT_SEED_USERS));
+    }
     return DEFAULT_SEED_USERS;
   },
 
@@ -473,6 +450,34 @@ export const posUsersRbacService = {
 
   // ── Roles & Permissions ─────────────────────────────────
   getRoles: async (): Promise<POSRole[]> => {
+    const DUMMY_IDS = new Set([
+      "role-pos-cashier",
+      "role-pos-captain",
+      "role-pos-waiter",
+      "role-pos-inventory",
+      "role-tenant-owner",
+    ]);
+    const DUMMY_CODES = new Set([
+      "pos_cashier",
+      "pos_captain",
+      "pos_waiter",
+      "pos_inventory_manager",
+      "TENANT_OWNER",
+    ]);
+
+    const sanitizeRoles = (list: POSRole[]): POSRole[] => {
+      const filtered = list.filter(
+        (r) => !DUMMY_IDS.has(r.id) && !DUMMY_CODES.has(r.code)
+      );
+      // Ensure the 3 core roles exist
+      for (const core of DEFAULT_POS_ROLES) {
+        if (!filtered.some((r) => r.id === core.id || r.code === core.code)) {
+          filtered.push(core);
+        }
+      }
+      return filtered;
+    };
+
     try {
       const res = await httpClient.get<any>("/api/roles/");
       const rawList = Array.isArray(res) ? res : res?.results || [];
@@ -486,7 +491,11 @@ export const posUsersRbacService = {
           domain: r.code?.startsWith("pos_") || r.name?.toLowerCase().includes("pos") ? "pos" : "pms",
           is_managed: r.code === "OWNER" || r.code === "TENANT_OWNER" || r.code === "pos_admin",
         }));
-        return mapped;
+        const sanitized = sanitizeRoles(mapped);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(STORAGE_ROLES_KEY, JSON.stringify(sanitized));
+        }
+        return sanitized;
       }
     } catch {
       // Fall through to defaults
@@ -496,13 +505,21 @@ export const posUsersRbacService = {
       const local = localStorage.getItem(STORAGE_ROLES_KEY);
       if (local) {
         try {
-          return JSON.parse(local);
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const sanitized = sanitizeRoles(parsed);
+            localStorage.setItem(STORAGE_ROLES_KEY, JSON.stringify(sanitized));
+            return sanitized;
+          }
         } catch {
           // ignore
         }
       }
     }
 
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_ROLES_KEY, JSON.stringify(DEFAULT_POS_ROLES));
+    }
     return DEFAULT_POS_ROLES;
   },
 
@@ -565,6 +582,86 @@ export const posUsersRbacService = {
   },
 
   getRolePermissions: async (roleId?: string): Promise<POSRolePermission[]> => {
+    const DUMMY_IDS = new Set([
+      "role-pos-cashier",
+      "role-pos-captain",
+      "role-pos-waiter",
+      "role-pos-inventory",
+      "role-tenant-owner",
+      "pos_cashier",
+      "pos_captain",
+      "pos_waiter",
+      "pos_inventory_manager",
+      "TENANT_OWNER",
+    ]);
+
+    // Build standard default mappings
+    const buildDefaultPermissions = (): POSRolePermission[] => {
+      const defs: POSRolePermission[] = [];
+      const allPerms = DEFAULT_POS_PERMISSIONS;
+
+      // 1. pos_admin has all 19 permissions
+      allPerms.forEach((p) => {
+        defs.push({
+          id: `rp-admin-${p.id}`,
+          role: "role-pos-admin",
+          permission: p.id,
+          permission_code: p.code,
+        });
+      });
+
+      // 2. Kitchen Chef / KDS has KOT + Stock permissions
+      const chefCodes = new Set([
+        "pos.kot.view",
+        "pos.kot.status",
+        "pos.orders.kot",
+        "pos.orders.view",
+        "pos.inventory.view",
+        "pos.inventory.manage",
+      ]);
+      allPerms
+        .filter((p) => chefCodes.has(p.code))
+        .forEach((p) => {
+          defs.push({
+            id: `rp-chef-${p.id}`,
+            role: "role-pos-chef",
+            permission: p.id,
+            permission_code: p.code,
+          });
+        });
+
+      // 3. Arnav Staff has billing & floor orders
+      const staffCodes = new Set([
+        "pos.billing.view",
+        "pos.billing.create",
+        "pos.orders.view",
+        "pos.orders.take",
+      ]);
+      allPerms
+        .filter((p) => staffCodes.has(p.code))
+        .forEach((p) => {
+          defs.push({
+            id: `rp-arnav-${p.id}`,
+            role: "role-arnav",
+            permission: p.id,
+            permission_code: p.code,
+          });
+        });
+
+      return defs;
+    };
+
+    const isMatch = (target: string, query: string) => {
+      if (target === query) return true;
+      if (query === "role-pos-chef" && (target === "pos_kitchen" || target === "pos_chef")) return true;
+      if (query === "pos_kitchen" && (target === "role-pos-chef" || target === "pos_chef")) return true;
+      if (query === "role-pos-admin" && target === "pos_admin") return true;
+      if (query === "pos_admin" && target === "role-pos-admin") return true;
+      if (query === "role-arnav" && target === "pos_staff") return true;
+      if (query === "pos_staff" && target === "role-arnav") return true;
+      return false;
+    };
+
     try {
       const url = roleId ? `/api/role-permissions/?role=${roleId}` : "/api/role-permissions/";
       const res = await httpClient.get<any>(url);
@@ -586,55 +683,39 @@ export const posUsersRbacService = {
       if (local) {
         try {
           const list: POSRolePermission[] = JSON.parse(local);
-          if (roleId) {
-            return list.filter((rp) => rp.role === roleId);
+          if (Array.isArray(list)) {
+            // Filter out dummy role permissions
+            const cleanList = list.filter((rp) => !DUMMY_IDS.has(rp.role));
+            // Ensure chef permissions exist
+            const hasChef = cleanList.some((rp) => isMatch(rp.role, "role-pos-chef"));
+            if (!hasChef) {
+              const chefDefaults = buildDefaultPermissions().filter((rp) => rp.role === "role-pos-chef");
+              cleanList.push(...chefDefaults);
+            }
+            // Ensure arnav permissions exist
+            const hasArnav = cleanList.some((rp) => isMatch(rp.role, "role-arnav"));
+            if (!hasArnav) {
+              const arnavDefaults = buildDefaultPermissions().filter((rp) => rp.role === "role-arnav");
+              cleanList.push(...arnavDefaults);
+            }
+            localStorage.setItem(STORAGE_ROLE_PERMS_KEY, JSON.stringify(cleanList));
+
+            if (roleId) {
+              return cleanList.filter((rp) => isMatch(rp.role, roleId));
+            }
+            return cleanList;
           }
-          return list;
         } catch {
           // ignore
         }
       }
     }
 
-    // Default permission mappings for seeded roles
-    const defaults: POSRolePermission[] = [];
-    const allPerms = DEFAULT_POS_PERMISSIONS;
-
-    // pos_admin has all permissions
-    allPerms.forEach((p) => {
-      defaults.push({
-        id: `rp-admin-${p.id}`,
-        role: "role-pos-admin",
-        permission: p.id,
-        permission_code: p.code,
-      });
-    });
-
-    // pos_cashier has billing & reports
-    allPerms
-      .filter((p) => p.category.includes("Billing") || p.category.includes("Reports"))
-      .forEach((p) => {
-        defaults.push({
-          id: `rp-cashier-${p.id}`,
-          role: "role-pos-cashier",
-          permission: p.id,
-          permission_code: p.code,
-        });
-      });
-
-    // pos_captain has floor & orders & reservations
-    allPerms
-      .filter((p) => p.category.includes("Floor") || p.code.includes("kot"))
-      .forEach((p) => {
-        defaults.push({
-          id: `rp-captain-${p.id}`,
-          role: "role-pos-captain",
-          permission: p.id,
-          permission_code: p.code,
-        });
-      });
-
-    return roleId ? defaults.filter((d) => d.role === roleId) : defaults;
+    const defaultList = buildDefaultPermissions();
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_ROLE_PERMS_KEY, JSON.stringify(defaultList));
+    }
+    return roleId ? defaultList.filter((d) => isMatch(d.role, roleId)) : defaultList;
   },
 
   syncRolePermissions: async (
