@@ -1,5 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Calendar, Clock, Users, Phone, User, Check, Combine, AlertTriangle } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Users,
+  Phone,
+  User,
+  Check,
+  Combine,
+  AlertTriangle,
+  CreditCard,
+  CheckCircle2,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { RestaurantTable, ReservationItem } from "@/types/posTables";
 import {
@@ -75,6 +86,12 @@ export function NewReservationModal({
   const [notes, setNotes] = useState("");
   const [isVip, setIsVip] = useState(false);
 
+  // Advance Payment & Deposit options
+  const [paymentOption, setPaymentOption] = useState<"no_payment" | "pay_deposit">("no_payment");
+  const [depositAmountStr, setDepositAmountStr] = useState("0");
+  const [paymentMode, setPaymentMode] = useState<"UPI" | "Cash" | "Card">("UPI");
+  const [isPaymentDone, setIsPaymentDone] = useState(false);
+
   const vacantTables = useMemo(
     () => tables.filter((t) => t.status === "vacant").sort((a, b) => a.capacity - b.capacity),
     [tables],
@@ -106,6 +123,10 @@ export function NewReservationModal({
     setIsCustomPax(false);
     setCustomPaxText("");
     setGuests(2);
+    setPaymentOption("no_payment");
+    setDepositAmountStr("0");
+    setPaymentMode("UPI");
+    setIsPaymentDone(false);
   }, [isOpen]);
 
   // Recompute table picks when pax / vacancy changes while open
@@ -211,6 +232,28 @@ export function NewReservationModal({
       ? `Merged tables: ${tableLabel} (${selectedCapacity} seats) for ${guests} pax.`
       : undefined;
 
+    let finalDeposit = 0;
+    let finalPaymentStatus: "unpaid" | "deposit_paid" | "paid" = "unpaid";
+
+    if (paymentOption === "pay_deposit") {
+      const parsedDeposit = Number(depositAmountStr);
+      if (!depositAmountStr || isNaN(parsedDeposit) || parsedDeposit <= 0) {
+        toast.error("Please enter a valid deposit amount, or select 'Reserve Without Payment'.");
+        return;
+      }
+      if (!isPaymentDone) {
+        toast.error("Please click 'Yes, Payment Done' to confirm payment, or select 'Reserve Without Payment'.");
+        return;
+      }
+      finalDeposit = Math.round(parsedDeposit);
+      finalPaymentStatus = "deposit_paid";
+    }
+
+    const paymentNote =
+      finalDeposit > 0
+        ? `Advance deposit of ₹${finalDeposit} collected via ${paymentMode} (Payment Confirmed).`
+        : "Booked without advance payment (₹0 deposit).";
+
     onSaveReservation({
       tableId: primary.id,
       tableNumber: tableLabel,
@@ -231,16 +274,16 @@ export function NewReservationModal({
           return `${String(end.getHours()).padStart(2, "0")}:${String(end.getMinutes()).padStart(2, "0")}`;
         })(),
       ),
-      paymentStatus: "deposit_paid",
-      depositAmount: 25,
+      paymentStatus: finalPaymentStatus,
+      depositAmount: finalDeposit,
       isVip,
-      notes: [notes.trim() || undefined, mergeNote].filter(Boolean).join(" "),
+      notes: [notes.trim() || undefined, mergeNote, paymentNote].filter(Boolean).join(" "),
     });
 
     toast.success(
       isMerged
-        ? `Reserved ${tableLabel} for ${customerName.trim()} (${guests} pax)`
-        : `Reserved ${primary.tableNumber} for ${customerName.trim()} (${guests} pax)`,
+        ? `Reserved ${tableLabel} for ${customerName.trim()} (${guests} pax · Deposit: ₹${finalDeposit})`
+        : `Reserved ${primary.tableNumber} for ${customerName.trim()} (${guests} pax · Deposit: ₹${finalDeposit})`,
     );
 
     setCustomerName("");
@@ -253,6 +296,10 @@ export function NewReservationModal({
     setCustomPaxText("");
     setMergeMode(false);
     setSelectedTableIds([]);
+    setPaymentOption("no_payment");
+    setDepositAmountStr("0");
+    setPaymentMode("UPI");
+    setIsPaymentDone(false);
     onClose();
   }
 
@@ -517,6 +564,154 @@ export function NewReservationModal({
                     .filter(Boolean)
                     .join(" + ")}
                 </span>
+              </div>
+            )}
+          </div>
+
+          {/* Reservation Payment / Advance Deposit Options */}
+          <div className="rounded-xl border border-border p-3.5 space-y-3 bg-surface-2/40">
+            <div className="flex items-center justify-between">
+              <label className="text-[12px] font-bold text-text-primary flex items-center gap-1.5">
+                <CreditCard className="w-4 h-4 text-primary" />
+                Reservation Payment / Advance Deposit
+              </label>
+              <span className="text-[11px] font-semibold">
+                {paymentOption === "no_payment" ? (
+                  <span className="text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                    ₹0 (No Advance)
+                  </span>
+                ) : (
+                  <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-bold font-mono">
+                    ₹{Number(depositAmountStr) || 0} Deposit
+                  </span>
+                )}
+              </span>
+            </div>
+
+            {/* Option A: Reserve Without Payment vs Option B: Pay Advance Deposit */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentOption("no_payment");
+                  setDepositAmountStr("0");
+                  setIsPaymentDone(false);
+                }}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition cursor-pointer ${
+                  paymentOption === "no_payment"
+                    ? "border-primary bg-primary/10 text-primary font-bold shadow-xs ring-1 ring-primary/20"
+                    : "border-border bg-surface text-text-secondary hover:bg-surface-2"
+                }`}
+              >
+                <span className="text-[12px] font-bold">Reserve Without Payment</span>
+                <span className="text-[10.5px] opacity-80 mt-0.5 font-medium">Show ₹0 in deposit</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentOption("pay_deposit");
+                  if (depositAmountStr === "0" || !depositAmountStr) {
+                    setDepositAmountStr("");
+                  }
+                }}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition cursor-pointer ${
+                  paymentOption === "pay_deposit"
+                    ? "border-primary bg-primary/10 text-primary font-bold shadow-xs ring-1 ring-primary/20"
+                    : "border-border bg-surface text-text-secondary hover:bg-surface-2"
+                }`}
+              >
+                <span className="text-[12px] font-bold">Pay Advance Deposit</span>
+                <span className="text-[10.5px] opacity-80 mt-0.5 font-medium">Enter amount & confirm</span>
+              </button>
+            </div>
+
+            {/* If Reserve Without Payment is selected */}
+            {paymentOption === "no_payment" && (
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-50/70 text-emerald-900 text-[11.5px] border border-emerald-200/80">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  Table will be booked <strong>without upfront payment (₹0 Deposit)</strong>. Guest will settle in full upon dining.
+                </span>
+              </div>
+            )}
+
+            {/* If Pay Advance Deposit is selected */}
+            {paymentOption === "pay_deposit" && (
+              <div className="space-y-3 pt-2 border-t border-border/80">
+                <div>
+                  <label className="block text-[11.5px] font-semibold text-text-primary mb-1">
+                    Enter Deposit Amount (₹) *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted font-bold text-sm">
+                      ₹
+                    </span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      placeholder="e.g. 500"
+                      value={depositAmountStr}
+                      onChange={(e) => setDepositAmountStr(e.target.value)}
+                      className="w-full pl-7 pr-3 py-2 text-[13.5px] bg-surface border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Payment Method Selector */}
+                <div>
+                  <label className="block text-[11px] font-medium text-text-secondary mb-1">
+                    Payment Method
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {(["UPI", "Cash", "Card"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setPaymentMode(mode)}
+                        className={`flex-1 py-1.5 px-2 rounded-lg text-[11.5px] font-semibold border transition cursor-pointer ${
+                          paymentMode === mode
+                            ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                            : "bg-surface text-text-secondary border-border hover:bg-surface-2"
+                        }`}
+                      >
+                        {mode}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* "Yes, Payment Done" button */}
+                <button
+                  type="button"
+                  onClick={() => setIsPaymentDone((prev) => !prev)}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition cursor-pointer ${
+                    isPaymentDone
+                      ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                      : "bg-surface border-border text-text-primary hover:border-emerald-500 hover:text-emerald-700"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`w-5 h-5 rounded-full flex items-center justify-center border transition ${
+                        isPaymentDone
+                          ? "bg-white text-emerald-700 border-white"
+                          : "border-slate-400 bg-slate-50"
+                      }`}
+                    >
+                      {isPaymentDone && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    </div>
+                    <span className="text-[12.5px] font-bold">
+                      {isPaymentDone ? "Yes, Payment Done by User" : "Click: Yes, Payment Done by User"}
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-semibold opacity-90">
+                    {isPaymentDone
+                      ? `₹${Number(depositAmountStr) || 0} Confirmed (${paymentMode})`
+                      : "Click to confirm"}
+                  </span>
+                </button>
               </div>
             )}
           </div>

@@ -251,25 +251,25 @@ export function ReservationDetailSlide({
                       <div className="text-xs font-bold text-slate-900">
                         {res.paymentStatus === "paid"
                           ? "Booking Deposit Paid"
-                          : res.paymentStatus === "deposit_paid"
-                            ? "Partial Deposit Paid"
-                            : "No Deposit Required"}
+                          : res.depositAmount && res.depositAmount > 0
+                            ? `Advance Deposit Paid (₹${res.depositAmount})`
+                            : "Reserved Without Payment (₹0)"}
                       </div>
                       <div className="text-[11px] text-slate-500">
-                        {res.depositAmount
-                          ? `₹${res.depositAmount.toFixed(2)} received via Card/Online`
-                          : "Pay on arrival at POS"}
+                        {res.depositAmount && res.depositAmount > 0
+                          ? `₹${res.depositAmount.toFixed(2)} received via ${res.notes?.includes("Cash") ? "Cash" : res.notes?.includes("Card") ? "Card" : "UPI/Online"}`
+                          : "₹0 deposit · Pay on dining at POS"}
                       </div>
                     </div>
                   </div>
                   <span
                     className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      res.paymentStatus === "paid" || res.paymentStatus === "deposit_paid"
+                      res.depositAmount && res.depositAmount > 0
                         ? "bg-emerald-100 text-emerald-800"
                         : "bg-slate-100 text-slate-600"
                     }`}
                   >
-                    {res.paymentStatus?.toUpperCase() || "CONFIRMED"}
+                    {res.depositAmount && res.depositAmount > 0 ? "DEPOSIT PAID" : "UNPAID (₹0)"}
                   </span>
                 </div>
               </div>

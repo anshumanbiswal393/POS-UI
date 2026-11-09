@@ -239,7 +239,7 @@ export function PosReservationsManager() {
       "Time": r.reservationTime,
       "End Time": r.endTime || "N/A",
       "Status": r.status.toUpperCase(),
-      "Deposit": r.depositAmount ? `₹${r.depositAmount}` : "None",
+      "Deposit": r.depositAmount && r.depositAmount > 0 ? `₹${r.depositAmount}` : "₹0",
       "Notes": r.notes || "",
     }));
 
@@ -408,12 +408,12 @@ export function PosReservationsManager() {
         align: "right",
         minWidth: 120,
         render: (_, res) =>
-          res.depositAmount ? (
+          res.depositAmount && res.depositAmount > 0 ? (
             <span className="font-bold text-emerald-700 font-mono text-xs">
               ₹{res.depositAmount}
             </span>
           ) : (
-            <span className="text-slate-400 text-[11px]">No Deposit</span>
+            <span className="font-bold text-slate-500 font-mono text-xs">₹0</span>
           ),
       },
       {

@@ -138,3 +138,4 @@ describe("Waiter Role UI & Permissions Full Walkthrough", () => {
     expect(adminMenu.length).toBe(6);
   });
 });
+

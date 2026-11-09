@@ -100,7 +100,24 @@ function getStoredReservations(outletId?: string): ReservationItem[] {
     "default";
   try {
     const raw = typeof window !== "undefined" ? localStorage.getItem(`retrod_pos_reservations_${effective}`) : null;
-    return raw ? JSON.parse(raw) : [];
+    let list: ReservationItem[] = raw ? JSON.parse(raw) : [];
+    // Sanitize any reservation that had the hardcoded 25 from the previous bug
+    let modified = false;
+    list = list.map((r) => {
+      if (r.depositAmount === 25 && (!r.notes || !r.notes.includes("deposit"))) {
+        modified = true;
+        return {
+          ...r,
+          depositAmount: 0,
+          paymentStatus: "unpaid",
+        };
+      }
+      return r;
+    });
+    if (modified && typeof window !== "undefined") {
+      localStorage.setItem(`retrod_pos_reservations_${effective}`, JSON.stringify(list));
+    }
+    return list;
   } catch {
     return [];
   }

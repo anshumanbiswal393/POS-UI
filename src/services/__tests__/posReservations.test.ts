@@ -200,5 +200,79 @@ describe("POS Reservations & Dynamic Table Status", () => {
       const savedRes = reservations.find((r) => r.id === res.id);
       expect(savedRes?.tableId).toBe(table52.id);
     });
+
+    it("handles reservation without payment setting depositAmount to 0 and paymentStatus to unpaid", async () => {
+      const res = await posTablesService.addReservation({
+        tableId: "tbl-zero-pay",
+        tableNumber: "Table #25",
+        customerName: "Sneha Patel",
+        customerPhone: "9876543201",
+        guests: 4,
+        reservationDate: "2026-11-09",
+        reservationTime: "07:00 PM",
+        depositAmount: 0,
+        paymentStatus: "unpaid",
+        notes: "Booked without advance payment (₹0 deposit).",
+      });
+
+      expect(res.depositAmount).toBe(0);
+      expect(res.paymentStatus).toBe("unpaid");
+
+      const all = await posTablesService.getReservations();
+      const found = all.find((r) => r.id === res.id);
+      expect(found?.depositAmount).toBe(0);
+      expect(found?.paymentStatus).toBe("unpaid");
+    });
+
+    it("handles reservation with advance deposit payment setting entered amount and deposit_paid status", async () => {
+      const res = await posTablesService.addReservation({
+        tableId: "tbl-paid-dep",
+        tableNumber: "Table #26",
+        customerName: "Vikram Malhotra",
+        customerPhone: "9876543202",
+        guests: 6,
+        reservationDate: "2026-11-09",
+        reservationTime: "08:00 PM",
+        depositAmount: 500,
+        paymentStatus: "deposit_paid",
+        notes: "Advance deposit of ₹500 collected via UPI (Payment Confirmed).",
+      });
+
+      expect(res.depositAmount).toBe(500);
+      expect(res.paymentStatus).toBe("deposit_paid");
+
+      const all = await posTablesService.getReservations();
+      const found = all.find((r) => r.id === res.id);
+      expect(found?.depositAmount).toBe(500);
+      expect(found?.paymentStatus).toBe("deposit_paid");
+    });
+
+    it("sanitizes legacy hardcoded 25 deposit on reservations to 0", async () => {
+      // Seed a legacy reservation with 25
+      const legacyId = "res-legacy-bug-25";
+      const legacyRes: ReservationItem = {
+        id: legacyId,
+        tableId: "tbl-22",
+        tableNumber: "Table #22",
+        customerName: "shab mohanty",
+        customerPhone: "8478477446",
+        guests: 2,
+        reservationDate: "2026-11-09",
+        reservationTime: "04:30 PM",
+        depositAmount: 25, // legacy bug
+        paymentStatus: "deposit_paid",
+        status: "reserved",
+        createdAt: new Date().toISOString(),
+      };
+
+      const key = "retrod_pos_reservations_default";
+      localStorage.setItem(key, JSON.stringify([legacyRes]));
+
+      const reservations = await posTablesService.getReservations();
+      const sanitized = reservations.find((r) => r.id === legacyId);
+      expect(sanitized).toBeDefined();
+      expect(sanitized?.depositAmount).toBe(0);
+      expect(sanitized?.paymentStatus).toBe("unpaid");
+    });
   });
 });
