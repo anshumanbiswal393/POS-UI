@@ -1294,18 +1294,27 @@ export function PosBillingManager() {
               toast.error("Could not create order");
               return;
             }
+            const effectiveTendered = Number(tenderedAmount || 0);
+            const isPartial = effectiveTendered < grandTotal;
             const settled = await liveSettleOrder(orderId, {
               paymentMode: payMap[paymentMethod] || "CASH",
-              tenderedAmount: Math.max(tenderedAmount || 0, grandTotal),
+              tenderedAmount: effectiveTendered,
               folioId: folioId || undefined,
               reservationId: reservationId || undefined,
               idempotencyKey: `settle-${orderId}-${Date.now()}`,
             });
             invalidateOrderSurfaces();
             setIsPayNowOpen(false);
-            toast.success(`Paid · ${settled.orderNumber || billNumber} saved to Order History`, {
-              description: "Sent to KOT · not added to Pending Payments",
-            });
+            if (isPartial) {
+              const remainingDue = grandTotal - effectiveTendered;
+              toast.success(`Partial Paid · ${settled.orderNumber || billNumber}`, {
+                description: `₹${effectiveTendered.toLocaleString("en-IN")} paid · ₹${remainingDue.toLocaleString("en-IN")} balance due moved to Pending Payments`,
+              });
+            } else {
+              toast.success(`Paid · ${settled.orderNumber || billNumber} saved to Order History`, {
+                description: "Full payment received · sent to KOT",
+              });
+            }
             handleNewBill();
           } catch (err: any) {
             const detail = err?.response?.data;

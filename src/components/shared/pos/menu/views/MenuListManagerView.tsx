@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Plus,
   Edit2,
@@ -9,6 +9,8 @@ import {
   Layers,
   ChevronDown,
   List,
+  Search,
+  X,
 } from "lucide-react";
 import type { MenuItem, MenuItemType } from "@/types/posMenu";
 import {
@@ -90,6 +92,20 @@ export function MenuListManagerView() {
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [categoryModalMode, setCategoryModalMode] = useState<"menu" | "view" | "add">("menu");
   const categoryMenuRef = useRef<HTMLDivElement>(null);
+
+  // Search filter state for searching through menu name and code
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredMenuItems = useMemo(() => {
+    if (!searchQuery.trim()) return menuItems;
+    const q = searchQuery.toLowerCase().trim();
+    return menuItems.filter((item) => {
+      const nameMatch = item.name?.toLowerCase().includes(q);
+      const codeMatch = item.code?.toLowerCase().includes(q);
+      const catMatch = item.category?.toLowerCase().includes(q);
+      return Boolean(nameMatch || codeMatch || catMatch);
+    });
+  }, [menuItems, searchQuery]);
 
   useEffect(() => {
     if (!categoryMenuOpen) return;
@@ -398,7 +414,29 @@ export function MenuListManagerView() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {/* Menu Name and Code Search Bar */}
+          <div className="relative w-full sm:w-60 md:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by menu name or code..."
+              className="h-9 w-full rounded-xl border border-slate-300 bg-slate-50/70 pl-9 pr-8 text-[12.5px] text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:bg-white focus:outline-hidden transition"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition cursor-pointer"
+                title="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={() => {
@@ -467,7 +505,7 @@ export function MenuListManagerView() {
 
       {/* 2. Menu Catalog PosDataGrid (Header Search & Filtering Built-in) */}
       <PosDataGrid<MenuItem>
-        data={menuItems}
+        data={filteredMenuItems}
         isLoading={isLoading}
         columns={columns}
         enablePagination={true}

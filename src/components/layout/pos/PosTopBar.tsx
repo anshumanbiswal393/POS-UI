@@ -7,6 +7,7 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
+  ChevronsRight,
   FileText,
   HelpCircle,
   LogOut,
@@ -211,19 +212,31 @@ export function PosTopBar({
         )}
 
         {onToggleSidebar && (
-          <button
-            type="button"
-            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            onClick={onToggleSidebar}
-            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="hidden lg:flex items-center justify-center rounded-md p-1.5 text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer"
-          >
-            {sidebarCollapsed ? (
-              <PanelLeftOpen className="h-4.5 w-4.5 text-primary" />
-            ) : (
+          sidebarCollapsed ? (
+            <button
+              type="button"
+              aria-label="Expand sidebar"
+              onClick={onToggleSidebar}
+              title="Expand sidebar"
+              className="group relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 border border-emerald-300/80 text-black shadow-xs hover:bg-emerald-100 overflow-hidden transition-all duration-200 active:scale-95 cursor-pointer"
+            >
+              {/* Continuous stream of chevrons sliding from left to right matching PMS */}
+              <div className="relative flex h-full w-full items-center justify-center">
+                <ChevronsRight className="absolute h-4 w-4 stroke-[2.5] text-black animate-chevron-slide-1" />
+                <ChevronsRight className="absolute h-4 w-4 stroke-[2.5] text-black animate-chevron-slide-2" />
+              </div>
+            </button>
+          ) : (
+            <button
+              type="button"
+              aria-label="Collapse sidebar"
+              onClick={onToggleSidebar}
+              title="Collapse sidebar"
+              className="hidden lg:flex items-center justify-center rounded-md p-1.5 text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer"
+            >
               <PanelLeftClose className="h-4.5 w-4.5" />
-            )}
-          </button>
+            </button>
+          )
         )}
 
         <nav aria-label="Breadcrumbs" className="flex items-center gap-1.5 text-[12px] sm:text-[13px]">

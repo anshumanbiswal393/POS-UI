@@ -265,6 +265,58 @@ function paginateCategorizedItems(
   return pages;
 }
 
+const CULINARY_CATEGORY_ORDER = [
+  "starters",
+  "staters",
+  "appetizers",
+  "snacks",
+  "soups",
+  "salads",
+  "main course",
+  "curry",
+  "gravy",
+  "breads",
+  "roti",
+  "naan",
+  "rice",
+  "biryani",
+  "pulao",
+  "noodles",
+  "pasta",
+  "pizza",
+  "burger",
+  "desserts",
+  "sweets",
+  "ice cream",
+  "beverages",
+  "drinks",
+  "cold drinks",
+  "hot drinks",
+  "shakes",
+  "mocktails",
+  "cocktails",
+  "chef specials",
+];
+
+function resolveDishCategory(item: MenuItem): string {
+  const rawCat = (item.category || "").trim();
+  const nameLower = (item.name || "").toLowerCase();
+
+  // If dish is named like a beverage (e.g. coffee, tea, shake, lassi, mojito, juice, soda, water)
+  // but was mistakenly categorized under "rice" (or empty):
+  const isDrink =
+    /coffee|tea|shake|smoothie|juice|lassi|mojito|mocktail|cocktail|soda|lemonade|coke|pepsi|sprite|water|drink|beverage|cold\s+drink/i.test(
+      nameLower
+    );
+  if (isDrink && (!rawCat || rawCat.toLowerCase().includes("rice"))) {
+    return "Beverages";
+  }
+
+  if (!rawCat) return "Chef Specials";
+  if (rawCat.toLowerCase() === "staters") return "Starters";
+  return rawCat.charAt(0).toUpperCase() + rawCat.slice(1);
+}
+
 export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
   const { activeOutlet } = useOutletContext();
   const { data: menuItems, isLoading } = useMenuItems(activeOutlet.id);
@@ -316,11 +368,23 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
     setAddressLine(activeOutlet.address);
   }, [activeOutlet]);
 
-  // Derived Category List
+  // Derived Category List with culinary order and normalization
   const allCategories = useMemo(() => {
     const set = new Set<string>();
-    menuItems?.forEach((i) => i.category && set.add(i.category));
-    return Array.from(set);
+    menuItems?.forEach((i) => {
+      const cat = resolveDishCategory(i);
+      set.add(cat);
+    });
+    return Array.from(set).sort((a, b) => {
+      const aLower = a.toLowerCase();
+      const bLower = b.toLowerCase();
+      let aIdx = CULINARY_CATEGORY_ORDER.findIndex((c) => aLower.includes(c));
+      let bIdx = CULINARY_CATEGORY_ORDER.findIndex((c) => bLower.includes(c));
+      if (aIdx === -1) aIdx = 999;
+      if (bIdx === -1) bIdx = 999;
+      if (aIdx !== bIdx) return aIdx - bIdx;
+      return a.localeCompare(b);
+    });
   }, [menuItems]);
 
   const dishesWithImages = useMemo(() => {
@@ -369,12 +433,13 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
     }));
   };
 
-  // Grouped Menu Items by Category
+  // Grouped Menu Items by Category (Strict Category Isolation & Culinary Ordering)
   const categorizedItems = useMemo(() => {
     if (!menuItems) return {};
     const filtered = menuItems.filter((item) => {
       if (onlyActiveItems && item.status !== "Active") return false;
-      if (selectedCategories.length > 0 && !selectedCategories.includes(item.category)) {
+      const cat = resolveDishCategory(item);
+      if (selectedCategories.length > 0 && !selectedCategories.includes(cat)) {
         return false;
       }
       return true;
@@ -382,11 +447,28 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
 
     const groups: Record<string, MenuItem[]> = {};
     filtered.forEach((item) => {
-      const cat = item.category || "Chef Specials";
+      const cat = resolveDishCategory(item);
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(item);
     });
-    return groups;
+
+    // Sort categories in strict culinary order
+    const sortedCategories = Object.keys(groups).sort((a, b) => {
+      const aLower = a.toLowerCase();
+      const bLower = b.toLowerCase();
+      let aIdx = CULINARY_CATEGORY_ORDER.findIndex((c) => aLower.includes(c));
+      let bIdx = CULINARY_CATEGORY_ORDER.findIndex((c) => bLower.includes(c));
+      if (aIdx === -1) aIdx = 999;
+      if (bIdx === -1) bIdx = 999;
+      if (aIdx !== bIdx) return aIdx - bIdx;
+      return a.localeCompare(b);
+    });
+
+    const sortedGroups: Record<string, MenuItem[]> = {};
+    for (const cat of sortedCategories) {
+      sortedGroups[cat] = groups[cat];
+    }
+    return sortedGroups;
   }, [menuItems, onlyActiveItems, selectedCategories]);
 
   const isTwoColumnLayout = layoutColumns === "double";

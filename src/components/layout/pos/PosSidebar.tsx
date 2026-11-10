@@ -483,28 +483,57 @@ export function PosSidebar({
       {/* Logo & Top Header */}
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border px-3">
         {!collapsed ? (
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <Link
-              to={homePath}
-              onClick={onNavigate}
-              className="flex min-w-0 cursor-pointer items-center py-1 transition-opacity hover:opacity-90"
-              title={isKitchen ? "Go to Kitchen KOT" : isWaiter ? "Go to Waiter Terminal" : "Go to POS Dashboard"}
-            >
-              <RetrodLogo variant="dark" size="md" />
-            </Link>
-            <span className="label-uppercase shrink-0 text-[9px] !text-sidebar-muted">
-              {isKitchen ? "KDS" : isWaiter ? "WAITER" : "POS"}
-            </span>
+          <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <Link
+                to={homePath}
+                onClick={onNavigate}
+                className="flex min-w-0 cursor-pointer items-center py-1 transition-opacity hover:opacity-90"
+                title={isKitchen ? "Go to Kitchen KOT" : isWaiter ? "Go to Waiter Terminal" : "Go to POS Dashboard"}
+              >
+                <RetrodLogo variant="dark" size="md" />
+              </Link>
+              <span className="label-uppercase shrink-0 text-[9px] !text-sidebar-muted">
+                {isKitchen ? "KDS" : isWaiter ? "WAITER" : "POS"}
+              </span>
+            </div>
+            {onToggle && (
+              <button
+                type="button"
+                onClick={onToggle}
+                className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-sidebar-hover text-text-primary transition-colors cursor-pointer"
+                title="Collapse sidebar"
+              >
+                <ChevronsLeft className="h-4 w-4 stroke-[2.2]" />
+              </button>
+            )}
           </div>
         ) : (
-          <Link
-            to={homePath}
-            onClick={onNavigate}
-            title={isKitchen ? "Go to Kitchen KOT" : isWaiter ? "Go to Waiter Terminal" : "Go to POS Dashboard"}
-            className="mx-auto flex cursor-pointer items-center justify-center transition-transform hover:scale-105"
-          >
-            <RetrodLogo collapsed variant="dark" />
-          </Link>
+          <div className="mx-auto flex items-center justify-center">
+            {onToggle ? (
+              <button
+                type="button"
+                onClick={onToggle}
+                className="group relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 border border-emerald-300/80 text-black shadow-xs hover:bg-emerald-100 overflow-hidden transition-all duration-200 active:scale-95 cursor-pointer"
+                title="Expand sidebar"
+              >
+                {/* Continuous stream of chevrons sliding from left to right matching PMS */}
+                <div className="relative flex h-full w-full items-center justify-center">
+                  <ChevronsRight className="absolute h-4 w-4 stroke-[2.5] text-black animate-chevron-slide-1" />
+                  <ChevronsRight className="absolute h-4 w-4 stroke-[2.5] text-black animate-chevron-slide-2" />
+                </div>
+              </button>
+            ) : (
+              <Link
+                to={homePath}
+                onClick={onNavigate}
+                title={isKitchen ? "Go to Kitchen KOT" : isWaiter ? "Go to Waiter Terminal" : "Go to POS Dashboard"}
+                className="flex cursor-pointer items-center justify-center transition-transform hover:scale-105"
+              >
+                <RetrodLogo collapsed variant="dark" />
+              </Link>
+            )}
+          </div>
         )}
       </div>
 

@@ -91,9 +91,12 @@ export function BillingPayNowModal({
 
   const amt = useMemo(() => {
     const parsed = parseFloat(amount);
-    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    if (Number.isFinite(parsed) && parsed >= 0) return parsed;
     return grandTotal || 0;
   }, [amount, grandTotal]);
+
+  const remainingDue = Math.max(0, grandTotal - amt);
+  const isPartial = amt < grandTotal && amt > 0;
 
   if (!isOpen) return null;
 
@@ -171,13 +174,17 @@ export function BillingPayNowModal({
                 </div>
               </div>
               <div>
-                <div className="text-[10.5px] font-bold uppercase text-text-secondary">Paid</div>
-                <div className="mt-0.5 text-[15px] font-bold text-text-secondary">₹0</div>
+                <div className="text-[10.5px] font-bold uppercase text-emerald-700">Paying Now</div>
+                <div className="mt-0.5 text-[15px] font-black text-emerald-700">
+                  ₹{amt.toLocaleString("en-IN")}
+                </div>
               </div>
               <div>
-                <div className="text-[10.5px] font-bold uppercase text-primary">Due</div>
-                <div className="mt-0.5 text-[16px] font-black text-primary">
-                  ₹{grandTotal.toLocaleString("en-IN")}
+                <div className={`text-[10.5px] font-bold uppercase ${remainingDue > 0 ? "text-amber-700" : "text-text-secondary"}`}>
+                  {remainingDue > 0 ? "Remaining Due" : "Balance Due"}
+                </div>
+                <div className={`mt-0.5 text-[16px] font-black ${remainingDue > 0 ? "text-amber-700" : "text-text-secondary"}`}>
+                  ₹{remainingDue.toLocaleString("en-IN")}
                 </div>
               </div>
             </div>
@@ -216,12 +223,14 @@ export function BillingPayNowModal({
             <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
               <button
                 type="button"
-                onClick={() => onConfirm(MODE_TO_BILLING[mode], amt || grandTotal)}
-                disabled={busy || amt < grandTotal}
-                className="inline-flex h-10 min-w-[8rem] items-center justify-center gap-1.5 rounded-xl bg-teal-800 px-5 text-[13px] font-bold text-white hover:bg-teal-900 disabled:opacity-50 cursor-pointer"
+                onClick={() => onConfirm(MODE_TO_BILLING[mode], amt)}
+                disabled={busy || amt <= 0}
+                className="inline-flex h-10 min-w-[8rem] items-center justify-center gap-1.5 rounded-xl bg-teal-800 px-5 text-[13px] font-bold text-white hover:bg-teal-900 disabled:opacity-50 cursor-pointer shadow-xs"
               >
                 <CheckCircle2 className="h-4 w-4" />
-                Done
+                {isPartial
+                  ? `Proceed (Partial ₹${amt.toLocaleString("en-IN")} · Due ₹${remainingDue.toLocaleString("en-IN")})`
+                  : `Done (Full Payment · ₹${grandTotal.toLocaleString("en-IN")})`}
               </button>
               <button
                 type="button"
@@ -234,8 +243,9 @@ export function BillingPayNowModal({
               </button>
             </div>
             <p className="text-[11px] text-text-secondary">
-              Full payment sends this order to KOT and saves it permanently in Order History. It
-              will not appear in Pending Payments.
+              {isPartial
+                ? `Paying ₹${amt.toLocaleString("en-IN")} proceeds this order & sends KOT to the kitchen. The remaining due ₹${remainingDue.toLocaleString("en-IN")} will show in Pending Payments.`
+                : "Full payment sends this order to KOT and saves it permanently in Order History."}
             </p>
           </section>
         </div>

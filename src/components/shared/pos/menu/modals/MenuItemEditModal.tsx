@@ -64,6 +64,7 @@ export function MenuItemEditModal({
   const [images, setImages] = useState<MenuItemImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceIndexRef = useRef<number | null>(null);
@@ -102,12 +103,34 @@ export function MenuItemEditModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset from item/open; categories hydrate separately
   }, [isOpen, item]);
 
-  // When categories load after modal open, default blank category for new items
-  useEffect(() => {
-    if (isOpen && !item && !category && allCategoryOptions.length > 0) {
-      setCategory(allCategoryOptions[0]);
+  // Drag and drop event handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
     }
-  }, [isOpen, item, category, allCategoryOptions]);
+  };
 
   const handleCreateCategory = async () => {
     const trimmed = newCategoryName.trim();
@@ -650,14 +673,28 @@ export function MenuItemEditModal({
             {images.length === 0 ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-slate-300 hover:border-teal-400 rounded-xl p-6 text-center cursor-pointer transition bg-slate-50 hover:bg-teal-50/20"
+                onDragEnter={handleDragEnter}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center gap-2 ${
+                  isDragging
+                    ? "border-teal-500 bg-teal-50/80 ring-2 ring-teal-500/20"
+                    : "border-slate-300 hover:border-teal-400 bg-slate-50 hover:bg-teal-50/20"
+                }`}
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-slate-500 mx-auto mb-2">
-                  <ImageIcon className="h-5 w-5" />
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-full transition ${
+                    isDragging ? "bg-teal-600 text-white scale-110" : "bg-teal-100 text-teal-700"
+                  }`}
+                >
+                  <ImageIcon className="h-6 w-6" />
                 </div>
-                <div className="text-[13px] font-bold text-slate-700">No images uploaded yet</div>
-                <div className="text-[11.5px] text-slate-400 mt-0.5">
-                  Click or drag and drop JPG, PNG, or WEBP files up to 5MB.
+                <div className="text-[13.5px] font-bold text-slate-800">
+                  {isDragging ? "Drop images here to upload" : "Drag & drop dish photo(s) here, or browse"}
+                </div>
+                <div className="text-[11.5px] text-slate-500">
+                  Click or drag and drop JPG, PNG, or WEBP files up to {MAX_FILE_SIZE_MB}MB.
                 </div>
               </div>
             ) : (
@@ -732,6 +769,24 @@ export function MenuItemEditModal({
                     </div>
                   </div>
                 ))}
+
+                {/* Additional Drag & Drop Dropzone Card when images exist */}
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragEnter={handleDragEnter}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition flex flex-col items-center justify-center gap-1 min-h-[140px] ${
+                    isDragging
+                      ? "border-teal-500 bg-teal-50/80 ring-2 ring-teal-500/20"
+                      : "border-slate-300 hover:border-teal-400 bg-slate-50 hover:bg-teal-50/20"
+                  }`}
+                >
+                  <Plus className="h-5 w-5 text-teal-600" />
+                  <span className="text-[12px] font-bold text-teal-800">Add More Photos</span>
+                  <span className="text-[10px] text-slate-400">Drag & drop or browse</span>
+                </div>
               </div>
             )}
           </div>
