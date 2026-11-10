@@ -113,13 +113,14 @@ export const ARNAV_STAFF_USER: AppUser = {
 
 export const WAITER_USER: AppUser = {
   id: "usr-waiter-01",
-  name: "Rohan Kumar",
+  name: "Raju waiter",
   email: "samprita2022@gift.edu.in",
   role: "pos_waiter",
+  role_name: "Waiter",
   phone: "9937884878",
   active: true,
   lastActive: "Now",
-  initials: "RK",
+  initials: "RW",
   property: "Anshu Suite Restaurant · Main Outlet",
   permissions: [
     "pos.billing.view",

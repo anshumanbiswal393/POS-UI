@@ -151,7 +151,10 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
       null;
 
     const matchedProp = user?.properties?.find((p) => p.id === storedPropId);
-    const propName = matchedProp?.name || user?.property || "Main Property";
+    let propName = matchedProp?.name || user?.property || "Anshu Suite Restaurant";
+    if (propName.toLowerCase().includes("bistro") && (user?.property?.toLowerCase().includes("anshu") || !matchedProp)) {
+      propName = "Anshu Suite Restaurant";
+    }
 
     return { propId: storedPropId, propName };
   }, [user]);
@@ -230,7 +233,8 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         if (prevId && isBackendOutletId(prevId) && finalOutlets.some((o) => o.id === prevId)) {
           return prevId;
         }
-        return finalOutlets[0]?.id || "";
+        const anshuOutlet = finalOutlets.find((o) => o.name?.toLowerCase().includes("anshu"));
+        return anshuOutlet?.id || finalOutlets[0]?.id || "";
       });
     } catch {
       const { propId, propName } = getActivePropertyInfo();
