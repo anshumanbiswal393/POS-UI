@@ -232,48 +232,43 @@ export async function getPosDashboardData(
   const isLive = isBackendOutletId(effectiveOutletId);
   const targetDate = filters?.startDate || filters?.dateRange || "today";
 
-  // Execute queries in parallel with a fast 2500ms timeout for the monolithic dashboard endpoint
-  const dashboardPromise = isLive
-    ? httpClient
-        .get<PosDashboardApiResponse>("/api/pos/dashboard/", {
-          params: { ...filters, outletId: effectiveOutletId },
-          timeout: 2500,
-        })
-        .then((res) => (res.data?.success ? res.data : null))
-        .catch(() => null)
-    : Promise.resolve(null);
+  // 1. Fast path: Direct authoritative backend dashboard aggregation endpoint (sub-200ms)
+  if (isLive) {
+    try {
+      const res = await httpClient.get<PosDashboardApiResponse>("/api/pos/dashboard/", {
+        params: { ...filters, outletId: effectiveOutletId },
+        timeout: 4000,
+      });
+      if (res.data && res.data.success) {
+        return mapDtoToDashboardModel(res.data, false);
+      }
+    } catch (err) {
+      console.warn("Authoritative POS dashboard query failed, attempting live sync fallback:", err);
+    }
+  }
 
-  const currentOrdersPromise = isLive
-    ? liveGetCurrent(effectiveOutletId).catch(() => [])
-    : Promise.resolve([]);
+  // 2. Secondary fallback path (only if primary dashboard API failed or offline):
+  // Synthesize from live orders & tables without blocking primary navigation
+  let currentOrders: any[] = [];
+  let tables: any[] = [];
+  let history: any = { records: [], orders: [] };
 
-  const tablesPromise = posTablesService
-    .getTables(undefined, effectiveOutletId)
-    .catch(() => []);
-
-  const historyPromise = isLive
-    ? liveGetHistory(effectiveOutletId, {
-        start_date: targetDate !== "today" ? targetDate : undefined,
-        end_date: targetDate !== "today" ? targetDate : undefined,
-      }).catch(() => ({ records: [], orders: [] } as any))
-    : Promise.resolve({ records: [], orders: [] } as any);
-
-  // Concurrently fetch all data sources
-  const [backendData, currentOrders, tables, history] = await Promise.all([
-    dashboardPromise,
-    currentOrdersPromise,
-    tablesPromise,
-    historyPromise,
-  ]);
-
-  // If backend returned complete operational stats including valid live orders or tables, use it
-  if (
-    backendData &&
-    backendData.stats &&
-    ((backendData.stats.totalOrders > 0 || backendData.stats.activeTablesCount > 0) ||
-      (backendData.liveOrders && backendData.liveOrders.length > 0))
-  ) {
-    return mapDtoToDashboardModel(backendData, false);
+  try {
+    const [co, tbls, hist] = await Promise.all([
+      isLive ? liveGetCurrent(effectiveOutletId).catch(() => []) : Promise.resolve([]),
+      posTablesService.getTables(undefined, effectiveOutletId).catch(() => []),
+      isLive
+        ? liveGetHistory(effectiveOutletId, {
+            start_date: targetDate !== "today" ? targetDate : undefined,
+            end_date: targetDate !== "today" ? targetDate : undefined,
+          }).catch(() => ({ records: [], orders: [] } as any))
+        : Promise.resolve({ records: [], orders: [] } as any),
+    ]);
+    currentOrders = co || [];
+    tables = tbls || [];
+    history = hist;
+  } catch {
+    // ignore
   }
 
   // Synthesize / augment real-time data from live endpoints

@@ -118,7 +118,7 @@ export function PosBillingManager() {
       String(user?.role || "").toLowerCase()
     );
   const canVoid = isMaster || can("pos.orders.void");
-  const { data: menuList = [] } = useBillingMenuItems(activeOutlet?.id || "outlet-primary");
+  const { data: menuList = [] } = useBillingMenuItems(activeOutlet?.id);
   const { data: hotelRooms = [] } = useHotelRooms();
   const { data: restaurantTables = [] } = usePosTables();
   const { data: reservations = [] } = usePosReservations();

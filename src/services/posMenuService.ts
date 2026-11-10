@@ -142,6 +142,8 @@ function loadMenuItemsFromStorage(): MenuItem[] {
               item.id &&
               !isLegacyMockDishId(item.id) &&
               item.outletId !== "outlet-primary" &&
+              item.code !== "SCP-09" &&
+              !String(item.name || "").toLowerCase().includes("afgani") &&
               !item.outletId?.startsWith("vo-"),
           );
           if (cleaned.length !== parsed.length) {
@@ -316,15 +318,20 @@ let scheduleTablesStore: ScheduleTableItem[] = [...initialScheduleTables];
 export const posMenuService = {
   // 1. Menu Items CRUD & Filtering by Outlet (calling defined API endpoints with local fallback)
   getMenuItems: async (outletId?: string) => {
-    // Real HO/Kitchen (UUID): API only — blank until user feeds data. Never touch Highway store.
-    if (isBackendOutletId(outletId)) {
+    const effectiveId =
+      outletId ||
+      (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null) ||
+      "";
+
+    // Real HO/Kitchen (UUID): Authoritative DB API only — blank until user feeds real dishes.
+    if (isBackendOutletId(effectiveId)) {
       try {
         const res = await httpClient.get(API_ENDPOINTS.MENU.ITEMS, {
-          params: { outletId, outlet_id: outletId, page_size: 500 },
+          params: { outletId: effectiveId, outlet_id: effectiveId, page_size: 500 },
         });
         const items = unwrapList<MenuItem>(res.data);
         menuItemsStore = [
-          ...menuItemsStore.filter((m) => m.outletId !== outletId),
+          ...menuItemsStore.filter((m) => m.outletId !== effectiveId),
           ...items,
         ];
         return items;
@@ -333,9 +340,9 @@ export const posMenuService = {
       }
     }
 
-    // Highway Inn + local mock outlets: restore demo catalog and filter by outlet
-    if (!outletId) return [...menuItemsStore];
-    return menuItemsStore.filter((item) => item.outletId === outletId);
+    // Never return mock demo dishes. Return empty if no valid outlet or no dishes configured.
+    if (!effectiveId) return [];
+    return menuItemsStore.filter((item) => item.outletId === effectiveId);
   },
 
   getMenuItemById: async (id: string) => {

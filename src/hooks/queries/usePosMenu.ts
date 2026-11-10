@@ -25,19 +25,23 @@ export function useMenuItems(outletId?: string) {
 }
 
 export function useBillingMenuItems(outletId?: string) {
-  const live = isBackendOutletId(outletId);
+  const effectiveOutletId =
+    outletId ||
+    (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null) ||
+    "";
+  const live = isBackendOutletId(effectiveOutletId);
   return useQuery({
-    queryKey: ["pos", "billing", "menu", outletId || "all"] as const,
+    queryKey: ["pos", "billing", "menu", effectiveOutletId || "all"] as const,
     queryFn: async (): Promise<MenuItem[]> => {
       let raw: MenuItem[] = [];
-      if (live && outletId) {
+      if (live && effectiveOutletId) {
         try {
-          raw = (await liveGetBillingMenu(outletId)) as MenuItem[];
+          raw = (await liveGetBillingMenu(effectiveOutletId)) as MenuItem[];
         } catch {
           raw = [];
         }
-      } else {
-        raw = await posMenuService.getMenuItems(outletId);
+      } else if (effectiveOutletId) {
+        raw = await posMenuService.getMenuItems(effectiveOutletId);
       }
       return (raw || []).map((item) => {
         const basePrice = (item as any).originalPrice ?? item.price;
@@ -67,7 +71,7 @@ export function useBillingMenuItems(outletId?: string) {
         };
       });
     },
-    enabled: Boolean(outletId),
+    enabled: Boolean(effectiveOutletId),
   });
 }
 

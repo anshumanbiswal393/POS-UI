@@ -169,6 +169,13 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         tenantId: user?.tenant_subdomain || undefined,
       });
 
+      // If tenant-filtered query yielded nothing, fall back to property-scoped query
+      if (remote.length === 0 && propId) {
+        remote = await posOutletsService.listOutlets({
+          propertyId: propId,
+        });
+      }
+
       // Filter out dummy outlets and demo outlets from other properties
       remote = remote.filter((o) => {
         if (!o) return false;
@@ -231,10 +238,23 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
       setOutlets(finalOutlets);
       setActiveOutletId((prevId) => {
         if (prevId && isBackendOutletId(prevId) && finalOutlets.some((o) => o.id === prevId)) {
+          try {
+            localStorage.setItem(STORAGE_KEY_ACTIVE_ID, prevId);
+          } catch {}
           return prevId;
         }
         const anshuOutlet = finalOutlets.find((o) => o.name?.toLowerCase().includes("anshu"));
-        return anshuOutlet?.id || finalOutlets[0]?.id || "";
+        const chosen =
+          anshuOutlet ||
+          finalOutlets.find((o) => isBackendOutletId(o.id)) ||
+          finalOutlets[0];
+        const nextId = chosen?.id || "";
+        if (nextId && isBackendOutletId(nextId)) {
+          try {
+            localStorage.setItem(STORAGE_KEY_ACTIVE_ID, nextId);
+          } catch {}
+        }
+        return nextId;
       });
     } catch {
       const { propId, propName } = getActivePropertyInfo();
