@@ -150,12 +150,14 @@ export function BillingCartRegister({
   // Real customers store only — zero hardcoded mock data
   const allCustomers = useMemo(() => getPosCustomers(activeOutlet?.id), [activeOutlet?.id, isAddCustomerOpen]);
   const filteredCustomers = useMemo(() => {
+    const safeCust = Array.isArray(allCustomers) ? allCustomers : [];
     const q = customerSearchQuery.trim().toLowerCase();
-    if (!q) return allCustomers;
-    return allCustomers.filter(
+    if (!q) return safeCust;
+    return safeCust.filter(
       (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.phone.replace(/\D/g, "").includes(q.replace(/\D/g, ""))
+        c &&
+        ((c.name || "").toLowerCase().includes(q) ||
+          (c.phone || "").replace(/\D/g, "").includes(q.replace(/\D/g, "")))
     );
   }, [allCustomers, customerSearchQuery]);
 
@@ -582,8 +584,8 @@ export function BillingCartRegister({
               title="Special Notes from Menu"
             >
               <option value="">Select Special Note</option>
-              {dbSpecialNotes
-                .filter((n) => n.available !== false)
+              {(Array.isArray(dbSpecialNotes) ? dbSpecialNotes : [])
+                .filter((n) => n && n.available !== false)
                 .map((note) => (
                   <option key={note.id} value={note.name}>
                     {note.name}

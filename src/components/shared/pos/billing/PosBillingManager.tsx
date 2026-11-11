@@ -126,8 +126,8 @@ export function PosBillingManager() {
 
   const occupiedRooms = useMemo(
     () =>
-      hotelRooms
-        .filter((room) => room.isOccupied)
+      (Array.isArray(hotelRooms) ? hotelRooms : [])
+        .filter((room) => room && room.isOccupied)
         .map((room) => ({
           roomNumber: room.roomNumber,
           guestName: room.guest?.name,
@@ -141,7 +141,10 @@ export function PosBillingManager() {
   );
 
   const selectableTables = useMemo(
-    () => restaurantTables.filter((t) => t.status === "vacant" || t.status === "reserved"),
+    () =>
+      (Array.isArray(restaurantTables) ? restaurantTables : []).filter(
+        (t) => t && (t.status === "vacant" || t.status === "reserved"),
+      ),
     [restaurantTables],
   );
 
@@ -314,7 +317,11 @@ export function PosBillingManager() {
 
   useEffect(() => {
     if (isBackendOutlet) {
-      setHeldBills(currentTimeline.filter((ord) => ord.held).map(currentOrderToHeldBill));
+      setHeldBills(
+        (Array.isArray(currentTimeline) ? currentTimeline : [])
+          .filter((ord) => ord && ord.held)
+          .map(currentOrderToHeldBill),
+      );
       setHeldHydrated(true);
       return;
     }
@@ -390,12 +397,13 @@ export function PosBillingManager() {
   // Map dynamic menu items from Food Menu service
   // Real-time synchronization: disabled/inactive items and deleted items are NOT shown; newly added active items are shown!
   const billingItems: BillingMenuItem[] = useMemo(() => {
-    if (!menuList) {
+    const list = Array.isArray(menuList) ? menuList : [];
+    if (list.length === 0) {
       return [];
     }
 
-    return menuList
-      .filter((item) => item.status === "Active" && item.baseMenu !== false)
+    return list
+      .filter((item) => item && item.status === "Active" && item.baseMenu !== false)
       .map((item) => {
         const primaryImg =
           item.images?.find((img) => img.isPrimary)?.url || item.images?.[0]?.url;
@@ -520,60 +528,64 @@ export function PosBillingManager() {
 
     // Edit existing Current Order → hydrate cart + link check
     if ((qOrderId || qOrderNumber) && qEditOrder) {
-      if (qOrderId) {
-        liveGetOrder(qOrderId).then((open) => {
-          if (!open) {
-            toast.error("Open order not found");
-            return;
-          }
-          setLinkedOrderId(open.id);
-          setLinkedOrderNumber(open.orderNumber);
-          setBillNumber(open.orderNumber);
-          setKotSentForCart(true);
-          if (open.tableId) setBillingTableId(open.tableId);
-          if (open.tableOrRoom) {
-            const tbl = open.tableOrRoom.startsWith("Table")
-              ? open.tableOrRoom
-              : `Table ${open.tableOrRoom}`;
-            setActiveTable(tbl);
-          }
-          if (open.pax) setGuestCount(open.pax);
-          if (open.orderNote) setSpecialNote(open.orderNote);
-          if (open.customerName) {
-            setSelectedCustomer({
-              id: `guest-${open.orderNumber}`,
-              name: open.customerName,
-              phone: open.customerPhone && open.customerPhone !== "--" ? open.customerPhone : "",
-              tier: "Silver",
-              loyaltyPoints: 0,
-              visitCount: 1,
-              lastVisit: "Today",
-            });
-          }
-          setCartItems(
-            open.items.map((line, idx) => ({
-              cartId: `edit-${open.orderNumber}-${idx}`,
-              item: {
-                id: (line as any).menuItemId || line.id,
-                code: line.code || `#${line.id}`,
-                name: line.name,
-                category: (line.category as BillingMenuItem["category"]) || "All Items",
-                diet: line.diet || "veg",
-                price: line.price,
-                inStock: true,
-                prepTimeMinutes: 15,
-              },
-              quantity: line.quantity,
-              selectedVariant: line.selectedVariantName
-                ? { id: `var-${line.id}`, name: line.selectedVariantName, price: line.price }
-                : undefined,
-              selectedModifiers: [],
-              specialInstructions: line.notes,
-              addedAt: open.startTime,
-            })),
-          );
-          toast.success(`Editing ${open.orderNumber}`);
-        });
+      if (qOrderId && !qOrderId.startsWith("ord-")) {
+        liveGetOrder(qOrderId)
+          .then((open) => {
+            if (!open) {
+              toast.error("Open order not found");
+              return;
+            }
+            setLinkedOrderId(open.id);
+            setLinkedOrderNumber(open.orderNumber);
+            setBillNumber(open.orderNumber);
+            setKotSentForCart(true);
+            if (open.tableId) setBillingTableId(open.tableId);
+            if (open.tableOrRoom) {
+              const tbl = open.tableOrRoom.startsWith("Table")
+                ? open.tableOrRoom
+                : `Table ${open.tableOrRoom}`;
+              setActiveTable(tbl);
+            }
+            if (open.pax) setGuestCount(open.pax);
+            if (open.orderNote) setSpecialNote(open.orderNote);
+            if (open.customerName) {
+              setSelectedCustomer({
+                id: `guest-${open.orderNumber}`,
+                name: open.customerName,
+                phone: open.customerPhone && open.customerPhone !== "--" ? open.customerPhone : "",
+                tier: "Silver",
+                loyaltyPoints: 0,
+                visitCount: 1,
+                lastVisit: "Today",
+              });
+            }
+            setCartItems(
+              (open.items || []).map((line, idx) => ({
+                cartId: `edit-${open.orderNumber}-${idx}`,
+                item: {
+                  id: (line as any).menuItemId || line.id,
+                  code: line.code || `#${line.id}`,
+                  name: line.name,
+                  category: (line.category as BillingMenuItem["category"]) || "All Items",
+                  diet: line.diet || "veg",
+                  price: line.price,
+                  inStock: true,
+                  prepTimeMinutes: 15,
+                },
+                quantity: line.quantity,
+                selectedVariant: line.selectedVariantName
+                  ? { id: `var-${line.id}`, name: line.selectedVariantName, price: line.price }
+                  : undefined,
+                selectedModifiers: [],
+                specialInstructions: line.notes,
+                addedAt: open.startTime,
+              })),
+            );
+            toast.success(`Editing ${open.orderNumber}`);
+          })
+          .catch((err) => {
+            console.warn("Could not fetch open order for editing:", err);
+          });
         return;
       }
       const open = getCurrentOrderByNumber(decodeURIComponent(qOrderNumber || ""));

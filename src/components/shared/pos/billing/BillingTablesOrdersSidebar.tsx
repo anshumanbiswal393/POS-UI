@@ -101,8 +101,10 @@ export function BillingTablesOrdersSidebar({
 
   // Dynamic zones list from areas query and actual table data
   const zones = useMemo(() => {
-    const fromAreas = areasData.filter((a) => a && a !== "All Areas" && a !== "All Zones");
-    const fromTables = Array.from(new Set(tables.map((t) => t.area).filter(Boolean)));
+    const safeAreas = Array.isArray(areasData) ? areasData : [];
+    const safeTables = Array.isArray(tables) ? tables : [];
+    const fromAreas = safeAreas.filter((a) => a && a !== "All Areas" && a !== "All Zones");
+    const fromTables = Array.from(new Set(safeTables.map((t) => t?.area).filter(Boolean)));
     const merged = Array.from(new Set([...fromAreas, ...fromTables]));
     return ["All Zones", ...(merged.length > 0 ? merged : ["Outdoor", "Indoor", "Terrace"])];
   }, [areasData, tables]);
@@ -116,7 +118,9 @@ export function BillingTablesOrdersSidebar({
 
   // Filtered Tables
   const filteredTables = useMemo(() => {
-    return tables.filter((table) => {
+    const safeTables = Array.isArray(tables) ? tables : [];
+    return safeTables.filter((table) => {
+      if (!table) return false;
       // Zone filter
       if (selectedZone !== "All Zones" && table.area !== selectedZone) {
         return false;
@@ -132,22 +136,26 @@ export function BillingTablesOrdersSidebar({
 
   // Filtered Orders
   const filteredOrders = useMemo(() => {
+    const safeOrders = Array.isArray(currentOrders) ? currentOrders : [];
     const q = orderSearchQuery.trim().toLowerCase();
-    if (!q) return currentOrders;
-    return currentOrders.filter(
+    if (!q) return safeOrders;
+    return safeOrders.filter(
       (ord) =>
-        ord.orderNumber.toLowerCase().includes(q) ||
-        ord.customerName.toLowerCase().includes(q) ||
-        (ord.tableOrRoom && ord.tableOrRoom.toLowerCase().includes(q))
+        ord &&
+        ((ord.orderNumber || "").toLowerCase().includes(q) ||
+          (ord.customerName || "").toLowerCase().includes(q) ||
+          (ord.tableOrRoom && ord.tableOrRoom.toLowerCase().includes(q)))
     );
   }, [currentOrders, orderSearchQuery]);
 
   // Filtered Reservations
   const filteredReservations = useMemo(() => {
-    return reservations.filter((res) => {
+    const safeRes = Array.isArray(reservations) ? reservations : [];
+    return safeRes.filter((res) => {
+      if (!res) return false;
       if (
         reservationStatusFilter !== "all" &&
-        res.status.toLowerCase() !== reservationStatusFilter.toLowerCase()
+        (res.status || "").toLowerCase() !== reservationStatusFilter.toLowerCase()
       ) {
         return false;
       }

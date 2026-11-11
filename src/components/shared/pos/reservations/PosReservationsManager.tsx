@@ -552,76 +552,73 @@ export function PosReservationsManager() {
       </div>
 
       <div className="responsive-page-x py-4 sm:py-5 space-y-4">
-        {/* View Switcher & Filter Toolbar */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-300 shadow-2xs">
-          {/* Left: View Mode Buttons & Filters */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200/60">
-              <button
-                type="button"
-                onClick={() => setViewMode("table")}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer ${
-                  viewMode === "table"
-                    ? "bg-teal-700 text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <TableIcon className="w-3.5 h-3.5" />
-                Table View
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("grid")}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer ${
-                  viewMode === "grid"
-                    ? "bg-teal-700 text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                Grid View
-              </button>
-            </div>
-
-            {/* Area Selector */}
-            {areas.length > 0 && (
-              <select
-                value={areaFilter}
-                onChange={(e) => {
-                  setAreaFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 focus:border-teal-500 focus:outline-hidden cursor-pointer"
-              >
-                <option value="all">All Dining Areas</option>
-                {areas.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 focus:border-teal-500 focus:outline-hidden cursor-pointer"
+        {/* View Switcher & Filter Toolbar — Aligned in one line */}
+        <div className="flex items-center gap-2 bg-white p-2.5 sm:p-3 rounded-xl border border-slate-300 shadow-2xs overflow-x-auto scrollbar-none">
+          {/* View Mode Buttons */}
+          <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200/60 shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer whitespace-nowrap ${
+                viewMode === "table"
+                  ? "bg-teal-700 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
             >
-              <option value="all">All Statuses</option>
-              <option value="reserved">Reserved</option>
-              <option value="seated">Seated</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+              <TableIcon className="w-3.5 h-3.5" />
+              Table View
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer whitespace-nowrap ${
+                viewMode === "grid"
+                  ? "bg-teal-700 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              Grid View
+            </button>
           </div>
 
-          {/* Right: Date Range Sliding Picker, Search Bar & Choose Columns */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Sliding Date Range Picker */}
+          {/* Area Selector */}
+          {areas.length > 0 && (
+            <select
+              value={areaFilter}
+              onChange={(e) => {
+                setAreaFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 focus:border-teal-500 focus:outline-hidden cursor-pointer shrink-0"
+            >
+              <option value="all">All Dining Areas</option>
+              {areas.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 focus:border-teal-500 focus:outline-hidden cursor-pointer shrink-0"
+          >
+            <option value="all">All Statuses</option>
+            <option value="reserved">Reserved</option>
+            <option value="seated">Seated</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+
+          {/* Sliding Date Range Picker */}
+          <div className="shrink-0">
             <PosDateRangePicker
               from={fromDate}
               to={toDate}
@@ -634,54 +631,55 @@ export function PosReservationsManager() {
               showClear={true}
               size="sm"
             />
+          </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                if (fromDate || toDate) {
-                  setFromDate("");
-                  setToDate("");
-                } else {
-                  setFromDate(selectedDateStr);
-                  setToDate(selectedDateStr);
-                }
+          {/* Show All Dates Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (fromDate || toDate) {
+                setFromDate("");
+                setToDate("");
+              } else {
+                setFromDate(selectedDateStr);
+                setToDate(selectedDateStr);
+              }
+              setCurrentPage(1);
+            }}
+            className={`h-8.5 px-2.5 rounded-lg border text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
+              !fromDate && !toDate
+                ? "bg-teal-700 text-white border-teal-800 shadow-2xs"
+                : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+            }`}
+            title="Toggle between All Dates and Selected Date"
+          >
+            {!fromDate && !toDate ? "All Dates" : "Show All Dates"}
+          </button>
+
+          {/* Search Input */}
+          <div className="relative min-w-[180px] sm:min-w-[220px] flex-1">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search code, guest, phone, table..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              className={`h-8.5 px-2.5 rounded-lg border text-xs font-semibold transition cursor-pointer ${
-                !fromDate && !toDate
-                  ? "bg-teal-700 text-white border-teal-800 shadow-2xs"
-                  : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
-              }`}
-              title="Toggle between All Dates and Selected Date"
-            >
-              {!fromDate && !toDate ? "All Dates" : "Show All Dates"}
-            </button>
-
-            {/* Search Input */}
-            <div className="relative min-w-[200px] sm:min-w-[240px]">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search code, guest, phone, table..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="h-8.5 w-full rounded-lg border border-slate-300 bg-white pl-8 pr-3 text-[12px] font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-hidden"
-              />
-            </div>
-
-            {/* Choose Columns Menu */}
-            {viewMode === "table" && (
-              <ChooseColumnsMenu
-                columns={chooseColumnDefs}
-                visibleColumns={columnVisibility}
-                onVisibleColumnsChange={handleColumnVisibilityChange}
-                className="h-8.5 whitespace-nowrap shrink-0"
-              />
-            )}
+              className="h-8.5 w-full rounded-lg border border-slate-300 bg-white pl-8 pr-3 text-[12px] font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-hidden"
+            />
           </div>
+
+          {/* Choose Columns Menu */}
+          {viewMode === "table" && (
+            <ChooseColumnsMenu
+              columns={chooseColumnDefs}
+              visibleColumns={columnVisibility}
+              onVisibleColumnsChange={handleColumnVisibilityChange}
+              className="h-8.5 whitespace-nowrap shrink-0"
+            />
+          )}
         </div>
 
         {/* Main Content Area */}

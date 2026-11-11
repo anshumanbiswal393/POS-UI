@@ -20,20 +20,21 @@ export function BillingTableModal({
   const { data: areasData = [] } = useDiningAreas();
   const { data: tables = [], isLoading } = usePosTables();
 
-  const areas = useMemo(
-    () => ["All Areas", ...areasData.filter((a) => a && a !== "All Areas")],
-    [areasData],
-  );
+  const areas = useMemo(() => {
+    const safeAreas = Array.isArray(areasData) ? areasData : [];
+    return ["All Areas", ...safeAreas.filter((a) => a && a !== "All Areas")];
+  }, [areasData]);
 
   // Same Take Order floor data — only tables free to start a check
-  const selectableTables = useMemo(
-    () => tables.filter((t) => t.status === "vacant" || t.status === "reserved"),
-    [tables],
-  );
+  const selectableTables = useMemo(() => {
+    const safeTables = Array.isArray(tables) ? tables : [];
+    return safeTables.filter((t) => t && (t.status === "vacant" || t.status === "reserved"));
+  }, [tables]);
 
   const filteredTables = useMemo(() => {
-    if (activeArea === "All Areas") return selectableTables;
-    return selectableTables.filter((t) => t.area === activeArea);
+    const safeSelectable = Array.isArray(selectableTables) ? selectableTables : [];
+    if (activeArea === "All Areas") return safeSelectable;
+    return safeSelectable.filter((t) => t && t.area === activeArea);
   }, [selectableTables, activeArea]);
 
   if (!isOpen) return null;

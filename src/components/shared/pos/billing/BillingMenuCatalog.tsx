@@ -51,8 +51,9 @@ export function BillingMenuCatalog({
 
   // Categories come only from this outlet's menu items (no hardcoded mock chips).
   const allCategories = useMemo(() => {
+    const safeItems = Array.isArray(items) ? items : [];
     const fromItems = Array.from(
-      new Set(items.map((i) => i.category).filter((c): c is string => Boolean(c?.trim()))),
+      new Set(safeItems.map((i) => i?.category).filter((c): c is string => Boolean(c?.trim()))),
     ).sort((a, b) => a.localeCompare(b));
     return ["All Items", ...fromItems];
   }, [items]);
@@ -64,15 +65,17 @@ export function BillingMenuCatalog({
   }, [allCategories, selectedCategory]);
 
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
+    const safeItems = Array.isArray(items) ? items : [];
+    return safeItems.filter((item) => {
+      if (!item) return false;
       if (selectedCategory !== "All Items" && item.category !== selectedCategory) return false;
       if (selectedDiet !== "all" && item.diet !== selectedDiet) return false;
       if (effectiveQuery.trim()) {
         const query = effectiveQuery.toLowerCase().trim();
         return (
-          item.name.toLowerCase().includes(query) ||
-          item.code.toLowerCase().includes(query) ||
-          item.category.toLowerCase().includes(query)
+          (item.name || "").toLowerCase().includes(query) ||
+          (item.code || "").toLowerCase().includes(query) ||
+          (item.category || "").toLowerCase().includes(query)
         );
       }
       return true;
@@ -80,7 +83,9 @@ export function BillingMenuCatalog({
   }, [items, selectedCategory, selectedDiet, effectiveQuery]);
 
   const getCartInfo = (item: BillingMenuItem, chosenVariant?: BillingItemVariant | null) => {
-    const matchingCartItems = cartItems.filter((ci) => {
+    const safeCart = Array.isArray(cartItems) ? cartItems : [];
+    const matchingCartItems = safeCart.filter((ci) => {
+      if (!ci || !ci.item) return false;
       if (ci.item.id !== item.id) return false;
       if (chosenVariant && ci.selectedVariant?.id !== chosenVariant.id) return false;
       return true;

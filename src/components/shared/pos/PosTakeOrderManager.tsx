@@ -111,20 +111,35 @@ export function PosTakeOrderManager() {
 
   // ===================== HANDLERS: RESTAURANT =====================
   const handleSelectTable = (table: RestaurantTable) => {
-    if ((table.status === "occupied" || table.activeOrder?.orderId) && table.activeOrder?.orderId) {
+    const isOccupiedOrSeated =
+      table.status === "occupied" ||
+      Boolean(table.activeOrder?.orderId) ||
+      Boolean(table.activeReservation);
+
+    if (isOccupiedOrSeated) {
       const guestName = table.activeOrder?.guestName || table.activeReservation?.customerName;
       const guestPhone = table.activeOrder?.guestPhone || table.activeReservation?.customerPhone;
+      const hasRealOrderToEdit =
+        Boolean(table.activeOrder?.orderId) &&
+        !table.activeOrder?.orderId.startsWith("ord-") &&
+        (Number(table.activeOrder?.itemsCount || 0) > 0 ||
+          (Array.isArray(table.activeOrder?.items) && table.activeOrder.items.length > 0));
+
       navigate({
         to: "/pos/billing",
         search: {
           orderType: "dine_in",
           table: table.tableNumber,
           tableId: table.id,
-          orderId: table.activeOrder.orderId,
-          orderNumber: table.activeOrder.orderNumber || undefined,
-          editOrder: "1",
-          guests: table.currentGuests || table.capacity,
-          waiterName: table.activeOrder.serverName || "",
+          ...(hasRealOrderToEdit
+            ? {
+                orderId: table.activeOrder?.orderId,
+                orderNumber: table.activeOrder?.orderNumber || undefined,
+                editOrder: "1",
+              }
+            : {}),
+          guests: table.currentGuests || table.activeReservation?.guests || table.capacity,
+          waiterName: table.activeOrder?.serverName || "",
           ...(guestName ? { guestName } : {}),
           ...(guestPhone ? { guestPhone } : {}),
         },
