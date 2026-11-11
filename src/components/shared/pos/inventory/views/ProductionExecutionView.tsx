@@ -34,6 +34,7 @@ import {
   type DataTableColumn,
 } from "@/components/common/DataTableHeader";
 import { useNavigate } from "@tanstack/react-router";
+import { useStockItems } from "@/hooks/queries/usePosInventory";
 import {
   posProductionService,
   type ProductionBatchDto,
@@ -45,8 +46,25 @@ export function ProductionExecutionView() {
   const navigate = useNavigate();
   const [batches, setBatches] = useState<ProductionBatchDto[]>([]);
   const [recipes, setRecipes] = useState<ProductionRecipeDto[]>([]);
-  const [rawMaterials, setRawMaterials] = useState<AvailableRawMaterial[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const { data: stockItems = [] } = useStockItems();
+
+  const rawMaterials = useMemo<AvailableRawMaterial[]>(() => {
+    const safeItems = Array.isArray(stockItems) ? stockItems : (stockItems as any)?.results || [];
+    if (safeItems.length > 0) {
+      return safeItems.map((skuItem: any) => ({
+        id: String(skuItem.id),
+        code: skuItem.sku || skuItem.code || skuItem.id,
+        name: skuItem.rawMaterial || skuItem.name || "Raw Material",
+        category: skuItem.category || "General",
+        unit: skuItem.unit || "kg",
+        unitCost: Number(skuItem.unitCost ?? skuItem.pricePerUnit ?? 0),
+        quantityOnHand: Number(skuItem.availableStock ?? skuItem.quantityOnHand ?? 0),
+      }));
+    }
+    return posProductionService.getAvailableRawMaterials();
+  }, [stockItems]);
 
   // Filter state
   const [search, setSearch] = useState("");
@@ -90,8 +108,6 @@ export function ProductionExecutionView() {
       ]);
       setBatches(fetchedBatches);
       setRecipes(fetchedRecipes);
-      const rawMats = posProductionService.getAvailableRawMaterials();
-      setRawMaterials(rawMats);
 
       if (fetchedRecipes.length > 0) {
         setSelectedRecipeId(fetchedRecipes[0].id);
