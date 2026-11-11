@@ -200,14 +200,15 @@ export function PosSidebar({
   const isNodeAllowed = (node: PosNavItem | PosNavChild): boolean => {
     if (!user) return false;
     const roleStr = String(user.role || "").toLowerCase();
-    const emailLower = (user.email || "").toLowerCase();
+    const roleNameStr = String(user.role_name || "").toLowerCase();
 
     // 1. Waiter access: Take Order, Billing Terminal, Orders (live & history), Reservations, Settings, and Help
     const isWaiter =
       roleStr === "pos_waiter" ||
       roleStr === "waiter" ||
       roleStr.includes("waiter") ||
-      emailLower === "samprita2022@gift.edu.in";
+      roleNameStr.includes("waiter") ||
+      roleNameStr.includes("steward");
 
     if (isWaiter) {
       if (node.id === "take-order" || node.to === "/pos/take-order") return true;
@@ -225,7 +226,9 @@ export function PosSidebar({
     const isKitchen =
       roleStr === "pos_kitchen" ||
       roleStr.includes("kitchen") ||
-      emailLower === "samkhusi123@gmail.com";
+      roleNameStr.includes("kitchen") ||
+      roleNameStr.includes("chef") ||
+      roleNameStr.includes("kds");
 
     if (isKitchen) {
       const allowedPrefixes: string[] = ["/pos/settings", "/pos/help"];
