@@ -92,17 +92,18 @@ export function NewReservationModal({
   const [paymentMode, setPaymentMode] = useState<"UPI" | "Cash" | "Card">("UPI");
   const [isPaymentDone, setIsPaymentDone] = useState(false);
 
-  const vacantTables = useMemo(
-    () => tables.filter((t) => t.status === "vacant").sort((a, b) => a.capacity - b.capacity),
-    [tables],
-  );
+  const availableTables = useMemo(() => {
+    const vacant = tables.filter((t) => t.status === "vacant").sort((a, b) => a.capacity - b.capacity);
+    if (vacant.length > 0) return vacant;
+    return [...tables].sort((a, b) => a.capacity - b.capacity);
+  }, [tables]);
 
   const fittingSingleTables = useMemo(
-    () => vacantTables.filter((t) => t.capacity >= guests),
-    [vacantTables, guests],
+    () => availableTables.filter((t) => t.capacity >= guests),
+    [availableTables, guests],
   );
 
-  const needsMerge = fittingSingleTables.length === 0 && vacantTables.length > 0;
+  const needsMerge = fittingSingleTables.length === 0 && availableTables.length > 0;
 
   const selectedCapacity = useMemo(
     () => tableCapacitySum(tables, selectedTableIds),
@@ -111,8 +112,8 @@ export function NewReservationModal({
 
   const capacityOk = selectedTableIds.length > 0 && selectedCapacity >= guests;
   const totalVacantCapacity = useMemo(
-    () => vacantTables.reduce((sum, t) => sum + t.capacity, 0),
-    [vacantTables],
+    () => availableTables.reduce((sum, t) => sum + t.capacity, 0),
+    [availableTables],
   );
 
   // Defaults only when modal opens
@@ -133,13 +134,13 @@ export function NewReservationModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    const preferMerge = vacantTables.every((t) => t.capacity < guests) && vacantTables.length > 0;
+    const preferMerge = availableTables.every((t) => t.capacity < guests) && availableTables.length > 0;
     setMergeMode(preferMerge);
 
     if (preferMerge) {
       const picks: string[] = [];
       let seats = 0;
-      for (const table of vacantTables) {
+      for (const table of availableTables) {
         if (seats >= guests) break;
         picks.push(table.id);
         seats += table.capacity;
@@ -150,13 +151,13 @@ export function NewReservationModal({
 
     const preferred =
       (preselectedTableId &&
-        vacantTables.find((t) => t.id === preselectedTableId && t.capacity >= guests)) ||
+        availableTables.find((t) => t.id === preselectedTableId && t.capacity >= guests)) ||
       fittingSingleTables[0] ||
-      vacantTables.find((t) => t.id === preselectedTableId) ||
-      vacantTables[0];
+      availableTables.find((t) => t.id === preselectedTableId) ||
+      availableTables[0];
 
     setSelectedTableIds(preferred ? [preferred.id] : []);
-  }, [isOpen, guests, vacantTables, fittingSingleTables, preselectedTableId]);
+  }, [isOpen, guests, availableTables, fittingSingleTables, preselectedTableId]);
 
   function selectPresetPax(num: number) {
     setIsCustomPax(false);
@@ -478,7 +479,7 @@ export function NewReservationModal({
                   } else if (next && selectedTableIds.length <= 1) {
                     const picks: string[] = [];
                     let seats = 0;
-                    for (const table of vacantTables) {
+                    for (const table of availableTables) {
                       if (seats >= guests) break;
                       picks.push(table.id);
                       seats += table.capacity;
@@ -503,13 +504,13 @@ export function NewReservationModal({
                 onChange={(e) => setSelectedTableIds(e.target.value ? [e.target.value] : [])}
                 className="w-full py-2 px-3 text-[13px] bg-surface-2 border border-border rounded-xl focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               >
-                <option value="">Select a vacant table</option>
+                <option value="">Select a table</option>
                 {fittingSingleTables.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.tableNumber} — {t.capacity} seats ({t.area})
+                    {t.tableNumber} — {t.capacity} seats ({t.area}){t.status !== "vacant" ? ` [${t.status}]` : ""}
                   </option>
                 ))}
-                {vacantTables
+                {availableTables
                   .filter((t) => t.capacity < guests)
                   .map((t) => (
                     <option key={t.id} value={t.id} disabled>
@@ -520,10 +521,10 @@ export function NewReservationModal({
             ) : (
               <div className="space-y-1.5">
                 <p className="text-[11px] text-text-secondary">
-                  Tap vacant tables to merge under this guest until seats cover {guests} pax.
+                  Tap tables to merge under this guest until seats cover {guests} pax.
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto pr-0.5">
-                  {vacantTables.map((t) => {
+                  {availableTables.map((t) => {
                     const selected = selectedTableIds.includes(t.id);
                     return (
                       <button
@@ -547,8 +548,8 @@ export function NewReservationModal({
                     );
                   })}
                 </div>
-                {vacantTables.length === 0 && (
-                  <p className="text-[11px] text-rose-600 font-medium">No vacant tables right now.</p>
+                {availableTables.length === 0 && (
+                  <p className="text-[11px] text-rose-600 font-medium">No tables available right now.</p>
                 )}
               </div>
             )}

@@ -548,7 +548,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   const dotPerm = rawPerm.replace(/:/g, ".");
                   const colonPerm = rawPerm.replace(/\./g, ":");
 
-                  return roleEntries.some((rp) => {
+                  const isAllowed = roleEntries.some((rp) => {
                     const c = (rp.permission_code || "").toLowerCase();
                     const p = (rp.permission || "").toLowerCase();
                     return (
@@ -560,6 +560,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                       (c.endsWith(".*") && dotPerm.startsWith(c.slice(0, -1)))
                     );
                   });
+                  if (isAllowed) return true;
+
+                  // Core essential permissions for waiter floor operations
+                  const isWaiterRole = roleStr === "pos_waiter" || roleStr === "waiter" || roleStr.includes("waiter");
+                  if (isWaiterRole) {
+                    if (
+                      dotPerm === "pos.orders.take" ||
+                      dotPerm === "pos.orders.create" ||
+                      dotPerm === "pos.orders.view" ||
+                      dotPerm === "pos.orders.kot" ||
+                      dotPerm === "pos.reservations.manage" ||
+                      dotPerm === "pos.reservations.view" ||
+                      dotPerm === "pos.billing.view" ||
+                      dotPerm === "pos.billing.create"
+                    ) {
+                      return true;
+                    }
+                  }
+
+                  return false;
                 }
               }
             }

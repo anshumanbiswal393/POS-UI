@@ -8,7 +8,7 @@ export const Route = createFileRoute("/pos/reservations")({
 
 function PosReservationsRoute() {
   return (
-    <GuardedRoute permission="pos.orders.view">
+    <GuardedRoute anyPermissions={["pos.reservations.manage", "pos.reservations.view", "pos.orders.view"]}>
       <PosReservationsManager />
     </GuardedRoute>
   );

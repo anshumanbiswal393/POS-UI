@@ -37,6 +37,32 @@ export function GuardedRoute({
     return <>{children}</>;
   }
 
+  const isWaiter =
+    roleStr === "pos_waiter" ||
+    roleStr === "waiter" ||
+    roleStr.includes("waiter");
+
+  const waiterAllowedPerms = new Set([
+    "pos.orders.take",
+    "pos.orders.create",
+    "pos.orders.view",
+    "pos.orders.kot",
+    "pos.billing.view",
+    "pos.billing.create",
+    "pos.reservations.manage",
+    "pos.reservations.view",
+    "pos.settings.manage",
+  ]);
+
+  if (isWaiter) {
+    if (permission && waiterAllowedPerms.has(permission)) {
+      return <>{children}</>;
+    }
+    if (anyPermissions?.length && anyPermissions.some((p) => waiterAllowedPerms.has(p))) {
+      return <>{children}</>;
+    }
+  }
+
   if (permission && !can(permission)) {
     return <AccessDenied title={title} description={description} />;
   }

@@ -8,7 +8,7 @@ export const Route = createFileRoute("/pos/take-order")({
 
 function PosTakeOrderRoute() {
   return (
-    <GuardedRoute permission="pos.orders.create">
+    <GuardedRoute anyPermissions={["pos.orders.take", "pos.orders.create", "pos.orders.view"]}>
       <PosTakeOrderManager />
     </GuardedRoute>
   );
