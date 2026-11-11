@@ -1032,8 +1032,8 @@ export function PosBillingManager() {
     toast.success(`Resumed check ${held.billNumber} for ${held.tableNumber || held.roomNumber || "Takeaway"}`);
   };
 
-  // Select Table from Left Sidebar
-  const handleSelectTableFromSidebar = (table: RestaurantTable) => {
+  // Select Table from Left Sidebar (or via Reservations Tab)
+  const handleSelectTableFromSidebar = (table: RestaurantTable, reservation?: ReservationItem) => {
     const code =
       table.tableNumber && /^T\d+/i.test(table.tableNumber)
         ? table.tableNumber.toUpperCase()
@@ -1042,10 +1042,19 @@ export function PosBillingManager() {
     setActiveTable(code);
     if (table.id) setBillingTableId(table.id);
     setOrderType("dine_in");
-    setGuestCount(table.activeReservation?.guests || table.capacity || 4);
+    setGuestCount(reservation?.guests || table.activeReservation?.guests || table.capacity || 4);
 
-    const foundCust = findCustomerForTable(code, table.id);
-    handleSelectCustomer(foundCust || null);
+    if (reservation?.customerName) {
+      handleSelectCustomer({
+        id: `cust-${reservation.id}`,
+        name: reservation.customerName,
+        phone: reservation.customerPhone || "",
+      });
+      toast.info(`Selected Table ${code} for ${reservation.customerName} (${reservation.guests} pax)`);
+    } else {
+      const foundCust = findCustomerForTable(code, table.id);
+      handleSelectCustomer(foundCust || null);
+    }
 
     // If table has a held check or active timeline order, resume it
     const existingHeld = heldBills.find(

@@ -21,6 +21,7 @@ import {
   BellRing,
   ArrowLeftRight,
   UserCheck,
+  CalendarCheck2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { parseReservationDateTime } from "@/services/posTablesService";
@@ -44,6 +45,8 @@ interface TableFloorPlanProps {
   onRefresh?: () => void;
   onDeleteArea?: (area: string) => void;
   onDeleteTable?: (tableId: string) => void;
+  isReservationsSidebarOpen?: boolean;
+  onToggleReservationsSidebar?: () => void;
 }
 
 const DEFAULT_AREAS: string[] = [];
@@ -67,6 +70,8 @@ export function TableFloorPlan({
   onRefresh,
   onDeleteArea,
   onDeleteTable,
+  isReservationsSidebarOpen,
+  onToggleReservationsSidebar,
 }: TableFloorPlanProps) {
   const [showNoAreaWarning, setShowNoAreaWarning] = useState(false);
   const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(new Set());
@@ -316,6 +321,33 @@ export function TableFloorPlan({
               >
                 <CalendarPlus className="w-3.5 h-3.5 text-amber-300" />
                 <span>Book Reservation</span>
+              </button>
+            )}
+
+            {onToggleReservationsSidebar && (
+              <button
+                type="button"
+                onClick={onToggleReservationsSidebar}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl border shadow-xs transition-all hover:scale-[1.02] cursor-pointer ${
+                  isReservationsSidebarOpen
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                }`}
+                title="Toggle Reservation List"
+              >
+                <CalendarCheck2 className="w-3.5 h-3.5" />
+                <span>Reservation List</span>
+                {reservations.length > 0 && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                      isReservationsSidebarOpen
+                        ? "bg-white text-primary"
+                        : "bg-primary text-primary-foreground"
+                    }`}
+                  >
+                    {reservations.length}
+                  </span>
+                )}
               </button>
             )}
 

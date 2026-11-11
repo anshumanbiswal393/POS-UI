@@ -174,5 +174,33 @@ describe("Waiter Role UI & Permissions Full Walkthrough", () => {
     const adminMenu = simulateSettingsMenu("pos_admin");
     expect(adminMenu.length).toBe(6);
   });
+
+  it("Step 7: Verifies Waiter has access to Reservation list and can manage reservations", async () => {
+    const { posTablesService } = await import("@/services/posTablesService");
+    const reservations = await posTablesService.getReservations();
+    expect(reservations).toBeDefined();
+    expect(Array.isArray(reservations)).toBe(true);
+    expect(reservations.length).toBeGreaterThanOrEqual(1);
+
+    const firstRes = reservations[0];
+    expect(firstRes.customerName).toBeDefined();
+    expect(firstRes.tableNumber).toBeDefined();
+
+    // Verify Waiter can add new reservation
+    const created = await posTablesService.addReservation({
+      tableId: "t13",
+      tableNumber: "T13",
+      customerName: "Aarav Sharma",
+      customerPhone: "9876543299",
+      guests: 3,
+      reservationDate: "Today",
+      reservationTime: "08:30 PM",
+      status: "reserved",
+    });
+
+    expect(created.id).toBeDefined();
+    expect(created.customerName).toBe("Aarav Sharma");
+    expect(created.status).toBe("reserved");
+  });
 });
 

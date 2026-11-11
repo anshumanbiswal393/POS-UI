@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import {
   Armchair,
   ClipboardList,
+  CalendarCheck2,
   MapPin,
   SlidersHorizontal,
   LayoutGrid,
@@ -14,11 +15,15 @@ import {
   User,
   ShoppingBag,
   Edit,
+  Phone,
+  Plus,
+  Crown,
 } from "lucide-react";
-import { useDiningAreas, usePosTables } from "@/hooks/queries/usePosTables";
+import { useDiningAreas, usePosTables, usePosReservations } from "@/hooks/queries/usePosTables";
 import { useCurrentOrdersTimeline } from "@/hooks/queries/usePosOrders";
-import type { RestaurantTable } from "@/types/posTables";
+import type { RestaurantTable, ReservationItem } from "@/types/posTables";
 import type { CurrentOrderRecord } from "@/services/posOrdersService";
+import { NewReservationModal } from "../tables/NewReservationModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +33,7 @@ import {
 
 type BillingTablesOrdersSidebarProps = {
   activeTable?: string;
-  onSelectTable: (table: RestaurantTable) => void;
+  onSelectTable: (table: RestaurantTable, reservation?: ReservationItem) => void;
   onSelectOrder?: (order: CurrentOrderRecord) => void;
   activeOutletId?: string;
   isCollapsed?: boolean;
@@ -79,16 +84,20 @@ export function BillingTablesOrdersSidebar({
   onToggleCollapse,
   className = "",
 }: BillingTablesOrdersSidebarProps) {
-  const [activeTab, setActiveTab] = useState<"tables" | "orders">("tables");
+  const [activeTab, setActiveTab] = useState<"tables" | "orders" | "reservations">("tables");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedZone, setSelectedZone] = useState<string>("All Zones");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [orderSearchQuery, setOrderSearchQuery] = useState("");
+  const [reservationStatusFilter, setReservationStatusFilter] = useState<string>("all");
+  const [reservationSearchQuery, setReservationSearchQuery] = useState("");
+  const [isNewReservationModalOpen, setIsNewReservationModalOpen] = useState(false);
 
   // Data queries — call usePosTables() with no arg to fetch all tables for the active outlet
   const { data: areasData = [] } = useDiningAreas();
   const { data: tables = [], isLoading: tablesLoading } = usePosTables();
   const { data: currentOrders = [], isLoading: ordersLoading } = useCurrentOrdersTimeline(activeOutletId);
+  const { data: reservations = [], isLoading: reservationsLoading } = usePosReservations();
 
   // Dynamic zones list from areas query and actual table data
   const zones = useMemo(() => {
@@ -125,6 +134,26 @@ export function BillingTablesOrdersSidebar({
         (ord.tableOrRoom && ord.tableOrRoom.toLowerCase().includes(q))
     );
   }, [currentOrders, orderSearchQuery]);
+
+  // Filtered Reservations
+  const filteredReservations = useMemo(() => {
+    return reservations.filter((res) => {
+      if (
+        reservationStatusFilter !== "all" &&
+        res.status.toLowerCase() !== reservationStatusFilter.toLowerCase()
+      ) {
+        return false;
+      }
+      if (reservationSearchQuery.trim()) {
+        const q = reservationSearchQuery.toLowerCase();
+        const matchName = (res.customerName || "").toLowerCase().includes(q);
+        const matchPhone = (res.customerPhone || "").toLowerCase().includes(q);
+        const matchTable = (res.tableNumber || "").toLowerCase().includes(q);
+        return matchName || matchPhone || matchTable;
+      }
+      return true;
+    });
+  }, [reservations, reservationStatusFilter, reservationSearchQuery]);
 
   // Format table display ID (e.g. T01, T02)
   const getTableCode = (table: RestaurantTable) => {
@@ -220,6 +249,24 @@ export function BillingTablesOrdersSidebar({
               <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-rose-500" />
             )}
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("reservations");
+              if (onToggleCollapse) onToggleCollapse();
+            }}
+            title="Reservations View"
+            className={`h-10 w-10 rounded-lg flex items-center justify-center transition cursor-pointer relative ${
+              activeTab === "reservations"
+                ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+            }`}
+          >
+            <CalendarCheck2 className="h-4.5 w-4.5" />
+            {reservations.length > 0 && (
+              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-amber-500" />
+            )}
+          </button>
         </div>
       </aside>
     );
@@ -230,22 +277,22 @@ export function BillingTablesOrdersSidebar({
     <aside
       className={`bg-white rounded-xl border border-slate-200/90 shadow-2xs flex flex-col h-full max-h-full overflow-hidden w-full select-none ${className}`}
     >
-      {/* 1. Header Tabs: [ Tables ] & [ Orders ] with Theme Colors */}
+      {/* 1. Header Tabs: [ Tables ] & [ Orders ] & [ Reservations ] with Theme Colors */}
       <div className="p-2 border-b border-slate-100 bg-slate-50/60 shrink-0">
         <div className="flex items-center gap-2">
           {/* Tabs Container */}
-          <div className="flex-1 grid grid-cols-2 gap-1.5 p-1 bg-slate-200/60 rounded-xl">
+          <div className="flex-1 grid grid-cols-3 gap-1 p-1 bg-slate-200/60 rounded-xl">
             {/* Tables Tab */}
             <button
               type="button"
               onClick={() => setActiveTab("tables")}
-              className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`py-2 px-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
                 activeTab === "tables"
                   ? "bg-primary text-primary-foreground shadow-xs"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
               }`}
             >
-              <Armchair className="h-4 w-4" />
+              <Armchair className="h-3.5 w-3.5" />
               <span>Tables</span>
             </button>
 
@@ -253,21 +300,44 @@ export function BillingTablesOrdersSidebar({
             <button
               type="button"
               onClick={() => setActiveTab("orders")}
-              className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer relative ${
+              className={`py-2 px-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer relative ${
                 activeTab === "orders"
                   ? "bg-primary text-primary-foreground shadow-xs"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
               }`}
             >
-              <ClipboardList className="h-4 w-4" />
+              <ClipboardList className="h-3.5 w-3.5" />
               <span>Orders</span>
               {currentOrders.length > 0 && (
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-0.5 ${
+                  className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 ${
                     activeTab === "orders" ? "bg-white text-primary" : "bg-primary text-white"
                   }`}
                 >
                   {currentOrders.length}
+                </span>
+              )}
+            </button>
+
+            {/* Reservations Tab */}
+            <button
+              type="button"
+              onClick={() => setActiveTab("reservations")}
+              className={`py-2 px-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer relative ${
+                activeTab === "reservations"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+              }`}
+            >
+              <CalendarCheck2 className="h-3.5 w-3.5" />
+              <span>Bookings</span>
+              {reservations.length > 0 && (
+                <span
+                  className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 ${
+                    activeTab === "reservations" ? "bg-white text-primary" : "bg-primary text-white"
+                  }`}
+                >
+                  {reservations.length}
                 </span>
               )}
             </button>
@@ -393,6 +463,48 @@ export function BillingTablesOrdersSidebar({
             >
               <List className="h-3.5 w-3.5" />
             </button>
+          </div>
+        </div>
+      ) : activeTab === "reservations" ? (
+        <div className="px-3 py-2 border-b border-slate-100 bg-white shrink-0 space-y-2">
+          <div className="flex items-center justify-between gap-1">
+            <div className="flex items-center gap-1">
+              {(["all", "reserved", "seated"] as const).map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setReservationStatusFilter(st)}
+                  className={`px-2 py-1 text-[11px] font-bold rounded-md transition cursor-pointer capitalize ${
+                    reservationStatusFilter === st
+                      ? "bg-primary text-primary-foreground shadow-2xs"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  {st === "all" ? "All" : st}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsNewReservationModalOpen(true)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-white bg-[#0b192c] hover:bg-[#132c4e] rounded-lg shadow-2xs transition cursor-pointer shrink-0"
+              title="Create New Reservation"
+            >
+              <Plus className="h-3 w-3" />
+              <span>Book</span>
+            </button>
+          </div>
+
+          <div className="relative">
+            <Search className="h-3.5 w-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={reservationSearchQuery}
+              onChange={(e) => setReservationSearchQuery(e.target.value)}
+              placeholder="Search guest, phone, table..."
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white transition"
+            />
           </div>
         </div>
       ) : (
@@ -539,7 +651,7 @@ export function BillingTablesOrdersSidebar({
               })}
             </div>
           )
-        ) : (
+        ) : activeTab === "orders" ? (
           /* Orders Tab Content */
           ordersLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-slate-400">
@@ -636,8 +748,129 @@ export function BillingTablesOrdersSidebar({
               })}
             </div>
           )
+        ) : (
+          /* Reservations Tab Content */
+          reservationsLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+              <CalendarCheck2 className="h-6 w-6 animate-pulse mb-2 text-slate-300" />
+              <p className="text-xs">Loading reservations...</p>
+            </div>
+          ) : filteredReservations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center text-slate-400 px-4">
+              <CalendarCheck2 className="h-8 w-8 text-slate-300 mb-2 stroke-1" />
+              <p className="text-xs font-semibold text-slate-700">No reservations found</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                No bookings scheduled for this outlet or matching filter.
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsNewReservationModalOpen(true)}
+                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-primary-foreground bg-primary hover:bg-primary-pressed rounded-lg shadow-2xs transition cursor-pointer"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Book Reservation</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredReservations.map((res) => {
+                const matchedTable =
+                  tables.find(
+                    (t) =>
+                      t.id === res.tableId ||
+                      t.tableNumber === res.tableNumber ||
+                      (res.tableNumber && String(t.tableNumberRaw) === res.tableNumber.replace(/\D/g, ""))
+                  ) || {
+                    id: res.tableId || `tbl-${res.id}`,
+                    tableNumber: res.tableNumber || "T01",
+                    status: res.status === "seated" ? "occupied" : "reserved",
+                    capacity: res.guests || 4,
+                    area: "Main Dining",
+                    activeReservation: res,
+                  };
+
+                const isSeated = res.status === "seated";
+
+                return (
+                  <div
+                    key={res.id}
+                    className="p-3 rounded-xl border border-slate-200/90 bg-white hover:border-primary/40 transition shadow-2xs space-y-2"
+                  >
+                    {/* Top: Guest Name & Status */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {res.isVip && <Crown className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
+                        <span className="font-extrabold text-xs text-slate-900 truncate">
+                          {res.customerName}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize shrink-0 ${
+                          isSeated
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-amber-100 text-amber-800"
+                        }`}
+                      >
+                        {res.status}
+                      </span>
+                    </div>
+
+                    {/* Table & Pax & Time */}
+                    <div className="flex items-center justify-between text-xs text-slate-600 bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                      <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                        <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-extrabold">
+                          {res.tableNumber || "Table"}
+                        </span>
+                        <span className="text-[11px] text-slate-500">
+                          {res.guests} {res.guests === 1 ? "Guest" : "Guests"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                        <Clock className="h-3 w-3 text-slate-400" />
+                        <span>{res.reservationTime || "7:30 PM"}</span>
+                      </div>
+                    </div>
+
+                    {/* Customer Phone & Notes */}
+                    {res.customerPhone && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                        <Phone className="h-3 w-3 text-slate-400" />
+                        <span>{res.customerPhone}</span>
+                      </div>
+                    )}
+
+                    {res.notes && (
+                      <p className="text-[10.5px] text-slate-600 italic line-clamp-1 bg-amber-50/60 border border-amber-100 px-2 py-0.5 rounded text-amber-900">
+                        {res.notes}
+                      </p>
+                    )}
+
+                    {/* Bottom Action: Seat & Take Order */}
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                      <span className="text-[10px] text-slate-400">
+                        {res.reservationDate || "Today"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onSelectTable(matchedTable as RestaurantTable, res)}
+                        className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-bold bg-primary hover:bg-primary-pressed text-primary-foreground transition cursor-pointer shadow-2xs"
+                      >
+                        <Armchair className="h-3 w-3" />
+                        <span>{isSeated ? "Select Table" : "Seat & Order"}</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
         )}
       </div>
+
+      <NewReservationModal
+        isOpen={isNewReservationModalOpen}
+        onClose={() => setIsNewReservationModalOpen(false)}
+      />
     </aside>
   );
 }

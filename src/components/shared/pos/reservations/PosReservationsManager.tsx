@@ -635,6 +635,28 @@ export function PosReservationsManager() {
               size="sm"
             />
 
+            <button
+              type="button"
+              onClick={() => {
+                if (fromDate || toDate) {
+                  setFromDate("");
+                  setToDate("");
+                } else {
+                  setFromDate(selectedDateStr);
+                  setToDate(selectedDateStr);
+                }
+                setCurrentPage(1);
+              }}
+              className={`h-8.5 px-2.5 rounded-lg border text-xs font-semibold transition cursor-pointer ${
+                !fromDate && !toDate
+                  ? "bg-teal-700 text-white border-teal-800 shadow-2xs"
+                  : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+              }`}
+              title="Toggle between All Dates and Selected Date"
+            >
+              {!fromDate && !toDate ? "All Dates" : "Show All Dates"}
+            </button>
+
             {/* Search Input */}
             <div className="relative min-w-[200px] sm:min-w-[240px]">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
