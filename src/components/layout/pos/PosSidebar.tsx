@@ -358,7 +358,7 @@ export function PosSidebar({
 
   const pinnedNodes = pinnedIds
     .map((id) => allRouteNodes.find((node) => node.id === id))
-    .filter((node): node is NonNullable<typeof node> => Boolean(node) && isNodeAllowed(node));
+    .filter((node): node is NonNullable<typeof node> => Boolean(node && isNodeAllowed(node)));
 
   const togglePinned = (nodeId: string) => {
     setPinnedIds(togglePinnedNavNodeId(nodeId));

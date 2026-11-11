@@ -25,7 +25,7 @@ import { BillingPayNowModal } from "./BillingPayNowModal";
 import { useBillingMenuItems } from "@/hooks/queries/usePosMenu";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { useAuth } from "@/hooks/useAuth";
-import type { CurrentOrderRecord } from "@/services/posOrdersService";
+import { getCurrentOrderByNumber, type CurrentOrderRecord } from "@/services/posOrdersService";
 import { useCurrentOrdersTimeline } from "@/hooks/queries/usePosOrders";
 import { calculateEffectivePrice } from "@/utils/commissionUtils";
 import { cn } from "@/lib/utils";

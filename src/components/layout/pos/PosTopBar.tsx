@@ -169,17 +169,6 @@ export function PosTopBar({
 
   // Operational date is managed by PosDateCalendarPopover and usePosDate
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node;
-      if (dateRef.current && !dateRef.current.contains(target)) {
-        setShowDateMenu(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const roleText = user ? roleLabel(user.role) : "Retrod Super Admin";
 
   const getBreadcrumbTitle = (pathname: string) => {

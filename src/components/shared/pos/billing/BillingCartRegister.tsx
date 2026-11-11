@@ -26,6 +26,7 @@ import { getPosCustomers } from "@/services/posCustomerStore";
 import { AddCustomerDrawer } from "./AddCustomerDrawer";
 import { useSpecialNotes } from "@/hooks/queries/usePosMenu";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 type BillingCartRegisterProps = {
   cartItems: BillingCartItem[];
@@ -725,7 +726,7 @@ export function BillingCartRegister({
 
       {/* 5. Action Footer */}
       <div className="p-2.5 bg-slate-100 border-t border-slate-200 space-y-1.5 shrink-0">
-        <div className={cn("grid gap-1.5", canSettle ? "grid-cols-3" : "grid-cols-2")}>
+        <div className={`grid gap-1.5 ${canSettle ? "grid-cols-3" : "grid-cols-2"}`}>
           <button
             type="button"
             onClick={onHoldBill}
