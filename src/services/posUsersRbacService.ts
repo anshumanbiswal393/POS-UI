@@ -370,12 +370,6 @@ export const posUsersRbacService = {
           is_active: u.is_active !== false,
           created_at: u.created_at || u.date_joined || new Date().toISOString(),
         }));
-        // Ensure the 3 core users are included
-        for (const seed of DEFAULT_SEED_USERS) {
-          if (!mapped.some((u) => u.email.toLowerCase() === seed.email.toLowerCase() || u.id === seed.id)) {
-            mapped.push(seed);
-          }
-        }
         // Cache locally for offline availability
         if (typeof window !== "undefined") {
           localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(mapped));
@@ -394,11 +388,6 @@ export const posUsersRbacService = {
           if (Array.isArray(parsed) && parsed.length > 0) {
             // Remove dummy Aarav user if present
             const filtered = parsed.filter((u: any) => u.id !== "usr-admin-01" && u.email !== "aarav@retrod.in");
-            for (const seed of DEFAULT_SEED_USERS) {
-              if (!filtered.some((u: any) => u.email?.toLowerCase() === seed.email.toLowerCase() || u.id === seed.id)) {
-                filtered.push(seed);
-              }
-            }
             localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(filtered));
             return filtered;
           }

@@ -197,18 +197,9 @@ function loadCachedUsers(): AppUser[] {
         }
       }
 
-      // Always guarantee the 4 core users exist
-      if (!list.some((u) => u.id === KITCHEN_USER.id || u.email.toLowerCase() === KITCHEN_USER.email.toLowerCase())) {
-        list.push(KITCHEN_USER);
-      }
-      if (!list.some((u) => u.id === ARNAV_STAFF_USER.id || u.email.toLowerCase() === ARNAV_STAFF_USER.email.toLowerCase())) {
-        list.push(ARNAV_STAFF_USER);
-      }
-      if (!list.some((u) => u.id === WAITER_USER.id || u.email.toLowerCase() === WAITER_USER.email.toLowerCase())) {
-        list.push(WAITER_USER);
-      }
-      if (!list.some((u) => u.id === SAMPRITA_ADMIN_USER.id || u.email.toLowerCase() === SAMPRITA_ADMIN_USER.email.toLowerCase())) {
-        list.unshift(SAMPRITA_ADMIN_USER);
+      // Only if no users are available, use seed users
+      if (list.length === 0) {
+        list = [...SEED_USERS];
       }
     } catch {
       // ignore

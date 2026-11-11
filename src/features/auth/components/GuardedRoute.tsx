@@ -42,7 +42,7 @@ export function GuardedRoute({
     roleStr === "waiter" ||
     roleStr.includes("waiter") ||
     String(user.role_name || "").toLowerCase().includes("waiter") ||
-    String(user.email || "").toLowerCase() === "samprita2022@gift.edu.in";
+    String(user.role_name || "").toLowerCase().includes("steward");
 
   const waiterAllowedPerms = new Set([
     "pos.orders.take",

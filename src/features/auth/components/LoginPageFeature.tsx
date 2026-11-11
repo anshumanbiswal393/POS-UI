@@ -74,27 +74,27 @@ export function LoginPageFeature() {
     return () => clearInterval(interval);
   }, [resendTimer]);
 
-  const navigateByRole = (targetRole?: string, email?: string) => {
+  const navigateByRole = (targetRole?: string) => {
     const roleLower = String(targetRole || "").toLowerCase();
-    const emailLower = String(email || "").toLowerCase();
 
     if (
       roleLower === "pos_kitchen" ||
       roleLower.includes("kitchen") ||
-      emailLower === "samkhusi123@gmail.com"
+      roleLower.includes("chef") ||
+      roleLower.includes("kds")
     ) {
       nav({ to: "/pos/kot" });
     } else if (
       roleLower === "pos_waiter" ||
       roleLower === "waiter" ||
       roleLower.includes("waiter") ||
-      emailLower === "samprita2022@gift.edu.in"
+      roleLower.includes("steward")
     ) {
       nav({ to: "/pos/billing" });
     } else if (
       roleLower === "pos_staff" ||
       roleLower.includes("staff") ||
-      emailLower === "arnav@retrod.in"
+      roleLower.includes("cashier")
     ) {
       nav({ to: "/pos/billing" });
     } else {
@@ -104,7 +104,7 @@ export function LoginPageFeature() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      navigateByRole(user.role, user.email);
+      navigateByRole(user.role);
     }
   }, [isAuthenticated, user]);
 
@@ -183,23 +183,6 @@ export function LoginPageFeature() {
     setLoading(true);
 
     const cleanContact = contact.trim().toLowerCase();
-    const isKitchen =
-      cleanContact === "kitchen" ||
-      cleanContact === "samkhusi123@gmail.com" ||
-      cleanContact === "kitchen@retrod.in" ||
-      cleanContact.includes("kitchen");
-
-    const isWaiter =
-      cleanContact === "samprita2022@gift.edu.in" ||
-      cleanContact === "waiter@retrod.in" ||
-      cleanContact === "waiter" ||
-      cleanContact.includes("waiter");
-
-    const isAdmin =
-      cleanContact === "sampritapatra123@gmail.com" ||
-      cleanContact === "sampritapatra@gmail.com" ||
-      cleanContact === "admin@retrod.in" ||
-      cleanContact === "admin";
 
     try {
       const res = await authApi.verifyOtp(cleanContact, codeToVerify);
@@ -213,7 +196,7 @@ export function LoginPageFeature() {
           );
           setLoading(false);
           toast.success("Login successful!");
-          navigateByRole(loggedInUser?.role || res.user?.role, cleanContact);
+          navigateByRole(loggedInUser?.role || res.user?.role);
           return;
         }
       }
@@ -251,14 +234,8 @@ export function LoginPageFeature() {
           id: foundInRbac.id,
           name: foundInRbac.name,
           email: foundInRbac.email || cleanContact,
-          role: (foundInRbac.role === "admin"
-            ? "pos_admin"
-            : foundInRbac.role === "kitchen"
-              ? "pos_kitchen"
-              : foundInRbac.role === "waiter" || foundInRbac.role === "pos_waiter"
-                ? "pos_waiter"
-                : foundInRbac.role || "pos_staff") as any,
-          role_name: foundInRbac.role_name || (foundInRbac.role === "pos_waiter" ? "Waiter" : undefined),
+          role: foundInRbac.role as any,
+          role_name: foundInRbac.role_name,
           phone: foundInRbac.phone,
           active: true,
           lastActive: "Now",
@@ -270,49 +247,16 @@ export function LoginPageFeature() {
     }
 
     if (!match) {
-      if (isWaiter) {
-        match = users.find((u) => u.role === "pos_waiter") || {
-          id: "usr-waiter-01",
-          name: "Raju waiter",
-          email: "samprita2022@gift.edu.in",
-          role: "pos_waiter",
-          role_name: "Waiter",
-          phone: "9937884878",
-          active: true,
-          lastActive: "Now",
-          initials: "RW",
-          property: "Anshu Suite Restaurant · Main Outlet",
-          permissions: [
-            "pos.billing.view",
-            "pos.billing.create",
-            "pos.orders.view",
-            "pos.orders.take",
-            "pos.orders.create",
-            "pos.orders.kot",
-            "pos.reservations.manage",
-            "pos.menu.view",
-          ],
-        };
-      } else if (isAdmin) {
-        match = users.find((u) => u.role === "pos_admin");
-      } else if (isKitchen) {
-        match = users.find((u) => u.role === "pos_kitchen");
-      } else if (cleanContact.includes("arnav")) {
-        match = users.find((u) => u.email.includes("arnav") || u.role === "pos_staff");
-      }
-    }
-
-    if (!match) {
-      const fallbackRole = isKitchen ? "pos_kitchen" : isWaiter ? "pos_waiter" : "pos_staff";
       match = {
         id: `usr-${Date.now()}`,
         name: cleanContact.split("@")[0].toUpperCase(),
         email: cleanContact,
-        role: fallbackRole as any,
+        role: "pos_waiter",
+        role_name: "Waiter",
         phone: "",
         active: true,
         lastActive: "Now",
-        initials: "ST",
+        initials: cleanContact.slice(0, 2).toUpperCase(),
         property: "Anshu Suite Restaurant · Main Outlet",
         permissions: [],
       };
@@ -320,7 +264,7 @@ export function LoginPageFeature() {
 
     login(match);
     toast.success(`Welcome back, ${match.name}!`);
-    navigateByRole(match.role, match.email);
+    navigateByRole(match.role);
   };
 
   const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {

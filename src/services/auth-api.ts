@@ -14,87 +14,36 @@ export function mapBackendUserToAppUser(
   backendProperties: any[] = [],
   backendPermissions: string[] = [],
 ): AppUser {
-  const emailLower = (backendUser?.email || "").toLowerCase();
+  const userName = backendUser?.name || backendUser?.username || "Staff User";
+  const userEmail = backendUser?.email || "";
+  const userPhone = backendUser?.phone || "";
 
-  // Check if this user exists in POS staff list (from user roles management)
-  let posStaff: any = null;
-  try {
-    const rawRbac = typeof window !== "undefined" ? localStorage.getItem("retrod:pos:users:list") : null;
-    if (rawRbac) {
-      const list = JSON.parse(rawRbac);
-      if (Array.isArray(list)) {
-        posStaff = list.find(
-          (u: any) =>
-            (u.email && u.email.toLowerCase() === emailLower) ||
-            (u.id && backendUser?.id && String(u.id) === String(backendUser.id))
-        );
-      }
-    }
-  } catch {}
+  // 1. Resolve role from backendUser payload or property role
+  let role: Role | string =
+    backendUser?.role ||
+    backendUser?.role_code ||
+    (backendProperties && backendProperties.length > 0 ? backendProperties[0].role : "pos_waiter");
 
-  const isSampritaAdmin =
-    emailLower === "sampritapatra123@gmail.com" ||
-    emailLower === "sampritapatra@gmail.com" ||
-    emailLower === "admin@retrod.in";
-  const isKitchenChef =
-    emailLower === "samkhusi123@gmail.com" || emailLower === "kitchen@retrod.in";
-  const isWaiter =
-    emailLower === "samprita2022@gift.edu.in" ||
-    emailLower === "waiter@retrod.in" ||
-    backendUser?.role === "pos_waiter" ||
-    backendUser?.role === "waiter" ||
-    backendUser?.role_code === "pos_waiter" ||
-    (posStaff && (posStaff.role === "pos_waiter" || posStaff.role === "waiter" || posStaff.role_code === "pos_waiter"));
-  const isArnav = emailLower === "arnav@retrod.in";
-
-  let role: Role | string = backendUser?.role || "front_desk_agent";
-  let roleName: string | undefined = backendUser?.role_name || backendUser?.role;
-  let userName = backendUser?.name || "Retrod User";
-  let propertyName = "Anshu Suite Restaurant · Main Outlet";
-
-  if (posStaff) {
-    role =
-      posStaff.role === "admin"
-        ? "pos_admin"
-        : posStaff.role === "kitchen"
-          ? "pos_kitchen"
-          : posStaff.role === "waiter" || posStaff.role === "pos_waiter"
-            ? "pos_waiter"
-            : posStaff.role || "pos_waiter";
-    userName = posStaff.name || backendUser?.name || userName;
-    roleName = posStaff.role_name || (role === "pos_waiter" ? "Waiter" : posStaff.role);
-    propertyName = posStaff.outlet_name || "Anshu Suite Restaurant · Main Outlet";
-  } else if (isWaiter) {
-    role = "pos_waiter";
-    userName = backendUser?.name || "Waiter / Steward";
-    roleName = "Waiter";
-    propertyName = "Anshu Suite Restaurant · Main Outlet";
-  } else if (isKitchenChef) {
-    role = "pos_kitchen";
-    userName = backendUser?.name || "Kitchen Chef Station";
-    roleName = "Kitchen Chef / KDS";
-    propertyName = "Anshu Suite Restaurant · Main Kitchen";
-  } else if (isSampritaAdmin) {
-    role = "pos_admin";
-    userName = backendUser?.name || "Samprita Patra";
-    roleName = "POS Administrator";
-    propertyName = "Anshu Suite Restaurant · Main Outlet";
-  } else if (isArnav) {
-    role = "pos_staff";
-    userName = backendUser?.name || "Arnav";
-    roleName = "Arnav Staff Role";
-    propertyName = "Anshu Suite Restaurant · Main Outlet";
-  } else {
-    if (backendUser && (backendUser.role === "super_admin" || backendUser.is_superuser)) {
-      role = "super_admin";
-    } else if (backendUser && backendUser.role) {
-      role = backendUser.role;
-    } else if (backendProperties && backendProperties.length > 0) {
-      role = backendProperties[0].role;
-      propertyName = backendProperties[0].name;
-    }
+  if (backendUser && (backendUser.role === "super_admin" || backendUser.is_superuser)) {
+    role = "super_admin";
   }
 
+  // 2. Resolve display role name
+  let roleName: string | undefined =
+    backendUser?.role_name ||
+    (backendProperties && backendProperties.length > 0 ? backendProperties[0].role_name : undefined);
+
+  if (!roleName) {
+    const roleClean = String(role).toLowerCase();
+    if (roleClean.includes("waiter")) roleName = "Waiter";
+    else if (roleClean.includes("kitchen") || roleClean.includes("chef")) roleName = "Kitchen Chef / KDS";
+    else if (roleClean.includes("admin")) roleName = "POS Administrator";
+    else if (roleClean.includes("cashier")) roleName = "Cashier";
+    else if (roleClean.includes("manager")) roleName = "Store Manager";
+    else roleName = String(role);
+  }
+
+  // 3. Initials
   const initials = (userName || "User")
     .trim()
     .split(/\s+/)
@@ -104,11 +53,29 @@ export function mapBackendUserToAppUser(
     .join("")
     .toUpperCase() || "U";
 
+  // 4. Mapped properties
   const mappedProperties = (backendProperties || []).map((p: any) => ({
     id: String(p.id),
     name: String(p.name),
     role: String(p.role || ""),
+    role_name: String(p.role_name || ""),
   }));
+
+  const assignedOutletId =
+    backendUser?.assigned_outlet_id ||
+    backendUser?.outlet_id ||
+    undefined;
+
+  const assignedOutletName =
+    backendUser?.assigned_outlet_name ||
+    backendUser?.outlet_name ||
+    undefined;
+
+  let propertyName =
+    assignedOutletName ||
+    (mappedProperties[0]?.name ? `${mappedProperties[0].name} Restaurant` : undefined) ||
+    backendUser?.property ||
+    "Anshu Suite Restaurant · Main Outlet";
 
   if (mappedProperties.length > 0) {
     let storedPropId =
@@ -116,24 +83,30 @@ export function mapBackendUserToAppUser(
         ? localStorage.getItem("retrod:active-property-id") ||
           localStorage.getItem("retrod_property_id")
         : null;
+
     const anshuProp = mappedProperties.find((p) => p.name.toLowerCase().includes("anshu"));
     if (anshuProp && (!storedPropId || !mappedProperties.some((p) => p.id === storedPropId))) {
       storedPropId = anshuProp.id;
-      try {
-        localStorage.setItem("retrod:active-property-id", storedPropId);
-        localStorage.setItem("retrod_property_id", storedPropId);
-      } catch {}
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("retrod:active-property-id", storedPropId);
+          localStorage.setItem("retrod_property_id", storedPropId);
+        } catch {}
+      }
     } else if (!storedPropId && mappedProperties[0]?.id) {
       storedPropId = mappedProperties[0].id;
-      try {
-        localStorage.setItem("retrod:active-property-id", storedPropId);
-        localStorage.setItem("retrod_property_id", storedPropId);
-      } catch {}
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("retrod:active-property-id", storedPropId);
+          localStorage.setItem("retrod_property_id", storedPropId);
+        } catch {}
+      }
     }
+
     const matched = storedPropId
       ? mappedProperties.find((p) => p.id === storedPropId)
       : null;
-    propertyName = anshuProp ? anshuProp.name : matched ? matched.name : propertyName;
+    propertyName = matched ? matched.name : propertyName;
   } else if (role === "super_admin") {
     propertyName = "Retrod Global HQ";
   }
@@ -146,53 +119,50 @@ export function mapBackendUserToAppUser(
     backendUser?.profile_photo ||
     undefined;
 
-  const assignedOutletId =
-    backendUser?.assigned_outlet_id ||
-    backendUser?.outlet_id ||
-    posStaff?.outlet_id ||
-    undefined;
-  const assignedOutletName =
-    backendUser?.assigned_outlet_name ||
-    backendUser?.outlet_name ||
-    posStaff?.outlet_name ||
-    undefined;
+  // 5. Dynamic Permissions
+  const permissionsSet = new Set<string>(backendPermissions || []);
+  const roleLower = String(role).toLowerCase();
+  const isWaiter =
+    roleLower === "pos_waiter" ||
+    roleLower === "waiter" ||
+    roleLower.includes("waiter") ||
+    String(roleName).toLowerCase().includes("waiter") ||
+    String(roleName).toLowerCase().includes("steward");
 
-  const waiterBasePerms = [
-    "pos.billing.view",
-    "pos.billing.create",
-    "pos.orders.view",
-    "pos.orders.take",
-    "pos.orders.create",
-    "pos.orders.kot",
-    "pos.reservations.manage",
-    "pos.menu.view",
-    "pos.tables.view",
-  ];
-
-  const mergedPermissions = Array.from(
-    new Set([
-      ...(posStaff?.permissions || []),
-      ...(backendPermissions || []),
-      ...(isWaiter || role === "pos_waiter" ? waiterBasePerms : []),
-    ])
-  );
+  if (isWaiter) {
+    const waiterBasePerms = [
+      "pos.billing.view",
+      "pos.billing.create",
+      "pos.orders.view",
+      "pos.orders.take",
+      "pos.orders.create",
+      "pos.orders.kot",
+      "pos.reservations.manage",
+      "pos.reservations.view",
+      "pos.menu.view",
+      "pos.tables.view",
+    ];
+    for (const p of waiterBasePerms) permissionsSet.add(p);
+  } else if (roleLower === "pos_admin" || roleLower === "admin" || backendUser?.is_superuser) {
+    permissionsSet.add("*:*");
+  }
 
   return {
-    id: String(posStaff?.id || backendUser?.id || "u0"),
+    id: String(backendUser?.id || "u0"),
     name: userName,
-    email: backendUser?.email || posStaff?.email || "user@retrod.in",
+    email: userEmail,
     role: role as Role,
-    role_name: roleName || (role === "pos_waiter" ? "Waiter" : role as string),
-    initials: initials,
-    active: true,
+    role_name: roleName,
+    initials,
+    active: backendUser?.is_active !== false,
     property: propertyName,
     lastActive: "Just now",
-    phone: backendUser?.phone || posStaff?.phone,
+    phone: userPhone,
     properties: mappedProperties,
-    permissions: mergedPermissions,
+    permissions: Array.from(permissionsSet),
     avatarUrl: avatar,
     tenant_subdomain: backendUser?.tenant_subdomain,
-    is_superuser: backendUser?.is_superuser,
+    is_superuser: Boolean(backendUser?.is_superuser),
     subscription_plan: backendUser?.subscription_plan,
     subscription_expiry: backendUser?.subscription_expiry,
     license_key: backendUser?.license_key,
