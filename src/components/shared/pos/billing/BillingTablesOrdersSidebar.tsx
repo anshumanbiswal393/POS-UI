@@ -107,6 +107,13 @@ export function BillingTablesOrdersSidebar({
     return ["All Zones", ...(merged.length > 0 ? merged : ["Outdoor", "Indoor", "Terrace"])];
   }, [areasData, tables]);
 
+  // Reset selectedZone if it is not in the active zones list
+  useEffect(() => {
+    if (selectedZone !== "All Zones" && !zones.includes(selectedZone)) {
+      setSelectedZone("All Zones");
+    }
+  }, [zones, selectedZone]);
+
   // Filtered Tables
   const filteredTables = useMemo(() => {
     return tables.filter((table) => {

@@ -1,4 +1,5 @@
 import { httpClient } from "@/utils/httpClient";
+import { isBackendOutletId } from "@/utils/outletId";
 
 export interface POSUser {
   id: string;
@@ -427,8 +428,8 @@ export const posUsersRbacService = {
           phone: res.phone || payload.phone,
           role: res.role || payload.role,
           role_name: res.role_name || payload.role,
-          outlet_id: payload.outlet_id,
-          outlet_name: payload.outlet_name,
+          outlet_id: payload.outlet_id || (res.outlet_id ? String(res.outlet_id) : undefined),
+          outlet_name: payload.outlet_name || res.outlet_name,
           user_code: payload.user_code,
           pin: payload.pin,
           is_active: payload.is_active !== false,
@@ -437,6 +438,23 @@ export const posUsersRbacService = {
       }
     } catch {
       // Local fallback creation
+    }
+
+    if (payload.outlet_id && isBackendOutletId(payload.outlet_id)) {
+      try {
+        await httpClient.post(`/api/pos/management/users/biller-users/?outlet_id=${payload.outlet_id}`, {
+          outlet: payload.outlet_id,
+          name: payload.name,
+          username: payload.username,
+          email: payload.email,
+          phone: payload.phone || "",
+          user_code: (payload.user_code || payload.username.slice(0, 16)).toUpperCase(),
+          pin: payload.pin || "1234",
+          is_active: payload.is_active !== false,
+        });
+      } catch {
+        // Ignore duplicate or management error
+      }
     }
 
     if (!savedUser) {

@@ -125,7 +125,7 @@ export function PosUsersView() {
     const selectedRoleObj = roles.find((r) => r.code === formRole || r.id === formRole);
     const selectedOutletObj = outlets.find((o) => String(o.id) === formOutletId);
 
-    const payload: POSUserPayload = {
+    const payload: POSUserPayload & { assigned_property_ids?: string[] } = {
       name: formName.trim(),
       username: formUsername.trim() || formName.trim().toLowerCase().replace(/\s+/g, "."),
       email: formEmail.trim(),
@@ -137,6 +137,7 @@ export function PosUsersView() {
       pin: formPin.trim() || undefined,
       password: formPassword.trim() || undefined,
       is_active: formIsActive,
+      assigned_property_ids: selectedOutletObj?.propertyId ? [selectedOutletObj.propertyId] : undefined,
     };
 
     try {
