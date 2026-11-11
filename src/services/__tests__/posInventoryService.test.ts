@@ -76,6 +76,38 @@ describe("posInventoryService Category & Raw Material Management", () => {
       const list = await posInventoryService.getCategories();
       expect(list.some((c) => c.id === created.id)).toBe(false);
     });
+
+    it("isolates categories per hotel/outlet so different hotels do not mix up category data", async () => {
+      const hotelAOutletId = "outlet-hotel-a-uuid-1111";
+      const hotelBOutletId = "outlet-hotel-b-uuid-2222";
+
+      // Setup category in Hotel A
+      const catA = await posInventoryService.upsertCategory(
+        {
+          name: "Fresh Seafood",
+          subCategories: [{ name: "Prawns", unit: "Kg" }],
+        },
+        hotelAOutletId,
+      );
+
+      // Setup category in Hotel B
+      const catB = await posInventoryService.upsertCategory(
+        {
+          name: "Bakery Pastries",
+          subCategories: [{ name: "Croissant", unit: "Pcs" }],
+        },
+        hotelBOutletId,
+      );
+
+      const listA = await posInventoryService.getCategories(hotelAOutletId);
+      const listB = await posInventoryService.getCategories(hotelBOutletId);
+
+      expect(listA.some((c) => c.name === "Fresh Seafood")).toBe(true);
+      expect(listA.some((c) => c.name === "Bakery Pastries")).toBe(false);
+
+      expect(listB.some((c) => c.name === "Bakery Pastries")).toBe(true);
+      expect(listB.some((c) => c.name === "Fresh Seafood")).toBe(false);
+    });
   });
 
   describe("Raw Material Attributes & Mapping", () => {

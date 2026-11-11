@@ -17,12 +17,10 @@ import {
   Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useStockItems, useStockOverview } from "@/hooks/queries/usePosInventory";
+import { useStockItems, useStockOverview, useStockCategories } from "@/hooks/queries/usePosInventory";
 import type { StockItem } from "@/types/posInventory";
 import { CreatePurchaseModal } from "@/components/shared/pos/inventory/modals/CreatePurchaseModal";
 import { useOutletContext } from "@/context/PosOutletContext";
-
-type StockLocation = "all" | "kitchen" | "bar" | "cold_storage";
 
 interface LiveStockMovement {
   id: string;
@@ -128,13 +126,26 @@ export function InventoryDashboardView() {
   });
 
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<StockLocation>("all");
   const [selectedMonth, setSelectedMonth] = useState("September");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
   const [lastSyncedTime, setLastSyncedTime] = useState<Date>(new Date());
   const [secondsAgo, setSecondsAgo] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [liveBannerDismissed, setLiveBannerDismissed] = useState(false);
+
+  const { data: stockCategories = [] } = useStockCategories();
+  const radarCategories = useMemo(() => {
+    const list = ["All"];
+    stockCategories.forEach((c) => {
+      const name = c.name?.trim();
+      if (name && !list.includes(name)) list.push(name);
+    });
+    return list;
+  }, [stockCategories]);
+
+  useEffect(() => {
+    setSelectedCategoryFilter("All");
+  }, [activeOutlet?.id]);
 
   const lowStock = liveLowStock;
   const categories = EMPTY_CATEGORIES;
@@ -217,13 +228,6 @@ export function InventoryDashboardView() {
   const criticalCount = lowStock.filter((i) => i.status === "critical").length;
   const showAlert = !liveBannerDismissed && criticalCount > 0;
 
-  const locations: { id: StockLocation; label: string }[] = [
-    { id: "all", label: "All" },
-    { id: "kitchen", label: "Kitchen" },
-    { id: "bar", label: "Bar" },
-    { id: "cold_storage", label: "Cold" },
-  ];
-
   return (
     <div className="relative flex flex-col flex-1 gap-2 p-2.5 sm:p-3 lg:p-4 pt-2 sm:pt-2.5 lg:pt-2.5 lg:h-[calc(100dvh-3.5rem)] lg:max-h-[calc(100dvh-3.5rem)] lg:min-h-0 lg:overflow-hidden overflow-y-auto bg-slate-50/50 animate-in fade-in duration-200">
       {/* Top Action & Sync Bar */}
@@ -238,23 +242,6 @@ export function InventoryDashboardView() {
             <span className="font-normal text-teal-600/80">
               {secondsAgo === 0 ? "Just now" : `${secondsAgo}s ago`}
             </span>
-          </div>
-
-          <div className="flex items-center rounded-lg bg-slate-100 p-0.5 border border-slate-200/80">
-            {locations.map((loc) => (
-              <button
-                key={loc.id}
-                type="button"
-                onClick={() => setSelectedLocation(loc.id)}
-                className={`rounded-md px-2 py-0.5 text-[11px] font-bold transition cursor-pointer ${
-                  selectedLocation === loc.id
-                    ? "bg-white text-slate-900 shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                {loc.label}
-              </button>
-            ))}
           </div>
         </div>
 
@@ -460,7 +447,7 @@ export function InventoryDashboardView() {
               <h3 className="text-[13.5px] font-bold text-slate-900">Low Stock Radar</h3>
             </div>
             <div className="flex flex-wrap gap-1">
-              {["All", "Meat", "Dairy", "Beverages", "Groceries"].map((cat) => (
+              {radarCategories.map((cat) => (
                 <button
                   key={cat}
                   type="button"

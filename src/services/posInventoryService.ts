@@ -171,6 +171,10 @@ function mapStock(raw: Partial<StockItem> & { id: string }): StockItem {
   };
 }
 
+function getCategoryStoreKey(outletId?: string) {
+  return outletId ? `${CATEGORY_STORE_KEY}_${outletId}` : CATEGORY_STORE_KEY;
+}
+
 export const posInventoryService = {
   getVendors: async (outletId?: string): Promise<InventoryVendor[]> => {
     if (isBackendOutletId(outletId)) {
@@ -309,22 +313,31 @@ export const posInventoryService = {
   },
 
   getCategories: async (outletId?: string): Promise<StockCategory[]> => {
+    const storeKey = getCategoryStoreKey(outletId);
     if (isBackendOutletId(outletId)) {
       try {
         const res = await httpClient.get<{ success: boolean; categories?: StockCategory[] }>(
           "/api/pos/stock/categories/",
           { params: scopeParams(outletId) },
         );
-        if (res.data?.categories && res.data.categories.length > 0) {
-          categoriesStore = res.data.categories;
-          writeJson(CATEGORY_STORE_KEY, categoriesStore);
-          return categoriesStore;
+        if (res.data && Array.isArray(res.data.categories)) {
+          writeJson(storeKey, res.data.categories);
+          return res.data.categories;
         }
       } catch {
         // Fallback to local store
       }
     }
-    return [...categoriesStore];
+    const cached = readJson<StockCategory[] | null>(storeKey, null);
+    if (cached !== null) {
+      return cached;
+    }
+    if (!outletId) {
+      return [...categoriesStore];
+    }
+    const legacy = readJson<StockCategory[]>(CATEGORY_STORE_KEY, DEFAULT_CATEGORIES);
+    writeJson(storeKey, legacy);
+    return legacy;
   },
 
   upsertCategory: async (
@@ -354,13 +367,22 @@ export const posInventoryService = {
       }
     }
 
-    const idx = categoriesStore.findIndex((c) => c.id === id);
-    if (idx >= 0) {
-      categoriesStore[idx] = newCategory;
-    } else {
-      categoriesStore.unshift(newCategory);
+    const storeKey = getCategoryStoreKey(outletId);
+    let localCategories = readJson<StockCategory[] | null>(storeKey, null);
+    if (!localCategories) {
+      localCategories = outletId ? [] : [...categoriesStore];
     }
-    persistMockLedger();
+    const idx = localCategories.findIndex((c) => c.id === id);
+    if (idx >= 0) {
+      localCategories[idx] = newCategory;
+    } else {
+      localCategories.unshift(newCategory);
+    }
+    writeJson(storeKey, localCategories);
+    if (!outletId) {
+      categoriesStore = localCategories;
+      persistMockLedger();
+    }
     return newCategory;
   },
 
@@ -374,8 +396,17 @@ export const posInventoryService = {
         // Fallback to local store
       }
     }
-    categoriesStore = categoriesStore.filter((c) => c.id !== id);
-    persistMockLedger();
+    const storeKey = getCategoryStoreKey(outletId);
+    let localCategories = readJson<StockCategory[] | null>(storeKey, null);
+    if (!localCategories) {
+      localCategories = outletId ? [] : [...categoriesStore];
+    }
+    localCategories = localCategories.filter((c) => c.id !== id);
+    writeJson(storeKey, localCategories);
+    if (!outletId) {
+      categoriesStore = localCategories;
+      persistMockLedger();
+    }
     return true;
   },
 
@@ -577,30 +608,37 @@ export const posInventoryService = {
   },
 
   getOverview: async (outletId?: string): Promise<StockOverview | null> => {
-    if (!isBackendOutletId(outletId)) {
-      const valuation = stockStore.reduce(
-        (sum, item) => sum + Number(item.availableStock || 0) * Number(item.unitCost || 0),
-        0,
-      );
-      const lowStock = stockStore.filter((item) => item.isLow || item.availableStock === 0);
-      return {
-        success: true,
-        skuActive: stockStore.length,
-        valuation,
-        lowStockCount: lowStock.length,
-        atParCount: 0,
-        critical: stockStore.filter((item) => item.availableStock === 0).length,
-        wastageTodayQty: mockMovements
-          .filter((mov) => mov.type === "WASTAGE")
-          .reduce((sum, mov) => sum + mov.quantity, 0),
-        lowStock,
-        atPar: [],
-        items: [...stockStore],
-        movements: mockMovements,
-      };
+    if (isBackendOutletId(outletId)) {
+      try {
+        const res = await httpClient.get<StockOverview>("/api/pos/stock/overview/", {
+          params: scopeParams(outletId),
+        });
+        if (res.data) return res.data;
+      } catch {
+        // Fallback to computing from outlet's stock items
+      }
     }
-    const res = await httpClient.get<StockOverview>("/api/pos/stock/overview/", { params: scopeParams(outletId) });
-    return res.data;
+    const items = await posInventoryService.getStockItems(outletId);
+    const valuation = items.reduce(
+      (sum, item) => sum + Number(item.availableStock || 0) * Number(item.unitCost || 0),
+      0,
+    );
+    const lowStock = items.filter((item) => item.isLow || item.availableStock === 0);
+    return {
+      success: true,
+      skuActive: items.length,
+      valuation,
+      lowStockCount: lowStock.length,
+      atParCount: 0,
+      critical: items.filter((item) => item.availableStock === 0).length,
+      wastageTodayQty: mockMovements
+        .filter((mov) => mov.type === "WASTAGE")
+        .reduce((sum, mov) => sum + mov.quantity, 0),
+      lowStock,
+      atPar: [],
+      items: [...items],
+      movements: mockMovements,
+    };
   },
 
   getAlerts: async (outletId?: string): Promise<StockAlert[]> => {

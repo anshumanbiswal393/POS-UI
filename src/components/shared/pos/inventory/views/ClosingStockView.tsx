@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Search,
   Clock,
@@ -13,7 +13,12 @@ import {
   AlertTriangle,
   ArrowRight,
 } from "lucide-react";
-import { useStockItems, useSaveClosingStock } from "@/hooks/queries/usePosInventory";
+import {
+  useStockItems,
+  useSaveClosingStock,
+  useStockCategories,
+} from "@/hooks/queries/usePosInventory";
+import { useOutletContext } from "@/context/PosOutletContext";
 import {
   DataTableHeader,
   type DataTableColumn,
@@ -29,7 +34,9 @@ import {
 import { toast } from "sonner";
 
 export function ClosingStockView() {
+  const { activeOutlet } = useOutletContext();
   const { data: stockItems, isLoading: isLoadingStock } = useStockItems();
+  const { data: stockCategories = [] } = useStockCategories();
   const saveMutation = useSaveClosingStock();
 
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -45,6 +52,14 @@ export function ClosingStockView() {
   const [newStockInputs, setNewStockInputs] = useState<Record<string, string>>({});
   const [notesInputs, setNotesInputs] = useState<Record<string, string>>({});
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+
+  // Reset category filter & inputs when hotel/outlet changes
+  useEffect(() => {
+    setSelectedCategory("All categories");
+    setSearchQuery("");
+    setNewStockInputs({});
+    setNotesInputs({});
+  }, [activeOutlet?.id]);
 
   const closingColumns: DataTableColumn<any>[] = useMemo(
     () => [
@@ -89,18 +104,24 @@ export function ClosingStockView() {
     [],
   );
 
-  const categories = [
-    "All categories",
-    "No category",
-    "Appetizers",
-    "Non-Veg Appetizers",
-    "Groceries",
-    "Dairy",
-  ];
+  const categories = useMemo(() => {
+    const names = ["All categories"];
+    stockCategories.forEach((cat) => {
+      const name = cat.name?.trim();
+      if (name && !names.includes(name)) {
+        names.push(name);
+      }
+    });
+    return names;
+  }, [stockCategories]);
 
   const filteredItems = (stockItems ?? []).filter((item) => {
-    if (selectedCategory !== "All categories" && item.category !== selectedCategory) {
-      return false;
+    if (selectedCategory !== "All categories") {
+      const itemCat = (item.category || "").trim().toLowerCase();
+      const selCat = selectedCategory.trim().toLowerCase();
+      if (itemCat !== selCat) {
+        return false;
+      }
     }
     if (searchQuery && !item.rawMaterial.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
