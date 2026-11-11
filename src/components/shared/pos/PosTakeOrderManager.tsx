@@ -33,7 +33,6 @@ import { AssignGuestModal } from "./tables/AssignGuestModal";
 import { TableOrderWizardModal } from "./tables/TableOrderWizardModal";
 import { TableOrderEditModal } from "./tables/TableOrderEditModal";
 import { ReservationDetailSlide } from "./tables/ReservationDetailSlide";
-import { ReservationSidebar } from "./tables/ReservationSidebar";
 import { NewReservationModal } from "./tables/NewReservationModal";
 import { SwitchTableModal } from "./tables/SwitchTableModal";
 import { RoomOrderCategoryGridView } from "./roomService/RoomOrderCategoryGridView";
@@ -60,7 +59,6 @@ export function PosTakeOrderManager() {
   const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
   const [selectedReservation, setSelectedReservation] = useState<ReservationItem | null>(null);
   const [isDetailSlideOpen, setIsDetailSlideOpen] = useState(false);
-  const [isReservationSidebarOpen, setIsReservationSidebarOpen] = useState(false);
   const [isAddTableOpen, setIsAddTableOpen] = useState(false);
   const [isAddAreaOpen, setIsAddAreaOpen] = useState(false);
   const [isNewReservationOpen, setIsNewReservationOpen] = useState(false);
@@ -374,65 +372,40 @@ export function PosTakeOrderManager() {
       <div className="flex-1 flex overflow-hidden">
         {activeSlide === "restaurant" ? (
           // RESTAURANT (TABLE) SLIDE
-          <div className="flex-1 flex overflow-hidden w-full h-full">
-            <TableFloorPlan
-              tables={tables}
-              reservations={reservations}
-              areas={diningAreas}
-              activeArea={activeArea}
-              onSelectArea={setActiveArea}
-              onSelectReserved={handleSelectReserved}
-              onSelectTable={handleSelectTable}
-              onOpenAddArea={() => setIsAddAreaOpen(true)}
-              onOpenAddTable={() => setIsAddTableOpen(true)}
-              onOpenBookReservation={() => {
-                setBookingTableId(undefined);
-                setIsNewReservationOpen(true);
-              }}
-              onOpenSeatGuest={() => setIsAssignGuestOpen(true)}
-              onOpenTakeOrder={(tblId) => {
-                // Open table / merge chooser first — billing only after Continue
-                setWizardTableId(tblId);
-                setIsTakeOrderWizardOpen(true);
-              }}
-              onSwitchTable={(res) => setSwitchModalReservation(res)}
-              onSeatReservation={(tableId, resId) => {
-                seatGuestsMutation.mutate({ tableId, reservationId: resId });
-                setWizardTableId(tableId);
-                setIsTakeOrderWizardOpen(true);
-              }}
-              stats={stats}
-              onRefresh={() => {
-                refetchTables();
-                refetchReservations();
-              }}
-              onDeleteArea={handleDeleteArea}
-              onDeleteTable={(tblId) => deleteTableMutation.mutate(tblId)}
-              isReservationsSidebarOpen={isReservationSidebarOpen}
-              onToggleReservationsSidebar={() => setIsReservationSidebarOpen((prev) => !prev)}
-            />
-            {isReservationSidebarOpen && (
-              <div className="w-80 lg:w-96 shrink-0 h-full border-l border-slate-200 bg-white overflow-hidden animate-in slide-in-from-right duration-200">
-                <ReservationSidebar
-                  reservations={reservations}
-                  tables={allTables}
-                  selectedDate={new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
-                  onPrevDate={() => {}}
-                  onNextDate={() => {}}
-                  onSelectReservation={(res) => {
-                    setSelectedReservation(res);
-                    const matchedTable = allTables.find((t) => t.id === res.tableId || t.tableNumber === res.tableNumber) || null;
-                    setSelectedTable(matchedTable);
-                    setIsDetailSlideOpen(true);
-                  }}
-                  onOpenNewBookingModal={() => {
-                    setBookingTableId(undefined);
-                    setIsNewReservationOpen(true);
-                  }}
-                />
-              </div>
-            )}
-          </div>
+          <TableFloorPlan
+            tables={tables}
+            reservations={reservations}
+            areas={diningAreas}
+            activeArea={activeArea}
+            onSelectArea={setActiveArea}
+            onSelectReserved={handleSelectReserved}
+            onSelectTable={handleSelectTable}
+            onOpenAddArea={() => setIsAddAreaOpen(true)}
+            onOpenAddTable={() => setIsAddTableOpen(true)}
+            onOpenBookReservation={() => {
+              setBookingTableId(undefined);
+              setIsNewReservationOpen(true);
+            }}
+            onOpenSeatGuest={() => setIsAssignGuestOpen(true)}
+            onOpenTakeOrder={(tblId) => {
+              // Open table / merge chooser first — billing only after Continue
+              setWizardTableId(tblId);
+              setIsTakeOrderWizardOpen(true);
+            }}
+            onSwitchTable={(res) => setSwitchModalReservation(res)}
+            onSeatReservation={(tableId, resId) => {
+              seatGuestsMutation.mutate({ tableId, reservationId: resId });
+              setWizardTableId(tableId);
+              setIsTakeOrderWizardOpen(true);
+            }}
+            stats={stats}
+            onRefresh={() => {
+              refetchTables();
+              refetchReservations();
+            }}
+            onDeleteArea={handleDeleteArea}
+            onDeleteTable={(tblId) => deleteTableMutation.mutate(tblId)}
+          />
         ) : (
           // ROOM SLIDE - Ultra-compact Room View matching reference image
           <RoomOrderCategoryGridView
