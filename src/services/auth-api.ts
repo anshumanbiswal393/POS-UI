@@ -41,6 +41,9 @@ export function mapBackendUserToAppUser(
   const isWaiter =
     emailLower === "samprita2022@gift.edu.in" ||
     emailLower === "waiter@retrod.in" ||
+    backendUser?.role === "pos_waiter" ||
+    backendUser?.role === "waiter" ||
+    backendUser?.role_code === "pos_waiter" ||
     (posStaff && (posStaff.role === "pos_waiter" || posStaff.role === "waiter" || posStaff.role_code === "pos_waiter"));
   const isArnav = emailLower === "arnav@retrod.in";
 
@@ -58,27 +61,27 @@ export function mapBackendUserToAppUser(
           : posStaff.role === "waiter" || posStaff.role === "pos_waiter"
             ? "pos_waiter"
             : posStaff.role || "pos_waiter";
-    userName = posStaff.name || userName;
+    userName = posStaff.name || backendUser?.name || userName;
     roleName = posStaff.role_name || (role === "pos_waiter" ? "Waiter" : posStaff.role);
     propertyName = posStaff.outlet_name || "Anshu Suite Restaurant · Main Outlet";
   } else if (isWaiter) {
     role = "pos_waiter";
-    userName = "Raju waiter";
+    userName = backendUser?.name || "Waiter / Steward";
     roleName = "Waiter";
     propertyName = "Anshu Suite Restaurant · Main Outlet";
   } else if (isKitchenChef) {
     role = "pos_kitchen";
-    userName = "Kitchen Chef Station";
+    userName = backendUser?.name || "Kitchen Chef Station";
     roleName = "Kitchen Chef / KDS";
     propertyName = "Anshu Suite Restaurant · Main Kitchen";
   } else if (isSampritaAdmin) {
     role = "pos_admin";
-    userName = "Samprita Patra";
+    userName = backendUser?.name || "Samprita Patra";
     roleName = "POS Administrator";
     propertyName = "Anshu Suite Restaurant · Main Outlet";
   } else if (isArnav) {
     role = "pos_staff";
-    userName = "Arnav";
+    userName = backendUser?.name || "Arnav";
     roleName = "Arnav Staff Role";
     propertyName = "Anshu Suite Restaurant · Main Outlet";
   } else {
@@ -113,14 +116,20 @@ export function mapBackendUserToAppUser(
         ? localStorage.getItem("retrod:active-property-id") ||
           localStorage.getItem("retrod_property_id")
         : null;
-    if (!storedPropId && mappedProperties[0]?.id) {
+    const anshuProp = mappedProperties.find((p) => p.name.toLowerCase().includes("anshu"));
+    if (anshuProp && (!storedPropId || !mappedProperties.some((p) => p.id === storedPropId))) {
+      storedPropId = anshuProp.id;
+      try {
+        localStorage.setItem("retrod:active-property-id", storedPropId);
+        localStorage.setItem("retrod_property_id", storedPropId);
+      } catch {}
+    } else if (!storedPropId && mappedProperties[0]?.id) {
       storedPropId = mappedProperties[0].id;
       try {
         localStorage.setItem("retrod:active-property-id", storedPropId);
         localStorage.setItem("retrod_property_id", storedPropId);
       } catch {}
     }
-    const anshuProp = mappedProperties.find((p) => p.name.toLowerCase().includes("anshu"));
     const matched = storedPropId
       ? mappedProperties.find((p) => p.id === storedPropId)
       : null;
@@ -137,6 +146,37 @@ export function mapBackendUserToAppUser(
     backendUser?.profile_photo ||
     undefined;
 
+  const assignedOutletId =
+    backendUser?.assigned_outlet_id ||
+    backendUser?.outlet_id ||
+    posStaff?.outlet_id ||
+    undefined;
+  const assignedOutletName =
+    backendUser?.assigned_outlet_name ||
+    backendUser?.outlet_name ||
+    posStaff?.outlet_name ||
+    undefined;
+
+  const waiterBasePerms = [
+    "pos.billing.view",
+    "pos.billing.create",
+    "pos.orders.view",
+    "pos.orders.take",
+    "pos.orders.create",
+    "pos.orders.kot",
+    "pos.reservations.manage",
+    "pos.menu.view",
+    "pos.tables.view",
+  ];
+
+  const mergedPermissions = Array.from(
+    new Set([
+      ...(posStaff?.permissions || []),
+      ...(backendPermissions || []),
+      ...(isWaiter || role === "pos_waiter" ? waiterBasePerms : []),
+    ])
+  );
+
   return {
     id: String(posStaff?.id || backendUser?.id || "u0"),
     name: userName,
@@ -149,13 +189,17 @@ export function mapBackendUserToAppUser(
     lastActive: "Just now",
     phone: backendUser?.phone || posStaff?.phone,
     properties: mappedProperties,
-    permissions: posStaff?.permissions || backendPermissions || [],
+    permissions: mergedPermissions,
     avatarUrl: avatar,
     tenant_subdomain: backendUser?.tenant_subdomain,
     is_superuser: backendUser?.is_superuser,
     subscription_plan: backendUser?.subscription_plan,
     subscription_expiry: backendUser?.subscription_expiry,
     license_key: backendUser?.license_key,
+    assigned_outlet_id: assignedOutletId,
+    assigned_outlet_name: assignedOutletName,
+    outlet_id: assignedOutletId,
+    outlet_name: assignedOutletName,
   };
 }
 

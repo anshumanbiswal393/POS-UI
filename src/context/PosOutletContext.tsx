@@ -137,16 +137,27 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
   });
 
   const getActivePropertyInfo = useCallback(() => {
+    const anshuUserProp = user?.properties?.find((p) => p.name.toLowerCase().includes("anshu"));
+
     let storedPropId =
       (typeof window !== "undefined"
         ? localStorage.getItem("retrod:active-property-id") ||
           localStorage.getItem("retrod_property_id") ||
           getDomainCookie("retrod_property_id")
         : null) ||
+      anshuUserProp?.id ||
       user?.properties?.[0]?.id ||
       null;
 
-    if (!storedPropId && user?.properties && user.properties.length > 0) {
+    if (anshuUserProp && (!storedPropId || storedPropId.includes("strict") || !user?.properties?.some((p) => p.id === storedPropId))) {
+      storedPropId = anshuUserProp.id;
+      if (typeof window !== "undefined" && storedPropId) {
+        try {
+          localStorage.setItem("retrod:active-property-id", storedPropId);
+          localStorage.setItem("retrod_property_id", storedPropId);
+        } catch {}
+      }
+    } else if (!storedPropId && user?.properties && user.properties.length > 0) {
       storedPropId = user.properties[0].id;
       if (typeof window !== "undefined" && storedPropId) {
         try {
@@ -157,7 +168,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
     }
 
     const matchedProp = user?.properties?.find((p) => p.id === storedPropId);
-    let propName = matchedProp?.name || user?.property || "Anshu Suite Restaurant";
+    let propName = matchedProp?.name || anshuUserProp?.name || user?.property || "Anshu Suite Restaurant";
     if (propName.toLowerCase().includes("bistro") && (user?.property?.toLowerCase().includes("anshu") || !matchedProp)) {
       propName = "Anshu Suite Restaurant";
     }
@@ -170,21 +181,21 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
     try {
       const { propId, propName } = getActivePropertyInfo();
 
+      // 1. Fetch outlets for the tenant without restricting to a potentially empty property
       let remote = await posOutletsService.listOutlets({
-        propertyId: propId || undefined,
         tenantId: user?.tenant_subdomain || undefined,
       });
 
-      // If tenant/prop query yielded nothing, fall back to property-scoped query
+      // 2. If nothing returned, query all accessible outlets
+      if (remote.length === 0) {
+        remote = await posOutletsService.listOutlets();
+      }
+
+      // 3. If still nothing and propId is provided, try property-scoped query
       if (remote.length === 0 && propId) {
         remote = await posOutletsService.listOutlets({
           propertyId: propId,
         });
-      }
-
-      // If still nothing, query all accessible outlets
-      if (remote.length === 0) {
-        remote = await posOutletsService.listOutlets();
       }
 
       // Filter out dummy outlets
@@ -193,6 +204,12 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         if (isDummyOutlet(o.name, o.code) || KNOWN_DUMMY_IDS.has(o.id)) return false;
         return true;
       });
+
+      // If real outlets exist, remove any auto-generated "Strict Minimal" empty outlets
+      const hasRealOutlets = remote.some((o) => !o.name.toLowerCase().includes("strict"));
+      if (hasRealOutlets) {
+        remote = remote.filter((o) => !o.name.toLowerCase().includes("strict"));
+      }
 
       let finalOutlets: PosOutlet[];
 
@@ -246,17 +263,39 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
 
       setOutlets(finalOutlets);
       setActiveOutletId((prevId) => {
-        if (prevId && isBackendOutletId(prevId) && finalOutlets.some((o) => o.id === prevId)) {
+        // Priority 1: User's explicitly assigned outlet
+        const userAssignedId = user?.assigned_outlet_id || user?.outlet_id;
+        if (userAssignedId && finalOutlets.some((o) => o.id === userAssignedId)) {
+          const matched = finalOutlets.find((o) => o.id === userAssignedId)!;
           try {
-            localStorage.setItem(STORAGE_KEY_ACTIVE_ID, prevId);
+            localStorage.setItem(STORAGE_KEY_ACTIVE_ID, userAssignedId);
+            if (matched.propertyId) {
+              localStorage.setItem("retrod:active-property-id", matched.propertyId);
+              localStorage.setItem("retrod_property_id", matched.propertyId);
+            }
           } catch {}
-          return prevId;
+          return userAssignedId;
         }
+
+        // Priority 2: Stored previous active outlet (if it's not a strict dummy and still in list)
+        if (prevId && isBackendOutletId(prevId) && finalOutlets.some((o) => o.id === prevId)) {
+          const prevOutlet = finalOutlets.find((o) => o.id === prevId);
+          if (!prevOutlet?.name.toLowerCase().includes("strict")) {
+            try {
+              localStorage.setItem(STORAGE_KEY_ACTIVE_ID, prevId);
+            } catch {}
+            return prevId;
+          }
+        }
+
+        // Priority 3: Anshu Suite Restaurant
         const anshuOutlet = finalOutlets.find((o) => o.name?.toLowerCase().includes("anshu"));
         const chosen =
           anshuOutlet ||
+          finalOutlets.find((o) => isBackendOutletId(o.id) && !o.name.toLowerCase().includes("strict")) ||
           finalOutlets.find((o) => isBackendOutletId(o.id)) ||
           finalOutlets[0];
+
         const nextId = chosen?.id || "";
         if (nextId && isBackendOutletId(nextId)) {
           try {
