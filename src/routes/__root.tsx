@@ -146,7 +146,9 @@ function AuthGate() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isAuthenticated, loading, redirectToPmsLogin } = useAuth();
 
-  if (pathname === "/login") return <Outlet />;
+  if (pathname === "/login" || pathname === "/login/" || pathname.startsWith("/login")) {
+    return <Outlet />;
+  }
 
   if (loading) {
     return (

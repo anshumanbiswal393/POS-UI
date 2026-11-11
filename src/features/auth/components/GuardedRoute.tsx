@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Navigate } from "@tanstack/react-router";
 import AccessDenied from "@/components/AccessDenied";
 import { useAuth } from "@/hooks/useAuth";
 import type { Permission } from "@/types/rbac";
@@ -21,7 +22,7 @@ export function GuardedRoute({
   const { can, user } = useAuth();
 
   if (!user) {
-    return <AccessDenied title="Authentication Required" description="Please sign in to access this page." />;
+    return <Navigate to="/login" replace />;
   }
 
   const roleStr = String(user.role || "").toLowerCase();

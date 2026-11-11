@@ -35,7 +35,6 @@ function PosLayoutRoute() {
       (pathname.startsWith("/pos/inventory") ||
         pathname.startsWith("/pos/management") ||
         pathname.startsWith("/pos/reports") ||
-        pathname.startsWith("/pos/reservations") ||
         pathname.startsWith("/pos/menu"))
     ) {
       navigate({ to: "/pos/billing", replace: true });

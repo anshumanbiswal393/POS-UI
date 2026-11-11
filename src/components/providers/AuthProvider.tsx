@@ -495,7 +495,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         authApi.logout();
         setUser(null);
-        redirectToPmsLogin();
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
       },
       redirectToPmsLogin,
       can: (perm: Permission | string) => {

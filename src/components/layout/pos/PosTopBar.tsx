@@ -547,7 +547,6 @@ export function PosTopBar({
             <DropdownMenuItem
               onClick={() => {
                 logout();
-                navigate({ to: "/login" });
               }}
               className="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] font-semibold text-destructive focus:bg-destructive/10 focus:text-destructive"
             >
