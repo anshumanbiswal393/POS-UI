@@ -224,7 +224,7 @@ export function AreaDeliveryChargesListView() {
   }, [records, statusFilter, searchArea]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-10">
       {/* 1. Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">

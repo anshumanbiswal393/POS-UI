@@ -265,7 +265,7 @@ export function SupportManagementView() {
   ];
 
   return (
-    <div className="space-y-5 w-full">
+    <div className="space-y-5 w-full pb-10">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>

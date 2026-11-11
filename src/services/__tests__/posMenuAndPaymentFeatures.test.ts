@@ -160,3 +160,4 @@ describe("Printed Menu Category Isolation & Normalization", () => {
     expect(sorted).toEqual(["Starters", "Rice", "Beverages"]);
   });
 });
+

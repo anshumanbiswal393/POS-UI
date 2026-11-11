@@ -161,5 +161,33 @@ describe("posInventoryService Category & Raw Material Management", () => {
       expect(diffDays).toBeGreaterThan(0);
       expect(diffDays).toBeLessThanOrEqual(15);
     });
+
+    it("saves closing stock and updates availableStock, closingStock, and quantityOnHand", async () => {
+      const item = await posInventoryService.upsertStockItem({
+        name: "Farm Fresh Chicken",
+        category: "Non-Veg Appetizers",
+        unit: "Kg",
+        availableStock: 7,
+      });
+
+      expect(item.closingStock).toBe(7);
+
+      // Save closing stock with new count = 2
+      const success = await posInventoryService.saveClosingStock(
+        [{ id: item.id, newStock: 2, notes: "Daily evening audit count" }],
+        undefined,
+        "2026-11-11",
+      );
+
+      expect(success).toBe(true);
+
+      const items = await posInventoryService.getStockItems();
+      const updated = items.find((i) => i.id === item.id);
+      expect(updated).toBeDefined();
+      expect(updated?.closingStock).toBe(2);
+      expect(updated?.availableStock).toBe(2);
+      expect(updated?.quantityOnHand).toBe(2);
+      expect(updated?.notes).toBe("Daily evening audit count");
+    });
   });
 });

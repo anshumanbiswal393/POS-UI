@@ -54,7 +54,7 @@ export function ConfigPageShell({
   };
 
   return (
-    <div className="space-y-4 pb-6">
+    <div className="space-y-4 pb-10">
       {/* 1. Top Header with Back Link & Title */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">

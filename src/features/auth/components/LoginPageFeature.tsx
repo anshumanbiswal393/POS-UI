@@ -237,7 +237,7 @@ export function LoginPageFeature() {
     try {
       const rawRbac = localStorage.getItem("retrod:pos:users:list");
       if (rawRbac) rbacUserList = JSON.parse(rawRbac);
-    } catch {}
+    } catch { }
 
     if (!match && Array.isArray(rbacUserList)) {
       const foundInRbac = rbacUserList.find(

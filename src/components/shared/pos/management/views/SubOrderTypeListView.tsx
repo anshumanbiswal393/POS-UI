@@ -141,7 +141,7 @@ export function SubOrderTypeListView() {
   }, [items, searchName]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-10">
       {/* 1. Header Bar matching Screenshot 2 */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">Sub Order Type</h2>

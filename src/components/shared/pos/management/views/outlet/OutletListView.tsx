@@ -22,7 +22,7 @@ export function OutletListView() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-10">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-serif text-[18px] font-bold tracking-tight text-slate-900">Outlet List</h2>

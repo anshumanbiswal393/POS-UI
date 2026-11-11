@@ -99,7 +99,7 @@ export function MarketplaceHubView() {
   ];
 
   return (
-    <div className="space-y-4 w-full">
+    <div className="space-y-4 w-full pb-10">
       {/* 1. Breadcrumb & Top Bar matching Screenshots 4 & 5 */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-[13px] text-slate-500">

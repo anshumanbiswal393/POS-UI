@@ -7,7 +7,7 @@ export function FloorPlanManagementView() {
   const [hasFloorPlan, setHasFloorPlan] = useState(false);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-10">
       {/* 1. Header Bar matching Screenshot 4 */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">

@@ -91,7 +91,7 @@ export function AdminGroupManagementView() {
   };
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-6 w-full pb-10">
       {/* 1. Header & Actions - Full width space utilization */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

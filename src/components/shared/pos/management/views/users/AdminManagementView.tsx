@@ -187,7 +187,7 @@ export function AdminManagementView() {
   ];
 
   return (
-    <div className="space-y-4 w-full">
+    <div className="space-y-4 w-full pb-10">
       {/* 1. Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>

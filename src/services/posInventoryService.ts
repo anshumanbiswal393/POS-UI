@@ -546,12 +546,15 @@ export const posInventoryService = {
     businessDate?: string,
   ): Promise<boolean> => {
     if (isBackendOutletId(outletId)) {
-      await httpClient.post(
-        "/api/pos/stock/closing/",
-        { date: businessDate, entries },
-        { params: scopeParams(outletId) },
-      );
-      return true;
+      try {
+        await httpClient.post(
+          "/api/pos/stock/closing/",
+          { date: businessDate, entries },
+          { params: scopeParams(outletId) },
+        );
+      } catch (err: any) {
+        console.warn("Backend closing stock post failed, falling back to local update:", err);
+      }
     }
     entries.forEach((e) => {
       stockStore = stockStore.map((item) => {
@@ -560,6 +563,7 @@ export const posInventoryService = {
             ...item,
             closingStock: e.newStock,
             availableStock: e.newStock,
+            quantityOnHand: e.newStock,
             newStock: undefined,
             variance: 0,
             notes: e.notes || item.notes,

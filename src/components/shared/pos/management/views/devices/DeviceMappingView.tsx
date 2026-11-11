@@ -118,7 +118,7 @@ export function DeviceMappingView() {
   );
 
   return (
-    <div className="space-y-4 w-full">
+    <div className="space-y-4 w-full pb-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-serif text-[18px] font-bold text-text-primary tracking-tight">Device Mapping</h2>

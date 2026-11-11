@@ -343,7 +343,7 @@ export function VirtualWalletView() {
   }, [records, mobileFilter]);
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-4 pb-10">
       {/* 1. Header with Add Action */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>

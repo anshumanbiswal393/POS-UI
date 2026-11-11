@@ -261,7 +261,7 @@ export function GstInformationView() {
   );
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-4 pb-10">
       {/* 1. Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>

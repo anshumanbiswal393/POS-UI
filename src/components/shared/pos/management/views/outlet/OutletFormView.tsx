@@ -120,7 +120,7 @@ export function OutletFormView() {
   };
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-4 pb-10">
       <div>
         <h2 className="font-serif text-[18px] font-bold tracking-tight text-slate-900">
           Add New Outlet
