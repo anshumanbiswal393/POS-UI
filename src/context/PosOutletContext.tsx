@@ -18,11 +18,7 @@ export const KNOWN_DUMMY_IDS = new Set([
 ]);
 
 /** Legacy hardcoded demo outlets from tenant test which must not leak to other properties */
-export const DEMO_OUTLET_IDS = new Set([
-  "0514a00f-5640-4ea4-81a4-32548d190625", // HIGHWAY INN
-  "46e3dc56-fa87-47c2-9f04-66531440fd9b", // Grand Pavilion
-  "2f4d03f1-193a-464d-a978-f900dfeea0c3", // Bite Square
-]);
+export const DEMO_OUTLET_IDS = new Set<string>();
 
 export const DEFAULT_FALLBACK_OUTLET: PosOutlet = {
   id: "outlet-default",
@@ -46,7 +42,7 @@ function cleanBrowserStorage() {
   if (typeof window === "undefined") return;
   try {
     const active = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
-    if (active && (KNOWN_DUMMY_IDS.has(active) || DEMO_OUTLET_IDS.has(active) || active.startsWith("outlet-"))) {
+    if (active && (KNOWN_DUMMY_IDS.has(active) || active.startsWith("outlet-"))) {
       localStorage.removeItem(STORAGE_KEY_ACTIVE_ID);
     }
     const customKey = "retrod_pos_custom_outlets";
@@ -191,11 +187,10 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         remote = await posOutletsService.listOutlets();
       }
 
-      // Filter out dummy outlets and demo outlets from other properties
+      // Filter out dummy outlets
       remote = remote.filter((o) => {
         if (!o) return false;
         if (isDummyOutlet(o.name, o.code) || KNOWN_DUMMY_IDS.has(o.id)) return false;
-        if (propId && propId !== "1c2e5dd3-1df0-4567-9524-c4e42987751a" && DEMO_OUTLET_IDS.has(o.id)) return false;
         return true;
       });
 

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Plus,
   Search,
@@ -1646,15 +1647,17 @@ export function StockPurchaseView() {
       )}
 
       {/* 8. Vendor Management Modal */}
-      {isVendorModalOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
-          <div
-            className="fixed inset-0"
-            onClick={() => {
-              setIsVendorModalOpen(false);
-              setShowAddVendorForm(false);
-            }}
-          />
+      {isVendorModalOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div className="fixed inset-0 z-[70] flex justify-end bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+            <div
+              className="fixed inset-0"
+              onClick={() => {
+                setIsVendorModalOpen(false);
+                setShowAddVendorForm(false);
+              }}
+            />
           <div className="relative z-10 w-full sm:w-[560px] md:w-[42%] lg:w-[35%] xl:w-[30%] min-w-[380px] h-full bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-300 overflow-hidden">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/70 shrink-0">
@@ -1945,7 +1948,8 @@ export function StockPurchaseView() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

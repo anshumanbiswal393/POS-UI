@@ -202,7 +202,7 @@ export function PosSidebar({
     const roleStr = String(user.role || "").toLowerCase();
     const emailLower = (user.email || "").toLowerCase();
 
-    // 1. Waiter access: STRICTLY limited to Billing Terminal, Settings (profile & theme), and Help Guide
+    // 1. Waiter access: Take Order, Billing Terminal, Orders (live & history), Reservations, Settings, and Help
     const isWaiter =
       roleStr === "pos_waiter" ||
       roleStr === "waiter" ||
@@ -210,7 +210,12 @@ export function PosSidebar({
       emailLower === "samprita2022@gift.edu.in";
 
     if (isWaiter) {
+      if (node.id === "take-order" || node.to === "/pos/take-order") return true;
       if (node.id === "billing" || node.to === "/pos/billing") return true;
+      if (node.id === "daily" || node.to === "/pos/orders") return true;
+      if (node.id === "live-orders" || node.to === "/pos/orders") return true;
+      if (node.id === "all-orders" || node.to === "/pos/orders/all") return true;
+      if (node.id === "reservations" || node.to === "/pos/reservations") return true;
       if (node.id === "settings" || node.to === "/pos/settings") return true;
       if (node.id === "help" || node.to === "/pos/help") return true;
       return false;
