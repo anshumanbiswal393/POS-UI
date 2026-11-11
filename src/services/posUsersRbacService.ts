@@ -724,14 +724,14 @@ export const posUsersRbacService = {
           });
         });
 
-      // 4. Waiter has billing view & create, floor order view, take, KOT, and KDS food ready alerts view
+      // 4. Waiter has billing view & create, floor order view, take, KOT, and reservations
       const waiterCodes = new Set([
         "pos.billing.view",
         "pos.billing.create",
         "pos.orders.view",
         "pos.orders.take",
         "pos.orders.kot",
-        "pos.kot.view",
+        "pos.reservations.manage",
       ]);
       allPerms
         .filter((p) => waiterCodes.has(p.code))

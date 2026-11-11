@@ -127,8 +127,10 @@ export const WAITER_USER: AppUser = {
     "pos.billing.create",
     "pos.orders.view",
     "pos.orders.take",
+    "pos.orders.create",
     "pos.orders.kot",
-    "pos.kot.view",
+    "pos.reservations.manage",
+    "pos.menu.view",
   ],
 };
 
@@ -461,6 +463,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = await authApi.login(emailOrUsername, password);
         const mappedUser = mapBackendUserToAppUser(data.user, data.properties, data.permissions);
         setUser(mappedUser);
+        if (typeof window !== "undefined" && Array.isArray(data.properties) && data.properties.length > 0) {
+          const firstProp = data.properties[0];
+          if (firstProp?.id) {
+            localStorage.setItem("retrod:active-property-id", String(firstProp.id));
+            localStorage.setItem("retrod_property_id", String(firstProp.id));
+          }
+        }
         addAuditEvent("User logged in (Password)", mappedUser.email, `Session started for ${mappedUser.name}.`, {
           name: mappedUser.name,
           role: mappedUser.role as Role,
@@ -471,6 +480,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authApi.saveTokens(tokens.access, tokens.refresh);
         const mappedUser = mapBackendUserToAppUser(userVal, propsVal, permsVal);
         setUser(mappedUser);
+        if (typeof window !== "undefined" && Array.isArray(propsVal) && propsVal.length > 0) {
+          const firstProp = propsVal[0];
+          if (firstProp?.id) {
+            localStorage.setItem("retrod:active-property-id", String(firstProp.id));
+            localStorage.setItem("retrod_property_id", String(firstProp.id));
+          }
+        }
         return mappedUser;
       },
       logout: () => {
@@ -563,12 +579,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             raw.startsWith("pos:billing:create") ||
             raw.startsWith("pos.orders") ||
             raw.startsWith("pos:orders") ||
-            raw.startsWith("pos.kot.view") ||
-            raw.startsWith("pos:kot:view") ||
+            raw.startsWith("pos.reservations") ||
+            raw.startsWith("pos:reservations") ||
             raw.startsWith("pos.menu.view") ||
             raw.startsWith("pos:menu:view")
           ) {
-            if (raw.includes("settle") || raw.includes("discount") || raw.includes("void")) {
+            if (
+              raw.includes("settle") ||
+              raw.includes("discount") ||
+              raw.includes("void") ||
+              raw.includes("kot.view") ||
+              raw.includes("kot:view")
+            ) {
               return false;
             }
             return true;

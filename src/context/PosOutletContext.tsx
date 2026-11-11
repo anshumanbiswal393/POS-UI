@@ -141,7 +141,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
   });
 
   const getActivePropertyInfo = useCallback(() => {
-    const storedPropId =
+    let storedPropId =
       (typeof window !== "undefined"
         ? localStorage.getItem("retrod:active-property-id") ||
           localStorage.getItem("retrod_property_id") ||
@@ -149,6 +149,16 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         : null) ||
       user?.properties?.[0]?.id ||
       null;
+
+    if (!storedPropId && user?.properties && user.properties.length > 0) {
+      storedPropId = user.properties[0].id;
+      if (typeof window !== "undefined" && storedPropId) {
+        try {
+          localStorage.setItem("retrod:active-property-id", storedPropId);
+          localStorage.setItem("retrod_property_id", storedPropId);
+        } catch {}
+      }
+    }
 
     const matchedProp = user?.properties?.find((p) => p.id === storedPropId);
     let propName = matchedProp?.name || user?.property || "Anshu Suite Restaurant";
@@ -169,11 +179,16 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         tenantId: user?.tenant_subdomain || undefined,
       });
 
-      // If tenant-filtered query yielded nothing, fall back to property-scoped query
+      // If tenant/prop query yielded nothing, fall back to property-scoped query
       if (remote.length === 0 && propId) {
         remote = await posOutletsService.listOutlets({
           propertyId: propId,
         });
+      }
+
+      // If still nothing, query all accessible outlets
+      if (remote.length === 0) {
+        remote = await posOutletsService.listOutlets();
       }
 
       // Filter out dummy outlets and demo outlets from other properties
@@ -181,7 +196,6 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         if (!o) return false;
         if (isDummyOutlet(o.name, o.code) || KNOWN_DUMMY_IDS.has(o.id)) return false;
         if (propId && propId !== "1c2e5dd3-1df0-4567-9524-c4e42987751a" && DEMO_OUTLET_IDS.has(o.id)) return false;
-        if (propId && o.propertyId && o.propertyId !== propId) return false;
         return true;
       });
 
@@ -252,6 +266,12 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         if (nextId && isBackendOutletId(nextId)) {
           try {
             localStorage.setItem(STORAGE_KEY_ACTIVE_ID, nextId);
+          } catch {}
+        }
+        if (chosen?.propertyId && typeof window !== "undefined") {
+          try {
+            localStorage.setItem("retrod:active-property-id", chosen.propertyId);
+            localStorage.setItem("retrod_property_id", chosen.propertyId);
           } catch {}
         }
         return nextId;

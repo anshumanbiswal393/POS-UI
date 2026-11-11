@@ -71,21 +71,14 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
     to: "/pos",
     icon: LayoutDashboard,
     exact: true,
-    anyPermissions: [
-      "pos.orders.view",
-      "pos.kot.view",
-      "pos.billing.view",
-      "pos.inventory.view",
-      "pos.menu.view",
-      "dashboard.view",
-    ],
+    permission: "dashboard.view",
   },
   {
     id: "take-order",
     label: "Take Order",
     to: "/pos/take-order",
     icon: Grid3X3,
-    permission: "pos.orders.create",
+    anyPermissions: ["pos.orders.take", "pos.orders.create"],
   },
   {
     id: "billing",
@@ -112,7 +105,7 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
     label: "Reservations",
     to: "/pos/reservations",
     icon: CalendarCheck2,
-    permission: "pos.orders.view",
+    anyPermissions: ["pos.reservations.manage", "pos.orders.view"],
   },
   {
     id: "menu",

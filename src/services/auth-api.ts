@@ -108,11 +108,18 @@ export function mapBackendUserToAppUser(
   }));
 
   if (mappedProperties.length > 0) {
-    const storedPropId =
+    let storedPropId =
       typeof window !== "undefined"
         ? localStorage.getItem("retrod:active-property-id") ||
           localStorage.getItem("retrod_property_id")
         : null;
+    if (!storedPropId && mappedProperties[0]?.id) {
+      storedPropId = mappedProperties[0].id;
+      try {
+        localStorage.setItem("retrod:active-property-id", storedPropId);
+        localStorage.setItem("retrod_property_id", storedPropId);
+      } catch {}
+    }
     const anshuProp = mappedProperties.find((p) => p.name.toLowerCase().includes("anshu"));
     const matched = storedPropId
       ? mappedProperties.find((p) => p.id === storedPropId)

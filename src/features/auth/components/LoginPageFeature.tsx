@@ -285,11 +285,12 @@ export function LoginPageFeature() {
           permissions: [
             "pos.billing.view",
             "pos.billing.create",
-            "pos.billing.settle",
             "pos.orders.view",
             "pos.orders.take",
+            "pos.orders.create",
             "pos.orders.kot",
-            "pos.kot.view",
+            "pos.reservations.manage",
+            "pos.menu.view",
           ],
         };
       } else if (isAdmin) {

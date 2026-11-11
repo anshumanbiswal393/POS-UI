@@ -29,6 +29,7 @@ import {
   Maximize,
   Minimize,
   CheckCircle2,
+  CalendarCheck2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -56,6 +57,7 @@ const NOTIFICATION_ICONS: Record<PosNotificationCategory, LucideIcon> = {
   PAYMENT: CreditCard,
   STOCK: Package,
   ONLINE: Wifi,
+  RESERVATION: CalendarCheck2,
   SYSTEM: Bell,
 };
 
@@ -65,6 +67,7 @@ const NOTIFICATION_TONES: Record<PosNotificationCategory, string> = {
   PAYMENT: "bg-blue-100 text-blue-700",
   STOCK: "bg-rose-100 text-rose-700",
   ONLINE: "bg-violet-100 text-violet-700",
+  RESERVATION: "bg-teal-100 text-teal-700",
   SYSTEM: "bg-slate-100 text-slate-700",
 };
 
@@ -92,7 +95,14 @@ export function PosTopBar({
   const currentPath = useRouterState({ select: (s) => s.location.pathname });
   const { user, roleLabel, logout } = useAuth();
   const { activeOutlet } = useOutletContext();
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = usePosNotifications();
+  const {
+    notifications,
+    unreadCount,
+    hasUrgentAlerts,
+    markAsRead,
+    markAllAsRead,
+    dismissNotification,
+  } = usePosNotifications();
 
   const roleStr = String(user?.role || "").toLowerCase();
   const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
@@ -288,14 +298,29 @@ export function PosTopBar({
               type="button"
               aria-label="Notifications"
               title="Notifications"
-              className="relative flex h-9 w-9 items-center justify-center rounded-md text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer outline-none"
+              className={`relative flex h-9 w-9 items-center justify-center rounded-md text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer outline-none ${
+                hasUrgentAlerts
+                  ? "ring-2 ring-rose-500/70 bg-rose-50/90 text-rose-600 animate-pulse"
+                  : ""
+              }`}
             >
               <Bell
-                className={`h-4.5 w-4.5 ${unreadCount > 0 ? "animate-bell-ring text-primary" : ""}`}
+                className={`h-4.5 w-4.5 ${
+                  hasUrgentAlerts
+                    ? "text-rose-600 animate-bounce"
+                    : unreadCount > 0
+                      ? "animate-bell-ring text-primary"
+                      : ""
+                }`}
               />
               {unreadCount > 0 ? (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9.5px] font-bold text-white shadow-xs">
-                  {unreadCount > 99 ? "99+" : unreadCount}
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center">
+                  {hasUrgentAlerts && (
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                  )}
+                  <span className="relative flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9.5px] font-bold text-white shadow-xs">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
                 </span>
               ) : null}
             </button>
@@ -324,6 +349,7 @@ export function PosTopBar({
                 notifications.map((item) => {
                   const Icon = NOTIFICATION_ICONS[item.category];
                   const isKot = item.category === "KOT";
+                  const isReservation = item.category === "RESERVATION";
                   return (
                     <div
                       key={item.id}
@@ -364,15 +390,33 @@ export function PosTopBar({
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                markAsRead(item.id);
-                                toast.success("Order picked up and marked as served to guest!", {
+                                dismissNotification(item.id);
+                                toast.success("Order served", {
                                   description: item.title,
                                 });
                               }}
-                              className="inline-flex items-center gap-1 rounded bg-teal-800 px-2 py-1 text-[11px] font-semibold text-white shadow-xs hover:bg-teal-900 transition cursor-pointer"
+                              className="inline-flex items-center gap-1 rounded bg-teal-800 px-2.5 py-1 text-[11px] font-semibold text-white shadow-xs hover:bg-teal-900 transition cursor-pointer"
                             >
                               <CheckCircle2 className="h-3 w-3" />
-                              Pick Up & Serve
+                              Served
+                            </button>
+                          </div>
+                        )}
+                        {isReservation && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                dismissNotification(item.id);
+                                toast.success("Reservation acknowledged", {
+                                  description: item.title,
+                                });
+                              }}
+                              className="inline-flex items-center gap-1 rounded bg-teal-800 px-2.5 py-1 text-[11px] font-semibold text-white shadow-xs hover:bg-teal-900 transition cursor-pointer"
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                              Served / Dismiss
                             </button>
                           </div>
                         )}

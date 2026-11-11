@@ -725,7 +725,7 @@ export function BillingCartRegister({
 
       {/* 5. Action Footer */}
       <div className="p-2.5 bg-slate-100 border-t border-slate-200 space-y-1.5 shrink-0">
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className={cn("grid gap-1.5", canSettle ? "grid-cols-3" : "grid-cols-2")}>
           <button
             type="button"
             onClick={onHoldBill}
@@ -748,16 +748,17 @@ export function BillingCartRegister({
             <span>{busyAction === "kot" ? "Sending…" : "KOT"}</span>
           </button>
 
-          <button
-            type="button"
-            onClick={onPayNow}
-            disabled={actionsDisabled || !canSettle}
-            title={!canSettle ? "Permission required to settle payments (pos.billing.settle)" : undefined}
-            className="flex items-center justify-center gap-1 py-2.5 px-1 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-[11px] font-bold transition disabled:opacity-40 cursor-pointer shadow-2xs"
-          >
-            <IndianRupee className="h-3.5 w-3.5" />
-            <span>{busyAction === "pay" ? "Paying…" : "PAY NOW"}</span>
-          </button>
+          {canSettle && (
+            <button
+              type="button"
+              onClick={onPayNow}
+              disabled={actionsDisabled}
+              className="flex items-center justify-center gap-1 py-2.5 px-1 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-[11px] font-bold transition disabled:opacity-40 cursor-pointer shadow-2xs"
+            >
+              <IndianRupee className="h-3.5 w-3.5" />
+              <span>{busyAction === "pay" ? "Paying…" : "PAY NOW"}</span>
+            </button>
+          )}
         </div>
 
         {showRoomFolio && canRoomCharge && (

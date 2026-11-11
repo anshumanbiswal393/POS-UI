@@ -26,12 +26,13 @@ describe("Waiter Role UI & Permissions Full Walkthrough", () => {
     expect(permCodes).toContain("pos.orders.view");
     expect(permCodes).toContain("pos.orders.take");
     expect(permCodes).toContain("pos.orders.kot");
-    expect(permCodes).toContain("pos.kot.view");
+    expect(permCodes).toContain("pos.reservations.manage");
 
     // Total permissions = 6 out of 19
     expect(permCodes.length).toBe(6);
 
     // Strictly forbidden permissions:
+    expect(permCodes).not.toContain("pos.kot.view");
     expect(permCodes).not.toContain("pos.billing.settle");
     expect(permCodes).not.toContain("pos.inventory.view");
     expect(permCodes).not.toContain("pos.inventory.manage");
@@ -80,25 +81,59 @@ describe("Waiter Role UI & Permissions Full Walkthrough", () => {
     expect(resolveStartingRoute("pos_admin")).toBe("/pos");
   });
 
-  it("Step 4: Simulates Sidebar generation for Waiter - only Billing terminal module visible", () => {
+  it("Step 4: Simulates Sidebar generation for Waiter - Take Order, Billing, Orders (Current & History only), Reservations", () => {
     const simulateWaiterSidebar = (userRole: string) => {
       const isWaiter = userRole === "pos_waiter" || userRole === "waiter" || userRole.includes("waiter");
-      if (isWaiter) {
-        const allowedIds = new Set(["billing"]);
-        return POS_NAV_ITEMS.filter((item) => allowedIds.has(item.id));
-      }
-      return POS_NAV_ITEMS;
+      const waiterPerms = new Set([
+        "pos.billing.view",
+        "pos.billing.create",
+        "pos.orders.view",
+        "pos.orders.take",
+        "pos.orders.create",
+        "pos.orders.kot",
+        "pos.reservations.manage",
+      ]);
+
+      const filterNav = (items: typeof POS_NAV_ITEMS): typeof POS_NAV_ITEMS => {
+        return items
+          .filter((item) => {
+            if (isWaiter) {
+              const allowedIds = new Set(["take-order", "billing", "daily", "reservations"]);
+              if (!allowedIds.has(item.id)) return false;
+            }
+            if (item.permission && !waiterPerms.has(item.permission)) return false;
+            if (item.anyPermissions && !item.anyPermissions.some((p) => waiterPerms.has(p))) return false;
+            return true;
+          })
+          .map((item) => {
+            if (!item.children) return item;
+            const filteredChildren = item.children.filter((child) => {
+              if (child.permission && !waiterPerms.has(child.permission)) return false;
+              if (child.anyPermissions && !child.anyPermissions.some((p) => waiterPerms.has(p))) return false;
+              return true;
+            });
+            return { ...item, children: filteredChildren };
+          });
+      };
+
+      return filterNav(POS_NAV_ITEMS);
     };
 
     const waiterSidebar = simulateWaiterSidebar("pos_waiter");
-    expect(waiterSidebar.length).toBe(1);
     const visibleIds = waiterSidebar.map((i) => i.id);
-    expect(visibleIds).toEqual(["billing"]);
+    expect(visibleIds).toEqual(["take-order", "billing", "daily", "reservations"]);
 
-    // Forbidden from Dashboard, Take Order, Daily Orders, Inventory/Stock, Reports, Management
+    // Orders (daily) has Current Orders and Order History, but NOT KOT or Pending Payments (settlement)
+    const dailyItem = waiterSidebar.find((i) => i.id === "daily");
+    expect(dailyItem).toBeDefined();
+    const dailyChildrenIds = dailyItem?.children?.map((c) => c.id) || [];
+    expect(dailyChildrenIds).toContain("live-orders");
+    expect(dailyChildrenIds).toContain("all-orders");
+    expect(dailyChildrenIds).not.toContain("kot");
+    expect(dailyChildrenIds).not.toContain("settlement");
+
+    // Strictly forbidden root modules
     expect(visibleIds).not.toContain("dashboard");
-    expect(visibleIds).not.toContain("take-order");
-    expect(visibleIds).not.toContain("daily");
     expect(visibleIds).not.toContain("inventory");
     expect(visibleIds).not.toContain("reports");
     expect(visibleIds).not.toContain("management");

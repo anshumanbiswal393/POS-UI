@@ -325,27 +325,29 @@ export function PosSidebar({
       return items;
     }
 
-    if (isWaiter) {
-      const allowedIds = new Set(["take-order", "billing", "daily"]);
-      return POS_NAV_ITEMS.filter((item) => allowedIds.has(item.id));
-    }
+    const allowedWaiterIds = new Set(["take-order", "billing", "daily", "reservations"]);
+    const candidateItems = isWaiter
+      ? POS_NAV_ITEMS.filter((item) => allowedWaiterIds.has(item.id))
+      : POS_NAV_ITEMS;
 
-    return POS_NAV_ITEMS.filter((item) => {
-      if (!isNodeAllowed(item)) return false;
-      if (item.children?.length) {
-        const visibleSubs = filterNavChildren(item.children);
-        return visibleSubs.length > 0;
-      }
-      return true;
-    }).map((item) => {
-      if (item.children?.length) {
-        return {
-          ...item,
-          children: filterNavChildren(item.children),
-        };
-      }
-      return item;
-    });
+    return candidateItems
+      .filter((item) => {
+        if (!isNodeAllowed(item)) return false;
+        if (item.children?.length) {
+          const visibleSubs = filterNavChildren(item.children);
+          return visibleSubs.length > 0;
+        }
+        return true;
+      })
+      .map((item) => {
+        if (item.children?.length) {
+          return {
+            ...item,
+            children: filterNavChildren(item.children),
+          };
+        }
+        return item;
+      });
   }, [user, can]);
 
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => readPinnedNavNodeIds());

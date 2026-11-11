@@ -40,9 +40,18 @@ const DEFAULT_READY_NOTICE: KotReadyNotice = {
 
 export function listKotReadyNotices(outletId?: string): KotReadyNotice[] {
   const rows = readAll();
-  const list = rows.length > 0 ? rows : [DEFAULT_READY_NOTICE];
+  const raw = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
+  const list = raw === null ? [DEFAULT_READY_NOTICE] : rows;
   if (!outletId) return list;
   return list.filter((r) => !r.outletId || r.outletId === outletId);
+}
+
+export function dismissKotReadyNotice(id: string) {
+  const remaining = readAll().filter((r) => r.id !== id);
+  writeAll(remaining);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(KOT_READY_EVENT, { detail: { action: "dismiss", id } }));
+  }
 }
 
 export function pushKotReadyNotice(notice: KotReadyNotice) {
