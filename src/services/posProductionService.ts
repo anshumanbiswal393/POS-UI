@@ -134,6 +134,27 @@ function saveStoredBatches(batches: ProductionBatchDto[]) {
 
 export const posProductionService = {
   getAvailableRawMaterials(): AvailableRawMaterial[] {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("retrod_pos_stock_items_v1");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map((skuItem: any) => ({
+              id: String(skuItem.id),
+              code: skuItem.sku || skuItem.code || skuItem.id,
+              name: skuItem.rawMaterial || skuItem.name || "Raw Material",
+              category: skuItem.category || "General",
+              unit: skuItem.unit || "kg",
+              unitCost: Number(skuItem.unitCost ?? skuItem.pricePerUnit ?? 0),
+              quantityOnHand: Number(skuItem.availableStock ?? skuItem.quantityOnHand ?? 0),
+            }));
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
     return DEFAULT_RAW_MATERIALS;
   },
 

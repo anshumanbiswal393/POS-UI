@@ -266,7 +266,7 @@ export function CreateRecipeModal({
                             const sku = stockItems.find((s) => s.id === e.target.value);
                             updateIngredient(ing.id, {
                               stockItemId: e.target.value,
-                              name: sku?.rawMaterial || "",
+                              name: sku?.rawMaterial || (sku as any)?.name || "",
                               unit: sku?.unit || ing.unit,
                             });
                           }}
@@ -275,7 +275,7 @@ export function CreateRecipeModal({
                           <option value="">Select stock item</option>
                           {stockItems.map((sku) => (
                             <option key={sku.id} value={sku.id}>
-                              {sku.rawMaterial}
+                              {sku.rawMaterial || (sku as any)?.name}
                             </option>
                           ))}
                         </select>

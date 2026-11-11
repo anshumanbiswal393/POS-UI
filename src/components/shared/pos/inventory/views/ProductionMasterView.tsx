@@ -36,6 +36,7 @@ import {
   type DataTableColumn,
 } from "@/components/common/DataTableHeader";
 import { useNavigate } from "@tanstack/react-router";
+import { useStockItems } from "@/hooks/queries/usePosInventory";
 import {
   posProductionService,
   type ProductionRecipeDto,
@@ -47,6 +48,24 @@ export function ProductionMasterView() {
   const [recipes, setRecipes] = useState<ProductionRecipeDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const { data: stockItems = [], isLoading: isStockLoading } = useStockItems();
+
+  const rawMaterialsList = useMemo<AvailableRawMaterial[]>(() => {
+    const safeItems = Array.isArray(stockItems) ? stockItems : (stockItems as any)?.results || [];
+    if (safeItems.length > 0) {
+      return safeItems.map((skuItem: any) => ({
+        id: String(skuItem.id),
+        code: skuItem.sku || skuItem.code || skuItem.id,
+        name: skuItem.rawMaterial || skuItem.name || "Raw Material",
+        category: skuItem.category || "General",
+        unit: skuItem.unit || "kg",
+        unitCost: Number(skuItem.unitCost ?? skuItem.pricePerUnit ?? 0),
+        quantityOnHand: Number(skuItem.availableStock ?? skuItem.quantityOnHand ?? 0),
+      }));
+    }
+    return posProductionService.getAvailableRawMaterials();
+  }, [stockItems]);
 
   // Table sorting, column filtering, column visibility & pagination
   const [sortConfig, setSortConfig] = useState<{ colId: string; direction: "asc" | "desc" } | null>(null);
@@ -69,9 +88,6 @@ export function ProductionMasterView() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<ProductionRecipeDto | null>(null);
   const [viewingRecipe, setViewingRecipe] = useState<ProductionRecipeDto | null>(null);
-
-  // Available raw materials for ingredient picker
-  const [rawMaterialsList, setRawMaterialsList] = useState<AvailableRawMaterial[]>([]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -99,7 +115,6 @@ export function ProductionMasterView() {
       setLoading(true);
       const data = await posProductionService.fetchRecipes();
       setRecipes(data);
-      setRawMaterialsList(posProductionService.getAvailableRawMaterials());
     } catch (err) {
       toast.error("Failed to load production recipes");
     } finally {
@@ -266,15 +281,24 @@ export function ProductionMasterView() {
 
   const handleOpenCreate = () => {
     setEditingRecipe(null);
+    const firstRm = rawMaterialsList[0];
     setFormData({
       name: "",
       code: `PRD-REC-0${recipes.length + 1}`,
       category: "Gravies & Sauces",
       outputUnit: "Liter (L)",
-      expectedYield: "25",
+      expectedYield: "5",
       shelfLifeDays: "3",
       instructions: "",
-      ingredients: [{ stockItemId: "", stockItemName: "", quantity: "", unit: "kg", unitCost: "0" }],
+      ingredients: [
+        {
+          stockItemId: firstRm ? firstRm.id : "",
+          stockItemName: firstRm ? firstRm.name : "",
+          quantity: "1",
+          unit: firstRm ? firstRm.unit : "kg",
+          unitCost: firstRm ? String(firstRm.unitCost) : "0",
+        },
+      ],
     });
     setIsCreateOpen(true);
   };
@@ -289,7 +313,7 @@ export function ProductionMasterView() {
       expectedYield: String(recipe.expectedYield),
       shelfLifeDays: String(recipe.shelfLifeDays || 3),
       instructions: recipe.instructions || "",
-      ingredients: recipe.ingredients.map((ing) => ({
+      ingredients: (recipe.ingredients || []).map((ing) => ({
         stockItemId: ing.stockItemId,
         stockItemName: ing.stockItemName,
         quantity: String(ing.quantity),
@@ -301,22 +325,17 @@ export function ProductionMasterView() {
   };
 
   const handleAddIngredientRow = () => {
-    const firstRm = rawMaterialsList[0] || {
-      id: `rm-${Date.now()}`,
-      name: "Raw Material",
-      unit: "kg",
-      unitCost: 50,
-    };
+    const firstRm = rawMaterialsList[0];
     setFormData((prev) => ({
       ...prev,
       ingredients: [
         ...prev.ingredients,
         {
-          stockItemId: firstRm.id,
-          stockItemName: firstRm.name,
+          stockItemId: firstRm ? firstRm.id : "",
+          stockItemName: firstRm ? firstRm.name : "",
           quantity: "1",
-          unit: firstRm.unit,
-          unitCost: String(firstRm.unitCost),
+          unit: firstRm ? firstRm.unit : "kg",
+          unitCost: firstRm ? String(firstRm.unitCost) : "0",
         },
       ],
     }));
@@ -374,6 +393,12 @@ export function ProductionMasterView() {
     }
     if (formData.ingredients.length === 0) {
       toast.error("Please add at least one ingredient to the BOM.");
+      return;
+    }
+
+    const unselected = formData.ingredients.some((ing) => !ing.stockItemId);
+    if (unselected) {
+      toast.error("Please select a raw material (stock item) for every ingredient line.");
       return;
     }
 
@@ -867,13 +892,21 @@ export function ProductionMasterView() {
                               <select
                                 value={ing.stockItemId}
                                 onChange={(e) => handleIngredientChange(idx, "stockItemId", e.target.value)}
-                                className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12.5px] text-slate-800 focus:border-teal-500 focus:outline-none"
+                                className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12.5px] text-slate-800 focus:border-teal-500 focus:outline-none cursor-pointer"
                               >
+                                <option value="">
+                                  {isStockLoading ? "Loading raw materials..." : "-- Select Raw Material --"}
+                                </option>
                                 {rawMaterialsList.map((rm) => (
                                   <option key={rm.id} value={rm.id}>
                                     {rm.name} ({rm.unit}) — ₹{rm.unitCost}/{rm.unit}
                                   </option>
                                 ))}
+                                {ing.stockItemId && !rawMaterialsList.some((rm) => rm.id === ing.stockItemId) && (
+                                  <option value={ing.stockItemId}>
+                                    {ing.stockItemName || "Selected Item"} ({ing.unit}) — ₹{ing.unitCost}/{ing.unit}
+                                  </option>
+                                )}
                               </select>
                             </td>
                             <td className="p-2 text-right">
