@@ -68,9 +68,9 @@ export function BillingPayNowModal({
   const canRoomCharge = isMaster || can("pos.billing.room_charge");
 
   const availableMethods = useMemo(() => {
-    return PAY_METHODS.filter((m) => {
-      if (m.id === "Room Charge" && !canRoomCharge) return false;
-      return true;
+    return (PAY_METHODS || []).filter((m) => {
+      if (m && m.id === "Room Charge" && !canRoomCharge) return false;
+      return Boolean(m);
     });
   }, [canRoomCharge]);
 

@@ -22,9 +22,9 @@ import {
 interface NewReservationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  tables: RestaurantTable[];
+  tables?: RestaurantTable[];
   preselectedTableId?: string;
-  onSaveReservation: (data: Omit<ReservationItem, "id" | "createdAt" | "status">) => void;
+  onSaveReservation?: (data: Omit<ReservationItem, "id" | "createdAt" | "status">) => void;
 }
 
 const PAX_PRESETS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16] as const;
@@ -59,9 +59,11 @@ function formatDisplayTime(hhmm: string) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")} ${suffix}`;
 }
 
-function tableCapacitySum(tables: RestaurantTable[], ids: string[]) {
-  return ids.reduce((sum, id) => {
-    const table = tables.find((t) => t.id === id);
+function tableCapacitySum(tables: RestaurantTable[] | undefined, ids: string[] | undefined) {
+  const safeTables = Array.isArray(tables) ? tables : [];
+  const safeIds = Array.isArray(ids) ? ids : [];
+  return safeIds.reduce((sum, id) => {
+    const table = safeTables.find((t) => t && t.id === id);
     return sum + (table?.capacity || 0);
   }, 0);
 }
@@ -69,10 +71,12 @@ function tableCapacitySum(tables: RestaurantTable[], ids: string[]) {
 export function NewReservationModal({
   isOpen,
   onClose,
-  tables,
+  tables = [],
   preselectedTableId,
   onSaveReservation,
 }: NewReservationModalProps) {
+  const safeTables = useMemo(() => (Array.isArray(tables) ? tables : []), [tables]);
+
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -93,26 +97,28 @@ export function NewReservationModal({
   const [isPaymentDone, setIsPaymentDone] = useState(false);
 
   const availableTables = useMemo(() => {
-    const vacant = tables.filter((t) => t.status === "vacant").sort((a, b) => a.capacity - b.capacity);
+    const vacant = safeTables
+      .filter((t) => t && t.status === "vacant")
+      .sort((a, b) => (a.capacity || 0) - (b.capacity || 0));
     if (vacant.length > 0) return vacant;
-    return [...tables].sort((a, b) => a.capacity - b.capacity);
-  }, [tables]);
+    return [...safeTables].sort((a, b) => (a.capacity || 0) - (b.capacity || 0));
+  }, [safeTables]);
 
   const fittingSingleTables = useMemo(
-    () => availableTables.filter((t) => t.capacity >= guests),
+    () => (Array.isArray(availableTables) ? availableTables : []).filter((t) => t && (t.capacity || 0) >= guests),
     [availableTables, guests],
   );
 
   const needsMerge = fittingSingleTables.length === 0 && availableTables.length > 0;
 
   const selectedCapacity = useMemo(
-    () => tableCapacitySum(tables, selectedTableIds),
-    [tables, selectedTableIds],
+    () => tableCapacitySum(safeTables, selectedTableIds),
+    [safeTables, selectedTableIds],
   );
 
   const capacityOk = selectedTableIds.length > 0 && selectedCapacity >= guests;
   const totalVacantCapacity = useMemo(
-    () => availableTables.reduce((sum, t) => sum + t.capacity, 0),
+    () => (Array.isArray(availableTables) ? availableTables : []).reduce((sum, t) => sum + (t?.capacity || 0), 0),
     [availableTables],
   );
 
@@ -218,8 +224,8 @@ export function NewReservationModal({
       return;
     }
 
-    const ordered = selectedTableIds
-      .map((id) => tables.find((t) => t.id === id))
+    const ordered = (selectedTableIds || [])
+      .map((id) => safeTables.find((t) => t && t.id === id))
       .filter(Boolean) as RestaurantTable[];
     const primary = ordered[0];
     const isMerged = ordered.length > 1;
@@ -560,8 +566,8 @@ export function NewReservationModal({
                 <span className="font-bold text-text-primary">{customerName.trim() || "this guest"}</span>
                 :{" "}
                 <span className="font-semibold text-primary">
-                  {selectedTableIds
-                    .map((id) => tables.find((t) => t.id === id)?.tableNumber)
+                  {(selectedTableIds || [])
+                    .map((id) => safeTables.find((t) => t && t.id === id)?.tableNumber)
                     .filter(Boolean)
                     .join(" + ")}
                 </span>

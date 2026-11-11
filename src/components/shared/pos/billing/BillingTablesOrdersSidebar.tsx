@@ -19,7 +19,12 @@ import {
   Plus,
   Crown,
 } from "lucide-react";
-import { useDiningAreas, usePosTables, usePosReservations } from "@/hooks/queries/usePosTables";
+import {
+  useDiningAreas,
+  usePosTables,
+  usePosReservations,
+  useAddReservationMutation,
+} from "@/hooks/queries/usePosTables";
 import { useCurrentOrdersTimeline } from "@/hooks/queries/usePosOrders";
 import type { RestaurantTable, ReservationItem } from "@/types/posTables";
 import type { CurrentOrderRecord } from "@/services/posOrdersService";
@@ -98,6 +103,7 @@ export function BillingTablesOrdersSidebar({
   const { data: tables = [], isLoading: tablesLoading } = usePosTables();
   const { data: currentOrders = [], isLoading: ordersLoading } = useCurrentOrdersTimeline(activeOutletId);
   const { data: reservations = [], isLoading: reservationsLoading } = usePosReservations();
+  const addReservationMutation = useAddReservationMutation();
 
   // Dynamic zones list from areas query and actual table data
   const zones = useMemo(() => {
@@ -885,6 +891,14 @@ export function BillingTablesOrdersSidebar({
       <NewReservationModal
         isOpen={isNewReservationModalOpen}
         onClose={() => setIsNewReservationModalOpen(false)}
+        tables={Array.isArray(tables) ? tables : []}
+        onSaveReservation={(data) => {
+          addReservationMutation.mutate(data, {
+            onSuccess: () => {
+              setIsNewReservationModalOpen(false);
+            },
+          });
+        }}
       />
     </aside>
   );

@@ -406,16 +406,17 @@ export function PosBillingManager() {
       .filter((item) => item && item.status === "Active" && item.baseMenu !== false)
       .map((item) => {
         const primaryImg =
-          item.images?.find((img) => img.isPrimary)?.url || item.images?.[0]?.url;
+          item.images?.find((img) => img?.isPrimary)?.url || item.images?.[0]?.url;
+        const catLower = String(item.category || "").toLowerCase();
         const diet: "veg" | "non_veg" | "egg" | "drinks" =
           item.itemType === "Veg"
             ? "veg"
             : item.itemType === "Egg"
               ? "egg"
-              : item.category.toLowerCase().includes("bev") ||
-                item.category.toLowerCase().includes("cocktail") ||
-                item.category.toLowerCase().includes("vodka") ||
-                item.category.toLowerCase().includes("whisky")
+              : catLower.includes("bev") ||
+                catLower.includes("cocktail") ||
+                catLower.includes("vodka") ||
+                catLower.includes("whisky")
                 ? "drinks"
                 : "non_veg";
 
@@ -744,7 +745,7 @@ export function PosBillingManager() {
 
   // Remove Cart Item
   const handleRemoveCartItem = (cartId: string) => {
-    setCartItems((prev) => prev.filter((ci) => ci.cartId !== cartId));
+    setCartItems((prev) => (Array.isArray(prev) ? prev : []).filter((ci) => ci && ci.cartId !== cartId));
   };
 
   // Toggle Complimentary
@@ -1040,7 +1041,7 @@ export function PosBillingManager() {
       }
     }
 
-    setHeldBills((prev) => prev.filter((h) => h.id !== held.id));
+    setHeldBills((prev) => (Array.isArray(prev) ? prev : []).filter((h) => h && h.id !== held.id));
     toast.success(`Resumed check ${held.billNumber} for ${held.tableNumber || held.roomNumber || "Takeaway"}`);
   };
 
@@ -1132,12 +1133,12 @@ export function PosBillingManager() {
           toast.error(err?.response?.data?.detail || err?.message || "Could not discard held check");
           return;
         }
-        setHeldBills((prev) => prev.filter((h) => h.id !== id));
+        setHeldBills((prev) => (Array.isArray(prev) ? prev : []).filter((h) => h && h.id !== id));
         toast.error("Discarded held check");
       })();
       return;
     }
-    setHeldBills((prev) => prev.filter((h) => h.id !== id));
+    setHeldBills((prev) => (Array.isArray(prev) ? prev : []).filter((h) => h && h.id !== id));
     toast.error("Discarded held check");
   };
 
