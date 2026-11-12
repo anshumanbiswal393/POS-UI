@@ -10,7 +10,6 @@ import {
   Users,
   Sparkles,
   LayoutGrid,
-  RotateCw,
   Plus,
   CalendarPlus,
   UserPlus,
@@ -64,7 +63,6 @@ export function TableFloorPlan({
   onSwitchTable,
   onSeatReservation,
   stats,
-  onRefresh,
   onDeleteArea,
   onDeleteTable,
 }: TableFloorPlanProps) {
@@ -316,17 +314,6 @@ export function TableFloorPlan({
               >
                 <CalendarPlus className="w-3.5 h-3.5 text-amber-300" />
                 <span>Book Reservation</span>
-              </button>
-            )}
-
-            {onRefresh && (
-              <button
-                type="button"
-                onClick={onRefresh}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
-                title="Refresh floor status"
-              >
-                <RotateCw className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
