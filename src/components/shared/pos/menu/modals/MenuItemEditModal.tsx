@@ -821,7 +821,7 @@ export function MenuItemEditModal({
               <input
                 type="number"
                 min="0"
-                step="0.5"
+                step="any"
                 placeholder="e.g. 20 plates"
                 value={plates}
                 onChange={(e) => setPlates(e.target.value)}
@@ -890,7 +890,7 @@ export function MenuItemEditModal({
                           <input
                             type="number"
                             min="0"
-                            step="0.01"
+                            step="any"
                             placeholder="0.00"
                             value={ing.quantity}
                             onChange={(e) =>
