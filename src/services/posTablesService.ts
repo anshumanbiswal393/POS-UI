@@ -101,47 +101,14 @@ function getStoredReservations(outletId?: string): ReservationItem[] {
   try {
     const raw = typeof window !== "undefined" ? localStorage.getItem(`retrod_pos_reservations_${effective}`) : null;
     let list: ReservationItem[] = raw ? JSON.parse(raw) : [];
-    if (!raw && typeof window !== "undefined" && list.length === 0) {
-      const todayIso = new Date().toISOString().split("T")[0];
-      const initialSeed: ReservationItem[] = [
-        {
-          id: "res-seed-01",
-          tableId: "t13",
-          tableNumber: "T13",
-          customerName: "Rahul Sharma",
-          customerPhone: "9876543210",
-          customerEmail: "rahul.sharma@example.com",
-          guests: 4,
-          reservationDate: todayIso,
-          reservationTime: "07:30 PM",
-          endTime: "09:30 PM",
-          status: "reserved",
-          notes: "Window side table requested",
-          isVip: true,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: "res-seed-02",
-          tableId: "t23",
-          tableNumber: "T23",
-          customerName: "Pooja Patel",
-          customerPhone: "9812345678",
-          customerEmail: "pooja.patel@example.com",
-          guests: 2,
-          reservationDate: todayIso,
-          reservationTime: "08:15 PM",
-          endTime: "10:00 PM",
-          status: "reserved",
-          notes: "Quiet corner preferred",
-          isVip: false,
-          createdAt: new Date().toISOString(),
-        },
-      ];
-      localStorage.setItem(`retrod_pos_reservations_${effective}`, JSON.stringify(initialSeed));
-      return initialSeed;
-    }
+    if (!Array.isArray(list)) list = [];
+
+    // Strip previously-persisted legacy dummy seed reservations so only real data renders
+    const beforeLen = list.length;
+    list = list.filter((r) => r && r.id !== "res-seed-01" && r.id !== "res-seed-02");
+    let modified = list.length !== beforeLen;
+
     // Sanitize any reservation that had the hardcoded 25 from the previous bug
-    let modified = false;
     list = list.map((r) => {
       if (r.depositAmount === 25 && (!r.notes || !r.notes.includes("deposit"))) {
         modified = true;

@@ -177,14 +177,10 @@ describe("Waiter Role UI & Permissions Full Walkthrough", () => {
 
   it("Step 7: Verifies Waiter has access to Reservation list and can manage reservations", async () => {
     const { posTablesService } = await import("@/services/posTablesService");
-    const reservations = await posTablesService.getReservations();
-    expect(reservations).toBeDefined();
-    expect(Array.isArray(reservations)).toBe(true);
-    expect(reservations.length).toBeGreaterThanOrEqual(1);
-
-    const firstRes = reservations[0];
-    expect(firstRes.customerName).toBeDefined();
-    expect(firstRes.tableNumber).toBeDefined();
+    const initialReservations = await posTablesService.getReservations();
+    expect(initialReservations).toBeDefined();
+    expect(Array.isArray(initialReservations)).toBe(true);
+    expect(initialReservations.length).toBe(0);
 
     // Verify Waiter can add new reservation
     const created = await posTablesService.addReservation({
@@ -201,6 +197,11 @@ describe("Waiter Role UI & Permissions Full Walkthrough", () => {
     expect(created.id).toBeDefined();
     expect(created.customerName).toBe("Aarav Sharma");
     expect(created.status).toBe("reserved");
+
+    const reservations = await posTablesService.getReservations();
+    expect(reservations.length).toBe(1);
+    expect(reservations[0].customerName).toBe("Aarav Sharma");
+    expect(reservations[0].tableNumber).toBe(created.tableNumber);
   });
 });
 

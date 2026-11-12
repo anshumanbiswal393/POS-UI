@@ -395,5 +395,38 @@ describe("POS Reservations & Dynamic Table Status", () => {
       const active = filterActivePosOrders(sampleOrders);
       expect(active.map((o) => o.id)).toEqual(["ord-active"]);
     });
+
+    it("does not seed dummy fallback reservations when localStorage is empty and strips legacy res-seed entries", async () => {
+      const emptyReservations = await posTablesService.getReservations();
+      expect(emptyReservations.some((r) => r.id === "res-seed-01" || r.id === "res-seed-02")).toBe(
+        false,
+      );
+
+      // Simulate a browser that previously cached the 2 legacy dummy reservations alongside a real booking
+      const realRes: ReservationItem = {
+        id: "res-real-100",
+        tableId: "t05",
+        tableNumber: "T05",
+        customerName: "Ananya Das",
+        customerPhone: "9000011111",
+        guests: 2,
+        reservationDate: "2026-11-12",
+        reservationTime: "08:00 PM",
+        status: "reserved",
+        createdAt: new Date().toISOString(),
+      };
+      localStorage.setItem(
+        "retrod_pos_reservations_default",
+        JSON.stringify([
+          { ...realRes, id: "res-seed-01", customerName: "Rahul Sharma" },
+          { ...realRes, id: "res-seed-02", customerName: "Pooja Patel" },
+          realRes,
+        ]),
+      );
+
+      const list = await posTablesService.getReservations();
+      expect(list.some((r) => r.id === "res-seed-01" || r.id === "res-seed-02")).toBe(false);
+      expect(list.some((r) => r.id === "res-real-100" && r.customerName === "Ananya Das")).toBe(true);
+    });
   });
 });
