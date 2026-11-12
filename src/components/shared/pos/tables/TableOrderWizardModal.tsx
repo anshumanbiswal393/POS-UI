@@ -4,8 +4,6 @@ import {
   X,
   UserCheck,
   Utensils,
-  User,
-  Phone,
   ArrowRight,
   Minus,
   Plus,
@@ -60,17 +58,6 @@ interface TableOrderWizardModalProps {
   }) => void;
   onHoldOrder?: (data: HeldTableOrder) => void;
 }
-
-const WAITER_OPTIONS = [
-  "Rahul V. (Senior Captain)",
-  "Sunil (Captain)",
-  "Amit (Server)",
-  "David M. (Server)",
-  "Sarah K. (Server)",
-  "Leo R. (Server)",
-  "Kunal S. (Floor Manager)",
-  "Pooja (Captain)",
-];
 
 export function tableCapacitySum(tables: RestaurantTable[], ids: string[]) {
   return ids.reduce((sum, id) => {
@@ -204,8 +191,6 @@ export function TableOrderWizardModal({
   const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
   const [mergeMode, setMergeMode] = useState(false);
   const [waiterName, setWaiterName] = useState("");
-  const [customWaiter, setCustomWaiter] = useState("");
-  const [isCustomWaiter, setIsCustomWaiter] = useState(false);
   const [pax, setPax] = useState(2);
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
@@ -249,7 +234,7 @@ export function TableOrderWizardModal({
       : orderedSelected[0]?.tableNumber || "";
 
   const primaryTable = orderedSelected[0] || null;
-  const effectiveWaiter = isCustomWaiter ? customWaiter.trim() : waiterName;
+  const effectiveWaiter = waiterName;
 
   const cartList = Object.values(cart);
   const subtotal = cartList.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
@@ -275,8 +260,6 @@ export function TableOrderWizardModal({
 
     setStep(1);
     setWaiterName("");
-    setCustomWaiter("");
-    setIsCustomWaiter(false);
     setGuestName("");
     setGuestPhone("");
     setNotes("");
@@ -700,89 +683,6 @@ export function TableOrderWizardModal({
                   {selectedCapacity} seats
                 </div>
               )}
-            </div>
-
-            {/* 3. Waiter & notes */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase">
-                    Waiter / Butler <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsCustomWaiter(!isCustomWaiter)}
-                    className="text-[11px] text-primary hover:underline font-bold cursor-pointer"
-                  >
-                    {isCustomWaiter ? "Select from List" : "+ Custom Name"}
-                  </button>
-                </div>
-                {isCustomWaiter ? (
-                  <input
-                    type="text"
-                    placeholder="Type server or captain name..."
-                    value={customWaiter}
-                    onChange={(e) => setCustomWaiter(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
-                  />
-                ) : (
-                  <select
-                    value={waiterName}
-                    onChange={(e) => setWaiterName(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium text-slate-700 cursor-pointer"
-                  >
-                    <option value="">Select Waiter / Butler (Optional)</option>
-                    {WAITER_OPTIONS.map((w) => (
-                      <option key={w} value={w}>
-                        {w}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1">
-                  Special Requests <span className="text-slate-400 font-normal">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Extra cutlery, high chair"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
-                />
-              </div>
-            </div>
-
-            {/* 4. Guest */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1 flex items-center gap-1">
-                  <User className="w-3 h-3 text-slate-500" />
-                  Guest Name <span className="text-slate-400 font-normal">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Walk-in / Guest Name"
-                  value={guestName}
-                  onChange={(e) => setGuestName(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1 flex items-center gap-1">
-                  <Phone className="w-3 h-3 text-slate-500" />
-                  Guest Mobile <span className="text-slate-400 font-normal">(Optional)</span>
-                </label>
-                <input
-                  type="tel"
-                  placeholder="e.g. +91 98765 43210"
-                  value={guestPhone}
-                  onChange={(e) => setGuestPhone(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
-                />
-              </div>
             </div>
 
             {step1Error && (
