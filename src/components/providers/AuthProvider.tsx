@@ -62,11 +62,14 @@ export const SAMPRITA_ADMIN_USER: AppUser = {
   name: "Samprita Patra",
   email: "sampritapatra123@gmail.com",
   role: "pos_admin",
+  role_name: "POS Administrator",
   phone: "9937884878",
   active: true,
   lastActive: "Now",
   initials: "SP",
   property: "Anshu Suite Restaurant · Main Outlet",
+  outlet_name: "Anshu Suite Restaurant",
+  assigned_outlet_name: "Anshu Suite Restaurant",
   permissions: ["*:*"],
 };
 
@@ -442,7 +445,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(found);
           if (typeof window !== "undefined") {
             localStorage.setItem(LS_USER, JSON.stringify(found));
-            localStorage.setItem("retrod:access-token", "pos-session-" + found.id);
+            const currentToken = getStoredAccessToken();
+            if (!currentToken || currentToken.startsWith("pos-session-")) {
+              localStorage.setItem("retrod:access-token", "pos-session-" + found.id);
+            }
           }
           addAuditEvent("User logged in", found.email, `Session started for ${found.name}.`, {
             name: found.name,

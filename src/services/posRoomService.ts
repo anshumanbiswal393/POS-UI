@@ -39,6 +39,69 @@ const INITIAL_ROOMS: HotelRoom[] = [];
 let ordersStore: RoomServiceOrder[] = [];
 let roomsStore: HotelRoom[] = [...INITIAL_ROOMS];
 
+function isCurrentlyOccupied(occ: Record<string, any>): boolean {
+  if (!occ) return false;
+
+  // 1. Check reservation or folio status
+  const rawStatus = String(
+    occ.status || occ.reservation_status || occ.folio_status || "",
+  ).toUpperCase();
+  if (
+    rawStatus === "CHECKED_OUT" ||
+    rawStatus === "CHECKOUT" ||
+    rawStatus === "CANCELLED" ||
+    rawStatus === "NO_SHOW" ||
+    rawStatus === "DEPARTED" ||
+    rawStatus === "COMPLETED"
+  ) {
+    return false;
+  }
+
+  // 2. Validate stay dates (arrival and departure) against current local calendar day
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const depStr =
+    occ.departure_date || occ.departure || occ.checkOutDate || occ.check_out_date;
+  if (depStr) {
+    try {
+      const depDate = new Date(depStr);
+      if (!isNaN(depDate.getTime())) {
+        const depDateOnly = new Date(
+          depDate.getFullYear(),
+          depDate.getMonth(),
+          depDate.getDate(),
+        );
+        // If departure date is strictly in the past (before today), the guest is checked out
+        if (depDateOnly < today) {
+          return false;
+        }
+      }
+    } catch {}
+  }
+
+  const arrStr =
+    occ.arrival_date || occ.arrival || occ.checkInDate || occ.check_in_date;
+  if (arrStr) {
+    try {
+      const arrDate = new Date(arrStr);
+      if (!isNaN(arrDate.getTime())) {
+        const arrDateOnly = new Date(
+          arrDate.getFullYear(),
+          arrDate.getMonth(),
+          arrDate.getDate(),
+        );
+        // If arrival date is in the future (after today), the guest has not arrived yet
+        if (arrDateOnly > today) {
+          return false;
+        }
+      }
+    } catch {}
+  }
+
+  return true;
+}
+
 function attachLocalFolioOrders(rooms: HotelRoom[]): HotelRoom[] {
   return rooms.map((r) => {
     const roomOrders = ordersStore.filter((o) => o.roomNumber === r.roomNumber);
@@ -203,6 +266,7 @@ export const posRoomService = {
     const occByRoomNum = new Map<string, Record<string, any>>();
     const occByUnitId = new Map<string, Record<string, any>>();
     for (const occ of occupiedList) {
+      if (!isCurrentlyOccupied(occ)) continue;
       if (occ.room_number) occByRoomNum.set(String(occ.room_number).trim().toLowerCase(), occ);
       if (occ.unit_id) occByUnitId.set(String(occ.unit_id), occ);
     }
@@ -222,7 +286,7 @@ export const posRoomService = {
           unit.unit_type_name ||
           "Standard Room";
 
-        if (occ) {
+        if (occ && isCurrentlyOccupied(occ)) {
           return {
             id: String(occ.unit_id || occ.reservation_id || unit.id),
             roomNumber: String(occ.room_number || unit.name),
@@ -271,6 +335,7 @@ export const posRoomService = {
       });
 
       for (const occ of occupiedList) {
+        if (!isCurrentlyOccupied(occ)) continue;
         if (
           !seenUnitIds.has(String(occ.unit_id)) &&
           !mapped.some((m) => m.roomNumber === String(occ.room_number))
@@ -310,7 +375,7 @@ export const posRoomService = {
         }
       }
     } else if (occupiedList.length > 0) {
-      mapped = occupiedList.map((occ) => ({
+      mapped = occupiedList.filter(isCurrentlyOccupied).map((occ) => ({
         id: String(occ.unit_id || occ.reservation_id || occ.room_number),
         roomNumber: String(occ.room_number),
         floor: (occ.floor || "Floor 1") as RoomFloor,

@@ -277,14 +277,24 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
           return userAssignedId;
         }
 
-        // Priority 2: Stored previous active outlet (if it's not a strict dummy and still in list)
-        if (prevId && isBackendOutletId(prevId) && finalOutlets.some((o) => o.id === prevId)) {
-          const prevOutlet = finalOutlets.find((o) => o.id === prevId);
-          if (!prevOutlet?.name.toLowerCase().includes("strict")) {
+        // Priority 2: Stored previous active outlet (preserve existing backend outlet ID across users)
+        const storedActive =
+          typeof window !== "undefined"
+            ? localStorage.getItem(STORAGE_KEY_ACTIVE_ID)
+            : null;
+        const candidateId = prevId || storedActive;
+        if (
+          candidateId &&
+          isBackendOutletId(candidateId) &&
+          !KNOWN_DUMMY_IDS.has(candidateId) &&
+          !DEMO_OUTLET_IDS.has(candidateId)
+        ) {
+          const matchedOutlet = finalOutlets.find((o) => o.id === candidateId);
+          if (!matchedOutlet || !matchedOutlet.name.toLowerCase().includes("strict")) {
             try {
-              localStorage.setItem(STORAGE_KEY_ACTIVE_ID, prevId);
+              localStorage.setItem(STORAGE_KEY_ACTIVE_ID, candidateId);
             } catch {}
-            return prevId;
+            return candidateId;
           }
         }
 
@@ -312,8 +322,19 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
       });
     } catch {
       const { propId, propName } = getActivePropertyInfo();
+      const storedActive =
+        typeof window !== "undefined"
+          ? localStorage.getItem(STORAGE_KEY_ACTIVE_ID)
+          : null;
+      const validStoredId =
+        storedActive &&
+        isBackendOutletId(storedActive) &&
+        !KNOWN_DUMMY_IDS.has(storedActive) &&
+        !DEMO_OUTLET_IDS.has(storedActive)
+          ? storedActive
+          : null;
       const dynamicDefault: PosOutlet = {
-        id: propId ? `outlet-${propId}` : "outlet-default",
+        id: validStoredId || (propId ? `outlet-${propId}` : "outlet-default"),
         name: `${propName} Restaurant`,
         code: "MAIN-01",
         type: "Primary Outlet",

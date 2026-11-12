@@ -54,7 +54,13 @@ export function useBillingMenuItems(outletId?: string) {
                 item.commissionType,
                 item.commissionValue,
               );
-        const plates = item.plates !== undefined ? item.plates : (platesMap[item.id] ?? 0);
+        const storedQty = platesMap[item.id];
+        const plates =
+          storedQty !== undefined
+            ? storedQty
+            : item.plates !== undefined && item.plates !== null
+              ? Number(item.plates)
+              : undefined;
         return {
           ...item,
           plates,
