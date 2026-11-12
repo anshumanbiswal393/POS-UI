@@ -197,6 +197,18 @@ export function PosInventorySidebar({
               >
                 Closing Stock
               </Link>
+              <Link
+                to="/pos/inventory/production"
+                onClick={onNavigate}
+                className={cn(
+                  "block rounded-md px-2.5 py-1.5 text-[12px] font-medium transition",
+                  isExact("/pos/inventory/production")
+                    ? "text-teal-600 font-bold bg-teal-50/70"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50",
+                )}
+              >
+                Daily Preparation
+              </Link>
             </div>
           )}
         </div>

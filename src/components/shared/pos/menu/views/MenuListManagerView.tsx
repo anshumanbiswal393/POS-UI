@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   Plus,
   Edit2,
@@ -6,6 +7,7 @@ import {
   Trash2,
   RefreshCw,
   UtensilsCrossed,
+  CookingPot,
   Layers,
   ChevronDown,
   List,
@@ -519,6 +521,15 @@ export function MenuListManagerView() {
               </div>
             )}
           </div>
+
+          <Link
+            to="/pos/inventory/production"
+            className="flex items-center gap-1.5 rounded-xl border border-teal-300 bg-teal-50/80 hover:bg-teal-100 px-3.5 py-2 text-[12.5px] font-bold text-teal-800 shadow-2xs transition cursor-pointer"
+            title="Log daily cooked dishes and plate counts"
+          >
+            <CookingPot className="h-4 w-4 text-teal-700" />
+            <span>Daily Preparation</span>
+          </Link>
 
           <button
             type="button"

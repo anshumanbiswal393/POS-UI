@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Plus,
   UtensilsCrossed,
+  CookingPot,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { MenuItem, MenuItemImage, MenuItemType, MenuItemIngredient } from "@/types/posMenu";
@@ -795,13 +796,21 @@ export function MenuItemEditModal({
 
           {/* Plates Yield & Raw Materials Recipe */}
           <div className="space-y-3.5 p-4 rounded-xl bg-teal-50/50 border border-teal-200/80">
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-teal-100/70 border border-teal-200 text-[12px] text-teal-900">
+              <CookingPot className="h-4 w-4 text-teal-700 shrink-0" />
+              <span>
+                <strong>Daily Cooking Tip:</strong> For daily batch entries, use the dedicated{" "}
+                <strong>Daily Preparation</strong> page to record plates cooked and deduct raw materials day-by-day without editing master menu items.
+              </span>
+            </div>
+
             <div>
               <h3 className="text-[13.5px] font-bold text-slate-900 flex items-center gap-2">
                 <UtensilsCrossed className="h-4 w-4 text-teal-600" />
-                Plate Stock & Raw Material Consumption
+                Default Plate Stock & Raw Material Recipe (Optional)
               </h3>
               <p className="text-[11.5px] text-slate-500">
-                Enter available plates prepared for this dish. Select raw materials consumed; their quantities will be automatically deducted from stock inventory.
+                Configure baseline plates or standard recipe formula. You can also log daily batches anytime from the Daily Preparation page.
               </p>
             </div>
 

@@ -115,6 +115,7 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
     permission: "pos.menu.view",
     children: [
       { id: "menu-list", label: "Menu List", to: "/pos/menu", icon: List, permission: "pos.menu.view" },
+      { id: "menu-daily-prep", label: "Daily Preparation", to: "/pos/inventory/production", icon: CookingPot, permission: "pos.menu.view" },
       { id: "menu-notes", label: "Special Notes", to: "/pos/menu/special-notes", icon: StickyNote, permission: "pos.menu.manage" },
       { id: "menu-commission", label: "Set Item Commission", to: "/pos/menu/commission", icon: Percent, permission: "pos.menu.manage" },
       { id: "menu-physical", label: "Printed Menu", to: "/pos/menu/physical", icon: BookOpen, permission: "pos.menu.view" },
@@ -146,6 +147,7 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
         children: [
           { id: "available-stock", label: "Available Stock", to: "/pos/inventory/available-stock", icon: Boxes, permission: "pos.inventory.view" },
           { id: "closing-stock", label: "Daily Stock Count", to: "/pos/inventory/closing-stock", icon: ClipboardList, permission: "pos.inventory.manage" },
+          { id: "inv-daily-prep", label: "Daily Preparation", to: "/pos/inventory/production", icon: CookingPot, permission: "pos.inventory.view" },
         ],
       },
       {
