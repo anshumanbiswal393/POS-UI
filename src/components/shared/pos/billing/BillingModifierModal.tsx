@@ -35,11 +35,9 @@ export function BillingModifierModal({
   item,
   onConfirmAddToCart,
 }: BillingModifierModalProps) {
-  if (!isOpen || !item) return null;
-
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState<BillingItemVariant | undefined>(
-    item.variants?.[0],
+    item?.variants?.[0],
   );
   const [selectedModifiers, setSelectedModifiers] = useState<BillingSelectedModifier[]>([]);
   const [instructions, setInstructions] = useState("");
@@ -54,6 +52,8 @@ export function BillingModifierModal({
     }
   }, [item]);
 
+  if (!isOpen || !item) return null;
+
   const handleToggleModifier = (
     groupId: string,
     groupName: string,
@@ -63,27 +63,28 @@ export function BillingModifierModal({
     maxSelect: number,
   ) => {
     setSelectedModifiers((prev) => {
-      const exists = prev.some((m) => m.groupId === groupId && m.optionId === optionId);
+      const list = Array.isArray(prev) ? prev : [];
+      const exists = list.some((m) => m && m.groupId === groupId && m.optionId === optionId);
 
       if (exists) {
-        return prev.filter((m) => !(m.groupId === groupId && m.optionId === optionId));
+        return list.filter((m) => m && !(m.groupId === groupId && m.optionId === optionId));
       }
 
-      const currentInGroup = prev.filter((m) => m.groupId === groupId);
+      const currentInGroup = list.filter((m) => m && m.groupId === groupId);
 
       if (maxSelect === 1) {
         // Single select replacement
         return [
-          ...prev.filter((m) => m.groupId !== groupId),
+          ...list.filter((m) => m && m.groupId !== groupId),
           { groupId, groupName, optionId, optionName, price },
         ];
       }
 
       if (currentInGroup.length >= maxSelect) {
-        return prev;
+        return list;
       }
 
-      return [...prev, { groupId, groupName, optionId, optionName, price }];
+      return [...list, { groupId, groupName, optionId, optionName, price }];
     });
   };
 
