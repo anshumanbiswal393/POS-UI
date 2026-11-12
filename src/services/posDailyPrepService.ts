@@ -31,8 +31,26 @@ const DAILY_PREP_STORE_KEY = (outletId?: string) =>
 function getStoredPreps(outletId?: string): DailyPreparationRecord[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(DAILY_PREP_STORE_KEY(outletId));
-    return raw ? JSON.parse(raw) : [];
+    const primaryKey = DAILY_PREP_STORE_KEY(outletId);
+    const raw = localStorage.getItem(primaryKey);
+    let list: DailyPreparationRecord[] = raw ? JSON.parse(raw) : [];
+
+    // Fallback/merge from any other prep keys to ensure records are visible across users & roles
+    if (list.length === 0) {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("retrod_pos_daily_prep:") && key !== primaryKey) {
+          try {
+            const other = JSON.parse(localStorage.getItem(key) || "[]");
+            if (Array.isArray(other) && other.length > 0) {
+              list = other;
+              break;
+            }
+          } catch {}
+        }
+      }
+    }
+    return list;
   } catch {
     return [];
   }
@@ -41,7 +59,13 @@ function getStoredPreps(outletId?: string): DailyPreparationRecord[] {
 function saveStoredPreps(outletId: string | undefined, preps: DailyPreparationRecord[]) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(DAILY_PREP_STORE_KEY(outletId), JSON.stringify(preps));
+    const key = DAILY_PREP_STORE_KEY(outletId);
+    localStorage.setItem(key, JSON.stringify(preps));
+    localStorage.setItem("retrod_pos_daily_prep:default", JSON.stringify(preps));
+    const active = localStorage.getItem("retrod_pos_active_outlet_id");
+    if (active && active !== outletId) {
+      localStorage.setItem(DAILY_PREP_STORE_KEY(active), JSON.stringify(preps));
+    }
   } catch {
     // ignore
   }

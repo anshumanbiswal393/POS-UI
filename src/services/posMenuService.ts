@@ -274,8 +274,29 @@ const itemPlatesStoreKey = (outletId?: string) => `retrod_pos_item_plates:${outl
 export function getStoredItemPlates(outletId?: string): Record<string, number> {
   if (typeof window === "undefined") return {};
   try {
-    const raw = localStorage.getItem(itemPlatesStoreKey(outletId));
-    return raw ? JSON.parse(raw) : {};
+    const primaryKey = itemPlatesStoreKey(outletId);
+    const raw = localStorage.getItem(primaryKey);
+    const parsed: Record<string, number> = raw ? JSON.parse(raw) : {};
+
+    // Merge plates recorded across any other stored outlet keys (e.g. default, or specific outlet UUID)
+    // to guarantee cross-user and cross-role consistency within the same restaurant outlet
+    const merged: Record<string, number> = { ...parsed };
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("retrod_pos_item_plates:") && key !== primaryKey) {
+        try {
+          const other = JSON.parse(localStorage.getItem(key) || "{}");
+          if (other && typeof other === "object") {
+            for (const [id, qty] of Object.entries(other)) {
+              if (merged[id] === undefined && typeof qty === "number") {
+                merged[id] = qty;
+              }
+            }
+          }
+        } catch {}
+      }
+    }
+    return merged;
   } catch {
     return {};
   }
@@ -284,7 +305,13 @@ export function getStoredItemPlates(outletId?: string): Record<string, number> {
 export function saveStoredItemPlates(outletId: string | undefined, data: Record<string, number>) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(itemPlatesStoreKey(outletId), JSON.stringify(data));
+    const key = itemPlatesStoreKey(outletId);
+    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem("retrod_pos_item_plates:default", JSON.stringify(data));
+    const active = localStorage.getItem("retrod_pos_active_outlet_id");
+    if (active && active !== outletId) {
+      localStorage.setItem(itemPlatesStoreKey(active), JSON.stringify(data));
+    }
   } catch {
     // ignore
   }
@@ -306,6 +333,14 @@ export function updateItemPlates(
     item.id === itemId ? { ...item, plates: next } : item,
   );
   saveMenuItemsToStorage(menuItemsStore);
+
+  // Sync to backend menu item if it is a backend UUID item
+  if (/^[0-9a-f-]{36}$/i.test(itemId)) {
+    try {
+      httpClient.patch(API_ENDPOINTS.MENU.UPDATE_ITEM(itemId), { plates: next }).catch(() => {});
+    } catch {}
+  }
+
   return next;
 }
 
@@ -401,14 +436,23 @@ export const posMenuService = {
         const items = unwrapList<MenuItem>(res.data);
         const platesMap = getStoredItemPlates(effectiveId);
         const rawMaterialsMap = getStoredItemRawMaterials(effectiveId);
-        const mergedItems = items.map((i) => ({
-          ...i,
-          plates: i.plates !== undefined ? i.plates : (platesMap[i.id] ?? 0),
-          rawMaterials:
-            i.rawMaterials && i.rawMaterials.length > 0
-              ? i.rawMaterials
-              : (rawMaterialsMap[i.id] ?? []),
-        }));
+        const mergedItems = items.map((i) => {
+          const storedQty = platesMap[i.id];
+          const plates =
+            storedQty !== undefined
+              ? storedQty
+              : i.plates !== undefined && i.plates !== null
+                ? Number(i.plates)
+                : undefined;
+          return {
+            ...i,
+            plates,
+            rawMaterials:
+              i.rawMaterials && i.rawMaterials.length > 0
+                ? i.rawMaterials
+                : (rawMaterialsMap[i.id] ?? []),
+          };
+        });
         menuItemsStore = [
           ...menuItemsStore.filter((m) => m.outletId !== effectiveId),
           ...mergedItems,
@@ -425,14 +469,23 @@ export const posMenuService = {
     const rawMaterialsMap = getStoredItemRawMaterials(effectiveId);
     return menuItemsStore
       .filter((item) => item.outletId === effectiveId)
-      .map((i) => ({
-        ...i,
-        plates: i.plates !== undefined ? i.plates : (platesMap[i.id] ?? 0),
-        rawMaterials:
-          i.rawMaterials && i.rawMaterials.length > 0
-            ? i.rawMaterials
-            : (rawMaterialsMap[i.id] ?? []),
-      }));
+      .map((i) => {
+        const storedQty = platesMap[i.id];
+        const plates =
+          storedQty !== undefined
+            ? storedQty
+            : i.plates !== undefined && i.plates !== null
+              ? Number(i.plates)
+              : undefined;
+        return {
+          ...i,
+          plates,
+          rawMaterials:
+            i.rawMaterials && i.rawMaterials.length > 0
+              ? i.rawMaterials
+              : (rawMaterialsMap[i.id] ?? []),
+        };
+      });
   },
 
   getMenuItemById: async (id: string) => {
