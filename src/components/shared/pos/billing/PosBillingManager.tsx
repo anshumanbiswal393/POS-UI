@@ -43,6 +43,7 @@ import { posTablesService } from "@/services/posTablesService";
 import { savePosCustomer } from "@/services/posCustomerStore";
 import { isBackendOutletId } from "@/utils/outletId";
 import { POS_ROOM_SERVICE_ROOMS_KEY } from "@/hooks/queries/usePosRoomService";
+import { posMenuService } from "@/services/posMenuService";
 
 const heldBillsKey = (outletId?: string) => `retrod:pos:held-bills:${outletId || "local"}`;
 
@@ -453,7 +454,8 @@ export function PosBillingManager() {
           originalPrice: basePrice,
           commissionType: item.commissionType,
           commissionValue: item.commissionValue,
-          inStock: true,
+          inStock: item.plates !== undefined ? item.plates > 0 : true,
+          plates: item.plates,
           prepTimeMinutes: 15,
           imageUrl: primaryImg,
           description: item.description,
@@ -667,13 +669,52 @@ export function PosBillingManager() {
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [settlementRecord, setSettlementRecord] = useState<BillSettlementRecord | null>(null);
 
+  // Deduct plate stock (Half portion = 0.5 plate, Full/Standard = 1.0 plate per quantity)
+  const deductPlatesForItems = useCallback(
+    (itemsToDeduct: BillingCartItem[]) => {
+      const outletId = activeOutlet?.id;
+      for (const ci of itemsToDeduct) {
+        if (!ci?.item?.id) continue;
+        const variantName = (ci.selectedVariant?.name || "").toLowerCase();
+        const factor = variantName.includes("half") ? 0.5 : 1.0;
+        const platesToDeduct = ci.quantity * factor;
+        posMenuService.deductItemPlates(outletId, ci.item.id, platesToDeduct);
+      }
+      queryClient.invalidateQueries({ queryKey: ["pos", "menu"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "billing", "menu"] });
+    },
+    [activeOutlet?.id, queryClient],
+  );
+
   // --- Handlers ---
 
   // Add item with chosen portion variant
   const handleAddItem = (item: BillingMenuItem, selectedVariant?: BillingItemVariant) => {
+    if (item.plates !== undefined && item.plates <= 0) {
+      toast.error(`"${item.name}" is sold out (0 plates available).`);
+      return;
+    }
+
     const chosenVariant =
       selectedVariant ||
       (item.variants && item.variants.length > 0 ? item.variants[0] : undefined);
+
+    const isHalf = (chosenVariant?.name || "").toLowerCase().includes("half");
+    const plateCost = isHalf ? 0.5 : 1.0;
+
+    if (item.plates !== undefined) {
+      const currentPlatesInCart = cartItems
+        .filter((ci) => ci.item.id === item.id)
+        .reduce((sum, ci) => {
+          const varHalf = (ci.selectedVariant?.name || "").toLowerCase().includes("half");
+          return sum + ci.quantity * (varHalf ? 0.5 : 1.0);
+        }, 0);
+
+      if (currentPlatesInCart + plateCost > item.plates) {
+        toast.error(`Only ${item.plates} plates available for "${item.name}".`);
+        return;
+      }
+    }
 
     setCartItems((prev) => {
       const existingIndex = prev.findIndex(
@@ -717,6 +758,10 @@ export function PosBillingManager() {
     instructions: string,
     quantity: number,
   ) => {
+    if (item.plates !== undefined && item.plates <= 0) {
+      toast.error(`"${item.name}" is sold out (0 plates available).`);
+      return;
+    }
     setCartItems((prev) => [
       ...prev,
       {
@@ -739,6 +784,21 @@ export function PosBillingManager() {
     if (newQty <= 0) {
       handleRemoveCartItem(cartId);
       return;
+    }
+    const targetItem = cartItems.find((ci) => ci.cartId === cartId);
+    if (targetItem && targetItem.item.plates !== undefined && newQty > targetItem.quantity) {
+      const isHalf = (targetItem.selectedVariant?.name || "").toLowerCase().includes("half");
+      const currentOtherPlates = cartItems
+        .filter((ci) => ci.item.id === targetItem.item.id && ci.cartId !== cartId)
+        .reduce((sum, ci) => {
+          const varHalf = (ci.selectedVariant?.name || "").toLowerCase().includes("half");
+          return sum + ci.quantity * (varHalf ? 0.5 : 1.0);
+        }, 0);
+      const requestedPlates = currentOtherPlates + newQty * (isHalf ? 0.5 : 1.0);
+      if (requestedPlates > targetItem.item.plates) {
+        toast.error(`Only ${targetItem.item.plates} plates available for "${targetItem.item.name}".`);
+        return;
+      }
     }
     setCartItems((prev) =>
       prev.map((ci) => (ci.cartId === cartId ? { ...ci, quantity: newQty } : ci)),
@@ -1207,6 +1267,8 @@ export function PosBillingManager() {
         try {
           if (linkedOrderId) {
             const updated = await livePatchOrder(linkedOrderId, payload);
+            deductPlatesForItems(cartItems);
+            setKotSentForCart(true);
             queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
             queryClient.invalidateQueries({ queryKey: ["pos", "tables"] });
             invalidateOrderSurfaces();
@@ -1220,6 +1282,8 @@ export function PosBillingManager() {
             return;
           }
           const created = await liveCreateOrder(payload);
+          deductPlatesForItems(cartItems);
+          setKotSentForCart(true);
           queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
           queryClient.invalidateQueries({ queryKey: ["pos", "tables"] });
           invalidateOrderSurfaces();
@@ -1344,6 +1408,9 @@ export function PosBillingManager() {
               reservationId: reservationId || undefined,
               idempotencyKey: `settle-${orderId}-${Date.now()}`,
             });
+            if (!kotSentForCart) {
+              deductPlatesForItems(cartItems);
+            }
             if (!isPartial && orderType === "dine_in") {
               try {
                 await posTablesService.completeReservation({
@@ -1483,6 +1550,9 @@ export function PosBillingManager() {
             reservationId: reservationId || undefined,
             idempotencyKey: `folio-${orderId}-${Date.now()}`,
           });
+          if (!kotSentForCart) {
+            deductPlatesForItems(cartItems);
+          }
           invalidateOrderSurfaces();
           toast.success(`Posted to room ${roomBare} folio`, {
             description: `${settled.orderNumber || billNumber} · KOT sent · Order History (Add to Room Folio)`,

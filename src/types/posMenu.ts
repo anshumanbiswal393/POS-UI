@@ -18,6 +18,13 @@ export type MenuItemImage = {
 
 export type MenuItemType = "Veg" | "Non-Veg" | "Egg";
 
+export type MenuItemIngredient = {
+  rawMaterialId: string;
+  rawMaterialName: string;
+  quantity: number;
+  unit: string;
+};
+
 export type MenuItem = {
   id: string;
   outletId: string;
@@ -44,6 +51,9 @@ export type MenuItem = {
   updatedAt: string;
   commissionType?: MenuItemCommission["commissionType"];
   commissionValue?: number | null;
+  // Plates & Raw Materials Recipe tracking
+  plates?: number;
+  rawMaterials?: MenuItemIngredient[];
 };
 
 export type SpecialNote = {

@@ -269,6 +269,73 @@ function unwrapList<T>(data: unknown): T[] {
   return [];
 }
 
+const itemPlatesStoreKey = (outletId?: string) => `retrod_pos_item_plates:${outletId || "default"}`;
+
+export function getStoredItemPlates(outletId?: string): Record<string, number> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(itemPlatesStoreKey(outletId));
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveStoredItemPlates(outletId: string | undefined, data: Record<string, number>) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(itemPlatesStoreKey(outletId), JSON.stringify(data));
+  } catch {
+    // ignore
+  }
+}
+
+export function updateItemPlates(
+  outletId: string | undefined,
+  itemId: string,
+  deltaOrExact: number,
+  isDelta = false,
+): number {
+  const stored = getStoredItemPlates(outletId);
+  const current = Number(stored[itemId] ?? 0);
+  const next = isDelta ? Math.max(0, current + deltaOrExact) : Math.max(0, deltaOrExact);
+  stored[itemId] = next;
+  saveStoredItemPlates(outletId, stored);
+
+  menuItemsStore = menuItemsStore.map((item) =>
+    item.id === itemId ? { ...item, plates: next } : item,
+  );
+  saveMenuItemsToStorage(menuItemsStore);
+  return next;
+}
+
+const itemRawMaterialsStoreKey = (outletId?: string) => `retrod_pos_item_raw_materials:${outletId || "default"}`;
+
+export function getStoredItemRawMaterials(outletId?: string): Record<string, MenuItemIngredient[]> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(itemRawMaterialsStoreKey(outletId));
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveStoredItemRawMaterials(
+  outletId: string | undefined,
+  itemId: string,
+  rawMaterials: MenuItemIngredient[],
+) {
+  if (typeof window === "undefined") return;
+  try {
+    const stored = getStoredItemRawMaterials(outletId);
+    stored[itemId] = rawMaterials;
+    localStorage.setItem(itemRawMaterialsStoreKey(outletId), JSON.stringify(stored));
+  } catch {
+    // ignore
+  }
+}
+
 function toMenuItemWritePayload(item: Partial<MenuItem> & { outletId?: string }) {
   const itemType =
     item.itemType === "Non-Veg" ? "NON_VEG" : item.itemType === "Egg" ? "EGG" : "VEG";
@@ -305,6 +372,8 @@ function toMenuItemWritePayload(item: Partial<MenuItem> & { outletId?: string })
     })),
     commissionType: item.commissionType,
     commissionValue: item.commissionValue,
+    plates: item.plates,
+    rawMaterials: item.rawMaterials,
   };
 }
 let commissionsStore: MenuItemCommission[] = [...initialCommissions];
@@ -330,11 +399,21 @@ export const posMenuService = {
           params: { outletId: effectiveId, outlet_id: effectiveId, page_size: 500 },
         });
         const items = unwrapList<MenuItem>(res.data);
+        const platesMap = getStoredItemPlates(effectiveId);
+        const rawMaterialsMap = getStoredItemRawMaterials(effectiveId);
+        const mergedItems = items.map((i) => ({
+          ...i,
+          plates: i.plates !== undefined ? i.plates : (platesMap[i.id] ?? 0),
+          rawMaterials:
+            i.rawMaterials && i.rawMaterials.length > 0
+              ? i.rawMaterials
+              : (rawMaterialsMap[i.id] ?? []),
+        }));
         menuItemsStore = [
           ...menuItemsStore.filter((m) => m.outletId !== effectiveId),
-          ...items,
+          ...mergedItems,
         ];
-        return items;
+        return mergedItems;
       } catch {
         return [];
       }
@@ -342,7 +421,18 @@ export const posMenuService = {
 
     // Never return mock demo dishes. Return empty if no valid outlet or no dishes configured.
     if (!effectiveId) return [];
-    return menuItemsStore.filter((item) => item.outletId === effectiveId);
+    const platesMap = getStoredItemPlates(effectiveId);
+    const rawMaterialsMap = getStoredItemRawMaterials(effectiveId);
+    return menuItemsStore
+      .filter((item) => item.outletId === effectiveId)
+      .map((i) => ({
+        ...i,
+        plates: i.plates !== undefined ? i.plates : (platesMap[i.id] ?? 0),
+        rawMaterials:
+          i.rawMaterials && i.rawMaterials.length > 0
+            ? i.rawMaterials
+            : (rawMaterialsMap[i.id] ?? []),
+      }));
   },
 
   getMenuItemById: async (id: string) => {
@@ -362,12 +452,27 @@ export const posMenuService = {
       id: `itm-${Date.now()}`,
       updatedAt: "Just now",
       images: item.images || [],
+      plates: item.plates ?? 0,
     };
+    if (item.plates !== undefined) {
+      updateItemPlates(newItem.outletId, newItem.id, item.plates, false);
+    }
+    if (item.rawMaterials && item.rawMaterials.length > 0) {
+      saveStoredItemRawMaterials(newItem.outletId, newItem.id, item.rawMaterials);
+    }
     if (isBackendOutletId(newItem.outletId)) {
       const res = await httpClient.post<MenuItem>(
         API_ENDPOINTS.MENU.CREATE_ITEM,
         toMenuItemWritePayload(newItem),
       );
+      if (res.data) {
+        if (item.plates !== undefined) {
+          updateItemPlates(newItem.outletId, res.data.id, item.plates, false);
+        }
+        if (item.rawMaterials && item.rawMaterials.length > 0) {
+          saveStoredItemRawMaterials(newItem.outletId, res.data.id, item.rawMaterials);
+        }
+      }
       return res.data;
     }
     menuItemsStore = [newItem, ...menuItemsStore];
@@ -376,6 +481,12 @@ export const posMenuService = {
   },
 
   updateMenuItem: async (id: string, data: Partial<MenuItem>) => {
+    if (data.plates !== undefined) {
+      updateItemPlates(data.outletId, id, data.plates, false);
+    }
+    if (data.rawMaterials) {
+      saveStoredItemRawMaterials(data.outletId, id, data.rawMaterials);
+    }
     if (isBackendOutletId(data.outletId) || /^[0-9a-f-]{36}$/i.test(id)) {
       const res = await httpClient.patch<MenuItem>(
         API_ENDPOINTS.MENU.UPDATE_ITEM(id),
@@ -388,6 +499,10 @@ export const posMenuService = {
     );
     saveMenuItemsToStorage(menuItemsStore);
     return menuItemsStore.find((i) => i.id === id);
+  },
+
+  deductItemPlates: (outletId: string | undefined, itemId: string, platesToDeduct: number) => {
+    return updateItemPlates(outletId, itemId, -platesToDeduct, true);
   },
 
   deleteMenuItem: async (id: string) => {

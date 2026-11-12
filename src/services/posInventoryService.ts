@@ -213,6 +213,17 @@ export const posInventoryService = {
       const res = await httpClient.post<StockPurchaseRecord>("/api/pos/stock/purchases/", data, {
         params: scopeParams(outletId),
       });
+      for (const line of data.items || []) {
+        if (!line.stockItemId) continue;
+        await posInventoryService.adjustStock(
+          line.stockItemId,
+          Number(line.quantity) || 0,
+          "PURCHASE_IN",
+          data.invoiceNo || "PUR",
+          outletId,
+          { unitCost: line.unitPrice },
+        );
+      }
       return res.data;
     }
     const newPurchase: StockPurchaseRecord = { ...data, id: `pur-${Date.now()}` };
@@ -569,6 +580,41 @@ export const posInventoryService = {
     });
     persistMockLedger();
     return stockStore.find((i) => i.id === id);
+  },
+
+  adjustStock: async (
+    stockItemId: string,
+    deltaQty: number,
+    type = "ADJUST",
+    notes = "",
+    outletId?: string,
+    extra?: { unitCost?: number },
+  ) => {
+    adjustMockStock(stockItemId, deltaQty, type, notes, extra);
+    if (isBackendOutletId(outletId)) {
+      try {
+        await httpClient.post(`/api/pos/stock/items/${stockItemId}/adjust/`, {
+          quantity: deltaQty,
+          movementType: type,
+          notes,
+        });
+      } catch {
+        try {
+          const res = await httpClient.get<any>(`/api/pos/stock/items/${stockItemId}/`, {
+            params: scopeParams(outletId),
+          });
+          const currentStock = Number(res?.data?.availableStock ?? res?.data?.quantityOnHand ?? 0);
+          const nextStock = Math.max(0, currentStock + deltaQty);
+          await httpClient.patch(
+            `/api/pos/stock/items/${stockItemId}/`,
+            { availableStock: nextStock, quantityOnHand: nextStock },
+            { params: scopeParams(outletId) },
+          );
+        } catch {
+          // ignore
+        }
+      }
+    }
   },
 
   saveClosingStock: async (

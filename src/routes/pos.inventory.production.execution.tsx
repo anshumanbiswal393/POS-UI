@@ -1,7 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ProductionExecutionView } from "@/components/shared/pos/inventory/views/ProductionExecutionView";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/pos/inventory/production/execution")({
-  
-  component: ProductionExecutionView,
+  component: () => <Navigate to="/pos/inventory" replace />,
 });

@@ -43,6 +43,7 @@ export type BillingMenuItem = {
   commissionValue?: number | null;
   inStock: boolean;
   stockCount?: number;
+  plates?: number;
   prepTimeMinutes: number;
   isPopular?: boolean;
   isChefSpecial?: boolean;

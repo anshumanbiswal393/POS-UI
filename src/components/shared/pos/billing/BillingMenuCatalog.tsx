@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Search, X, Plus, Minus, UtensilsCrossed } from "lucide-react";
+import { toast } from "sonner";
 import type {
   BillingMenuItem,
   BillingDietType,
@@ -110,11 +111,24 @@ export function BillingMenuCatalog({
   };
 
   const handleAddClick = (item: BillingMenuItem) => {
+    if (item.plates !== undefined && item.plates <= 0) {
+      toast.error(`"${item.name}" is sold out (0 plates left).`);
+      return;
+    }
     const hasVariants = item.variants && item.variants.length > 0;
     const chosenVarId = selectedVariants[item.id] || (hasVariants ? item.variants![0].id : "");
     const chosenVariant = hasVariants
       ? item.variants!.find((v) => v.id === chosenVarId) || item.variants![0]
       : undefined;
+
+    if (item.plates !== undefined) {
+      const isHalf = (chosenVariant?.name || "").toLowerCase().includes("half");
+      const plateCost = isHalf ? 0.5 : 1.0;
+      if (plateCost > item.plates) {
+        toast.error(`Not enough plate stock for "${item.name}" (only ${item.plates} plates available).`);
+        return;
+      }
+    }
     onAddItem(item, chosenVariant);
   };
 
@@ -255,11 +269,27 @@ export function BillingMenuCatalog({
                     )}
                   </div>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <FoodTypeIcon type={item.diet} size="sm" />
                       <span className="truncate text-[13px] font-bold tracking-tight text-text-primary">
                         {item.name}
                       </span>
+                      {item.plates !== undefined ? (
+                        <span
+                          className={cn(
+                            "rounded-md px-1.5 py-0.2 text-[10px] font-bold tracking-tight inline-flex items-center",
+                            item.plates <= 0
+                              ? "bg-rose-100 text-rose-700 border border-rose-200"
+                              : item.plates <= 3
+                                ? "bg-amber-100 text-amber-800 border border-amber-200"
+                                : "bg-emerald-100 text-emerald-800 border border-emerald-200",
+                          )}
+                        >
+                          {item.plates <= 0
+                            ? "0 Plates (Sold Out)"
+                            : `${item.plates} ${item.plates === 1 ? "plate" : "plates"} left`}
+                        </span>
+                      ) : null}
                     </div>
                     <p className="mt-0.5 truncate font-mono text-[10.5px] text-text-secondary">
                       {item.code}
@@ -327,7 +357,17 @@ export function BillingMenuCatalog({
                       </span>
                       <button
                         type="button"
-                        onClick={() => onUpdateCartQty(cartId, totalQty + 1)}
+                        onClick={() => {
+                          if (item.plates !== undefined) {
+                            const isHalf = (chosenVariant?.name || "").toLowerCase().includes("half");
+                            const nextPlates = (totalQty + 1) * (isHalf ? 0.5 : 1.0);
+                            if (nextPlates > item.plates) {
+                              toast.error(`Only ${item.plates} plates available for "${item.name}".`);
+                              return;
+                            }
+                          }
+                          onUpdateCartQty(cartId, totalQty + 1);
+                        }}
                         className="flex h-8 w-8 items-center justify-center text-primary hover:bg-primary-tint cursor-pointer"
                         title="Increase"
                       >
@@ -338,10 +378,16 @@ export function BillingMenuCatalog({
                     <button
                       type="button"
                       onClick={() => handleAddClick(item)}
-                      className="inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-3 text-[11.5px] font-bold text-primary-foreground shadow-xs hover:opacity-95 active:scale-[0.98] cursor-pointer"
+                      disabled={item.plates !== undefined && item.plates <= 0}
+                      className={cn(
+                        "inline-flex h-8 items-center gap-1 rounded-lg px-3 text-[11.5px] font-bold shadow-xs transition",
+                        item.plates !== undefined && item.plates <= 0
+                          ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                          : "bg-primary text-primary-foreground hover:opacity-95 active:scale-[0.98] cursor-pointer",
+                      )}
                     >
                       <Plus className="h-3.5 w-3.5" />
-                      Add
+                      {item.plates !== undefined && item.plates <= 0 ? "Sold Out" : "Add"}
                     </button>
                   )}
                 </div>
