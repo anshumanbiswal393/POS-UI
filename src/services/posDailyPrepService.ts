@@ -1,4 +1,4 @@
-import { posMenuService } from "./posMenuService";
+import { posMenuService, updateItemPlates } from "./posMenuService";
 import { posInventoryService } from "./posInventoryService";
 
 export type DailyPreparationIngredient = {
@@ -91,7 +91,7 @@ export const posDailyPrepService = {
 
     // 1. Increment available plates in POS billing catalog
     if (newRecord.plates > 0) {
-      posMenuService.updateItemPlates(
+      updateItemPlates(
         effectiveOutletId,
         newRecord.menuItemId,
         newRecord.plates,
@@ -136,7 +136,7 @@ export const posDailyPrepService = {
     if (rollbackStock) {
       // 1. Rollback plates
       if (target.plates > 0) {
-        posMenuService.updateItemPlates(
+        updateItemPlates(
           outletId || target.outletId,
           target.menuItemId,
           -target.plates,

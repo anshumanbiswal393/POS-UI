@@ -501,6 +501,15 @@ export const posMenuService = {
     return menuItemsStore.find((i) => i.id === id);
   },
 
+  updateItemPlates: (
+    outletId: string | undefined,
+    itemId: string,
+    deltaOrExact: number,
+    isDelta = false,
+  ) => {
+    return updateItemPlates(outletId, itemId, deltaOrExact, isDelta);
+  },
+
   deductItemPlates: (outletId: string | undefined, itemId: string, platesToDeduct: number) => {
     return updateItemPlates(outletId, itemId, -platesToDeduct, true);
   },
