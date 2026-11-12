@@ -21,7 +21,12 @@ import {
   type DueBill,
   type CurrentOrderRecord,
 } from "@/services/posOrdersService";
-import { POS_TABLES_QUERY_KEY, POS_TABLE_STATS_QUERY_KEY } from "./usePosTables";
+import {
+  POS_TABLES_QUERY_KEY,
+  POS_TABLE_STATS_QUERY_KEY,
+  POS_RESERVATIONS_QUERY_KEY,
+} from "./usePosTables";
+import { posTablesService } from "@/services/posTablesService";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { isBackendOutletId } from "@/utils/outletId";
 
@@ -162,9 +167,10 @@ export function useSettleDueBillMutation() {
       paymentMode: "Cash" | "Card" | "UPI" | "Room Charge" | "Split";
       paidAmount?: number;
       orderId?: string;
+      tableNumber?: string;
     }) => settleDueBillLive(billId, paymentMode, paidAmount, orderId),
     onSuccess: (data, vars) => {
-      const settled = (data as { settledBill?: { status?: string; dueAmount?: number } })?.settledBill;
+      const settled = (data as { settledBill?: { status?: string; dueAmount?: number; tableOrRoom?: string } })?.settledBill;
       const fullyPaid =
         String(settled?.status || "").toLowerCase() === "settled" || Number(settled?.dueAmount ?? 0) === 0;
       if (fullyPaid) {
@@ -172,6 +178,15 @@ export function useSettleDueBillMutation() {
           if (!Array.isArray(old)) return old;
           return old.filter((b: { id?: string; billNo?: string }) => b.id !== vars.billId && b.billNo !== vars.billId);
         });
+        const tableNum = vars.tableNumber || settled?.tableOrRoom;
+        if (tableNum) {
+          void posTablesService
+            .completeReservation({ tableNumber: tableNum })
+            .then(() => {
+              queryClient.invalidateQueries({ queryKey: POS_RESERVATIONS_QUERY_KEY });
+            })
+            .catch(() => {});
+        }
       }
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "due-bills"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "all"] });
@@ -180,6 +195,7 @@ export function useSettleDueBillMutation() {
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
       queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: POS_TABLE_STATS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_RESERVATIONS_QUERY_KEY });
     },
   });
 }

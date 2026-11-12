@@ -273,6 +273,7 @@ export function PosDueSettlementManager() {
         paymentMode: modeForApi,
         paidAmount: settleAmt,
         orderId: selectedBill.orderId,
+        tableNumber: selectedBill.tableOrRoom,
       },
       {
         onSuccess: (data: any) => {

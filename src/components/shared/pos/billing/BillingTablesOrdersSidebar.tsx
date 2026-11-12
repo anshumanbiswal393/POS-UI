@@ -80,6 +80,59 @@ function TableChairsIcon({ className = "h-10 w-12 text-slate-500" }: { className
   );
 }
 
+/**
+ * Exclude settled or cancelled orders from the active POS billing Orders tab.
+ */
+export function filterActivePosOrders(
+  orders: CurrentOrderRecord[],
+  searchQuery = "",
+): CurrentOrderRecord[] {
+  const safeOrders = (Array.isArray(orders) ? orders : []).filter(
+    (ord) =>
+      ord &&
+      !ord.isSettled &&
+      String(ord.currentStage || "").toLowerCase() !== "settled" &&
+      String((ord as CurrentOrderRecord & { status?: string }).status || "").toLowerCase() !== "cancelled",
+  );
+  const q = searchQuery.trim().toLowerCase();
+  if (!q) return safeOrders;
+  return safeOrders.filter(
+    (ord) =>
+      (ord.orderNumber || "").toLowerCase().includes(q) ||
+      (ord.customerName || "").toLowerCase().includes(q) ||
+      (ord.tableOrRoom && ord.tableOrRoom.toLowerCase().includes(q)),
+  );
+}
+
+/**
+ * Exclude completed or cancelled reservations from the POS billing Bookings tab.
+ */
+export function filterActivePosReservations(
+  reservations: ReservationItem[],
+  statusFilter = "all",
+  searchQuery = "",
+): ReservationItem[] {
+  const safeRes = (Array.isArray(reservations) ? reservations : []).filter(
+    (res) => res && res.status !== "completed" && res.status !== "cancelled",
+  );
+  return safeRes.filter((res) => {
+    if (
+      statusFilter !== "all" &&
+      (res.status || "").toLowerCase() !== statusFilter.toLowerCase()
+    ) {
+      return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchName = (res.customerName || "").toLowerCase().includes(q);
+      const matchPhone = (res.customerPhone || "").toLowerCase().includes(q);
+      const matchTable = (res.tableNumber || "").toLowerCase().includes(q);
+      return matchName || matchPhone || matchTable;
+    }
+    return true;
+  });
+}
+
 export function BillingTablesOrdersSidebar({
   activeTable,
   onSelectTable,
@@ -140,41 +193,32 @@ export function BillingTablesOrdersSidebar({
     });
   }, [tables, selectedZone, statusFilter]);
 
-  // Filtered Orders
-  const filteredOrders = useMemo(() => {
-    const safeOrders = Array.isArray(currentOrders) ? currentOrders : [];
-    const q = orderSearchQuery.trim().toLowerCase();
-    if (!q) return safeOrders;
-    return safeOrders.filter(
-      (ord) =>
-        ord &&
-        ((ord.orderNumber || "").toLowerCase().includes(q) ||
-          (ord.customerName || "").toLowerCase().includes(q) ||
-          (ord.tableOrRoom && ord.tableOrRoom.toLowerCase().includes(q)))
-    );
-  }, [currentOrders, orderSearchQuery]);
+  const activeOrders = useMemo(
+    () => filterActivePosOrders(currentOrders),
+    [currentOrders],
+  );
 
-  // Filtered Reservations
-  const filteredReservations = useMemo(() => {
-    const safeRes = Array.isArray(reservations) ? reservations : [];
-    return safeRes.filter((res) => {
-      if (!res) return false;
-      if (
-        reservationStatusFilter !== "all" &&
-        (res.status || "").toLowerCase() !== reservationStatusFilter.toLowerCase()
-      ) {
-        return false;
-      }
-      if (reservationSearchQuery.trim()) {
-        const q = reservationSearchQuery.toLowerCase();
-        const matchName = (res.customerName || "").toLowerCase().includes(q);
-        const matchPhone = (res.customerPhone || "").toLowerCase().includes(q);
-        const matchTable = (res.tableNumber || "").toLowerCase().includes(q);
-        return matchName || matchPhone || matchTable;
-      }
-      return true;
-    });
-  }, [reservations, reservationStatusFilter, reservationSearchQuery]);
+  // Filtered Orders (active unsettled orders only)
+  const filteredOrders = useMemo(
+    () => filterActivePosOrders(currentOrders, orderSearchQuery),
+    [currentOrders, orderSearchQuery],
+  );
+
+  const activeReservations = useMemo(
+    () => filterActivePosReservations(reservations),
+    [reservations],
+  );
+
+  // Filtered Reservations (active bookings only — completed/cancelled stay in /pos/reservations)
+  const filteredReservations = useMemo(
+    () =>
+      filterActivePosReservations(
+        reservations,
+        reservationStatusFilter,
+        reservationSearchQuery,
+      ),
+    [reservations, reservationStatusFilter, reservationSearchQuery],
+  );
 
   // Format table display ID (e.g. T01, T02)
   const getTableCode = (table: RestaurantTable) => {
@@ -329,13 +373,13 @@ export function BillingTablesOrdersSidebar({
             >
               <ClipboardList className="h-3.5 w-3.5" />
               <span>Orders</span>
-              {currentOrders.length > 0 && (
+              {activeOrders.length > 0 && (
                 <span
                   className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 ${
                     activeTab === "orders" ? "bg-white text-primary" : "bg-primary text-white"
                   }`}
                 >
-                  {currentOrders.length}
+                  {activeOrders.length}
                 </span>
               )}
             </button>
@@ -352,13 +396,13 @@ export function BillingTablesOrdersSidebar({
             >
               <CalendarCheck2 className="h-3.5 w-3.5" />
               <span>Bookings</span>
-              {reservations.length > 0 && (
+              {activeReservations.length > 0 && (
                 <span
                   className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 ${
                     activeTab === "reservations" ? "bg-white text-primary" : "bg-primary text-white"
                   }`}
                 >
-                  {reservations.length}
+                  {activeReservations.length}
                 </span>
               )}
             </button>

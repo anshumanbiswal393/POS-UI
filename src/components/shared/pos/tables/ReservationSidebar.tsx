@@ -38,12 +38,15 @@ export function ReservationSidebar({
   const safeReservations = Array.isArray(reservations) ? reservations : [];
   const safeTables = Array.isArray(tables) ? tables : [];
 
-  // Filter reservations and active seatings
-  const reservedItems = safeReservations.filter((r) => r && r.status === "reserved");
+  // Filter reservations and active seatings (exclude completed/cancelled from Take Order POS sidebar)
+  const activeReservations = safeReservations.filter(
+    (r) => r && r.status !== "completed" && r.status !== "cancelled",
+  );
+  const reservedItems = activeReservations.filter((r) => r.status === "reserved");
   const occupiedTables = safeTables.filter((t) => t && t.status === "occupied");
 
   // Filter based on tab and search
-  const filteredReservations = safeReservations.filter((r) => {
+  const filteredReservations = activeReservations.filter((r) => {
     if (!r) return false;
     if (filterTab === "reservation" && r.status !== "reserved") return false;
     if (filterTab === "on_dine" && r.status !== "seated") return false;
@@ -58,7 +61,7 @@ export function ReservationSidebar({
     return true;
   });
 
-  const totalCount = reservations.length + occupiedTables.length;
+  const totalCount = activeReservations.length + occupiedTables.length;
   const reservationCount = reservedItems.length;
   const onDineCount = occupiedTables.length;
 

@@ -11,7 +11,12 @@ import {
   posTablesService,
 } from "../posTablesService";
 import type { ReservationItem, RestaurantTable } from "@/types/posTables";
+import type { CurrentOrderRecord } from "@/services/posOrdersService";
 import { getPosCustomers } from "@/services/posCustomerStore";
+import {
+  filterActivePosOrders,
+  filterActivePosReservations,
+} from "@/components/shared/pos/billing/BillingTablesOrdersSidebar";
 
 describe("POS Reservations & Dynamic Table Status", () => {
   describe("Date & Time Normalization", () => {
@@ -301,6 +306,94 @@ describe("POS Reservations & Dynamic Table Status", () => {
       expect(table.activeOrder?.guestName).toBe("shab mohanty");
       expect(table.activeOrder?.guestPhone).toBe("8478477446");
       expect(table.activeReservation?.customerName).toBe("shab mohanty");
+    });
+
+    it("completes seated reservation after payment, removes it from POS lists, and keeps it completed in reservations list", async () => {
+      const todayIso = new Date().toISOString().split("T")[0];
+      const res = await posTablesService.addReservation({
+        tableId: "tbl-complete-13",
+        tableNumber: "T13",
+        customerName: "Rahul Sharma",
+        customerPhone: "9876543210",
+        guests: 4,
+        reservationDate: todayIso,
+        reservationTime: "07:30 PM",
+      });
+
+      // Also add a future reservation on the same table that should NOT be auto-completed prematurely
+      const futureRes = await posTablesService.addReservation({
+        tableId: "tbl-complete-13",
+        tableNumber: "T13",
+        customerName: "Future Guest",
+        customerPhone: "9111122222",
+        guests: 2,
+        reservationDate: "2099-12-31",
+        reservationTime: "10:00 PM",
+      });
+
+      // Seat the guest
+      await posTablesService.seatGuests("tbl-complete-13", res.id);
+
+      // Before payment: visible in POS Bookings list as seated
+      const beforeReservations = await posTablesService.getReservations();
+      const posBookingsBefore = filterActivePosReservations(beforeReservations, "all");
+      expect(posBookingsBefore.some((r) => r.id === res.id && r.status === "seated")).toBe(true);
+
+      // After full payment: complete reservation (matching by table when order payment settles)
+      const completed = await posTablesService.completeReservation({
+        tableId: "tbl-complete-13",
+        tableNumber: "T13",
+      });
+      expect(completed.some((r) => r.id === res.id && r.status === "completed")).toBe(true);
+
+      // Full reservations list (/pos/reservations) retains it with "completed" status
+      const afterReservations = await posTablesService.getReservations();
+      const updated = afterReservations.find((r) => r.id === res.id);
+      expect(updated?.status).toBe("completed");
+      expect(afterReservations.find((r) => r.id === futureRes.id)?.status).toBe("reserved");
+
+      // POS Bookings sidebar excludes completed/cancelled bookings even on "all" filter
+      const posBookingsAfter = filterActivePosReservations(afterReservations, "all");
+      expect(posBookingsAfter.some((r) => r.id === res.id)).toBe(false);
+      expect(posBookingsAfter.some((r) => r.id === futureRes.id)).toBe(true);
+    });
+
+    it("excludes settled and cancelled orders from POS billing Orders tab", () => {
+      const sampleOrders = [
+        {
+          id: "ord-active",
+          orderNumber: "ORD-1001",
+          type: "dine_in",
+          tableOrRoom: "T13",
+          customerName: "Rahul Sharma",
+          itemsSummary: "1x Biryani",
+          amount: 280,
+          amountFormatted: "₹280",
+          currentStage: "preparing",
+          stageLabel: "Preparing",
+          status: "preparing",
+          elapsedMinutes: 5,
+          isSettled: false,
+        },
+        {
+          id: "ord-settled",
+          orderNumber: "ORD-1002",
+          type: "dine_in",
+          tableOrRoom: "T13",
+          customerName: "Rahul Sharma",
+          itemsSummary: "1x Biryani",
+          amount: 280,
+          amountFormatted: "₹280",
+          currentStage: "settled",
+          stageLabel: "Settled",
+          status: "settled",
+          elapsedMinutes: 8,
+          isSettled: true,
+        },
+      ] as unknown as CurrentOrderRecord[];
+
+      const active = filterActivePosOrders(sampleOrders);
+      expect(active.map((o) => o.id)).toEqual(["ord-active"]);
     });
   });
 });

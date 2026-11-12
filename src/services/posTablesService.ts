@@ -1130,7 +1130,7 @@ export const posTablesService = {
 
     const newReservation: ReservationItem = {
       ...data,
-      id: `res-${Date.now()}`,
+      id: `res-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       tableId: mergedIds[0],
       tableNumber: mergedNumbers.join(" + ") || data.tableNumber,
       mergedTableIds: isMerged ? mergedIds : undefined,
@@ -1462,18 +1462,38 @@ export const posTablesService = {
 
     // Mark any active reservation for this table as completed in storage
     const stored = getStoredReservations(effectiveOutlet);
+    const completedIds = new Set<string>();
     const updatedStored = stored.map((r) => {
       if (
         (r.tableId === tableId || r.mergedTableIds?.includes(tableId)) &&
         (r.status === "reserved" || r.status === "seated")
       ) {
+        completedIds.add(r.id);
         return { ...r, status: "completed" as const };
       }
       return r;
     });
     saveStoredReservations(effectiveOutlet, updatedStored);
 
+    store().reservations = store().reservations.map((r) => {
+      if (
+        (r.tableId === tableId || r.mergedTableIds?.includes(tableId)) &&
+        (r.status === "reserved" || r.status === "seated")
+      ) {
+        completedIds.add(r.id);
+        return { ...r, status: "completed" as const };
+      }
+      return r;
+    });
+
     if (isLiveFloor()) {
+      for (const rid of completedIds) {
+        if (isBackendOutletId(rid)) {
+          httpClient
+            .patch(`${API_ENDPOINTS.TABLES.RESERVATIONS}${rid}/`, { status: "COMPLETED" })
+            .catch(() => {});
+        }
+      }
       await patchTableStatus(tableId, "VACANT");
       const tables = await posTablesService.getTables();
       const found = tables.find((t) => t.id === tableId);
@@ -1525,6 +1545,109 @@ export const posTablesService = {
 
     return updatedTable;
 
+  },
+
+  completeReservation: async (params: {
+    reservationId?: string;
+    tableId?: string;
+    tableNumber?: string;
+  }): Promise<ReservationItem[]> => {
+    const effectiveOutlet =
+      scopedOutletId ||
+      (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null) ||
+      undefined;
+
+    const { reservationId, tableId, tableNumber } = params;
+    const normDigits = (v?: string) => (v || "").replace(/\D+/g, "");
+    const targetDigits = normDigits(tableNumber);
+    const targetLower = (tableNumber || "").trim().toLowerCase();
+
+    const matchesTable = (r: ReservationItem) => {
+      if (tableId && (r.tableId === tableId || r.mergedTableIds?.includes(tableId))) {
+        return true;
+      }
+      if (targetLower) {
+        const resTableLower = (r.tableNumber || "").trim().toLowerCase();
+        if (resTableLower && resTableLower === targetLower) return true;
+        if (
+          r.mergedTableNumbers?.some((n) => n.trim().toLowerCase() === targetLower)
+        ) {
+          return true;
+        }
+      }
+      if (targetDigits) {
+        if (normDigits(r.tableNumber) === targetDigits) return true;
+        if (
+          r.mergedTableNumbers?.some((n) => normDigits(n) === targetDigits)
+        ) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const shouldComplete = (r: ReservationItem) => {
+      if (r.status === "completed" || r.status === "cancelled") return false;
+      if (reservationId && r.id === reservationId) return true;
+      if (matchesTable(r)) {
+        return r.status === "seated" || (r.status === "reserved" && isReservationActiveNow(r));
+      }
+      return false;
+    };
+
+    const completedMap = new Map<string, ReservationItem>();
+
+    const stored = getStoredReservations(effectiveOutlet);
+    const updatedStored = stored.map((r) => {
+      if (shouldComplete(r)) {
+        const next: ReservationItem = { ...r, status: "completed" };
+        completedMap.set(r.id, next);
+        return next;
+      }
+      return r;
+    });
+
+    store().reservations = store().reservations.map((r) => {
+      if (shouldComplete(r)) {
+        const next: ReservationItem = { ...r, status: "completed" };
+        completedMap.set(r.id, next);
+        return next;
+      }
+      return r;
+    });
+
+    // If a reservation existed in store() but not yet in stored, ensure it's persisted too
+    const storedIds = new Set(updatedStored.map((r) => r.id));
+    for (const r of completedMap.values()) {
+      if (!storedIds.has(r.id)) {
+        updatedStored.push(r);
+      }
+    }
+    saveStoredReservations(effectiveOutlet, updatedStored);
+
+    if (completedMap.size > 0) {
+      store().tables = store().tables.map((tbl) => {
+        if (tbl.activeReservation && completedMap.has(tbl.activeReservation.id)) {
+          return {
+            ...tbl,
+            activeReservation: undefined,
+          };
+        }
+        return tbl;
+      });
+
+      if (isLiveFloor()) {
+        for (const rid of completedMap.keys()) {
+          if (isBackendOutletId(rid)) {
+            await httpClient
+              .patch(`${API_ENDPOINTS.TABLES.RESERVATIONS}${rid}/`, { status: "COMPLETED" })
+              .catch(() => {});
+          }
+        }
+      }
+    }
+
+    return Array.from(completedMap.values());
   },
 
   createTableOrder: async (input: {

@@ -16,7 +16,7 @@ import { BillingHeader } from "./BillingHeader";
 import { BillingMenuCatalog } from "./BillingMenuCatalog";
 import { BillingCartRegister } from "./BillingCartRegister";
 import { BillingTablesOrdersSidebar } from "./BillingTablesOrdersSidebar";
-import type { RestaurantTable } from "@/types/posTables";
+import type { RestaurantTable, ReservationItem } from "@/types/posTables";
 import { BillingModifierModal } from "./BillingModifierModal";
 import { BillingReceiptModal } from "./BillingReceiptModal";
 import { BillingHeldDrawer } from "./BillingHeldDrawer";
@@ -38,7 +38,8 @@ import {
 } from "@/services/posOrderLive";
 import { getPosTaxSettings } from "@/lib/posTaxSettings";
 import { useHotelRooms } from "@/hooks/queries/usePosRoomService";
-import { usePosTables, usePosReservations } from "@/hooks/queries/usePosTables";
+import { usePosTables, usePosReservations, POS_RESERVATIONS_QUERY_KEY } from "@/hooks/queries/usePosTables";
+import { posTablesService } from "@/services/posTablesService";
 import { savePosCustomer } from "@/services/posCustomerStore";
 import { isBackendOutletId } from "@/utils/outletId";
 import { POS_ROOM_SERVICE_ROOMS_KEY } from "@/hooks/queries/usePosRoomService";
@@ -273,6 +274,7 @@ export function PosBillingManager() {
   const [billingTableId, setBillingTableId] = useState("");
   const [roomUnitId, setRoomUnitId] = useState("");
   const [reservationId, setReservationId] = useState("");
+  const [activeTableReservationId, setActiveTableReservationId] = useState("");
   const [folioId, setFolioId] = useState("");
   const [linkedOrderId, setLinkedOrderId] = useState<string | null>(null);
 
@@ -782,6 +784,7 @@ export function PosBillingManager() {
     setLinkedOrderId(null);
     setActiveTable("");
     setBillingTableId("");
+    setActiveTableReservationId("");
     setGuestCount(0);
     setDiscountType("percent");
     setDiscountValue(0);
@@ -877,6 +880,7 @@ export function PosBillingManager() {
   const invalidateOrderSurfaces = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
     queryClient.invalidateQueries({ queryKey: ["pos", "tables"] });
+    queryClient.invalidateQueries({ queryKey: POS_RESERVATIONS_QUERY_KEY });
     queryClient.invalidateQueries({ queryKey: POS_ROOM_SERVICE_ROOMS_KEY });
     queryClient.invalidateQueries({ queryKey: ["pos", "inventory"] });
   }, [queryClient]);
@@ -1056,6 +1060,21 @@ export function PosBillingManager() {
     if (table.id) setBillingTableId(table.id);
     setOrderType("dine_in");
     setGuestCount(reservation?.guests || table.activeReservation?.guests || table.capacity || 4);
+
+    const linkedResId = reservation?.id || table.activeReservation?.id || "";
+    setActiveTableReservationId(linkedResId);
+
+    if (reservation && reservation.status === "reserved" && table.id) {
+      void (async () => {
+        try {
+          await posTablesService.seatGuests(table.id, reservation.id);
+          queryClient.invalidateQueries({ queryKey: ["pos", "tables"] });
+          queryClient.invalidateQueries({ queryKey: POS_RESERVATIONS_QUERY_KEY });
+        } catch {
+          // ignore non-blocking seat transition error
+        }
+      })();
+    }
 
     if (reservation?.customerName) {
       handleSelectCustomer({
@@ -1325,6 +1344,17 @@ export function PosBillingManager() {
               reservationId: reservationId || undefined,
               idempotencyKey: `settle-${orderId}-${Date.now()}`,
             });
+            if (!isPartial && orderType === "dine_in") {
+              try {
+                await posTablesService.completeReservation({
+                  reservationId: activeTableReservationId || undefined,
+                  tableId: billingTableId || resolveTableMatch(activeTable)?.id,
+                  tableNumber: tableLabel,
+                });
+              } catch {
+                // non-blocking so bill settlement still completes cleanly
+              }
+            }
             invalidateOrderSurfaces();
             setIsPayNowOpen(false);
             if (isPartial) {
@@ -1378,6 +1408,7 @@ export function PosBillingManager() {
       resolveTableMatch,
       roomUnitId,
       reservationId,
+      activeTableReservationId,
       folioId,
       linkedOrderId,
       invalidateOrderSurfaces,
