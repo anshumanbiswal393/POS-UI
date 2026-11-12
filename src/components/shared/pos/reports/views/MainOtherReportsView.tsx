@@ -851,7 +851,7 @@ export function MainOtherReportsView() {
             </div>
 
             {/* Global Search Bar */}
-            <div className="flex items-center gap-2 min-w-[280px]">
+            <div className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[280px]">
               <div className="relative w-full">
                 <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                 <input
@@ -1065,8 +1065,8 @@ export function MainOtherReportsView() {
         </div>
 
         {/* Top-right Search and View Toggle Switcher */}
-        <div className="flex items-center gap-3">
-          <div className="relative min-w-[220px] sm:min-w-[260px]">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+          <div className="relative flex-1 min-w-0 sm:flex-initial sm:min-w-[260px]">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
             <input
               type="text"

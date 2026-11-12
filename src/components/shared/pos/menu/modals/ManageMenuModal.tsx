@@ -42,7 +42,7 @@ export function ManageMenuModal({ isOpen, onClose }: { isOpen: boolean; onClose:
 
         {/* Filter bar */}
         <div className="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-white">
-          <div className="flex items-center gap-3 flex-1 min-w-[280px]">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 sm:gap-3 flex-1 w-full sm:min-w-[280px]">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
               <input

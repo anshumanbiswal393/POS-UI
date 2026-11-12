@@ -77,7 +77,7 @@ export function BulkAvailabilityModal({
             <label className="block text-[12.5px] font-bold text-slate-800 mb-2">
               Apply {isEnable ? "Turn ON" : "Turn OFF"} to channels:
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
               <label
                 className={`flex items-center gap-2 rounded-xl border p-3 cursor-pointer transition ${
                   applyZomato

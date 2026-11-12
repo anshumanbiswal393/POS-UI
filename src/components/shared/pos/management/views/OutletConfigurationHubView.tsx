@@ -313,7 +313,7 @@ export function OutletConfigurationHubView() {
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-col gap-1">
+          <div className="flex w-full sm:w-auto sm:shrink-0 flex-col gap-1">
             <span className="text-[10.5px] font-semibold uppercase tracking-wider text-teal-100">
               Target Hotel / Outlet
             </span>
@@ -321,7 +321,7 @@ export function OutletConfigurationHubView() {
               <select
                 value={isOutletSelected && selectedOutlet ? selectedOutlet.id : ""}
                 onChange={(e) => handleSwitchOutlet(e.target.value)}
-                className="min-w-[240px] cursor-pointer appearance-none rounded-xl border border-white/20 bg-white py-2.5 pl-3.5 pr-10 text-[13px] font-semibold text-slate-900 shadow-md focus:outline-none sm:min-w-[280px]"
+                className="w-full sm:w-auto sm:min-w-[280px] cursor-pointer appearance-none rounded-xl border border-white/20 bg-white py-2.5 pl-3.5 pr-10 text-[13px] font-semibold text-slate-900 shadow-md focus:outline-none"
               >
                 <option value="">-- Choose Outlet --</option>
                 {outlets.map((o) => (

@@ -346,7 +346,7 @@ export function PosDueSettlementManager() {
   if (selectedBill) {
     const amt = parseFloat(settlementAmount) || selectedBill.dueAmount;
     return (
-      <div className="flex flex-col flex-1 min-h-0 w-full h-[calc(100dvh-3.5rem)] overflow-hidden bg-slate-50/50">
+      <div className="flex flex-col flex-1 min-h-[calc(100dvh-3.5rem)] w-full lg:h-[calc(100dvh-3.5rem)] lg:overflow-hidden bg-slate-50/50">
         <div className="flex items-center gap-2 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
           <button
             type="button"
@@ -410,7 +410,7 @@ export function PosDueSettlementManager() {
 
           {/* Main — bill + amount + Done */}
           <section className="flex-1 min-h-0 rounded-xl border border-border bg-surface shadow-e1 overflow-y-auto p-4 space-y-4">
-            <div className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-surface-2/50 p-3 text-center">
+            <div className="grid grid-cols-1 min-[360px]:grid-cols-3 gap-2 rounded-xl border border-border bg-surface-2/50 p-3 text-center">
               <div>
                 <div className="text-[10.5px] font-bold uppercase text-text-secondary">Total</div>
                 <div className="mt-0.5 text-[15px] font-black text-text-primary">
@@ -537,7 +537,7 @@ export function PosDueSettlementManager() {
 
       <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[240px] flex-1">
+          <div className="relative w-full sm:w-auto sm:min-w-[240px] flex-1">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
             <input
               type="text"

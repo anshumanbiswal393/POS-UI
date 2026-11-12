@@ -55,34 +55,34 @@ export function RoomOrderCategoryGridView({
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-white overflow-y-auto font-sans select-none relative">
       {/* Top Header Bar */}
-      <div className="px-5 sm:px-8 py-2.5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+      <div className="px-4 sm:px-8 py-2.5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             Room View
           </h1>
         </div>
 
-        <div className="flex items-center gap-5 self-end sm:self-auto">
+        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3 sm:gap-5 w-full sm:w-auto">
           {/* Quick Search */}
-          <div className="relative hidden md:block">
+          <div className="relative flex-1 sm:flex-initial min-w-[140px]">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search rooms..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-44 pl-8 pr-3 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              className="w-full sm:w-44 pl-8 pr-3 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             />
           </div>
 
           {/* Legend matching dynamic theme */}
-          <div className="flex items-center gap-4 text-xs font-medium">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 sm:gap-4 text-xs font-medium shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <div className="w-3.5 h-3.5 rounded-[3px] bg-primary/15 border border-primary/40 shadow-2xs" />
               <span className="text-slate-700 font-semibold text-[11.5px]">Vacant</span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <div className="w-3.5 h-3.5 rounded-[3px] bg-primary shadow-2xs" />
               <span className="text-slate-700 font-semibold text-[11.5px]">In-house guest</span>
             </div>
@@ -90,9 +90,9 @@ export function RoomOrderCategoryGridView({
         </div>
       </div>
 
-      {/* Floating Held Orders Card in Upper Right Corner */}
+      {/* Held Orders Strip (stacks inline on mobile/tablet so it never obscures rooms; floats top-right on desktop) */}
       {heldOrders.length > 0 && (
-        <div className="absolute top-14 right-6 z-20 flex flex-col gap-2 max-w-xs animate-in slide-in-from-top-2">
+        <div className="px-4 pt-2.5 md:px-0 md:pt-0 md:absolute md:top-14 md:right-6 z-20 flex flex-col gap-2 w-full md:w-auto md:max-w-xs animate-in slide-in-from-top-2">
           {heldOrders.map((held) => {
             const itemCount = Object.values(held.cart).reduce((sum, i) => sum + i.quantity, 0);
             const total = Object.values(held.cart).reduce(

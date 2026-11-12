@@ -296,9 +296,9 @@ export function PosOrderTabularCatalogStep({
       </div>
 
       {/* 2-Column Split: 65%-70% Catalog Grid & Search (Left 8 cols) + Fixed/35% Bill Panel (Right 4 cols) */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden bg-background">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 lg:overflow-hidden bg-background">
         {/* Left Column: Product Grid & Search */}
-        <div className="lg:col-span-8 overflow-y-auto p-3.5 border-r border-border bg-surface">
+        <div className="lg:col-span-8 overflow-x-auto lg:overflow-y-auto p-3.5 border-b lg:border-b-0 lg:border-r border-border bg-surface">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-border bg-surface-2 text-text-secondary font-bold uppercase text-[10.5px]">
@@ -421,8 +421,8 @@ export function PosOrderTabularCatalogStep({
           </table>
         </div>
 
-        {/* Right Column: Cart & Order Ticket Panel (Fixed 380px feel) */}
-        <div className="lg:col-span-4 flex flex-col justify-between p-3.5 bg-surface-2/40 overflow-y-auto min-w-[340px]">
+        {/* Right Column: Cart & Order Ticket Panel */}
+        <div className="lg:col-span-4 w-full min-w-0 flex flex-col justify-between p-3.5 bg-surface-2/40 lg:overflow-y-auto">
           <div>
             <div className="p-3 bg-surface rounded-xl border border-border shadow-e1 mb-3">
               <div className="flex items-center justify-between">

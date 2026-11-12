@@ -1024,7 +1024,7 @@ export function ProductionMasterView() {
 
             <div className="flex-1 overflow-y-auto p-6 space-y-5">
               {/* Stats overview */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-2.5 sm:gap-3">
                 <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
                   <span className="text-[11px] text-slate-500 font-medium">Batch Yield</span>
                   <p className="text-[15px] font-bold text-slate-900 mt-0.5">

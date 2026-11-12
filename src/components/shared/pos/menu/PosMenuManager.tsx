@@ -61,9 +61,39 @@ export function PosMenuManager() {
   ];
 
   return (
-    <div className="flex flex-1 h-[calc(100dvh-3.5rem)] min-h-[520px] bg-[#f8fafc] overflow-hidden">
-      {/* 1. Left Menu Sub-Navigation Rail */}
-      <aside className="w-60 shrink-0 border-r border-slate-200 bg-white shadow-2xs flex flex-col justify-between">
+    <div className="flex flex-col md:flex-row flex-1 min-h-[calc(100dvh-3.5rem)] md:h-[calc(100dvh-3.5rem)] bg-[#f8fafc] md:overflow-hidden">
+      {/* Mobile Sub-Navigation Bar (<md) */}
+      <div className="md:hidden border-b border-slate-200 bg-white px-3 py-2 shrink-0 flex items-center gap-1.5 overflow-x-auto">
+        <Link
+          to="/pos/billing"
+          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11.5px] font-semibold text-slate-700 hover:text-teal-600"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Billing</span>
+        </Link>
+        {navMenuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setActiveTab(item.id)}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold transition cursor-pointer whitespace-nowrap ${
+                isActive
+                  ? "bg-teal-600 text-white shadow-2xs"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5 shrink-0" />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 1. Left Menu Sub-Navigation Rail (md+) */}
+      <aside className="hidden md:flex md:w-56 lg:w-60 shrink-0 border-r border-slate-200 bg-white shadow-2xs flex-col justify-between">
         <div className="py-2">
           {/* Back To Billing Link */}
           <Link

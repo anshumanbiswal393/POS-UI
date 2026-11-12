@@ -110,13 +110,13 @@ export function PosRoomServiceManager() {
   });
 
   return (
-    <div className="flex flex-col flex-1 h-[calc(100dvh-3.5rem)] min-h-[520px] w-full overflow-hidden bg-slate-100 font-sans">
+    <div className="flex flex-col flex-1 min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100dvh-3.5rem)] w-full lg:overflow-hidden bg-slate-100 font-sans">
       {/* 1. Header Toolbar - Flush with TopBar */}
-      <div className="px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="px-3 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-xs">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-xs shrink-0">
                 <BedDouble className="w-5 h-5" />
               </span>
               <div>
@@ -130,16 +130,16 @@ export function PosRoomServiceManager() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             {/* Search */}
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-initial min-w-[160px]">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search room, guest..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-48 sm:w-56 pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="w-full sm:w-56 pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
             </div>
 

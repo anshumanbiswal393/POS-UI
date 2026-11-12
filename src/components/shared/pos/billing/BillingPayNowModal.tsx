@@ -166,7 +166,7 @@ export function BillingPayNowModal({
           </aside>
 
           <section className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border bg-surface p-4 space-y-4">
-            <div className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-surface-2/50 p-3 text-center">
+            <div className="grid grid-cols-1 min-[360px]:grid-cols-3 gap-2 rounded-xl border border-border bg-surface-2/50 p-3 text-center">
               <div>
                 <div className="text-[10.5px] font-bold uppercase text-text-secondary">Total</div>
                 <div className="mt-0.5 text-[15px] font-black text-text-primary">

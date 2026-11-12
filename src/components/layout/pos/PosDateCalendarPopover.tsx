@@ -99,12 +99,19 @@ export function PosDateCalendarPopover() {
     return selectedDateStr === `${y}-${m}-${day}`;
   })();
 
+  const compactDateLabel = isToday
+    ? "Today"
+    : new Date(`${selectedDateStr}T00:00:00`).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={`hidden md:flex h-9 items-center gap-2 rounded-xl border px-3 text-[12.5px] font-medium transition cursor-pointer select-none shadow-2xs ${
+          className={`flex h-8 sm:h-9 items-center gap-1 sm:gap-2 rounded-xl border px-2 sm:px-3 text-[11.5px] sm:text-[12.5px] font-medium transition cursor-pointer select-none shadow-2xs shrink-0 ${
             !isToday
               ? "border-emerald-500 bg-emerald-50 text-emerald-950 ring-2 ring-emerald-500/20 font-bold"
               : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"
@@ -112,21 +119,22 @@ export function PosDateCalendarPopover() {
           title="Click to select operational date for POS dashboard & operations"
         >
           <CalendarIcon
-            className={`h-4 w-4 shrink-0 ${
+            className={`h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 ${
               !isToday ? "text-emerald-700" : "text-teal-600"
             }`}
           />
-          <span className="truncate max-w-[200px]">
+          <span className="xl:hidden font-semibold whitespace-nowrap">{compactDateLabel}</span>
+          <span className="hidden xl:inline truncate max-w-[200px]">
             {isToday ? `Today · ${formattedDate}` : formattedDate}
           </span>
-          <ChevronDown className="h-3.5 w-3.5 opacity-60 ml-0.5 shrink-0" />
+          <ChevronDown className="h-3 w-3 sm:h-3.5 sm:w-3.5 opacity-60 ml-0.5 shrink-0" />
         </button>
       </PopoverTrigger>
 
       <PopoverContent
         align="end"
         sideOffset={6}
-        className="w-[320px] p-3.5 rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-2xl z-50 animate-in fade-in zoom-in-95"
+        className="w-[min(320px,calc(100vw-1rem))] max-h-[85dvh] overflow-y-auto p-3.5 rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-2xl z-50 animate-in fade-in zoom-in-95"
       >
         {/* Header & Quick Options */}
         <div className="space-y-3 pb-3 border-b border-slate-100">

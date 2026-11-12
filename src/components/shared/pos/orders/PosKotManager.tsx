@@ -177,7 +177,7 @@ export function PosKotManager() {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden bg-slate-50/50">
+    <div className="flex flex-col flex-1 min-h-0 w-full lg:overflow-hidden bg-slate-50/50">
       {/* 1. Top Header Row - Flush with TopBar */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-2.5">
@@ -215,7 +215,7 @@ export function PosKotManager() {
             <p className="text-[12px] text-text-secondary/80">Send KOT from Billing to appear here</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 content-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 content-start">
             {tickets.map((kot) => (
               <KdsOrderCard
                 key={kot.id}

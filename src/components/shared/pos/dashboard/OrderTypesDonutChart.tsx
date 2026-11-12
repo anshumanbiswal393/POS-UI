@@ -37,9 +37,9 @@ export function OrderTypesDonutChart({ orderTypes }: OrderTypesDonutChartProps) 
         <span className="text-[11px] font-semibold text-slate-500">{totalCount} Orders</span>
       </div>
 
-      <div className="flex min-h-0 flex-1 items-center justify-between gap-3 pt-1.5">
+      <div className="flex min-h-0 flex-1 flex-col min-[380px]:flex-row items-center justify-between gap-3 pt-1.5">
         {/* Donut Chart with Center Text */}
-        <div className="relative aspect-square h-full max-h-[132px] w-auto shrink-0">
+        <div className="relative aspect-square h-[124px] sm:h-full max-h-[132px] w-auto shrink-0">
           {mounted ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -72,17 +72,17 @@ export function OrderTypesDonutChart({ orderTypes }: OrderTypesDonutChartProps) 
         </div>
 
         {/* Legend List */}
-        <div className="flex flex-1 flex-col justify-center space-y-2 pl-1">
+        <div className="flex w-full min-w-0 flex-1 flex-col justify-center space-y-2 pl-1">
           {slices.map((item) => (
-            <div key={item.id} className="flex items-center justify-between text-[11.5px]">
-              <div className="flex items-center gap-1.5">
+            <div key={item.id} className="flex items-center justify-between gap-2 text-[11.5px] min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
                 <span
                   className="h-2 w-2 rounded-full shrink-0"
                   style={{ backgroundColor: resolveSliceColor(item) }}
                 />
-                <span className="font-medium text-slate-700">{item.label}</span>
+                <span className="truncate font-medium text-slate-700">{item.label}</span>
               </div>
-              <div className="font-bold text-slate-900">
+              <div className="shrink-0 font-bold text-slate-900 whitespace-nowrap">
                 {item.count}{" "}
                 <span className="font-normal text-slate-400 text-[10.5px]">
                   ({item.percentage}%)

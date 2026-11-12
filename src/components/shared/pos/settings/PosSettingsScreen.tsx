@@ -174,20 +174,20 @@ export function PosSettingsScreen() {
   }
 
   return (
-    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[200px_minmax(0,1fr)]">
+    <div className="pos-page-container grid grid-cols-1 items-start gap-4 lg:grid-cols-[200px_minmax(0,1fr)]">
       <aside className="overflow-hidden rounded-xl border border-border bg-surface shadow-xs lg:sticky lg:top-3">
-        <div className="border-b border-primary/20 bg-primary/10 px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-primary">
+        <div className="hidden lg:block border-b border-primary/20 bg-primary/10 px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-primary">
           Settings Menu
         </div>
-        <ul className="space-y-1 p-2">
+        <ul className="flex lg:block gap-1 p-2 overflow-x-auto lg:overflow-visible lg:space-y-1">
           {visibleMenu.map((item) => {
             const selected = activeTab === item.id;
             return (
-              <li key={item.id}>
+              <li key={item.id} className="shrink-0 lg:shrink">
                 <button
                   type="button"
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full rounded-lg px-3 py-2.5 text-left text-[13px] font-medium transition cursor-pointer ${
+                  className={`w-full whitespace-nowrap lg:whitespace-normal rounded-lg px-3 py-2 lg:py-2.5 text-left text-[12.5px] lg:text-[13px] font-medium transition cursor-pointer ${
                     selected
                       ? "bg-primary font-semibold text-primary-foreground shadow-xs"
                       : "text-text-secondary hover:bg-primary/10 hover:text-primary"

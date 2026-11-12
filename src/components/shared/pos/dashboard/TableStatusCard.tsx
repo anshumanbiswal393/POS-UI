@@ -44,12 +44,12 @@ export function TableStatusCard({ tables }: TableStatusCardProps) {
           </Link>
         </div>
       ) : (
-        /* Grid of 18 Tables (6 columns x 3 rows) */
-        <div className="mt-2 grid min-h-0 flex-1 grid-cols-6 grid-rows-3 gap-1.5">
+        /* Grid of 18 Tables (responsive columns, fixed row height so tiles never stretch vertically) */
+        <div className="mt-2 grid min-h-0 flex-1 content-start grid-cols-3 min-[420px]:grid-cols-4 sm:grid-cols-6 auto-rows-[40px] gap-1.5">
           {tables.slice(0, 18).map((t) => (
             <div
               key={t.tableNumber}
-              className={`flex min-h-0 items-center justify-center rounded-lg border text-[12px] font-semibold transition-all cursor-pointer shadow-xs ${getTableStyle(
+              className={`flex min-h-[36px] items-center justify-center rounded-lg border text-[12px] font-semibold transition-all cursor-pointer shadow-xs ${getTableStyle(
                 t.status,
               )}`}
               title={`Table ${t.tableNumber} - ${t.status}`}

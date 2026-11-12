@@ -147,9 +147,9 @@ export function TableFloorPlan({
           </div>
 
           {/* Area Switcher & Actions */}
-          <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto relative">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 self-start sm:self-auto relative max-w-full">
             {/* Area Switcher with + button */}
-            <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/60 relative">
+            <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/60 relative max-w-full overflow-x-auto">
               {areas.length === 0 ? (
                 <div className="relative">
 
@@ -450,7 +450,7 @@ export function TableFloorPlan({
             )}
           </div>
         ) : (
-          <div className="w-full max-w-7xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 py-1 items-stretch">
+          <div className="w-full max-w-[1680px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 py-1 items-stretch">
             {tables.map((table) => (
               <TableCardItem
                 key={table.id}

@@ -8,7 +8,7 @@ interface DashboardKpiCardsProps {
 
 export function DashboardKpiCards({ stats }: DashboardKpiCardsProps) {
   return (
-    <div className="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid shrink-0 grid-cols-1 min-[360px]:grid-cols-2 gap-2 lg:grid-cols-4">
       {/* 1. Total collections */}
       <div className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-2xs">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/30 text-primary">

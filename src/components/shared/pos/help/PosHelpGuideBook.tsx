@@ -539,6 +539,12 @@ export function PosHelpGuideBook() {
 
   const totalPages = pages.length;
   const totalSpreads = Math.ceil(totalPages / 2) + 1; // 0 is cover, 1..5 are pages
+  const activeMobilePageIndex = currentSpread === 0 ? 0 : (currentSpread - 1) * 2;
+  const activeMobilePage = pages[activeMobilePageIndex] ?? pages[0];
+  const secondaryMobilePage =
+    currentSpread > 0 && activeMobilePageIndex + 1 < totalPages
+      ? pages[activeMobilePageIndex + 1]
+      : null;
 
   const handleNext = () => {
     if (currentSpread >= totalSpreads - 1 || isFlipping) return;
@@ -593,12 +599,12 @@ export function PosHelpGuideBook() {
     <div
       className={`flex flex-col w-full ${
         isFullscreen
-          ? "fixed inset-0 z-50 bg-slate-900/90 p-4 sm:p-6 backdrop-blur-md overflow-hidden"
-          : "h-[calc(100vh-3.5rem)] overflow-hidden bg-slate-50/50"
+          ? "fixed inset-0 z-50 bg-slate-900/90 p-3 sm:p-6 backdrop-blur-md overflow-y-auto md:overflow-hidden"
+          : "min-h-[calc(100dvh-3.5rem)] md:h-[calc(100dvh-3.5rem)] md:overflow-hidden bg-slate-50/50"
       }`}
     >
       {/* Top Header / Chapter Navigator */}
-      <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200">
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 px-3 sm:px-6 py-2.5 bg-white border-b border-slate-200">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-lg bg-teal-800 text-white flex items-center justify-center shadow-xs">
             <BookOpen className="h-4 w-4" />
@@ -709,8 +715,93 @@ export function PosHelpGuideBook() {
         </div>
       </div>
 
-      {/* 3D Book Stage */}
-      <div className="flex-1 min-h-0 flex items-center justify-center p-3 sm:p-6 overflow-hidden select-none">
+      {/* Mobile / Small-Tablet Single-Column Reader (<md) */}
+      <div className="md:hidden flex-1 overflow-y-auto p-3 space-y-3">
+        {/* Horizontal chapter pills for mobile */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+          {[
+            { spread: 0, label: "Cover" },
+            { spread: 1, label: "Shortcuts" },
+            { spread: 2, label: "Tables & Seating" },
+            { spread: 3, label: "Kitchen KOT" },
+            { spread: 4, label: "Settlement & Dues" },
+            { spread: 5, label: "Day End SOP" },
+          ].map((ch) => (
+            <button
+              key={ch.spread}
+              type="button"
+              onClick={() => jumpToSpread(ch.spread)}
+              className={`shrink-0 px-3 py-1.5 text-[11.5px] font-semibold rounded-full transition cursor-pointer ${
+                currentSpread === ch.spread
+                  ? "bg-teal-800 text-white shadow-2xs"
+                  : "bg-white border border-slate-200 text-slate-600"
+              }`}
+            >
+              {ch.label}
+            </button>
+          ))}
+        </div>
+
+        {currentSpread === 0 ? (
+          <div className="rounded-2xl bg-gradient-to-br from-[#064e3b] via-[#0d5e48] to-[#042f2e] text-white p-6 flex flex-col justify-between gap-6 border border-teal-400/20 shadow-lg">
+            <div className="flex items-center justify-between border-b border-white/15 pb-3">
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-200">
+                Retrod Cloud Hospitality
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-teal-100">
+                Manual v2.4
+              </span>
+            </div>
+            <div className="space-y-3 text-center">
+              <div className="h-14 w-14 mx-auto rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
+                <BookOpen className="h-7 w-7 text-amber-300" />
+              </div>
+              <h2 className="font-serif text-xl font-black tracking-tight text-white">
+                POS Billing & Operations Handbook
+              </h2>
+              <p className="text-xs text-teal-100/85 leading-relaxed">
+                Your concise desktop & mobile guide to table billing, kitchen tickets, dues collection, and day-end rollover.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleNext}
+              className="w-full py-2.5 rounded-xl bg-white text-teal-900 font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span>Open Handbook</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {[activeMobilePage, secondaryMobilePage].filter(Boolean).map((pg, idx) =>
+              pg ? (
+                <div
+                  key={pg.title + idx}
+                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-2.5"
+                >
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700">
+                      {pg.section}
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      Page {activeMobilePageIndex + idx + 1}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-[16px] font-bold text-slate-900">{pg.title}</h3>
+                    <p className="text-[11px] text-slate-500 font-medium">{pg.subtitle}</p>
+                  </div>
+                  <div>{pg.render()}</div>
+                </div>
+              ) : null,
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 3D Book Stage (md+) */}
+      <div className="hidden md:flex flex-1 min-h-0 items-center justify-center p-3 sm:p-6 overflow-hidden select-none">
         <div
           style={{ perspective: "2500px" }}
           className="relative w-full max-w-4xl max-h-[calc(100vh-170px)] aspect-[1.55/1] flex items-center justify-center"

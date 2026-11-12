@@ -229,7 +229,7 @@ export function InventoryDashboardView() {
   const showAlert = !liveBannerDismissed && criticalCount > 0;
 
   return (
-    <div className="relative flex flex-col flex-1 gap-2 p-2.5 sm:p-3 lg:p-4 pt-2 sm:pt-2.5 lg:pt-2.5 lg:h-[calc(100dvh-3.5rem)] lg:max-h-[calc(100dvh-3.5rem)] lg:min-h-0 lg:overflow-hidden overflow-y-auto bg-slate-50/50 animate-in fade-in duration-200">
+    <div className="relative flex flex-col flex-1 gap-2 p-2.5 sm:p-3 lg:p-4 pt-2 sm:pt-2.5 lg:pt-2.5 pos-terminal-viewport lg:min-h-0 overflow-y-auto bg-slate-50/50 animate-in fade-in duration-200">
       {/* Top Action & Sync Bar */}
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-300 bg-white px-3 py-1.5 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">

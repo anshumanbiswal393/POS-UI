@@ -1018,6 +1018,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
               </div>
 
               {/* Printable Menu Pages Stack */}
+              <div className="w-full overflow-x-auto pb-2 print:overflow-visible print:pb-0">
               <div
                 id="printable-menu-area"
                 style={{
@@ -1052,12 +1053,12 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                           <span>Sheet {page.pageNumber} of {menuPages.length}</span>
                         </div>
 
-                        {/* Individual A4 Page Sheet (Strict A4 Length & Ratio) */}
+                        {/* Individual A4 Page Sheet (Strict A4 Length & Ratio on Tablet/Desktop/Print) */}
                         <div
-                          className={`a4-page-sheet w-full max-w-[760px] h-[1075px] min-h-[1075px] max-h-[1075px] rounded-2xl shadow-xl transition-all flex flex-col relative overflow-hidden select-none print:m-0 print:w-full print:max-w-none print:shadow-none print:rounded-none ${
+                          className={`a4-page-sheet w-full max-w-[760px] min-h-[720px] sm:h-[1075px] sm:min-h-[1075px] sm:max-h-[1075px] print:h-[1075px] print:min-h-[1075px] print:max-h-[1075px] rounded-2xl shadow-xl transition-all flex flex-col relative overflow-hidden select-none print:m-0 print:w-full print:max-w-none print:shadow-none print:rounded-none ${
                             selectedTemplate === "showcase"
-                              ? "justify-start p-6 sm:p-7"
-                              : "justify-between p-6 sm:p-8"
+                              ? "justify-start p-4 sm:p-7"
+                              : "justify-between p-4 sm:p-8"
                           } ${
                             selectedTemplate === "diner"
                               ? "bg-[#fcfbf7] text-slate-900 border-4 border-[#0f766e]"
@@ -1456,6 +1457,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                     );
                   })
                 )}
+              </div>
               </div>
 
               {/* Interactive Pagination Footer Bar: < 1 2 > */}

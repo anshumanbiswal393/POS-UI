@@ -570,7 +570,7 @@ export function InvoiceTemplatesView() {
         </div>
 
         {/* Right Column: Live Printable Sheet Preview (8 Cols) */}
-        <div className="lg:col-span-8 flex flex-col items-center">
+        <div className="lg:col-span-8 w-full min-w-0 overflow-x-auto pb-2 flex flex-col items-center print:overflow-visible print:pb-0">
           <div
             id="printable-invoice-area"
             style={{
@@ -636,7 +636,7 @@ export function InvoiceTemplatesView() {
                     <p className="text-[11.5px] font-mono font-bold mt-1">#FOL-2026-981</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-4 gap-2 pt-2 text-[10.5px] border-t border-amber-200 bg-amber-50/50 p-2 rounded-lg">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-[10.5px] border-t border-amber-200 bg-amber-50/50 p-2 rounded-lg">
                   <div><span className="text-amber-800">Table:</span> <strong>T-08 (Indoor)</strong></div>
                   <div><span className="text-amber-800">Captain:</span> <strong>Rajesh K.</strong></div>
                   <div><span className="text-amber-800">Guests:</span> <strong>4 Pax</strong></div>

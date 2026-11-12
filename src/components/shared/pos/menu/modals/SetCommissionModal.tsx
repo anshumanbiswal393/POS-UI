@@ -130,7 +130,7 @@ export function SetCommissionModal({
           <label className="mb-1.5 block text-[12.5px] font-semibold text-slate-700">
             Commission Type
           </label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {(["Not Configured", "Percentage", "Fixed Amount"] as const).map((type) => (
               <button
                 key={type}

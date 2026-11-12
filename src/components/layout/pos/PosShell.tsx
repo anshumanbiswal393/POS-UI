@@ -4,14 +4,14 @@ import { PosSidebar } from "@/components/layout/pos/PosSidebar";
 import { PosTopBar } from "@/components/layout/pos/PosTopBar";
 import { PosSubscriptionRenewalBanner } from "@/components/common/PosSubscriptionRenewalBanner";
 // import { OnlineOrderAlertModal } from "@/components/shared/pos/orders/OnlineOrderAlertModal";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsCompactViewport } from "@/hooks/use-mobile";
 import { usePosKeyboardShortcuts } from "@/hooks/usePosKeyboardShortcuts";
 import { cn } from "@/lib/utils";
 
 export function PosShell({ children }: { children: React.ReactNode }) {
   usePosKeyboardShortcuts();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const isMobile = useIsMobile();
+  const isCompactNav = useIsCompactViewport();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isBillingPage = pathname === "/pos/billing" || pathname.startsWith("/pos/billing");
 
@@ -24,23 +24,24 @@ export function PosShell({ children }: { children: React.ReactNode }) {
     } else {
       setDesktopCollapsed(false);
     }
+    setMobileOpen(false);
   }, [pathname, isBillingPage]);
 
-  const isSidebarCollapsed = isMobile ? false : desktopCollapsed;
-  const showMobileSidebar = isMobile && mobileOpen;
+  const isSidebarCollapsed = isCompactNav ? false : desktopCollapsed;
+  const showMobileSidebar = isCompactNav && mobileOpen;
 
   // On billing page, when user opens/expands the sidebar, it floats above the content on the left
-  const isFloatingSidebar = !isMobile && isBillingPage && !desktopCollapsed;
+  const isFloatingSidebar = !isCompactNav && isBillingPage && !desktopCollapsed;
 
   return (
     <div
       className={cn(
-        "flex min-h-screen w-full bg-background text-foreground",
-        mobileOpen && isMobile ? "h-screen overflow-hidden" : "",
+        "flex min-h-dvh w-full bg-background text-foreground",
+        mobileOpen && isCompactNav ? "h-dvh overflow-hidden" : "",
       )}
     >
-      {/* Mobile backdrop */}
-      {isMobile && mobileOpen && (
+      {/* Mobile / Tablet backdrop (<1024px) */}
+      {isCompactNav && mobileOpen && (
         <button
           type="button"
           aria-label="Close navigation"
@@ -61,30 +62,30 @@ export function PosShell({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar container:
           - Normal routes: standard flex column on left
-          - Mobile: fixed off-canvas drawer
-          - POS Billing: fixed floating overlay on left side when opened, hidden when collapsed
+          - Mobile & Tablet (<1024px): fixed off-canvas drawer
+          - POS Billing (desktop): fixed floating overlay on left side when opened, hidden when collapsed
       */}
       <div
         className={cn(
           "print:hidden",
-          isMobile
-            ? "fixed left-0 top-0 h-screen z-50 transition-transform duration-200"
+          isCompactNav
+            ? "fixed left-0 top-0 h-dvh z-50 transition-transform duration-200"
             : isBillingPage
               ? isFloatingSidebar
-                ? "fixed left-0 top-0 h-screen z-50 shadow-2xl animate-in slide-in-from-left duration-200"
+                ? "fixed left-0 top-0 h-dvh z-50 shadow-2xl animate-in slide-in-from-left duration-200"
                 : "hidden"
               : "z-30 shrink-0 block",
-          isMobile && !showMobileSidebar ? "-translate-x-full" : "translate-x-0",
+          isCompactNav && !showMobileSidebar ? "-translate-x-full" : "translate-x-0",
         )}
       >
         <PosSidebar
           collapsed={isSidebarCollapsed}
           onNavigate={() => {
-            if (isMobile) setMobileOpen(false);
+            if (isCompactNav) setMobileOpen(false);
             if (isBillingPage) setDesktopCollapsed(true);
           }}
           onToggle={() =>
-            isMobile ? setMobileOpen(false) : setDesktopCollapsed((c) => !c)
+            isCompactNav ? setMobileOpen(false) : setDesktopCollapsed((c) => !c)
           }
         />
       </div>
@@ -93,9 +94,9 @@ export function PosShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col bg-background text-text-primary print:!m-0 print:!h-auto print:!overflow-visible print:!p-0 print:!w-full print:!min-h-0 print:!bg-white">
         <PosSubscriptionRenewalBanner />
         <PosTopBar
-          onOpenMobileNav={isMobile ? () => setMobileOpen(true) : undefined}
+          onOpenMobileNav={isCompactNav ? () => setMobileOpen(true) : undefined}
           onToggleSidebar={
-            !isMobile && isBillingPage
+            !isCompactNav && isBillingPage
               ? () => setDesktopCollapsed((c) => !c)
               : undefined
           }

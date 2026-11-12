@@ -1079,7 +1079,7 @@ export function StockPurchaseView() {
             className="fixed inset-0"
             onClick={() => setPaymentModalInvoice(null)}
           />
-          <div className="relative z-10 w-full sm:w-[480px] md:w-[35%] lg:w-[30%] min-w-[360px] h-full bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-300 overflow-hidden">
+          <div className="relative z-10 w-full sm:w-[480px] md:w-[35%] lg:w-[30%] sm:min-w-[360px] max-w-full h-full bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-300 overflow-hidden">
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/70 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100 text-teal-700">
@@ -1499,7 +1499,7 @@ export function StockPurchaseView() {
             className="fixed inset-0"
             onClick={() => setDetailsModalInvoice(null)}
           />
-          <div className="relative z-10 w-full sm:w-[520px] md:w-[38%] lg:w-[32%] xl:w-[30%] min-w-[360px] h-full bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-300 overflow-hidden">
+          <div className="relative z-10 w-full sm:w-[520px] md:w-[38%] lg:w-[32%] xl:w-[30%] sm:min-w-[360px] max-w-full h-full bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-300 overflow-hidden">
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/70 shrink-0">
               <div>
                 <h3 className="text-[16px] font-bold text-slate-900">
@@ -1658,7 +1658,7 @@ export function StockPurchaseView() {
                 setShowAddVendorForm(false);
               }}
             />
-          <div className="relative z-10 w-full sm:w-[560px] md:w-[42%] lg:w-[35%] xl:w-[30%] min-w-[380px] h-full bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-300 overflow-hidden">
+          <div className="relative z-10 w-full sm:w-[560px] md:w-[42%] lg:w-[35%] xl:w-[30%] sm:min-w-[380px] max-w-full h-full bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-300 overflow-hidden">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/70 shrink-0">
               <div className="flex items-center gap-2.5">

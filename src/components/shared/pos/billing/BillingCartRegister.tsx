@@ -351,7 +351,7 @@ export function BillingCartRegister({
                   className="fixed inset-0 z-40"
                   onClick={() => setIsCustomerSelectOpen(false)}
                 />
-                <div className="absolute left-0 top-full mt-1 w-[280px] sm:w-[320px] bg-white rounded-lg shadow-xl border border-slate-200 z-50 overflow-hidden flex flex-col max-h-[260px] animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute left-0 top-full mt-1 w-[min(320px,calc(100vw-2rem))] bg-white rounded-lg shadow-xl border border-slate-200 z-50 overflow-hidden flex flex-col max-h-[260px] animate-in fade-in zoom-in-95 duration-150">
                   <div className="p-2 border-b border-slate-100 bg-slate-50 flex items-center gap-1.5">
                     <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                     <input

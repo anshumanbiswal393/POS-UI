@@ -304,6 +304,7 @@ export function BillingMenuCatalog({
                 </div>
 
                 {/* Portion */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-border/40 sm:border-t-0 sm:pt-0 sm:contents">
                 <div className="flex justify-start sm:justify-center">
                   {hasVariants ? (
                     <div className="inline-flex items-center rounded-lg border border-border bg-surface-2/80 p-0.5">
@@ -390,6 +391,7 @@ export function BillingMenuCatalog({
                       {item.plates !== undefined && item.plates <= 0 ? "Sold Out" : "Add"}
                     </button>
                   )}
+                </div>
                 </div>
               </div>
             );

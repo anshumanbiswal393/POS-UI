@@ -139,8 +139,8 @@ export function ProductionView() {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <div className="relative flex-1 min-w-[240px] max-w-sm">
+        <div className="p-3.5 sm:p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+          <div className="relative flex-1 min-w-[200px] sm:max-w-sm">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
             <input
               type="text"

@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react";
  */
 export function PosDashboardSkeleton({ banner }: { banner?: React.ReactNode } = {}) {
   return (
-    <div className="relative flex flex-col flex-1 gap-2 p-3 sm:p-4 lg:p-5 pt-2 sm:pt-2.5 lg:pt-3 lg:min-h-0 lg:overflow-hidden">
+    <div className="relative flex flex-col flex-1 gap-2 p-3 sm:p-4 lg:p-5 pt-2 sm:pt-2.5 lg:pt-3 min-h-0 overflow-y-auto 2xl:pos-terminal-viewport">
       {banner}
       {/* Subtle loading indicator pill */}
       <div className="flex items-center justify-between px-0.5">
@@ -19,7 +19,7 @@ export function PosDashboardSkeleton({ banner }: { banner?: React.ReactNode } = 
       </div>
 
       {/* 1. Top 4 KPI Cards */}
-      <div className="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid shrink-0 grid-cols-1 min-[360px]:grid-cols-2 gap-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
@@ -36,7 +36,7 @@ export function PosDashboardSkeleton({ banner }: { banner?: React.ReactNode } = 
       </div>
 
       {/* 2. Middle Row: Live Orders, Order Types Donut, Table Status */}
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:min-h-0 lg:flex-[1.15] lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:min-h-0 xl:flex-[1.15] xl:grid-cols-3">
         {/* Current Orders Skeleton */}
         <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-2xs animate-pulse">
           <div className="flex shrink-0 items-center justify-between border-b border-slate-100 pb-1.5">
@@ -84,12 +84,12 @@ export function PosDashboardSkeleton({ banner }: { banner?: React.ReactNode } = 
         </div>
 
         {/* Table Status Skeleton */}
-        <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-2xs animate-pulse">
+        <div className="md:col-span-2 xl:col-span-1 flex h-full min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-2xs animate-pulse">
           <div className="flex shrink-0 items-center justify-between border-b border-slate-100 pb-1.5">
             <div className="h-3.5 w-24 rounded bg-slate-200" />
             <div className="h-3 w-20 rounded bg-slate-100" />
           </div>
-          <div className="mt-2 grid min-h-0 flex-1 grid-cols-6 grid-rows-3 gap-1.5">
+          <div className="mt-2 grid min-h-0 flex-1 content-start grid-cols-3 min-[420px]:grid-cols-4 sm:grid-cols-6 auto-rows-[40px] gap-1.5">
             {Array.from({ length: 18 }).map((_, i) => (
               <div key={i} className="rounded-lg bg-slate-100 border border-slate-200/50" />
             ))}
@@ -103,7 +103,7 @@ export function PosDashboardSkeleton({ banner }: { banner?: React.ReactNode } = 
       </div>
 
       {/* 3. Bottom Row: Payment Summary, Top Selling Items, Attention Needed */}
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:min-h-0 lg:flex-1 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:min-h-0 xl:flex-1 xl:grid-cols-3">
         {/* Payment Summary Skeleton */}
         <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-2xs animate-pulse">
           <div className="h-3.5 w-28 rounded bg-slate-200" />
@@ -147,7 +147,7 @@ export function PosDashboardSkeleton({ banner }: { banner?: React.ReactNode } = 
         </div>
 
         {/* Attention Needed Skeleton */}
-        <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-2xs animate-pulse">
+        <div className="md:col-span-2 xl:col-span-1 flex h-full min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-2xs animate-pulse">
           <div className="h-3.5 w-28 rounded bg-slate-200" />
           <div className="mt-2 flex min-h-0 flex-1 flex-col justify-around gap-2">
             {Array.from({ length: 2 }).map((_, i) => (
@@ -164,7 +164,7 @@ export function PosDashboardSkeleton({ banner }: { banner?: React.ReactNode } = 
       </div>
 
       {/* 4. Operational Metrics Strip Skeleton */}
-      <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 animate-pulse">
+      <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5 animate-pulse">
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}

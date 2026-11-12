@@ -362,7 +362,9 @@ export function LoginPageFeature() {
         .pms-login-container .content-layer {
             position: relative;
             width: 100%;
-            height: 100%;
+            max-width: 1680px;
+            margin: 0 auto;
+            height: auto;
             min-height: 100%;
             display: flex;
             z-index: 10;

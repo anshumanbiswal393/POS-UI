@@ -3,6 +3,7 @@ import { format, parseISO, subDays, startOfMonth, endOfMonth, isValid } from "da
 import { Calendar as CalendarIcon, ChevronDown, X, Sparkles } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar, type DateRange } from "@/components/ui/calendar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 export interface PosDateRangePickerProps {
@@ -68,6 +69,8 @@ export function PosDateRangePicker({
   numberOfMonths = 2,
 }: PosDateRangePickerProps) {
   const [open, setOpen] = React.useState(false);
+  const isMobile = useIsMobile();
+  const effectiveMonths = isMobile ? 1 : numberOfMonths;
 
   // Sync internal DateRange with props
   const dateRange: DateRange | undefined = React.useMemo(() => {
@@ -256,7 +259,7 @@ export function PosDateRangePicker({
 
         <PopoverContent
           align={align}
-          className="w-auto p-0 border border-slate-200 bg-white shadow-2xl rounded-2xl overflow-hidden z-50 text-slate-900"
+          className="w-auto max-w-[calc(100vw-1rem)] max-h-[85dvh] overflow-y-auto p-0 border border-slate-200 bg-white shadow-2xl rounded-2xl z-50 text-slate-900"
         >
           <div className="flex flex-col md:flex-row">
             {/* Presets Column */}
@@ -309,7 +312,7 @@ export function PosDateRangePicker({
 
               <Calendar
                 mode="range"
-                numberOfMonths={numberOfMonths}
+                numberOfMonths={effectiveMonths}
                 selected={tempRange}
                 onSelect={handleCalendarSelect}
                 className="rounded-xl"

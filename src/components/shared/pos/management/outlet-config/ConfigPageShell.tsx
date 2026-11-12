@@ -54,7 +54,7 @@ export function ConfigPageShell({
   };
 
   return (
-    <div className="space-y-4 pb-10">
+    <div className="pos-page-container space-y-4 pb-10">
       {/* 1. Top Header with Back Link & Title */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
@@ -155,8 +155,8 @@ export function ConfigPageShell({
         </div>
       </div>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
-        <div className="p-6">{children}</div>
-        <div className="flex justify-end border-t border-slate-100 bg-slate-50/50 p-4">
+        <div className="p-3.5 sm:p-6">{children}</div>
+        <div className="flex justify-end border-t border-slate-100 bg-slate-50/50 p-3.5 sm:p-4">
           <button
             type="button"
             onClick={() => void handleSave()}

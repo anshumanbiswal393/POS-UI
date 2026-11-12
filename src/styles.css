@@ -583,19 +583,42 @@
   }
 
   .responsive-page-x {
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
   }
   @media (min-width: 640px) {
+    .responsive-page-x {
+      padding-left: 1.25rem;
+      padding-right: 1.25rem;
+    }
+  }
+  @media (min-width: 1024px) {
     .responsive-page-x {
       padding-left: 1.5rem;
       padding-right: 1.5rem;
     }
   }
-  @media (min-width: 1280px) {
+  @media (min-width: 1536px) {
     .responsive-page-x {
       padding-left: 2rem;
       padding-right: 2rem;
+    }
+  }
+
+  /* Constrain management/report/form views cleanly on ultrawide/2K+ monitors */
+  .pos-page-container {
+    width: 100%;
+    max-width: 1680px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Lock terminal to viewport only on laptops/desktops with comfortable vertical room */
+  @media (min-width: 1024px) and (min-height: 700px) {
+    .pos-terminal-viewport {
+      height: calc(100dvh - 3.5rem);
+      max-height: calc(100dvh - 3.5rem);
+      overflow: hidden;
     }
   }
 

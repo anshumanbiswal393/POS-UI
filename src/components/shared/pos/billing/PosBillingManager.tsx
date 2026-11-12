@@ -265,6 +265,7 @@ export function PosBillingManager() {
   const [guestCount, setGuestCount] = useState(0);
   const [billNumber, setBillNumber] = useState("NEW");
   const [searchQuery, setSearchQuery] = useState("");
+  const [mobilePane, setMobilePane] = useState<"menu" | "cart" | "tables">("menu");
   const [isTablesPanelCollapsed, setIsTablesPanelCollapsed] = useState(false);
   const [discountType, setDiscountType] = useState<"percent" | "flat">("percent");
   const [discountValue, setDiscountValue] = useState<number>(0);
@@ -1635,8 +1636,23 @@ export function PosBillingManager() {
     };
   }, [handleNewBill, handleHoldBill, handlePrintKot, cartItems.length]);
 
+  const mobileCartQty = useMemo(
+    () => cartItems.reduce((sum, item) => sum + item.quantity, 0),
+    [cartItems],
+  );
+  const mobileCartTotal = useMemo(
+    () =>
+      cartItems.reduce((sum, item) => {
+        if (item.isComplimentary) return sum;
+        const basePrice = item.selectedVariant ? item.selectedVariant.price : item.item.price;
+        const modPrice = item.selectedModifiers.reduce((mSum, m) => mSum + m.price, 0);
+        return sum + (basePrice + modPrice) * item.quantity;
+      }, 0),
+    [cartItems],
+  );
+
   return (
-    <div className="flex flex-col flex-1 h-[calc(100dvh-3.5rem)] max-h-[calc(100dvh-3.5rem)] overflow-hidden bg-slate-50/50">
+    <div className="flex flex-col flex-1 min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100dvh-3.5rem)] lg:max-h-[calc(100dvh-3.5rem)] lg:overflow-hidden bg-slate-50/50">
       {/* 1. Top Order Mode & Action Header */}
       <div className="shrink-0">
         <BillingHeader
@@ -1655,19 +1671,80 @@ export function PosBillingManager() {
         />
       </div>
 
+      {/* Mobile & Tablet (<lg) Workspace Switcher */}
+      <div className="lg:hidden px-2.5 pt-2 shrink-0">
+        <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setMobilePane("menu")}
+            className={cn(
+              "rounded-lg py-2 px-2 text-xs font-bold transition cursor-pointer",
+              mobilePane === "menu"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-slate-600 hover:bg-slate-100",
+            )}
+          >
+            Menu
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobilePane("cart")}
+            className={cn(
+              "flex items-center justify-center gap-1.5 rounded-lg py-2 px-2 text-xs font-bold transition cursor-pointer",
+              mobilePane === "cart"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-slate-600 hover:bg-slate-100",
+            )}
+          >
+            <span>Cart</span>
+            {mobileCartQty > 0 && (
+              <span
+                className={cn(
+                  "rounded-full px-1.5 py-0.2 text-[10px] font-extrabold",
+                  mobilePane === "cart"
+                    ? "bg-white/20 text-white"
+                    : "bg-primary/15 text-primary",
+                )}
+              >
+                {mobileCartQty}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobilePane("tables")}
+            className={cn(
+              "rounded-lg py-2 px-2 text-xs font-bold transition cursor-pointer truncate",
+              mobilePane === "tables"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-slate-600 hover:bg-slate-100",
+            )}
+          >
+            Tables & Orders
+          </button>
+        </div>
+      </div>
+
       {/* 2. Main Workspace: Tables & Orders (Left) + Menu Catalog (Center) + Cart Register (Right) */}
-      <div className="flex flex-col lg:flex-row gap-2.5 flex-1 min-h-0 lg:overflow-hidden items-stretch px-2.5 pb-2.5">
+      <div className="flex flex-col lg:flex-row gap-2.5 flex-1 min-h-0 lg:overflow-hidden items-stretch px-2 sm:px-2.5 pt-2 lg:pt-0 pb-2.5">
         {/* Left: Tables & Orders Panel (Responsive & Auto-adjusts screen space) */}
         <div
           className={cn(
-            "hidden lg:flex shrink-0 h-full min-h-0 transition-all duration-200 ease-in-out",
-            isTablesPanelCollapsed ? "w-14" : "w-80 xl:w-[340px] 2xl:w-[380px]"
+            mobilePane === "tables" ? "flex h-[calc(100dvh-13.5rem)] min-h-[420px]" : "hidden",
+            "lg:flex shrink-0 lg:h-full min-h-0 transition-all duration-200 ease-in-out",
+            isTablesPanelCollapsed ? "lg:w-14" : "w-full lg:w-80 xl:w-[340px] 2xl:w-[380px]",
           )}
         >
           <BillingTablesOrdersSidebar
             activeTable={activeTable}
-            onSelectTable={handleSelectTableFromSidebar}
-            onSelectOrder={handleSelectOrderFromSidebar}
+            onSelectTable={(table, reservation) => {
+              handleSelectTableFromSidebar(table, reservation);
+              setMobilePane("menu");
+            }}
+            onSelectOrder={(order) => {
+              handleSelectOrderFromSidebar(order);
+              setMobilePane("cart");
+            }}
             activeOutletId={activeOutlet?.id}
             isCollapsed={isTablesPanelCollapsed}
             onToggleCollapse={() => setIsTablesPanelCollapsed((c) => !c)}
@@ -1675,7 +1752,12 @@ export function PosBillingManager() {
         </div>
 
         {/* Center: Menu Catalog */}
-        <div className="flex-1 min-w-0 flex flex-col h-full min-h-0 overflow-hidden">
+        <div
+          className={cn(
+            mobilePane === "menu" ? "flex" : "hidden lg:flex",
+            "flex-1 min-w-0 flex-col min-h-0 lg:h-full overflow-hidden",
+          )}
+        >
           <BillingMenuCatalog
             items={billingItems}
             cartItems={cartItems}
@@ -1691,7 +1773,12 @@ export function PosBillingManager() {
         </div>
 
         {/* Right: Billing Cart Register & Settlement */}
-        <div className="w-full lg:w-[350px] xl:w-[380px] 2xl:w-[410px] shrink-0 flex flex-col h-full min-h-0 overflow-hidden">
+        <div
+          className={cn(
+            mobilePane === "cart" ? "flex" : "hidden lg:flex",
+            "w-full lg:w-[350px] xl:w-[380px] 2xl:w-[420px] shrink-0 flex-col min-h-0 lg:h-full overflow-hidden",
+          )}
+        >
           <BillingCartRegister
             cartItems={cartItems}
             orderType={orderType}
@@ -1731,6 +1818,27 @@ export function PosBillingManager() {
           />
         </div>
       </div>
+
+      {/* Sticky Mobile Cart Bar (<lg when browsing Menu with items in cart) */}
+      {mobilePane === "menu" && mobileCartQty > 0 && (
+        <div className="lg:hidden sticky bottom-0 z-30 border-t border-border bg-surface/95 backdrop-blur-xs px-3 py-2 shadow-e2">
+          <button
+            type="button"
+            onClick={() => setMobilePane("cart")}
+            className="flex w-full items-center justify-between rounded-xl bg-primary px-4 py-2.5 text-primary-foreground shadow-sm cursor-pointer active:scale-[0.99] transition"
+          >
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <span className="rounded-md bg-white/20 px-2 py-0.5 font-mono">
+                {mobileCartQty} {mobileCartQty === 1 ? "item" : "items"}
+              </span>
+              <span>View Cart & Settle</span>
+            </div>
+            <span className="font-mono text-sm font-black">
+              ₹{mobileCartTotal.toLocaleString("en-IN")} →
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* 3. Integrated Modals & Slide Drawers */}
       <BillingModifierModal
