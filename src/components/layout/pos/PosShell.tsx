@@ -94,7 +94,11 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         <PosSubscriptionRenewalBanner />
         <PosTopBar
           onOpenMobileNav={isMobile ? () => setMobileOpen(true) : undefined}
-          onToggleSidebar={() => setDesktopCollapsed((c) => !c)}
+          onToggleSidebar={
+            !isMobile && isBillingPage
+              ? () => setDesktopCollapsed((c) => !c)
+              : undefined
+          }
           sidebarCollapsed={desktopCollapsed}
         />
         <main className="flex-1 min-w-0 flex flex-col pb-[env(safe-area-inset-bottom)] print:!m-0 print:!p-0 print:!w-full print:!overflow-visible">
