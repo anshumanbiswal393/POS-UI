@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useStockAlerts } from "@/hooks/queries/usePosInventory";
 import { usePosReservations } from "@/hooks/queries/usePosTables";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { isBackendOutletId } from "@/utils/outletId";
 import { KOT_READY_EVENT, listKotReadyNotices, dismissKotReadyNotice } from "@/lib/posReadyNotifications";
+import { isReservationUpcomingWithin30Min, minutesUntilReservation } from "@/services/posTablesService";
+import { Ctx } from "@/components/providers/AuthProvider";
 
 export type PosNotificationCategory =
   | "ORDER"
@@ -24,8 +26,18 @@ export type PosNotification = {
   isRead: boolean;
 };
 
+export type PosNotificationRole = "waiter" | "kitchen" | "admin";
+
+export interface UsePosNotificationsOptions {
+  role?: string;
+  roleName?: string;
+  user?: any;
+  now?: Date;
+}
+
 const READ_KEY = "retrod.pos.notifications.read.v1";
 const DISMISSED_KEY = "retrod.pos.notifications.dismissed.v1";
+const TIMESTAMPS_KEY = "retrod.pos.notifications.timestamps.v1";
 
 const SEED: Array<Omit<PosNotification, "isRead">> = [];
 
@@ -41,7 +53,12 @@ function readStoredIds(): Set<string> {
 }
 
 function writeStoredIds(ids: Set<string>) {
-  localStorage.setItem(READ_KEY, JSON.stringify([...ids]));
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(READ_KEY, JSON.stringify([...ids]));
+  } catch {
+    /* ignore quota */
+  }
 }
 
 function readDismissedIds(): Set<string> {
@@ -56,7 +73,32 @@ function readDismissedIds(): Set<string> {
 }
 
 function writeDismissedIds(ids: Set<string>) {
-  localStorage.setItem(DISMISSED_KEY, JSON.stringify([...ids]));
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(DISMISSED_KEY, JSON.stringify([...ids]));
+  } catch {
+    /* ignore quota */
+  }
+}
+
+function readStoredTimestamps(): Record<string, number> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(TIMESTAMPS_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return typeof parsed === "object" && parsed !== null ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeStoredTimestamps(timestamps: Record<string, number>) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(TIMESTAMPS_KEY, JSON.stringify(timestamps));
+  } catch {
+    /* ignore quota */
+  }
 }
 
 export function formatNotificationTime(createdAt: number) {
@@ -70,19 +112,68 @@ export function formatNotificationTime(createdAt: number) {
   return `${days}d ago`;
 }
 
-export function usePosNotifications() {
+export function resolveNotificationRole(role?: string, roleName?: string): PosNotificationRole {
+  const r = String(role || "").toLowerCase();
+  const rn = String(roleName || "").toLowerCase();
+
+  if (r === "pos_kitchen" || r === "kitchen" || r.includes("kitchen") || rn.includes("kitchen")) {
+    return "kitchen";
+  }
+  if (r === "pos_waiter" || r === "waiter" || r.includes("waiter") || rn.includes("waiter")) {
+    return "waiter";
+  }
+  return "admin";
+}
+
+export function filterNotificationsByRole(
+  notifications: PosNotification[],
+  role?: string,
+  roleName?: string,
+): PosNotification[] {
+  const targetRole = resolveNotificationRole(role, roleName);
+
+  if (targetRole === "waiter") {
+    // Waiter access: ready-to-serve orders (KOT, ORDER) & reservations within 30 min (RESERVATION).
+    // Excludes stock notifications.
+    return notifications.filter(
+      (item) => item.category === "KOT" || item.category === "ORDER" || item.category === "RESERVATION",
+    );
+  }
+
+  if (targetRole === "kitchen") {
+    // Kitchen access: stock notifications ONLY. No orders, no reservations.
+    return notifications.filter((item) => item.category === "STOCK");
+  }
+
+  // Admin access: can see all notifications.
+  return notifications;
+}
+
+export function sortNotificationsRecentFirst(notifications: PosNotification[]): PosNotification[] {
+  return [...notifications].sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export function usePosNotifications(options?: UsePosNotificationsOptions) {
   const { data: stockAlerts = [] } = useStockAlerts();
   const { data: reservations = [] } = usePosReservations();
   const { activeOutlet } = useOutletContext();
+  const authCtx = useContext(Ctx);
+
+  const effectiveRole = options?.role || authCtx?.user?.role;
+  const effectiveRoleName = options?.roleName || authCtx?.user?.role_name;
+  const currentRole = resolveNotificationRole(effectiveRole, effectiveRoleName);
+
   const liveOutlet = isBackendOutletId(activeOutlet?.id);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [timestamps, setTimestamps] = useState<Record<string, number>>({});
   const [hydrated, setHydrated] = useState(false);
   const [readyTick, setReadyTick] = useState(0);
 
   useEffect(() => {
     setReadIds(readStoredIds());
     setDismissedIds(readDismissedIds());
+    setTimestamps(readStoredTimestamps());
     setHydrated(true);
   }, []);
 
@@ -102,17 +193,31 @@ export function usePosNotifications() {
     return () => window.removeEventListener(KOT_READY_EVENT, onReady);
   }, []);
 
+  const getOrAssignTimestamp = useCallback(
+    (id: string, fallbackTime: number = Date.now()): number => {
+      if (timestamps[id]) return timestamps[id];
+      const updated = { ...timestamps, [id]: fallbackTime };
+      setTimestamps(updated);
+      writeStoredTimestamps(updated);
+      return fallbackTime;
+    },
+    [timestamps],
+  );
+
   const notifications = useMemo<PosNotification[]>(() => {
+    const now = options?.now || new Date();
     const seed = liveOutlet ? [] : SEED.filter((item) => item.category !== "STOCK");
+
     const alerts: PosNotification[] = stockAlerts.map((alert) => ({
       id: alert.id,
       title: alert.title,
       message: alert.message,
-      category: "STOCK",
-      createdAt: Date.now(),
+      category: "STOCK" as const,
+      createdAt: getOrAssignTimestamp(alert.id, Date.now()),
       link: alert.link || "/pos/inventory/available-stock",
       isRead: readIds.has(alert.id),
     }));
+
     const kotReady: PosNotification[] = listKotReadyNotices(activeOutlet?.id).map((note) => ({
       id: note.id,
       title: note.title,
@@ -122,17 +227,27 @@ export function usePosNotifications() {
       link: "/pos/settlement",
       isRead: readIds.has(note.id),
     }));
+
+    // Reservations: show when reservation time is coming within 30 minutes
     const resAlerts: PosNotification[] = (reservations || [])
-      .filter((r) => r.status === "reserved")
-      .map((r) => ({
-        id: `res-${r.id}`,
-        title: `Reservation: ${r.customerName || "Guest"}`,
-        message: `Table ${r.tableNumber || "TBD"} · ${r.guests || 2} Guests · ${r.reservationTime || "Today"}`,
-        category: "RESERVATION" as const,
-        createdAt: Date.now(),
-        link: "/pos/reservations",
-        isRead: readIds.has(`res-${r.id}`),
-      }));
+      .filter((r) => isReservationUpcomingWithin30Min(r, now))
+      .map((r) => {
+        const diffMins = minutesUntilReservation(r, now);
+        const timingText =
+          diffMins <= 0
+            ? "Due now"
+            : `Arriving in ${diffMins} min${diffMins === 1 ? "" : "s"}`;
+        const resId = `res-${r.id}`;
+        return {
+          id: resId,
+          title: `Reservation: ${r.customerName || "Guest"}`,
+          message: `Table ${r.tableNumber || "TBD"} · ${r.guests || 2} Guests · ${timingText} (${r.reservationTime || "Today"})`,
+          category: "RESERVATION" as const,
+          createdAt: getOrAssignTimestamp(resId, Date.now()),
+          link: "/pos/reservations",
+          isRead: readIds.has(resId),
+        };
+      });
 
     const all = [
       ...alerts,
@@ -141,10 +256,26 @@ export function usePosNotifications() {
       ...seed.map((item) => ({ ...item, isRead: readIds.has(item.id) })),
     ];
 
-    return all
-      .filter((item) => !dismissedIds.has(item.id))
-      .sort((a, b) => b.createdAt - a.createdAt);
-  }, [readIds, dismissedIds, stockAlerts, reservations, liveOutlet, activeOutlet?.id, readyTick]);
+    // Filter dismissed items
+    const nonDismissed = all.filter((item) => !dismissedIds.has(item.id));
+
+    // Sort order-wise: most recent at top, older below
+    const sorted = sortNotificationsRecentFirst(nonDismissed);
+
+    // Filter role-wise (waiter, kitchen, admin)
+    return filterNotificationsByRole(sorted, currentRole);
+  }, [
+    readIds,
+    dismissedIds,
+    stockAlerts,
+    reservations,
+    liveOutlet,
+    activeOutlet?.id,
+    readyTick,
+    currentRole,
+    options?.now,
+    getOrAssignTimestamp,
+  ]);
 
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.isRead).length,
@@ -187,19 +318,17 @@ export function usePosNotifications() {
   const markAllAsRead = useCallback(() => {
     setReadIds((prev) => {
       const next = new Set(prev);
-      SEED.forEach((item) => next.add(item.id));
-      stockAlerts.forEach((item) => next.add(item.id));
-      listKotReadyNotices(activeOutlet?.id).forEach((note) => next.add(note.id));
-      (reservations || []).forEach((r) => next.add(`res-${r.id}`));
+      notifications.forEach((item) => next.add(item.id));
       if (next.size === prev.size) return prev;
       return next;
     });
-  }, [stockAlerts, reservations, activeOutlet?.id, readyTick]);
+  }, [notifications]);
 
   return {
     notifications,
     unreadCount,
     hasUrgentAlerts,
+    currentRole,
     markAsRead,
     markAllAsRead,
     dismissNotification,

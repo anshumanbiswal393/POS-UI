@@ -49,7 +49,7 @@ interface TableFloorPlanProps {
 const DEFAULT_AREAS: string[] = [];
 
 export function TableFloorPlan({
-  tables,
+  tables = [],
   reservations = [],
   areas = DEFAULT_AREAS,
   activeArea,
@@ -272,7 +272,7 @@ export function TableFloorPlan({
               <span className="h-2 w-2 rounded-full bg-slate-400 border border-slate-500" />
               <span>Available</span>
               <span className="text-[10px] text-slate-500 font-extrabold ml-0.5">
-                ({areas.length === 0 ? 0 : tables.filter((t) => t.status === "vacant").length})
+                ({areas.length === 0 ? 0 : (Array.isArray(tables) ? tables : []).filter((t) => t && t.status === "vacant").length})
               </span>
             </div>
 
@@ -281,7 +281,7 @@ export function TableFloorPlan({
               <span className="h-2 w-2 rounded-full bg-primary border border-primary" />
               <span>Reserved</span>
               <span className="text-[10px] text-primary font-extrabold ml-0.5">
-                ({areas.length === 0 ? 0 : tables.filter((t) => t.status === "reserved").length})
+                ({areas.length === 0 ? 0 : (Array.isArray(tables) ? tables : []).filter((t) => t && t.status === "reserved").length})
               </span>
             </div>
 
@@ -290,7 +290,7 @@ export function TableFloorPlan({
               <span className="h-2 w-2 rounded-full bg-orange-500 border border-orange-600" />
               <span>On Dine</span>
               <span className="text-[10px] text-orange-700 font-extrabold ml-0.5">
-                ({areas.length === 0 ? 0 : tables.filter((t) => t.status === "occupied").length})
+                ({areas.length === 0 ? 0 : (Array.isArray(tables) ? tables : []).filter((t) => t && t.status === "occupied").length})
               </span>
             </div>
           </div>

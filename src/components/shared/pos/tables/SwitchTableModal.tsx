@@ -23,7 +23,7 @@ export function SwitchTableModal({
   isOpen,
   onClose,
   reservation,
-  tables,
+  tables = [],
   onConfirmSwitch,
   isPending = false,
 }: SwitchTableModalProps) {
@@ -39,7 +39,9 @@ export function SwitchTableModal({
 
   const candidateTables = useMemo(() => {
     if (!reservation) return [];
-    return tables.filter((t) => {
+    const safeTables = Array.isArray(tables) ? tables : [];
+    return safeTables.filter((t) => {
+      if (!t) return false;
       // Exclude current table
       if (t.id === reservation.tableId) return false;
       if (reservation.mergedTableIds?.includes(t.id)) return false;
@@ -47,7 +49,7 @@ export function SwitchTableModal({
       // Filter by search query if any
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const matchNum = t.tableNumber.toLowerCase().includes(q);
+        const matchNum = (t.tableNumber || "").toLowerCase().includes(q);
         const matchArea = (t.area || "").toLowerCase().includes(q);
         if (!matchNum && !matchArea) return false;
       }

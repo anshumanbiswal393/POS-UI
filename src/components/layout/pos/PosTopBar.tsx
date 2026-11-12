@@ -102,7 +102,7 @@ export function PosTopBar({
     markAsRead,
     markAllAsRead,
     dismissNotification,
-  } = usePosNotifications();
+  } = usePosNotifications({ role: user?.role, roleName: user?.role_name });
 
   const roleStr = String(user?.role || "").toLowerCase();
   const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
@@ -337,7 +337,7 @@ export function PosTopBar({
               ) : (
                 notifications.map((item) => {
                   const Icon = NOTIFICATION_ICONS[item.category];
-                  const isKot = item.category === "KOT";
+                  const isKot = item.category === "KOT" || item.category === "ORDER";
                   const isReservation = item.category === "RESERVATION";
                   return (
                     <div

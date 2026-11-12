@@ -24,8 +24,8 @@ interface ReservationSidebarProps {
 }
 
 export function ReservationSidebar({
-  reservations,
-  tables,
+  reservations = [],
+  tables = [],
   selectedDate,
   onPrevDate,
   onNextDate,
@@ -35,19 +35,23 @@ export function ReservationSidebar({
   const [filterTab, setFilterTab] = useState<"all" | "reservation" | "on_dine">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
+  const safeReservations = Array.isArray(reservations) ? reservations : [];
+  const safeTables = Array.isArray(tables) ? tables : [];
+
   // Filter reservations and active seatings
-  const reservedItems = reservations.filter((r) => r.status === "reserved");
-  const occupiedTables = tables.filter((t) => t.status === "occupied");
+  const reservedItems = safeReservations.filter((r) => r && r.status === "reserved");
+  const occupiedTables = safeTables.filter((t) => t && t.status === "occupied");
 
   // Filter based on tab and search
-  const filteredReservations = reservations.filter((r) => {
+  const filteredReservations = safeReservations.filter((r) => {
+    if (!r) return false;
     if (filterTab === "reservation" && r.status !== "reserved") return false;
     if (filterTab === "on_dine" && r.status !== "seated") return false;
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchName = r.customerName.toLowerCase().includes(q);
-      const matchPhone = r.customerPhone.toLowerCase().includes(q);
+      const matchName = (r.customerName || "").toLowerCase().includes(q);
+      const matchPhone = (r.customerPhone || "").toLowerCase().includes(q);
       const matchTable = r.tableNumber.toLowerCase().includes(q);
       return matchName || matchPhone || matchTable;
     }
