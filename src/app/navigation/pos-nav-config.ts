@@ -159,22 +159,6 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
         ],
       },
       {
-        id: "production-group",
-        label: "Food Preparation",
-        icon: CookingPot,
-        permission: "pos.inventory.production",
-        children: [
-          { id: "inv-prod-master", label: "Preparation Setup", to: "/pos/inventory/production", icon: SlidersHorizontal, permission: "pos.inventory.production" },
-          {
-            id: "inv-prod-exec",
-            label: "Prepare Items",
-            to: "/pos/inventory/production/execution",
-            icon: CookingPot,
-            permission: "pos.inventory.production",
-          },
-        ],
-      },
-      {
         id: "masters-group",
         label: "Stock Setup",
         icon: Settings2,

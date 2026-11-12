@@ -296,11 +296,12 @@ export const posPurchasesService = {
           saveStoredPurchases(updated);
           for (const line of payload.items || []) {
             if (line.stockItemId) {
-              posInventoryService.adjustMockStock(
+              await posInventoryService.adjustStock(
                 line.stockItemId,
                 Number(line.quantity) || 0,
                 "PURCHASE_IN",
                 res.data.invoiceNo || payload.invoiceNo || "PUR",
+                payload.outletId,
                 { unitCost: line.unitPrice },
               );
             }
@@ -369,11 +370,12 @@ export const posPurchasesService = {
     if (!isBackendOutletId(payload.outletId)) {
       for (const line of payload.items || []) {
         if (!line.stockItemId) continue;
-        posInventoryService.adjustMockStock(
+        await posInventoryService.adjustStock(
           line.stockItemId,
           Number(line.quantity) || 0,
           "PURCHASE_IN",
           invoiceNo,
+          payload.outletId,
           { unitCost: line.unitPrice },
         );
       }

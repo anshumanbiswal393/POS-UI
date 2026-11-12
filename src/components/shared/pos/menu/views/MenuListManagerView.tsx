@@ -25,6 +25,7 @@ import { MenuItemViewModal } from "../modals/MenuItemViewModal";
 import { MenuCategoryManagerModal } from "../modals/MenuCategoryManagerModal";
 import { toast } from "sonner";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
+import { cn } from "@/lib/utils";
 
 function MenuImageCell({
   item,
@@ -307,6 +308,33 @@ export function MenuListManagerView() {
       cell: ({ row }) => (
         <span className="font-mono font-bold text-slate-900">₹{Number(row.price).toFixed(2)}</span>
       ),
+    },
+    {
+      id: "plates",
+      header: "Plates Stock",
+      accessorKey: "plates",
+      enableSorting: true,
+      enableFiltering: false,
+      align: "center",
+      minWidth: 120,
+      cell: ({ row }) => {
+        const plates = Number(row.plates ?? 0);
+        const isOutOfStock = plates <= 0;
+        return (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-mono text-[11px] font-bold tracking-tight",
+              isOutOfStock
+                ? "bg-rose-100 text-rose-700 border border-rose-200"
+                : plates <= 5
+                  ? "bg-amber-100 text-amber-800 border border-amber-200"
+                  : "bg-emerald-100 text-emerald-800 border border-emerald-200",
+            )}
+          >
+            {plates} {plates === 1 ? "Plate" : "Plates"}
+          </span>
+        );
+      },
     },
     {
       id: "taxRate",

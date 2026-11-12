@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { posMenuService } from "@/services/posMenuService";
+import { posMenuService, getStoredItemPlates } from "@/services/posMenuService";
 import { liveGetBillingMenu } from "@/services/posOrderLive";
 import { isBackendOutletId } from "@/utils/outletId";
 import type { MenuItem, MenuItemImage } from "@/types/posMenu";
@@ -43,6 +43,7 @@ export function useBillingMenuItems(outletId?: string) {
       } else if (effectiveOutletId) {
         raw = await posMenuService.getMenuItems(effectiveOutletId);
       }
+      const platesMap = getStoredItemPlates(effectiveOutletId);
       return (raw || []).map((item) => {
         const basePrice = (item as any).originalPrice ?? item.price;
         const effectivePrice =
@@ -53,8 +54,10 @@ export function useBillingMenuItems(outletId?: string) {
                 item.commissionType,
                 item.commissionValue,
               );
+        const plates = item.plates !== undefined ? item.plates : (platesMap[item.id] ?? 0);
         return {
           ...item,
+          plates,
           originalPrice: basePrice,
           price: effectivePrice,
           variants: (item.variants || []).map((v: any) => {
