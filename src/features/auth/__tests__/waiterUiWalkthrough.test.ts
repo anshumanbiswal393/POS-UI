@@ -4,7 +4,11 @@ import { posUsersRbacService } from "@/services/posUsersRbacService";
 import { ROLE_PERMISSIONS } from "@/lib/auth/rbac";
 import { POS_NAV_ITEMS } from "@/app/navigation/pos-nav-config";
 import { WAITER_USER } from "@/components/providers/AuthProvider";
-import { listKotReadyNotices } from "@/lib/posReadyNotifications";
+import {
+  listKotReadyNotices,
+  pushKotReadyNotice,
+  dismissKotReadyNotice,
+} from "@/lib/posReadyNotifications";
 
 describe("Waiter Role UI & Permissions Full Walkthrough", () => {
   beforeEach(() => {
@@ -139,14 +143,23 @@ describe("Waiter Role UI & Permissions Full Walkthrough", () => {
     expect(visibleIds).not.toContain("management");
   });
 
-  it("Step 5: Verifies Waiter Top Bar notifications display ready KOT tickets and allow serving", () => {
-    const notices = listKotReadyNotices();
-    expect(notices.length).toBeGreaterThanOrEqual(1);
+  it("Step 5: Verifies Waiter Top Bar notifications only display real ready KOT tickets (no dummy orders)", () => {
+    expect(listKotReadyNotices()).toEqual([]);
 
-    const readyNotice = notices.find((n) => n.id.includes("ready") || n.title.includes("Ready"));
-    expect(readyNotice).toBeDefined();
-    expect(readyNotice?.title).toContain("Ready");
-    expect(readyNotice?.message).toContain("pickup counter");
+    pushKotReadyNotice({
+      id: "kot-ready-real-501",
+      title: "Order #ORD-501 is ready",
+      message: "Dine In · Paneer Tikka ready to serve.",
+      createdAt: Date.now(),
+      orderNumber: "ORD-501",
+    });
+
+    const notices = listKotReadyNotices();
+    expect(notices.length).toBe(1);
+    expect(notices[0].title).toContain("ORD-501");
+
+    dismissKotReadyNotice("kot-ready-real-501");
+    expect(listKotReadyNotices()).toEqual([]);
   });
 
   it("Step 6: Verifies Waiter Settings are restricted strictly to Profile & Theme", () => {

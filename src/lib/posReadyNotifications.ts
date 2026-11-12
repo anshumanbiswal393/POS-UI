@@ -16,7 +16,9 @@ function readAll(): KotReadyNotice[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? (JSON.parse(raw) as KotReadyNotice[]) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((r) => r && r.id !== "kot-ready-demo-104")
+      : [];
   } catch {
     return [];
   }
@@ -30,18 +32,8 @@ function writeAll(rows: KotReadyNotice[]) {
   }
 }
 
-const DEFAULT_READY_NOTICE: KotReadyNotice = {
-  id: "kot-ready-demo-104",
-  title: "Order #ORD-104 · Table T-12 Ready",
-  message: "Hariyali Panner & Mushroom Pakoda prepared and hot at pickup counter.",
-  createdAt: Date.now() - 2 * 60 * 1000,
-  orderNumber: "ORD-104",
-};
-
 export function listKotReadyNotices(outletId?: string): KotReadyNotice[] {
-  const rows = readAll();
-  const raw = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
-  const list = raw === null ? [DEFAULT_READY_NOTICE] : rows;
+  const list = readAll();
   if (!outletId) return list;
   return list.filter((r) => !r.outletId || r.outletId === outletId);
 }
