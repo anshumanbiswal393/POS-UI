@@ -242,8 +242,8 @@ export function CreateDailyPrepModal({ isOpen, onClose, preselectedItemId }: Pro
               <div className="relative">
                 <input
                   type="number"
-                  min="0.5"
-                  step="0.5"
+                  min="0.1"
+                  step="any"
                   placeholder="e.g. 20"
                   value={plates}
                   onChange={(e) => setPlates(e.target.value)}
@@ -352,7 +352,7 @@ export function CreateDailyPrepModal({ isOpen, onClose, preselectedItemId }: Pro
                       <input
                         type="number"
                         min="0.001"
-                        step="0.01"
+                        step="any"
                         placeholder="0.00"
                         value={ing.quantity}
                         onChange={(e) =>
@@ -417,3 +417,4 @@ export function CreateDailyPrepModal({ isOpen, onClose, preselectedItemId }: Pro
     </PosCreatePanel>
   );
 }
+
