@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   useStockCategories,
+  useStockItems,
   useUpsertStockCategory,
   useDeleteStockCategory,
 } from "@/hooks/queries/usePosInventory";
@@ -21,6 +22,7 @@ import {
   PosCreateSubmitButton,
 } from "@/components/layout/pos/PosCreatePanel";
 import type { StockCategory, StockSubCategory } from "@/types/posInventory";
+import { extractCategoriesFromStock } from "@/services/posInventoryService";
 
 const STANDARD_UNITS = [
   "Kg",
@@ -44,7 +46,13 @@ interface SubCategoryDraft {
 }
 
 export function CategoriesManagementView() {
-  const { data: categories = [], isLoading } = useStockCategories();
+  const { data: rawCategories = [], isLoading } = useStockCategories();
+  const { data: stockItems = [] } = useStockItems();
+
+  const categories = useMemo(() => {
+    return extractCategoriesFromStock(stockItems, rawCategories);
+  }, [stockItems, rawCategories]);
+
   const upsertCategory = useUpsertStockCategory();
   const deleteCategory = useDeleteStockCategory();
 

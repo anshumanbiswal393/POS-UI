@@ -223,6 +223,33 @@ export function RawMaterialsManagementView() {
         setIsCreateOpen(false);
         const actionVerb = editingItem ? "updated" : "created";
         toast.success(`Raw material '${name.trim()}' ${actionVerb} successfully.`);
+
+        // Ensure category and subcategory are saved permanently
+        const existingCat = allCategoriesList.find(
+          (c) => c.name.toLowerCase() === finalCategory.toLowerCase(),
+        );
+        const existingSubs = existingCat?.subCategories || [];
+        const hasSub =
+          finalSubCategory &&
+          existingSubs.some(
+            (s) => s.name.toLowerCase() === finalSubCategory.toLowerCase(),
+          );
+        if (!existingCat || (finalSubCategory && !hasSub)) {
+          const nextSubs = [...existingSubs];
+          if (finalSubCategory && !hasSub) {
+            nextSubs.push({
+              id: `sub-${Date.now()}`,
+              name: finalSubCategory,
+              unit: unit || "Kg",
+            });
+          }
+          upsertCategory.mutate({
+            id: existingCat?.id,
+            name: finalCategory,
+            subCategories: nextSubs,
+          });
+        }
+
         resetForm();
       },
       onError: () =>
@@ -295,7 +322,46 @@ export function RawMaterialsManagementView() {
     isActive: skuItem.isActive !== false,
   }));
 
-  const activeCategory = categories.find((c) => c.name === selectedCategory);
+  const allCategoriesList = (() => {
+    const map = new Map<string, { id?: string; name: string; subCategories?: { id?: string; name: string; unit?: string }[] }>();
+    for (const c of categories) {
+      if (c.name?.trim()) {
+        map.set(c.name.trim().toLowerCase(), {
+          id: c.id,
+          name: c.name.trim(),
+          subCategories: c.subCategories ? [...c.subCategories] : [],
+        });
+      }
+    }
+    for (const it of items) {
+      const rawCat = (it.category || "").trim();
+      if (!rawCat) continue;
+      const key = rawCat.toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, {
+          id: `cat-${key.replace(/\s+/g, "-")}`,
+          name: rawCat,
+          subCategories: [],
+        });
+      }
+      const target = map.get(key)!;
+      const rawSub = (it.subCategory || "").trim();
+      if (rawSub && target.subCategories) {
+        if (!target.subCategories.some((s) => s.name.toLowerCase() === rawSub.toLowerCase())) {
+          target.subCategories.push({
+            id: `sub-${target.subCategories.length}`,
+            name: rawSub,
+            unit: it.unit || "Kg",
+          });
+        }
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  })();
+
+  const activeCategory = allCategoriesList.find(
+    (c) => c.name.toLowerCase() === selectedCategory.toLowerCase(),
+  );
   const currentSubCategories = activeCategory?.subCategories || [];
 
   // Table search, filter, sort & pagination state
@@ -418,7 +484,7 @@ export function RawMaterialsManagementView() {
               className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500 cursor-pointer"
             >
               <option value="All">All Categories ({items.length})</option>
-              {categories.map((c) => (
+              {allCategoriesList.map((c) => (
                 <option key={c.id || c.name} value={c.name}>
                   {c.name}
                 </option>
@@ -674,7 +740,7 @@ export function RawMaterialsManagementView() {
               className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-medium"
             >
               <option value="">— Select Category —</option>
-              {categories.map((c) => (
+              {allCategoriesList.map((c) => (
                 <option key={c.id || c.name} value={c.name}>
                   {c.name}
                 </option>

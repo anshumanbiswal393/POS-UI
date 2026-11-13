@@ -12,12 +12,24 @@ describe("posInventoryService Category & Raw Material Management", () => {
   });
 
   describe("Stock Categories & Subcategories Master", () => {
-    it("returns default categories when storage is empty", async () => {
+    it("returns empty or dynamically derived categories without dummy data when storage is empty", async () => {
       const categories = await posInventoryService.getCategories();
       expect(Array.isArray(categories)).toBe(true);
-      expect(categories.length).toBeGreaterThan(0);
-      expect(categories[0]).toHaveProperty("name");
-      expect(categories[0]).toHaveProperty("subCategories");
+      expect(categories.some((c) => c.name === "Beverages" && c.id === "cat-beverages")).toBe(false);
+    });
+
+    it("dynamically extracts categories from raw materials and includes user-added categories", async () => {
+      await posInventoryService.upsertStockItem({
+        name: "Fresh Garlic",
+        category: "vegetables",
+        subCategory: "root vegetables",
+        unit: "Kg",
+      });
+
+      const categories = await posInventoryService.getCategories();
+      const veg = categories.find((c) => c.name.toLowerCase() === "vegetables");
+      expect(veg).toBeDefined();
+      expect(veg?.subCategories.some((s) => s.name === "root vegetables")).toBe(true);
     });
 
     it("can create a new category with multiple subcategories and units", async () => {

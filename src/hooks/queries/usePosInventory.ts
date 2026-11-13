@@ -29,6 +29,7 @@ export const INVENTORY_QUERY_KEYS = {
 
 function invalidateStock(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.stockItems });
+  queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.categories });
   queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.overview });
   queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.alerts });
   queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.consumption });

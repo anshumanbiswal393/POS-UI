@@ -20,46 +20,56 @@ const STOCK_STORE_KEY = "retrod_pos_stock_items_v1";
 const MOVEMENT_STORE_KEY = "retrod_pos_stock_movements_v1";
 const CATEGORY_STORE_KEY = "retrod_pos_stock_categories_v1";
 
-const DEFAULT_CATEGORIES: StockCategory[] = [
-  {
-    id: "cat-dairy",
-    name: "Dairy",
-    subCategories: [
-      { id: "sub-milk", name: "Cow Milk", unit: "Ltr" },
-      { id: "sub-cheese", name: "Cheese", unit: "Kg" },
-      { id: "sub-butter", name: "Butter", unit: "Kg" },
-      { id: "sub-paneer", name: "Paneer", unit: "Kg" },
-    ],
-  },
-  {
-    id: "cat-groceries",
-    name: "Groceries",
-    subCategories: [
-      { id: "sub-rice", name: "Rice", unit: "Kg" },
-      { id: "sub-flour", name: "Flour / Atta", unit: "Kg" },
-      { id: "sub-oil", name: "Cooking Oil", unit: "Ltr" },
-      { id: "sub-spices", name: "Whole Spices", unit: "Gm" },
-    ],
-  },
-  {
-    id: "cat-meat",
-    name: "Meat & Poultry",
-    subCategories: [
-      { id: "sub-chicken", name: "Chicken", unit: "Kg" },
-      { id: "sub-mutton", name: "Mutton", unit: "Kg" },
-      { id: "sub-fish", name: "Fish / Seafood", unit: "Kg" },
-    ],
-  },
-  {
-    id: "cat-beverages",
-    name: "Beverages",
-    subCategories: [
-      { id: "sub-syrup", name: "Drink Syrup", unit: "Bottle" },
-      { id: "sub-coffee", name: "Coffee Beans", unit: "Kg" },
-      { id: "sub-tea", name: "Tea Leaves", unit: "Kg" },
-    ],
-  },
-];
+const DEFAULT_CATEGORIES: StockCategory[] = [];
+
+export function extractCategoriesFromStock(
+  items: StockItem[],
+  customCategories: StockCategory[] = [],
+): StockCategory[] {
+  const map = new Map<string, StockCategory>();
+
+  // 1. Existing custom/saved categories
+  for (const cat of customCategories) {
+    if (!cat?.name?.trim()) continue;
+    const key = cat.name.trim().toLowerCase();
+    map.set(key, {
+      id: cat.id || `cat-${key.replace(/\s+/g, "-")}`,
+      name: cat.name.trim(),
+      subCategories: cat.subCategories ? [...cat.subCategories] : [],
+      updatedAt: cat.updatedAt,
+    });
+  }
+
+  // 2. Discover from actual stock items (raw materials)
+  for (const it of items) {
+    const rawCat = (it.category || "").trim();
+    if (!rawCat) continue;
+    const key = rawCat.toLowerCase();
+    if (!map.has(key)) {
+      map.set(key, {
+        id: `cat-${key.replace(/\s+/g, "-")}`,
+        name: rawCat,
+        subCategories: [],
+      });
+    }
+    const target = map.get(key)!;
+    const rawSub = (it.subCategory || it.sub_category || "").trim();
+    if (rawSub) {
+      const subExists = target.subCategories.some(
+        (s) => s.name.trim().toLowerCase() === rawSub.toLowerCase(),
+      );
+      if (!subExists) {
+        target.subCategories.push({
+          id: `sub-${target.subCategories.length}-${rawSub.toLowerCase().replace(/\s+/g, "-")}`,
+          name: rawSub,
+          unit: it.unit || "Kg",
+        });
+      }
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -87,7 +97,7 @@ let purchaseOrdersStore: PurchaseOrderRecord[] = [];
 let purchaseReturnsStore: PurchaseReturnRecord[] = [];
 let vendorsStore: InventoryVendor[] = [...initialVendors];
 let stockStore: StockItem[] = readJson<StockItem[]>(STOCK_STORE_KEY, []);
-let categoriesStore: StockCategory[] = readJson<StockCategory[]>(CATEGORY_STORE_KEY, DEFAULT_CATEGORIES);
+let categoriesStore: StockCategory[] = readJson<StockCategory[]>(CATEGORY_STORE_KEY, []);
 let mockMovements: StockOverview["movements"] = readJson<StockOverview["movements"]>(
   MOVEMENT_STORE_KEY,
   [],
@@ -342,14 +352,15 @@ export const posInventoryService = {
     }
     const cached = readJson<StockCategory[] | null>(storeKey, null);
     if (cached !== null) {
-      return cached;
+      return extractCategoriesFromStock(stockStore, cached);
     }
     if (!outletId) {
-      return [...categoriesStore];
+      return extractCategoriesFromStock(stockStore, categoriesStore);
     }
-    const legacy = readJson<StockCategory[]>(CATEGORY_STORE_KEY, DEFAULT_CATEGORIES);
-    writeJson(storeKey, legacy);
-    return legacy;
+    const legacy = readJson<StockCategory[]>(CATEGORY_STORE_KEY, []);
+    const merged = extractCategoriesFromStock(stockStore, legacy);
+    writeJson(storeKey, merged);
+    return merged;
   },
 
   upsertCategory: async (
@@ -371,9 +382,23 @@ export const posInventoryService = {
 
     if (isBackendOutletId(outletId)) {
       try {
-        await httpClient.post("/api/pos/stock/categories/", newCategory, {
-          params: scopeParams(outletId),
-        });
+        const res = await httpClient.post<{ success: boolean; category?: StockCategory }>(
+          "/api/pos/stock/categories/",
+          newCategory,
+          { params: scopeParams(outletId) },
+        );
+        if (res.data?.category) {
+          const saved = res.data.category;
+          const storeKey = getCategoryStoreKey(outletId);
+          let local = readJson<StockCategory[]>(storeKey, []);
+          const idx = local.findIndex(
+            (c) => c.name.toLowerCase() === saved.name.toLowerCase() || c.id === saved.id,
+          );
+          if (idx >= 0) local[idx] = saved;
+          else local.unshift(saved);
+          writeJson(storeKey, local);
+          return saved;
+        }
       } catch {
         // Fallback to local store
       }
@@ -384,7 +409,9 @@ export const posInventoryService = {
     if (!localCategories) {
       localCategories = outletId ? [] : [...categoriesStore];
     }
-    const idx = localCategories.findIndex((c) => c.id === id);
+    const idx = localCategories.findIndex(
+      (c) => c.id === id || c.name.toLowerCase() === newCategory.name.toLowerCase(),
+    );
     if (idx >= 0) {
       localCategories[idx] = newCategory;
     } else {
@@ -413,7 +440,7 @@ export const posInventoryService = {
     if (!localCategories) {
       localCategories = outletId ? [] : [...categoriesStore];
     }
-    localCategories = localCategories.filter((c) => c.id !== id);
+    localCategories = localCategories.filter((c) => c.id !== id && c.name.toLowerCase() !== id.toLowerCase());
     writeJson(storeKey, localCategories);
     if (!outletId) {
       categoriesStore = localCategories;
