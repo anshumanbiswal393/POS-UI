@@ -377,10 +377,12 @@ export function useUpsertStockCategory() {
   const queryClient = useQueryClient();
   const { activeOutlet } = useOutletContext();
   return useMutation({
-    mutationFn: (data: Partial<StockCategory> & { name: string }) =>
+    mutationFn: (data: Partial<StockCategory> & { name: string; oldName?: string }) =>
       posInventoryService.upsertCategory(data, activeOutlet?.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.categories });
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.stockItems });
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.overview });
     },
   });
 }
@@ -389,9 +391,15 @@ export function useDeleteStockCategory() {
   const queryClient = useQueryClient();
   const { activeOutlet } = useOutletContext();
   return useMutation({
-    mutationFn: (id: string) => posInventoryService.deleteCategory(id, activeOutlet?.id),
+    mutationFn: (param: string | { id: string; name?: string }) => {
+      const id = typeof param === "string" ? param : param.id;
+      const name = typeof param === "object" ? param.name : undefined;
+      return posInventoryService.deleteCategory(id, activeOutlet?.id, name);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.categories });
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.stockItems });
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.overview });
     },
   });
 }

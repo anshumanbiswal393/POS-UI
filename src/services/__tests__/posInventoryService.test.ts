@@ -89,6 +89,23 @@ describe("posInventoryService Category & Raw Material Management", () => {
       expect(list.some((c) => c.id === created.id)).toBe(false);
     });
 
+    it("permanently deletes a category and prevents it from being re-added even if stock items were previously assigned to it", async () => {
+      await posInventoryService.upsertStockItem({
+        name: "Test Tomato",
+        category: "vegetable",
+        unit: "Kg",
+      });
+
+      let list = await posInventoryService.getCategories();
+      expect(list.some((c) => c.name.toLowerCase() === "vegetable")).toBe(true);
+
+      const target = list.find((c) => c.name.toLowerCase() === "vegetable");
+      await posInventoryService.deleteCategory(target?.id || "cat-vegetable", undefined, "vegetable");
+
+      list = await posInventoryService.getCategories();
+      expect(list.some((c) => c.name.toLowerCase() === "vegetable")).toBe(false);
+    });
+
     it("isolates categories per hotel/outlet so different hotels do not mix up category data", async () => {
       const hotelAOutletId = "outlet-hotel-a-uuid-1111";
       const hotelBOutletId = "outlet-hotel-b-uuid-2222";

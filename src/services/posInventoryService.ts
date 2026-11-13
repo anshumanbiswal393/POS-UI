@@ -19,19 +19,34 @@ const initialVendors: InventoryVendor[] = [];
 const STOCK_STORE_KEY = "retrod_pos_stock_items_v1";
 const MOVEMENT_STORE_KEY = "retrod_pos_stock_movements_v1";
 const CATEGORY_STORE_KEY = "retrod_pos_stock_categories_v1";
+const DELETED_CATEGORY_STORE_KEY = "retrod_pos_deleted_stock_categories_v1";
 
 const DEFAULT_CATEGORIES: StockCategory[] = [];
+
+function getDeletedCategoryStoreKey(outletId?: string) {
+  return outletId ? `${DELETED_CATEGORY_STORE_KEY}_${outletId}` : DELETED_CATEGORY_STORE_KEY;
+}
+
+export function getDeletedCategoryNames(outletId?: string): string[] {
+  const list = readJson<string[]>(getDeletedCategoryStoreKey(outletId), []);
+  return Array.isArray(list) ? list : [];
+}
 
 export function extractCategoriesFromStock(
   items: StockItem[],
   customCategories: StockCategory[] = [],
+  deletedCategoryNames: string[] = [],
 ): StockCategory[] {
+  const deletedSet = new Set(
+    (deletedCategoryNames || []).map((n) => n.trim().toLowerCase()).filter(Boolean),
+  );
   const map = new Map<string, StockCategory>();
 
   // 1. Existing custom/saved categories
   for (const cat of customCategories) {
     if (!cat?.name?.trim()) continue;
     const key = cat.name.trim().toLowerCase();
+    if (deletedSet.has(key)) continue;
     map.set(key, {
       id: cat.id || `cat-${key.replace(/\s+/g, "-")}`,
       name: cat.name.trim(),
@@ -45,6 +60,7 @@ export function extractCategoriesFromStock(
     const rawCat = (it.category || "").trim();
     if (!rawCat) continue;
     const key = rawCat.toLowerCase();
+    if (deletedSet.has(key)) continue;
     if (!map.has(key)) {
       map.set(key, {
         id: `cat-${key.replace(/\s+/g, "-")}`,
@@ -336,6 +352,9 @@ export const posInventoryService = {
 
   getCategories: async (outletId?: string): Promise<StockCategory[]> => {
     const storeKey = getCategoryStoreKey(outletId);
+    const deletedList = getDeletedCategoryNames(outletId);
+    const deletedSet = new Set(deletedList.map((x) => x.toLowerCase()));
+
     if (isBackendOutletId(outletId)) {
       try {
         const res = await httpClient.get<{ success: boolean; categories?: StockCategory[] }>(
@@ -343,8 +362,11 @@ export const posInventoryService = {
           { params: scopeParams(outletId) },
         );
         if (res.data && Array.isArray(res.data.categories)) {
-          writeJson(storeKey, res.data.categories);
-          return res.data.categories;
+          const filtered = res.data.categories.filter(
+            (c) => !deletedSet.has(c.name.trim().toLowerCase()),
+          );
+          writeJson(storeKey, filtered);
+          return filtered;
         }
       } catch {
         // Fallback to local store
@@ -352,21 +374,22 @@ export const posInventoryService = {
     }
     const cached = readJson<StockCategory[] | null>(storeKey, null);
     if (cached !== null) {
-      return extractCategoriesFromStock(stockStore, cached);
+      return extractCategoriesFromStock(stockStore, cached, deletedList);
     }
     if (!outletId) {
-      return extractCategoriesFromStock(stockStore, categoriesStore);
+      return extractCategoriesFromStock(stockStore, categoriesStore, deletedList);
     }
     const legacy = readJson<StockCategory[]>(CATEGORY_STORE_KEY, []);
-    const merged = extractCategoriesFromStock(stockStore, legacy);
+    const merged = extractCategoriesFromStock(stockStore, legacy, deletedList);
     writeJson(storeKey, merged);
     return merged;
   },
 
   upsertCategory: async (
-    category: Partial<StockCategory> & { name: string },
+    category: Partial<StockCategory> & { name: string; oldName?: string },
     outletId?: string,
   ): Promise<StockCategory> => {
+    const trimmedName = category.name.trim();
     const id = category.id || `cat-${Date.now()}`;
     const subCategories = (category.subCategories || []).map((sub, idx) => ({
       id: sub.id || `sub-${Date.now()}-${idx}`,
@@ -375,16 +398,25 @@ export const posInventoryService = {
     }));
     const newCategory: StockCategory = {
       id,
-      name: category.name.trim(),
+      name: trimmedName,
       subCategories,
       updatedAt: new Date().toISOString(),
     };
+
+    // Remove from deleted tombstones if previously deleted
+    const delKey = getDeletedCategoryStoreKey(outletId);
+    let delList = readJson<string[]>(delKey, []);
+    const catNameLower = trimmedName.toLowerCase();
+    if (delList.some((x) => x.toLowerCase() === catNameLower)) {
+      delList = delList.filter((x) => x.toLowerCase() !== catNameLower);
+      writeJson(delKey, delList);
+    }
 
     if (isBackendOutletId(outletId)) {
       try {
         const res = await httpClient.post<{ success: boolean; category?: StockCategory }>(
           "/api/pos/stock/categories/",
-          newCategory,
+          { ...newCategory, old_name: category.oldName },
           { params: scopeParams(outletId) },
         );
         if (res.data?.category) {
@@ -425,27 +457,59 @@ export const posInventoryService = {
     return newCategory;
   },
 
-  deleteCategory: async (id: string, outletId?: string): Promise<boolean> => {
+  deleteCategory: async (id: string, outletId?: string, categoryName?: string): Promise<boolean> => {
+    const storeKey = getCategoryStoreKey(outletId);
+    let localCategories = readJson<StockCategory[] | null>(storeKey, null);
+    if (!localCategories) {
+      localCategories = outletId ? [] : [...categoriesStore];
+    }
+    const found = localCategories.find((c) => c.id === id);
+    const targetName = (
+      categoryName ||
+      found?.name ||
+      id.replace(/^cat-/, "").replace(/-/g, " ")
+    ).trim();
+
     if (isBackendOutletId(outletId)) {
       try {
-        await httpClient.delete(`/api/pos/stock/categories/${id}/`, {
+        await httpClient.delete(`/api/pos/stock/categories/${encodeURIComponent(id)}/`, {
           params: scopeParams(outletId),
         });
       } catch {
         // Fallback to local store
       }
     }
-    const storeKey = getCategoryStoreKey(outletId);
-    let localCategories = readJson<StockCategory[] | null>(storeKey, null);
-    if (!localCategories) {
-      localCategories = outletId ? [] : [...categoriesStore];
+
+    // Record tombstone so extractCategoriesFromStock and getCategories never re-add it
+    if (targetName) {
+      const delKey = getDeletedCategoryStoreKey(outletId);
+      const delList = readJson<string[]>(delKey, []);
+      const targetLower = targetName.toLowerCase();
+      if (!delList.map((x) => x.toLowerCase()).includes(targetLower)) {
+        delList.push(targetLower);
+        writeJson(delKey, delList);
+      }
     }
-    localCategories = localCategories.filter((c) => c.id !== id && c.name.toLowerCase() !== id.toLowerCase());
+
+    // Remove from local categories
+    localCategories = localCategories.filter(
+      (c) => c.id !== id && c.name.toLowerCase() !== targetName.toLowerCase(),
+    );
     writeJson(storeKey, localCategories);
     if (!outletId) {
       categoriesStore = localCategories;
       persistMockLedger();
     }
+
+    // Clear deleted category from stockStore items
+    stockStore = stockStore.map((it) => {
+      if (it.category && it.category.trim().toLowerCase() === targetName.toLowerCase()) {
+        return { ...it, category: "", subCategory: "" };
+      }
+      return it;
+    });
+    persistMockLedger();
+
     return true;
   },
 

@@ -5,6 +5,7 @@ import {
   useUpsertStockCategory,
   useDeleteStockCategory,
 } from "@/hooks/queries/usePosInventory";
+import { useOutletContext } from "@/context/PosOutletContext";
 import {
   Plus,
   Trash2,
@@ -22,7 +23,7 @@ import {
   PosCreateSubmitButton,
 } from "@/components/layout/pos/PosCreatePanel";
 import type { StockCategory, StockSubCategory } from "@/types/posInventory";
-import { extractCategoriesFromStock } from "@/services/posInventoryService";
+import { extractCategoriesFromStock, getDeletedCategoryNames } from "@/services/posInventoryService";
 
 const STANDARD_UNITS = [
   "Kg",
@@ -46,12 +47,19 @@ interface SubCategoryDraft {
 }
 
 export function CategoriesManagementView() {
+  const { activeOutlet } = useOutletContext();
   const { data: rawCategories = [], isLoading } = useStockCategories();
   const { data: stockItems = [] } = useStockItems();
 
+  const deletedCategoryNames = useMemo(
+    () => getDeletedCategoryNames(activeOutlet?.id),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeOutlet?.id, rawCategories],
+  );
+
   const categories = useMemo(() => {
-    return extractCategoriesFromStock(stockItems, rawCategories);
-  }, [stockItems, rawCategories]);
+    return extractCategoriesFromStock(stockItems, rawCategories, deletedCategoryNames);
+  }, [stockItems, rawCategories, deletedCategoryNames]);
 
   const upsertCategory = useUpsertStockCategory();
   const deleteCategory = useDeleteStockCategory();
@@ -119,6 +127,7 @@ export function CategoriesManagementView() {
       {
         id: editingCategory?.id,
         name: trimmedName,
+        oldName: editingCategory?.name,
         subCategories: validSubCategories,
       },
       {
@@ -138,10 +147,13 @@ export function CategoriesManagementView() {
   };
 
   const handleDelete = (id: string, name: string) => {
-    deleteCategory.mutate(id, {
-      onSuccess: () => toast.success(`Category '${name}' deleted`),
-      onError: () => toast.error("Could not delete category"),
-    });
+    deleteCategory.mutate(
+      { id, name },
+      {
+        onSuccess: () => toast.success(`Category '${name}' deleted`),
+        onError: () => toast.error("Could not delete category"),
+      },
+    );
   };
 
   const columns: DataGridColumn<StockCategory>[] = [
