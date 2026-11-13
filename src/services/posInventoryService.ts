@@ -108,7 +108,7 @@ function adjustMockStock(
 ) {
   const sku = stockStore.find((item) => item.id === stockItemId);
   if (!sku) return;
-  const next = Math.max(0, Number(sku.availableStock || 0) + signedQty);
+  const next = Math.max(0, Number(sku.availableStock ?? sku.quantityOnHand ?? 0) + signedQty);
   const reorder = sku.reorderLevel ?? sku.minThreshold ?? 0;
   stockStore = stockStore.map((item) =>
     item.id === stockItemId
@@ -116,6 +116,7 @@ function adjustMockStock(
           ...item,
           availableStock: next,
           closingStock: next,
+          quantityOnHand: next,
           isLow: reorder > 0 ? next < reorder : next === 0,
           unitCost: extra?.unitCost ?? item.unitCost,
         }
@@ -771,16 +772,21 @@ export const posInventoryService = {
     },
     outletId?: string,
   ) => {
+    adjustMockStock(data.stockItemId, -Number(data.quantity || 0), "WASTAGE", data.reason);
     if (!isBackendOutletId(outletId)) {
-      adjustMockStock(data.stockItemId, -Number(data.quantity || 0), "WASTAGE", data.reason);
       return { id: `wst-${Date.now()}`, ...data };
     }
     const res = await httpClient.post("/api/pos/stock/wastage/", data, { params: scopeParams(outletId) });
     return res.data;
   },
 
-  deleteWastage: async (id: string) => {
-    await httpClient.delete(`/api/pos/stock/wastage/${id}/`);
+  deleteWastage: async (id: string, outletId?: string, extra?: { stockItemId?: string; quantity?: number }) => {
+    if (extra?.stockItemId && extra.quantity) {
+      adjustMockStock(extra.stockItemId, Number(extra.quantity), "REVERSE_WASTAGE", "Wastage deleted");
+    }
+    if (isBackendOutletId(outletId)) {
+      await httpClient.delete(`/api/pos/stock/wastage/${id}/`);
+    }
     return true;
   },
 

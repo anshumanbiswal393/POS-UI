@@ -201,14 +201,6 @@ export function useWastageEntries() {
   });
 }
 
-export function useConsumptionReport() {
-  const { activeOutlet } = useOutletContext();
-  return useQuery({
-    queryKey: [...INVENTORY_QUERY_KEYS.consumption, activeOutlet.id],
-    queryFn: () => posInventoryService.getConsumption(activeOutlet.id),
-  });
-}
-
 export function useUpdateStockItem() {
   const queryClient = useQueryClient();
   const { activeOutlet } = useOutletContext();
@@ -299,8 +291,13 @@ export function useCreateWastage() {
 
 export function useDeleteWastage() {
   const queryClient = useQueryClient();
+  const { activeOutlet } = useOutletContext();
   return useMutation({
-    mutationFn: (id: string) => posInventoryService.deleteWastage(id),
+    mutationFn: (payload: string | { id: string; stockItemId?: string; quantity?: number }) => {
+      const id = typeof payload === "string" ? payload : payload.id;
+      const extra = typeof payload === "object" ? payload : undefined;
+      return posInventoryService.deleteWastage(id, activeOutlet.id, extra);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.wastage });
       invalidateStock(queryClient);

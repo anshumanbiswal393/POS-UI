@@ -209,44 +209,20 @@ export function PosInventorySidebar({
               >
                 Daily Preparation
               </Link>
+              <Link
+                to="/pos/inventory/wastage"
+                onClick={onNavigate}
+                className={cn(
+                  "block rounded-md px-2.5 py-1.5 text-[12px] font-medium transition",
+                  isExact("/pos/inventory/wastage")
+                    ? "text-teal-600 font-bold bg-teal-50/70"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50",
+                )}
+              >
+                Stock Wastage
+              </Link>
             </div>
           )}
-        </div>
-
-        {/* Consumption Group Header matching Screenshot */}
-        <div className="pt-2">
-          <div className="px-3 pb-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-            Consumption
-          </div>
-          <div className="space-y-0.5">
-            <Link
-              to="/pos/inventory/sales"
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium transition",
-                isExact("/pos/inventory/sales")
-                  ? "text-teal-600 font-bold bg-teal-50"
-                  : "text-slate-700 hover:bg-slate-50 hover:text-slate-900",
-              )}
-            >
-              <Utensils className="h-4 w-4 text-slate-500" />
-              <span>Sales</span>
-            </Link>
-
-            <Link
-              to="/pos/inventory/wastage"
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium transition",
-                isExact("/pos/inventory/wastage")
-                  ? "text-teal-600 font-bold bg-teal-50"
-                  : "text-slate-700 hover:bg-slate-50 hover:text-slate-900",
-              )}
-            >
-              <Trash2 className="h-4 w-4 text-slate-500" />
-              <span>Wastage</span>
-            </Link>
-          </div>
         </div>
 
         {/* Other Sections matching Screenshot */}

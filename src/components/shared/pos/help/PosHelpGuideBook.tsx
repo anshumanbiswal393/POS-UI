@@ -488,7 +488,7 @@ export function PosHelpGuideBook() {
               <Info className="h-3.5 w-3.5 text-teal-600" />
               Wastage Logging:
             </span>
-            Record burnt or spilled items under <strong>Stock Usage $\rightarrow$ Wastage</strong> to maintain exact balance sheets.
+            Record burnt or spilled items under <strong>Manage Stock $\rightarrow$ Stock Wastage</strong> to maintain exact balance sheets.
           </div>
         </div>
       ),

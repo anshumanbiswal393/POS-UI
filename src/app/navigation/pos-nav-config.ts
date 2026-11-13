@@ -39,6 +39,7 @@ import {
   CalendarCheck2,
   FolderTree,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 import type { Permission } from "@/types/rbac";
 
@@ -147,16 +148,7 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
           { id: "available-stock", label: "Available Stock", to: "/pos/inventory/available-stock", icon: Boxes, permission: "pos.inventory.view" },
           { id: "closing-stock", label: "Daily Stock Count", to: "/pos/inventory/closing-stock", icon: ClipboardList, permission: "pos.inventory.manage" },
           { id: "inv-daily-prep", label: "Daily Preparation", to: "/pos/inventory/production", icon: CookingPot, permission: "pos.inventory.view" },
-        ],
-      },
-      {
-        id: "consumption-group",
-        label: "Stock Usage",
-        icon: ArrowLeftRight,
-        permission: "pos.inventory.view",
-        children: [
-          { id: "inv-sales", label: "Items Sold", to: "/pos/inventory/sales", icon: ShoppingBag, permission: "pos.inventory.view" },
-          { id: "inv-wastage", label: "Stock Wastage", to: "/pos/inventory/wastage", icon: Package, permission: "pos.inventory.wastage" },
+          { id: "inv-wastage", label: "Stock Wastage", to: "/pos/inventory/wastage", icon: Trash2, permission: "pos.inventory.wastage" },
         ],
       },
       {

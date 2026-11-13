@@ -30,6 +30,7 @@ import {
 
 type WastageEntry = {
   id: string;
+  stockItemId?: string;
   date: string;
   dateKey: string;
   item: string;
@@ -77,6 +78,7 @@ export function StockWastageView() {
         : localEntries;
   const entries: WastageEntry[] = (rawList as Array<Record<string, unknown>>).map((row) => ({
     id: String(row.id),
+    stockItemId: String(row.stockItemId || row.stock_item_id || ""),
     date: String(row.date || ""),
     dateKey: String(row.dateKey || ""),
     item: String(row.item || ""),
@@ -241,6 +243,7 @@ export function StockWastageView() {
               }, 0) + 1;
             const entry: WastageEntry = {
               id: `WST-${String(nextNum).padStart(3, "0")}`,
+              stockItemId: values.stockItemId,
               date: formatDisplayDate(values.date),
               dateKey: values.date,
               item: values.item,
@@ -267,12 +270,18 @@ export function StockWastageView() {
 
   const handleDelete = (entry: WastageEntry) => {
     if (!confirm(`Remove wastage entry ${entry.id} (${entry.item})?`)) return;
-    if (isLive) {
-      deleteWastage.mutate(entry.id, { onSuccess: () => toast.success(`${entry.id} removed`) });
-      return;
-    }
-    setLocalEntries((prev) => prev.filter((e) => e.id !== entry.id));
-    toast.success(`${entry.id} removed`);
+    const qty = parseFloat(entry.quantity) || 0;
+    deleteWastage.mutate(
+      { id: entry.id, stockItemId: entry.stockItemId, quantity: qty },
+      {
+        onSuccess: () => {
+          if (!isLive) {
+            setLocalEntries((prev) => prev.filter((e) => e.id !== entry.id));
+          }
+          toast.success(`${entry.id} removed`);
+        },
+      },
+    );
   };
 
   return (

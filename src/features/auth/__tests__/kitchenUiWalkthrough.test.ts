@@ -102,15 +102,19 @@ describe("Kitchen User UI Access & Visibility Flow", () => {
     expect(kitchenSidebarItems[1].id).toBe("inventory");
     expect(kitchenSidebarItems[1].to).toBe("/pos/inventory");
 
-    // Stock children must include purchases, manage stock, usage, production, setup
+    // Stock children must include purchases, manage stock, setup
     const stockChildren = kitchenSidebarItems[1].children || [];
     const stockChildIds = stockChildren.map((c) => c.id);
     expect(stockChildIds).toContain("inv-dashboard");
     expect(stockChildIds).toContain("purchase-group");
     expect(stockChildIds).toContain("manage-stock-group");
-    expect(stockChildIds).toContain("consumption-group");
-    expect(stockChildIds).toContain("production-group");
     expect(stockChildIds).toContain("masters-group");
+    expect(stockChildIds).not.toContain("consumption-group");
+
+    // Manage stock must now contain stock wastage
+    const manageStock = stockChildren.find((c) => c.id === "manage-stock-group");
+    const manageChildIds = (manageStock?.children || []).map((c) => c.id);
+    expect(manageChildIds).toContain("inv-wastage");
 
     // Forbidden main navigation items must NOT exist in kitchen sidebar
     const kitchenNavIds = kitchenSidebarItems.map((item) => item.id);
