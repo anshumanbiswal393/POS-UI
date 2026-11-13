@@ -507,52 +507,82 @@ export async function liveGetDueBills(outletId?: string) {
         })()
       : [];
 
-  return rawBills.map((b) => {
+  const processed = rawBills.map((b) => {
     let paidAmount = Number(b.paidAmount || 0);
     const totalAmount = Number(b.totalAmount || 0);
     let dueAmount = Number(b.dueAmount ?? Math.max(0, totalAmount - paidAmount));
 
-    if (paidAmount === 0 && localReservations.length > 0) {
-      const match = localReservations.find((r: any) => {
-        if (!r.depositAmount || Number(r.depositAmount) <= 0) return false;
-        if (r.status !== "seated" && r.status !== "reserved") return false;
-        if (
-          b.customerPhone &&
-          r.customerPhone &&
-          b.customerPhone.replace(/\D/g, "") === r.customerPhone.replace(/\D/g, "")
-        ) {
-          return true;
-        }
-        if (b.tableOrRoom && r.tableNumber) {
-          const bTable = String(b.tableOrRoom).replace(/\D/g, "");
-          const rTable = String(r.tableNumber).replace(/\D/g, "");
-          if (bTable && rTable && bTable === rTable) return true;
-        }
-        return false;
-      });
-      if (match && Number(match.depositAmount) > 0) {
-        paidAmount = Number(match.depositAmount);
+    const match =
+      localReservations.length > 0
+        ? localReservations.find((r: any) => {
+            if (!r.depositAmount || Number(r.depositAmount) <= 0) return false;
+            if (
+              b.customerPhone &&
+              r.customerPhone &&
+              b.customerPhone.replace(/\D/g, "") === r.customerPhone.replace(/\D/g, "")
+            ) {
+              return true;
+            }
+            if (b.tableOrRoom && r.tableNumber) {
+              const bTable = String(b.tableOrRoom).replace(/\D/g, "");
+              const rTable = String(r.tableNumber).replace(/\D/g, "");
+              if (bTable && rTable && bTable === rTable) return true;
+            }
+            return false;
+          })
+        : null;
+
+    const deposit =
+      match && Number(match.depositAmount) > 0
+        ? Number(match.depositAmount)
+        : Number(b.depositAmount || 0);
+
+    if (deposit > 0) {
+      if (paidAmount === 0) {
+        // Initial state before customer payment: advance deposit reduces due
+        paidAmount = Math.min(totalAmount, deposit);
         dueAmount = Math.max(0, totalAmount - paidAmount);
+      } else if (paidAmount + deposit >= totalAmount || totalAmount - paidAmount <= deposit) {
+        // Customer paid the remaining balance! Together with advance deposit, total bill is fully settled!
+        paidAmount = totalAmount;
+        dueAmount = 0;
+      } else {
+        dueAmount = Math.max(0, totalAmount - (paidAmount + deposit));
       }
     }
 
+    const isSettled = dueAmount === 0 || String(b.status || "").toLowerCase() === "settled";
+
     return {
       ...b,
+      depositAmount: deposit,
       totalAmount,
       paidAmount,
       dueAmount,
       agingBucket:
         b.agingBucket ||
         (b.daysOverdue > 30 ? "30+" : b.daysOverdue > 15 ? "16-30" : "0-15"),
-      status: dueAmount === 0 ? "Settled" : paidAmount > 0 ? "Partial" : (b.status || "Pending"),
+      status: isSettled ? "Settled" : paidAmount > 0 ? "Partial" : (b.status || "Pending"),
     };
   });
+
+  if (!params?.includeSettled) {
+    return processed.filter((b) => b.dueAmount > 0 && b.status !== "Settled");
+  }
+
+  return processed;
 }
 
-export async function liveSettleDue(billId: string, paymentMode: string, paidAmount: number) {
+export async function liveSettleDue(
+  billId: string,
+  paymentMode: string,
+  paidAmount: number,
+  depositAmount?: number,
+) {
   const res = await httpClient.post(API_ENDPOINTS.ORDERS.DUE_SETTLE(billId), {
     paymentMode,
     paidAmount,
+    depositAmount,
   });
   return res.data;
 }

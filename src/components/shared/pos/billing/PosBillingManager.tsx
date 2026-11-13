@@ -1385,6 +1385,18 @@ export function PosBillingManager() {
         sendKot: true,
         held: false,
         items: orderItems,
+        meta:
+          activeReservationDeposit > 0
+            ? {
+                deposit_amount: activeReservationDeposit,
+                reservation_deposit: activeReservationDeposit,
+                tableLabel,
+                fullTableNumber: tableLabel,
+              }
+            : {
+                tableLabel,
+                fullTableNumber: tableLabel,
+              },
       };
       void (async () => {
         setBusyAction("kot");

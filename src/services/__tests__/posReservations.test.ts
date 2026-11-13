@@ -12,7 +12,7 @@ import {
 } from "../posTablesService";
 import type { ReservationItem, RestaurantTable } from "@/types/posTables";
 import type { CurrentOrderRecord } from "@/services/posOrdersService";
-import { getDueBills, settleDueBill } from "@/services/posOrdersService";
+import { getDueBills, settleDueBill, dueBillsStore } from "@/services/posOrdersService";
 import { getPosCustomers } from "@/services/posCustomerStore";
 import {
   filterActivePosOrders,
@@ -479,6 +479,42 @@ describe("POS Reservations & Dynamic Table Status", () => {
         expect(matched.paidAmount).toBe(500);
         expect(matched.dueAmount).toBe(1274.85);
       }
+    });
+
+    it("settling the remaining balance (₹1274.85) marks the bill as Settled with ₹0 due and closes it without asking for deposit again", () => {
+      // Create a mock due bill in store with deposit
+      const billId = "due-test-brijesh";
+      const initialBill = {
+        id: billId,
+        billNo: "BILL-8927",
+        orderType: "Dine In",
+        tableOrRoom: "Table 11",
+        customerName: "brijesh kumar gupta",
+        customerPhone: "7778367566",
+        itemsSummary: "chicken biryani × 4, hariyali panner × 2, masala colddrinks × 3",
+        totalAmount: 1774.85,
+        paidAmount: 500,
+        dueAmount: 1274.85,
+        depositAmount: 500,
+        dueDate: "13 Nov 2026",
+        daysOverdue: 0,
+        status: "Partial" as const,
+        agingBucket: "0-15" as const,
+      };
+
+      // Add to due bills store and settle
+      dueBillsStore.push(initialBill);
+
+      // Cashier pays the remaining ₹1274.85
+      const { settledBill } = settleDueBill(billId, "Cash", 1274.85, 500);
+
+      expect(settledBill.status).toBe("Settled");
+      expect(settledBill.paidAmount).toBe(1774.85);
+      expect(settledBill.dueAmount).toBe(0);
+
+      // Verify bill has been removed from pending due bills store
+      const remainingPending = dueBillsStore.find((b) => b.id === billId || b.billNo === "BILL-8927");
+      expect(remainingPending).toBeUndefined();
     });
   });
 });

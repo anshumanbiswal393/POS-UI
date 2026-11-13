@@ -162,13 +162,15 @@ export function useSettleDueBillMutation() {
       paymentMode,
       paidAmount,
       orderId,
+      depositAmount,
     }: {
       billId: string;
       paymentMode: "Cash" | "Card" | "UPI" | "Room Charge" | "Split";
       paidAmount?: number;
       orderId?: string;
       tableNumber?: string;
-    }) => settleDueBillLive(billId, paymentMode, paidAmount, orderId),
+      depositAmount?: number;
+    }) => settleDueBillLive(billId, paymentMode, paidAmount, orderId, depositAmount),
     onSuccess: (data, vars) => {
       const settled = (data as { settledBill?: { status?: string; dueAmount?: number; tableOrRoom?: string } })?.settledBill;
       const fullyPaid =

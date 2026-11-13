@@ -267,11 +267,18 @@ export function PosDueSettlementManager() {
     const modeForApi =
       settlementMode === "Wallet" ? ("Cash" as const) : settlementMode;
 
+    const depositAmt =
+      selectedBill.depositAmount ||
+      (selectedBill.totalAmount > selectedBill.dueAmount
+        ? selectedBill.totalAmount - selectedBill.dueAmount
+        : 0);
+
     settleMutation.mutate(
       {
         billId: selectedBill.id,
         paymentMode: modeForApi,
         paidAmount: settleAmt,
+        depositAmount: depositAmt,
         orderId: selectedBill.orderId,
         tableNumber: selectedBill.tableOrRoom,
       },

@@ -630,7 +630,7 @@ export interface DueBill {
   createdAt?: string;
 }
 
-let dueBillsStore: DueBill[] = [];
+export let dueBillsStore: DueBill[] = [];
 
 export async function getDueBills(outletId?: string): Promise<DueBill[]> {
   if (isBackendOutletId(outletId)) {
@@ -842,6 +842,7 @@ export async function settleDueBillLive(
   paymentMode: "Cash" | "Card" | "UPI" | "Room Charge" | "Split",
   paidAmount?: number,
   orderId?: string,
+  depositAmount?: number,
 ) {
   const mode = paymentMode.toUpperCase().replace(" ", "_");
   if (mode === "ROOM_CHARGE" && orderId && /^[0-9a-f-]{36}$/i.test(orderId)) {
@@ -857,7 +858,7 @@ export async function settleDueBillLive(
   }
   if (/^[0-9a-f-]{36}$/i.test(billId) || billId.startsWith("BILL-") || billId.startsWith("due-")) {
     try {
-      const raw = await liveSettleDue(billId, mode, paidAmount || 0);
+      const raw = await liveSettleDue(billId, mode, paidAmount || 0, depositAmount);
       const settledBill = raw?.settledBill || raw;
       return {
         settledBill,
@@ -865,27 +866,36 @@ export async function settleDueBillLive(
       };
     } catch (e) {
       if (!isBackendOutletId(billId)) {
-        return settleDueBill(billId, paymentMode, paidAmount);
+        return settleDueBill(billId, paymentMode, paidAmount, depositAmount);
       }
       throw e;
     }
   }
-  return settleDueBill(billId, paymentMode, paidAmount);
+  return settleDueBill(billId, paymentMode, paidAmount, depositAmount);
 }
 
 export function settleDueBill(
   billId: string,
   paymentMode: "Cash" | "Card" | "UPI" | "Room Charge" | "Split",
-  paidAmount?: number
+  paidAmount?: number,
+  depositAmount?: number,
 ): { settledBill: DueBill; archivedOrder: any } {
   let settledBill!: DueBill;
 
   dueBillsStore = dueBillsStore.map((b) => {
     if (b.id === billId || b.billNo === billId) {
-      // Full settlement of balance due → Order History (remove from pending)
+      const deposit = depositAmount ?? b.depositAmount ?? 0;
       const payNow = paidAmount !== undefined ? paidAmount : b.dueAmount;
-      const newPaid = Math.min(b.totalAmount, b.paidAmount + Math.max(0, payNow));
-      const newDue = Math.max(0, b.totalAmount - newPaid);
+      const isFullSettle =
+        payNow + deposit >= b.dueAmount ||
+        b.paidAmount + payNow + deposit >= b.totalAmount ||
+        b.totalAmount - (b.paidAmount + payNow) <= deposit;
+
+      const newPaid = isFullSettle
+        ? b.totalAmount
+        : Math.min(b.totalAmount, b.paidAmount + Math.max(0, payNow) + (b.paidAmount === 0 ? deposit : 0));
+      const newDue = isFullSettle ? 0 : Math.max(0, b.totalAmount - newPaid);
+
       settledBill = {
         ...b,
         paidAmount: newPaid,
