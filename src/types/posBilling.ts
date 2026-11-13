@@ -133,6 +133,7 @@ export type BillSettlementRecord = {
   grandTotal: number;
   paymentMethod: BillingPaymentMethod;
   tenderedAmount: number;
+  depositAmount?: number;
   changeDue: number;
   settledAt: string;
   specialNote?: string;

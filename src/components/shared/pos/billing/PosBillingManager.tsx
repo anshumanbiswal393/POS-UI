@@ -1003,6 +1003,35 @@ export function PosBillingManager() {
     };
   }, [cartItems, orderType, activeTable, roomNumber, discountType, discountValue, taxType, taxValue]);
 
+  const activeReservationDeposit = useMemo(() => {
+    if (orderType !== "dine_in") return 0;
+    if (activeTableReservationId) {
+      const match = reservations.find((r) => r.id === activeTableReservationId);
+      if (match?.depositAmount && match.depositAmount > 0) return match.depositAmount;
+    }
+    if (billingTableId || activeTable) {
+      const cleanTbl = activeTable.replace(/\D/g, "");
+      const match = reservations.find((r) => {
+        if (!r.depositAmount || r.depositAmount <= 0) return false;
+        if (r.status !== "seated" && r.status !== "reserved") return false;
+        if (billingTableId && r.tableId === billingTableId) return true;
+        const rTbl = String(r.tableNumber || "").replace(/\D/g, "");
+        return Boolean(cleanTbl && rTbl && cleanTbl === rTbl);
+      });
+      if (match?.depositAmount && match.depositAmount > 0) return match.depositAmount;
+    }
+    if (selectedCustomer?.phone) {
+      const cleanPhone = selectedCustomer.phone.replace(/\D/g, "");
+      const match = reservations.find((r) => {
+        if (!r.depositAmount || r.depositAmount <= 0) return false;
+        if (r.status !== "seated" && r.status !== "reserved") return false;
+        return Boolean(r.customerPhone && r.customerPhone.replace(/\D/g, "") === cleanPhone);
+      });
+      if (match?.depositAmount && match.depositAmount > 0) return match.depositAmount;
+    }
+    return 0;
+  }, [orderType, activeTableReservationId, billingTableId, activeTable, reservations, selectedCustomer]);
+
   const invalidateOrderSurfaces = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
     queryClient.invalidateQueries({ queryKey: ["pos", "tables"] });
@@ -1492,6 +1521,13 @@ export function PosBillingManager() {
                 sendKot: true,
                 held: false,
                 items: orderItems,
+                meta:
+                  activeReservationDeposit > 0
+                    ? {
+                        deposit_amount: activeReservationDeposit,
+                        reservation_deposit: activeReservationDeposit,
+                      }
+                    : undefined,
               });
               orderId = created.id;
               setLinkedOrderId(created.id);
@@ -1503,7 +1539,8 @@ export function PosBillingManager() {
               return;
             }
             const effectiveTendered = Number(tenderedAmount || 0);
-            const isPartial = effectiveTendered < grandTotal;
+            const totalPaidTowardsBill = effectiveTendered + activeReservationDeposit;
+            const isPartial = totalPaidTowardsBill < grandTotal;
             const settled = await liveSettleOrder(orderId, {
               paymentMode: payMap[paymentMethod] || "CASH",
               tenderedAmount: effectiveTendered,
@@ -1528,13 +1565,16 @@ export function PosBillingManager() {
             invalidateOrderSurfaces();
             setIsPayNowOpen(false);
             if (isPartial) {
-              const remainingDue = grandTotal - effectiveTendered;
+              const remainingDue = Math.max(0, grandTotal - totalPaidTowardsBill);
               toast.success(`Partial Paid · ${settled.orderNumber || billNumber}`, {
-                description: `₹${effectiveTendered.toLocaleString("en-IN")} paid · ₹${remainingDue.toLocaleString("en-IN")} balance due moved to Pending Payments`,
+                description: `₹${totalPaidTowardsBill.toLocaleString("en-IN")} paid (including ₹${activeReservationDeposit} advance) · ₹${remainingDue.toLocaleString("en-IN")} balance due moved to Pending Payments`,
               });
             } else {
               toast.success(`Paid · ${settled.orderNumber || billNumber} saved to Order History`, {
-                description: "Full payment received · sent to KOT",
+                description:
+                  activeReservationDeposit > 0
+                    ? `Full payment settled (₹${effectiveTendered.toLocaleString("en-IN")} + ₹${activeReservationDeposit.toLocaleString("en-IN")} advance deposit)`
+                    : "Full payment received · sent to KOT",
               });
             }
             handleNewBill();
@@ -2048,6 +2088,7 @@ export function PosBillingManager() {
         customerName={selectedCustomer?.name}
         itemsSummary={buildOrderPayload().itemsSummary}
         grandTotal={buildOrderPayload().grandTotal}
+        depositAmount={activeReservationDeposit}
         busy={busyAction === "pay"}
         onConfirm={handleSettleBill}
       />

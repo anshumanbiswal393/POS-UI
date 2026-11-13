@@ -44,6 +44,7 @@ type BillingPayNowModalProps = {
   customerName?: string;
   itemsSummary: string;
   grandTotal: number;
+  depositAmount?: number;
   busy?: boolean;
   onConfirm: (paymentMethod: BillingPaymentMethod, tenderedAmount: number) => void;
 };
@@ -56,6 +57,7 @@ export function BillingPayNowModal({
   customerName,
   itemsSummary,
   grandTotal,
+  depositAmount = 0,
   busy = false,
   onConfirm,
 }: BillingPayNowModalProps) {
@@ -74,8 +76,9 @@ export function BillingPayNowModal({
     });
   }, [canRoomCharge]);
 
+  const netPayable = Math.max(0, grandTotal - (depositAmount || 0));
   const [mode, setMode] = useState<PayNowMode>("Cash");
-  const [amount, setAmount] = useState(String(grandTotal || 0));
+  const [amount, setAmount] = useState(String(netPayable));
 
   useEffect(() => {
     if (mode === "Room Charge" && !canRoomCharge) {
@@ -86,17 +89,17 @@ export function BillingPayNowModal({
   useEffect(() => {
     if (!isOpen) return;
     setMode("Cash");
-    setAmount(String(grandTotal || 0));
-  }, [isOpen, grandTotal]);
+    setAmount(String(Math.max(0, grandTotal - (depositAmount || 0))));
+  }, [isOpen, grandTotal, depositAmount]);
 
   const amt = useMemo(() => {
     const parsed = parseFloat(amount);
     if (Number.isFinite(parsed) && parsed >= 0) return parsed;
-    return grandTotal || 0;
-  }, [amount, grandTotal]);
+    return Math.max(0, grandTotal - (depositAmount || 0));
+  }, [amount, grandTotal, depositAmount]);
 
-  const remainingDue = Math.max(0, grandTotal - amt);
-  const isPartial = amt < grandTotal && amt > 0;
+  const remainingDue = Math.max(0, grandTotal - (depositAmount || 0) - amt);
+  const isPartial = amt < netPayable && amt > 0;
 
   if (!isOpen) return null;
 
@@ -166,13 +169,21 @@ export function BillingPayNowModal({
           </aside>
 
           <section className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border bg-surface p-4 space-y-4">
-            <div className="grid grid-cols-1 min-[360px]:grid-cols-3 gap-2 rounded-xl border border-border bg-surface-2/50 p-3 text-center">
+            <div className={`grid grid-cols-1 ${depositAmount > 0 ? "min-[360px]:grid-cols-4" : "min-[360px]:grid-cols-3"} gap-2 rounded-xl border border-border bg-surface-2/50 p-3 text-center`}>
               <div>
-                <div className="text-[10.5px] font-bold uppercase text-text-secondary">Total</div>
+                <div className="text-[10.5px] font-bold uppercase text-text-secondary">Total Bill</div>
                 <div className="mt-0.5 text-[15px] font-black text-text-primary">
                   ₹{grandTotal.toLocaleString("en-IN")}
                 </div>
               </div>
+              {depositAmount > 0 && (
+                <div>
+                  <div className="text-[10.5px] font-bold uppercase text-emerald-700">Advance Deposit</div>
+                  <div className="mt-0.5 text-[15px] font-black text-emerald-700">
+                    -₹{depositAmount.toLocaleString("en-IN")}
+                  </div>
+                </div>
+              )}
               <div>
                 <div className="text-[10.5px] font-bold uppercase text-emerald-700">Paying Now</div>
                 <div className="mt-0.5 text-[15px] font-black text-emerald-700">

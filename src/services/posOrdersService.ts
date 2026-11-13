@@ -636,11 +636,51 @@ export async function getDueBills(outletId?: string): Promise<DueBill[]> {
   if (isBackendOutletId(outletId)) {
     return liveGetDueBills(outletId);
   }
+  // Check local/active reservations to ensure any reservation deposit reduces the due amount
+  const localReservations =
+    typeof window !== "undefined"
+      ? (() => {
+          try {
+            const effective =
+              outletId ||
+              localStorage.getItem("retrod_pos_active_outlet_id") ||
+              "default";
+            const raw = localStorage.getItem(`retrod_pos_reservations_${effective}`);
+            return raw ? JSON.parse(raw) : [];
+          } catch {
+            return [];
+          }
+        })()
+      : [];
+
   // Sync open current orders into due bills store for mock/local mode
   for (const ord of currentOrdersStore) {
     if (ord.currentStage !== "settled") {
       const billNo = `BILL-${ord.orderNumber.replace(/^ORD-/i, "")}`;
       if (!dueBillsStore.some((b) => b.billNo === billNo || b.id === `due-${ord.id}`)) {
+        let deposit = 0;
+        const match = localReservations.find((r: any) => {
+          if (!r.depositAmount || Number(r.depositAmount) <= 0) return false;
+          if (r.status !== "seated" && r.status !== "reserved") return false;
+          if (
+            ord.customerPhone &&
+            r.customerPhone &&
+            ord.customerPhone.replace(/\D/g, "") === r.customerPhone.replace(/\D/g, "")
+          ) {
+            return true;
+          }
+          const ordTable = String(ord.tableOrRoom || "").replace(/\D/g, "");
+          const rTable = String(r.tableNumber || "").replace(/\D/g, "");
+          return ordTable && rTable && ordTable === rTable;
+        });
+        if (match && Number(match.depositAmount) > 0) {
+          deposit = Number(match.depositAmount);
+        }
+
+        const total = ord.amount;
+        const paid = deposit;
+        const due = Math.max(0, total - paid);
+
         dueBillsStore.push({
           id: `due-${ord.id}`,
           billNo,
@@ -651,12 +691,12 @@ export async function getDueBills(outletId?: string): Promise<DueBill[]> {
           customerPhone: ord.customerPhone || "--",
           waiterName: ord.waiterName || "Captain",
           itemsSummary: ord.itemsSummary,
-          totalAmount: ord.amount,
-          paidAmount: 0,
-          dueAmount: ord.amount,
+          totalAmount: total,
+          paidAmount: paid,
+          dueAmount: due,
           dueDate: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
           daysOverdue: 0,
-          status: "Pending",
+          status: due === 0 ? "Settled" : paid > 0 ? "Partial" : "Pending",
           agingBucket: "0-15",
           createdAt: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
         });

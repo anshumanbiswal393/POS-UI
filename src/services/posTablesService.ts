@@ -194,6 +194,10 @@ function mapBackendReservation(r: any): ReservationItem {
 
     status,
 
+    paymentStatus: r.payment_status || r.paymentStatus || (Number(r.deposit_amount ?? r.depositAmount ?? 0) > 0 ? "deposit_paid" : "unpaid"),
+
+    depositAmount: Number(r.deposit_amount ?? r.depositAmount ?? 0),
+
     notes: r.notes || r.special_requests || undefined,
 
     isVip: Boolean(r.is_vip),
@@ -1004,6 +1008,8 @@ export const posTablesService = {
         map.set(r.id, {
           ...r,
           status: existing.status === "completed" ? "completed" : r.status,
+          depositAmount: r.depositAmount || existing.depositAmount || 0,
+          paymentStatus: r.paymentStatus || existing.paymentStatus || (r.depositAmount || existing.depositAmount ? "deposit_paid" : "unpaid"),
           reservationDate: toIsoDate(r.reservationDate),
           reservationTime: toDisplayTime(r.reservationTime),
         });
@@ -1125,6 +1131,8 @@ export const posTablesService = {
           table_ids: mergedIds.filter(isBackendOutletId),
           notes: data.notes || undefined,
           is_vip: Boolean(data.isVip),
+          deposit_amount: data.depositAmount || 0,
+          payment_status: data.paymentStatus || (data.depositAmount ? "deposit_paid" : "unpaid"),
         };
 
         const res = await httpClient.post(API_ENDPOINTS.TABLES.RESERVATIONS, payload);
@@ -1660,6 +1668,19 @@ export const posTablesService = {
 
       const targetTable = tables.find((t) => t.id === input.tableId);
 
+      const allRes = await posTablesService.getReservations();
+      const activeRes =
+        targetTable?.activeReservation ||
+        allRes.find(
+          (r) =>
+            (r.status === "seated" || r.status === "reserved") &&
+            (r.tableId === input.tableId ||
+              (r.customerPhone &&
+                input.guestPhone &&
+                r.customerPhone.replace(/\D/g, "") === input.guestPhone.replace(/\D/g, ""))),
+        );
+      const resDeposit = activeRes?.depositAmount || 0;
+
       const created = await liveCreateOrder({
 
         outletId: cid,
@@ -1671,6 +1692,8 @@ export const posTablesService = {
         tableNumber: targetTable?.tableNumber,
 
         section: targetTable?.area,
+
+        reservationId: activeRes?.id,
 
         waiterName: input.waiterName,
 
@@ -1687,6 +1710,8 @@ export const posTablesService = {
         sendKot: true,
 
         items: input.items,
+
+        meta: resDeposit > 0 ? { deposit_amount: resDeposit, reservation_deposit: resDeposit } : undefined,
 
       });
 

@@ -829,8 +829,27 @@ export function settlementRecordToInvoicePayload(
         ? (record.roomNumber ? `Room ${record.roomNumber}` : "Room Guest")
         : (record.orderType === "takeaway" ? "Takeaway Counter" : "Home Delivery");
 
-  const paidAmount = record.tenderedAmount >= record.grandTotal ? record.grandTotal : (record.tenderedAmount || record.grandTotal);
+  const deposit = Number(record.depositAmount || 0);
+  const tendered = Number(record.tenderedAmount || 0);
+  const totalPaid = Math.min(record.grandTotal, tendered + deposit);
+  const paidAmount = totalPaid > 0 ? totalPaid : (record.tenderedAmount >= record.grandTotal ? record.grandTotal : (record.tenderedAmount || record.grandTotal));
   const balanceAmount = Math.max(0, record.grandTotal - paidAmount);
+
+  const payments: PosInvoicePayment[] = [];
+  if (deposit > 0) {
+    payments.push({
+      date: record.settledAt,
+      method: "ADVANCE DEPOSIT",
+      amount: deposit,
+    });
+  }
+  if (tendered > 0 || deposit === 0) {
+    payments.push({
+      date: record.settledAt,
+      method: String(record.paymentMethod || "CASH").toUpperCase(),
+      amount: tendered > 0 ? tendered : Math.max(0, paidAmount - deposit),
+    });
+  }
 
   return {
     invoiceNo: record.billNumber,
@@ -865,13 +884,7 @@ export function settlementRecordToInvoicePayload(
     paidAmount,
     balanceAmount,
     paymentMethod: String(record.paymentMethod || "CASH").toUpperCase(),
-    payments: [
-      {
-        date: record.settledAt,
-        method: String(record.paymentMethod || "CASH").toUpperCase(),
-        amount: paidAmount,
-      },
-    ],
+    payments,
     specialNote: record.specialNote,
   };
 }

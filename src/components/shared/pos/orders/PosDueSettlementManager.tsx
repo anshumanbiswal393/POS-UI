@@ -155,11 +155,11 @@ export function PosDueSettlementManager() {
         render: (_, bill) => (
           <div>
             <div className="font-bold text-slate-900 text-[12.5px]">
-              ₹ {bill.totalAmount.toLocaleString("en-IN")}.00
+              ₹ {bill.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             {bill.paidAmount > 0 && (
-              <div className="text-[10.5px] text-slate-500">
-                Paid: ₹{bill.paidAmount.toLocaleString()}
+              <div className="text-[10.5px] font-semibold text-emerald-700">
+                Advance/Paid: ₹{bill.paidAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             )}
           </div>
@@ -174,7 +174,7 @@ export function PosDueSettlementManager() {
         defaultWidth: 120,
         render: (_, bill) => (
           <div className="font-black text-[14px] text-teal-800">
-            ₹ {bill.dueAmount.toLocaleString("en-IN")}.00
+            ₹ {bill.dueAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         ),
       },
@@ -414,19 +414,19 @@ export function PosDueSettlementManager() {
               <div>
                 <div className="text-[10.5px] font-bold uppercase text-text-secondary">Total</div>
                 <div className="mt-0.5 text-[15px] font-black text-text-primary">
-                  ₹{selectedBill.totalAmount.toLocaleString("en-IN")}
+                  ₹{selectedBill.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
               <div>
-                <div className="text-[10.5px] font-bold uppercase text-text-secondary">Paid</div>
-                <div className="mt-0.5 text-[15px] font-bold text-text-secondary">
-                  ₹{selectedBill.paidAmount.toLocaleString("en-IN")}
+                <div className="text-[10.5px] font-bold uppercase text-emerald-700">Advance / Paid</div>
+                <div className="mt-0.5 text-[15px] font-bold text-emerald-700">
+                  ₹{selectedBill.paidAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
               <div>
-                <div className="text-[10.5px] font-bold uppercase text-primary">Due</div>
-                <div className="mt-0.5 text-[16px] font-black text-primary">
-                  ₹{selectedBill.dueAmount.toLocaleString("en-IN")}
+                <div className="text-[10.5px] font-bold uppercase text-teal-800">Balance Due</div>
+                <div className="mt-0.5 text-[16px] font-black text-teal-800">
+                  ₹{selectedBill.dueAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
             </div>
@@ -458,7 +458,7 @@ export function PosDueSettlementManager() {
                 onClick={() => setSettlementAmount(selectedBill.dueAmount.toString())}
                 className="text-[11.5px] font-bold text-primary hover:underline cursor-pointer"
               >
-                Use full due ₹{selectedBill.dueAmount.toLocaleString("en-IN")}
+                Use full due ₹{selectedBill.dueAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </button>
             </div>
 
@@ -521,7 +521,7 @@ export function PosDueSettlementManager() {
             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
           </div>
           <div className="mt-0.5 text-[17px] font-black leading-tight text-slate-900">
-            ₹ {totalOpenDues.toLocaleString("en-IN")}.00
+            ₹ {totalOpenDues.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
         <div className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 shadow-2xs">

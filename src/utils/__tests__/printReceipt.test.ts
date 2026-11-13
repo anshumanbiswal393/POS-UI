@@ -244,3 +244,4 @@ describe("Unified POS Tax Invoice (PMS standard)", () => {
     expect(payload.paymentMethod).toBe("Room Folio");
   });
 });
+

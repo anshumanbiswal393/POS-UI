@@ -488,11 +488,65 @@ export async function liveGetDueBills(outletId?: string) {
   const params = orderScope(outletId);
   if (!params) return [];
   const res = await httpClient.get(API_ENDPOINTS.ORDERS.DUE_SETTLEMENT, { params });
-  return ((res.data?.bills || []) as any[]).map((b) => ({
-    ...b,
-    agingBucket: b.agingBucket || (b.daysOverdue > 30 ? "30+" : b.daysOverdue > 15 ? "16-30" : "0-15"),
-    status: b.status || "Pending",
-  }));
+  const rawBills = (res.data?.bills || []) as any[];
+
+  // Check local/active reservations to ensure any reservation deposit reduces the due amount
+  const localReservations =
+    typeof window !== "undefined"
+      ? (() => {
+          try {
+            const effective =
+              outletId ||
+              localStorage.getItem("retrod_pos_active_outlet_id") ||
+              "default";
+            const raw = localStorage.getItem(`retrod_pos_reservations_${effective}`);
+            return raw ? JSON.parse(raw) : [];
+          } catch {
+            return [];
+          }
+        })()
+      : [];
+
+  return rawBills.map((b) => {
+    let paidAmount = Number(b.paidAmount || 0);
+    const totalAmount = Number(b.totalAmount || 0);
+    let dueAmount = Number(b.dueAmount ?? Math.max(0, totalAmount - paidAmount));
+
+    if (paidAmount === 0 && localReservations.length > 0) {
+      const match = localReservations.find((r: any) => {
+        if (!r.depositAmount || Number(r.depositAmount) <= 0) return false;
+        if (r.status !== "seated" && r.status !== "reserved") return false;
+        if (
+          b.customerPhone &&
+          r.customerPhone &&
+          b.customerPhone.replace(/\D/g, "") === r.customerPhone.replace(/\D/g, "")
+        ) {
+          return true;
+        }
+        if (b.tableOrRoom && r.tableNumber) {
+          const bTable = String(b.tableOrRoom).replace(/\D/g, "");
+          const rTable = String(r.tableNumber).replace(/\D/g, "");
+          if (bTable && rTable && bTable === rTable) return true;
+        }
+        return false;
+      });
+      if (match && Number(match.depositAmount) > 0) {
+        paidAmount = Number(match.depositAmount);
+        dueAmount = Math.max(0, totalAmount - paidAmount);
+      }
+    }
+
+    return {
+      ...b,
+      totalAmount,
+      paidAmount,
+      dueAmount,
+      agingBucket:
+        b.agingBucket ||
+        (b.daysOverdue > 30 ? "30+" : b.daysOverdue > 15 ? "16-30" : "0-15"),
+      status: dueAmount === 0 ? "Settled" : paidAmount > 0 ? "Partial" : (b.status || "Pending"),
+    };
+  });
 }
 
 export async function liveSettleDue(billId: string, paymentMode: string, paidAmount: number) {
