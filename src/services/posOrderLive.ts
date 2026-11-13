@@ -52,6 +52,7 @@ export type LiveOrderPayload = {
   serviceCharge?: number;
   discountAmount?: number;
   grandTotal?: number;
+  append?: boolean;
   sendKot?: boolean;
   markSettled?: boolean;
   paymentMode?: string;
@@ -390,6 +391,8 @@ function toOrderWriteBody(payload: Partial<LiveOrderPayload>) {
     guest_phone: payload.guestPhone ? String(payload.guestPhone).slice(0, 32) : undefined,
     waiterName: payload.waiterName ? String(payload.waiterName).slice(0, 100) : undefined,
     waiter_name: payload.waiterName ? String(payload.waiterName).slice(0, 100) : undefined,
+    append: payload.append,
+    append_items: payload.append,
     sendKot: payload.sendKot,
     send_kot: payload.sendKot,
     markSettled: payload.markSettled,

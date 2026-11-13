@@ -14,7 +14,7 @@ import type {
 } from "@/types/posBilling";
 import { BillingHeader } from "./BillingHeader";
 import { BillingMenuCatalog } from "./BillingMenuCatalog";
-import { BillingCartRegister } from "./BillingCartRegister";
+import { BillingCartRegister, type RunningOrderSummary } from "./BillingCartRegister";
 import { BillingTablesOrdersSidebar } from "./BillingTablesOrdersSidebar";
 import type { RestaurantTable, ReservationItem } from "@/types/posTables";
 import { BillingModifierModal } from "./BillingModifierModal";
@@ -22,6 +22,7 @@ import { BillingReceiptModal } from "./BillingReceiptModal";
 import { BillingHeldDrawer } from "./BillingHeldDrawer";
 import { BillingTableModal } from "./BillingTableModal";
 import { BillingPayNowModal } from "./BillingPayNowModal";
+import { BillingPreviousOrdersModal } from "./BillingPreviousOrdersModal";
 import { useBillingMenuItems } from "@/hooks/queries/usePosMenu";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -306,6 +307,8 @@ export function PosBillingManager() {
   const captainName = user?.name?.trim() || waiterFromUrl.trim() || "Steward";
   const isBackendOutlet = isBackendOutletId(activeOutlet?.id);
   const [isPayNowOpen, setIsPayNowOpen] = useState(false);
+  const [runningOrderMeta, setRunningOrderMeta] = useState<RunningOrderSummary | null>(null);
+  const [isPreviousOrdersOpen, setIsPreviousOrdersOpen] = useState(false);
   const [busyAction, setBusyAction] = useState<"hold" | "kot" | "pay" | "folio" | null>(null);
   const [heldBills, setHeldBills] = useState<HeldBill[]>([]);
   const [isHeldDrawerOpen, setIsHeldDrawerOpen] = useState(false);
@@ -480,6 +483,7 @@ export function PosBillingManager() {
     const qOrderNumber = params.get("orderNumber");
     const qOrderId = params.get("orderId");
     const qEditOrder = params.get("editOrder");
+    const qExtraOrder = params.get("extraOrder") === "1" || params.get("extraOrder") === "true";
     const qWaiter = params.get("waiterName");
     const qTableId = params.get("tableId");
     const qRoomUnitId = params.get("roomUnitId");
@@ -529,6 +533,64 @@ export function PosBillingManager() {
       const autoCust = findCustomerForTable(qTable || "", qTableId || undefined);
       if (autoCust) {
         handleSelectCustomer(autoCust);
+      }
+    }
+
+    // Extra Order for an occupied table / seated guest:
+    // Link table, guest, open order, but keep active cart BLANK for adding extra items.
+    if ((qOrderId || qOrderNumber) && qExtraOrder) {
+      if (qOrderId && !qOrderId.startsWith("ord-")) {
+        liveGetOrder(qOrderId)
+          .then((open) => {
+            if (!open) {
+              toast.error("Open order not found");
+              return;
+            }
+            setLinkedOrderId(open.id);
+            setLinkedOrderNumber(open.orderNumber);
+            setBillNumber(open.orderNumber);
+            setKotSentForCart(false);
+            if (open.tableId) setBillingTableId(open.tableId);
+            if (open.tableOrRoom) {
+              const tbl = open.tableOrRoom.startsWith("Table")
+                ? open.tableOrRoom
+                : `Table ${open.tableOrRoom}`;
+              setActiveTable(tbl);
+            }
+            if (open.pax) setGuestCount(open.pax);
+            if (open.orderNote) setSpecialNote(open.orderNote);
+            if (open.customerName) {
+              setSelectedCustomer({
+                id: `guest-${open.orderNumber}`,
+                name: open.customerName,
+                phone: open.customerPhone && open.customerPhone !== "--" ? open.customerPhone : "",
+                tier: "Silver",
+                loyaltyPoints: 0,
+                visitCount: 1,
+                lastVisit: "Today",
+              });
+            }
+            setCartItems([]); // BLANK CHECK!
+            setRunningOrderMeta({
+              id: open.id,
+              orderNumber: open.orderNumber,
+              tableNumber: open.tableOrRoom || qTable || "",
+              guestName: open.customerName || "Guest",
+              itemsCount: (open.items || []).length,
+              amount: open.grandTotal || open.amount || 0,
+              items: (open.items || []).map((line) => ({
+                name: line.name,
+                quantity: line.quantity,
+                price: line.price,
+                variant: line.selectedVariantName,
+              })),
+            });
+            toast.info(`Table ${open.tableOrRoom || qTable || ""} · Blank check ready for extra items.`);
+          })
+          .catch((err) => {
+            console.warn("Could not fetch open order for extra order:", err);
+          });
+        return;
       }
     }
 
@@ -826,6 +888,7 @@ export function PosBillingManager() {
     setKotSentForCart(false);
     setLinkedOrderNumber(null);
     setLinkedOrderId(null);
+    setRunningOrderMeta(null);
     setDiscountType("percent");
     setDiscountValue(0);
     setTaxType("percent");
@@ -843,6 +906,7 @@ export function PosBillingManager() {
     setKotSentForCart(false);
     setLinkedOrderNumber(null);
     setLinkedOrderId(null);
+    setRunningOrderMeta(null);
     setActiveTable("");
     setBillingTableId("");
     setActiveTableReservationId("");
@@ -1088,6 +1152,7 @@ export function PosBillingManager() {
     setLinkedOrderId(held.linkedOrderId || held.id);
     setLinkedOrderNumber(held.billNumber);
     setKotSentForCart(false);
+    setRunningOrderMeta(null);
 
     if (held.customerName) {
       handleSelectCustomer({
@@ -1171,11 +1236,39 @@ export function PosBillingManager() {
         ord.tableOrRoom === table.tableNumber
     );
     if (activeTimelineOrder) {
-      const held = currentOrderToHeldBill(activeTimelineOrder);
-      handleResumeHeldBill(held);
-      if (!activeTimelineOrder.customerName && foundCust) {
+      setLinkedOrderId(activeTimelineOrder.id);
+      setLinkedOrderNumber(activeTimelineOrder.orderNumber);
+      setBillNumber(activeTimelineOrder.orderNumber);
+      setCartItems([]); // BLANK CHECK for extra items!
+      setKotSentForCart(false);
+      setRunningOrderMeta({
+        id: activeTimelineOrder.id,
+        orderNumber: activeTimelineOrder.orderNumber,
+        tableNumber: activeTimelineOrder.tableOrRoom || code,
+        guestName: activeTimelineOrder.customerName || (foundCust ? foundCust.name : "Guest"),
+        itemsCount: activeTimelineOrder.itemCount || (activeTimelineOrder.items || []).length || 0,
+        amount: activeTimelineOrder.amount || 0,
+        items: (activeTimelineOrder.items || []).map((it) => ({
+          name: it.name,
+          quantity: it.quantity,
+          price: it.price,
+        })),
+      });
+      if (activeTimelineOrder.customerName) {
+        handleSelectCustomer({
+          id: `guest-${activeTimelineOrder.orderNumber}`,
+          name: activeTimelineOrder.customerName,
+          phone: activeTimelineOrder.customerPhone && activeTimelineOrder.customerPhone !== "--" ? activeTimelineOrder.customerPhone : "",
+          tier: "Silver",
+          loyaltyPoints: 0,
+          visitCount: 1,
+          lastVisit: "Today",
+        });
+      } else if (foundCust) {
         handleSelectCustomer(foundCust);
       }
+      toast.info(`Table ${code} is occupied. Blank check ready for extra items.`);
+      return;
     }
   };
 
@@ -1267,19 +1360,27 @@ export function PosBillingManager() {
         setBusyAction("kot");
         try {
           if (linkedOrderId) {
-            const updated = await livePatchOrder(linkedOrderId, payload);
+            const isExtraAppend = Boolean(runningOrderMeta?.id === linkedOrderId || !search.editOrder);
+            const patchPayload = {
+              ...payload,
+              append: isExtraAppend,
+              append_items: isExtraAppend,
+            };
+            const updated = await livePatchOrder(linkedOrderId, patchPayload);
             deductPlatesForItems(cartItems);
             setKotSentForCart(true);
             queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
             queryClient.invalidateQueries({ queryKey: ["pos", "tables"] });
+            queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
             invalidateOrderSurfaces();
             const checkDesc = updated.kotNumber
-              ? `${updated.kotNumber} · New check sent to kitchen`
+              ? `${updated.kotNumber} · Extra items sent to kitchen`
               : `${updated.orderNumber || linkedOrderNumber || ""} · Order updated`;
             toast.success(`KOT updated → Preparing`, {
               description: checkDesc,
             });
             handleNewBill(true);
+            setRunningOrderMeta(null);
             return;
           }
           const created = await liveCreateOrder(payload);
@@ -1482,6 +1583,49 @@ export function PosBillingManager() {
       invalidateOrderSurfaces,
     ],
   );
+
+  // Settle full running order: fetch all rounds and open Pay Now modal
+  const handleSettleRunningOrder = useCallback(async () => {
+    const targetId = runningOrderMeta?.id || linkedOrderId;
+    if (!targetId) return;
+    try {
+      const order = await liveGetOrder(targetId);
+      if (!order) {
+        toast.error("Running order could not be loaded");
+        return;
+      }
+      setCartItems(
+        (order.items || []).map((line, idx) => ({
+          cartId: `settle-${order.orderNumber}-${idx}`,
+          item: {
+            id: (line as any).menuItemId || line.id,
+            code: line.code || `#${line.id}`,
+            name: line.name,
+            category: (line.category as BillingMenuItem["category"]) || "All Items",
+            diet: line.diet || "veg",
+            price: line.price,
+            inStock: true,
+            prepTimeMinutes: 15,
+          },
+          quantity: line.quantity,
+          selectedVariant: line.selectedVariantName
+            ? { id: `var-${line.id}`, name: line.selectedVariantName, price: line.price }
+            : undefined,
+          selectedModifiers: [],
+          specialInstructions: line.notes,
+          addedAt: order.startTime,
+        })),
+      );
+      setBillNumber(order.orderNumber);
+      setLinkedOrderId(order.id);
+      setLinkedOrderNumber(order.orderNumber);
+      setRunningOrderMeta(null);
+      setIsPreviousOrdersOpen(false);
+      setIsPayNowOpen(true);
+    } catch (err: any) {
+      toast.error(err?.message || "Could not load full check for settlement");
+    }
+  }, [runningOrderMeta, linkedOrderId]);
 
   const handleAddToRoomFolio = useCallback(() => {
     if (cartItems.length === 0) return;
@@ -1795,8 +1939,16 @@ export function PosBillingManager() {
             onClearCart={handleClearCart}
             onHoldBill={handleHoldBill}
             onPrintKot={handlePrintKot}
+            runningOrder={runningOrderMeta}
+            onViewPreviousOrders={() => setIsPreviousOrdersOpen(true)}
+            onSettleRunningOrder={handleSettleRunningOrder}
             onPayNow={() => {
-              if (cartItems.length === 0) return;
+              if (cartItems.length === 0) {
+                if (runningOrderMeta) {
+                  handleSettleRunningOrder();
+                }
+                return;
+              }
               setIsPayNowOpen(true);
             }}
             onAddToRoomFolio={handleAddToRoomFolio}
@@ -1892,6 +2044,17 @@ export function PosBillingManager() {
         grandTotal={buildOrderPayload().grandTotal}
         busy={busyAction === "pay"}
         onConfirm={handleSettleBill}
+      />
+
+      <BillingPreviousOrdersModal
+        isOpen={isPreviousOrdersOpen}
+        onClose={() => setIsPreviousOrdersOpen(false)}
+        orderNumber={runningOrderMeta?.orderNumber || billNumber}
+        tableNumber={runningOrderMeta?.tableNumber || activeTable}
+        guestName={runningOrderMeta?.guestName || selectedCustomer?.name}
+        items={runningOrderMeta?.items || []}
+        grandTotal={runningOrderMeta?.amount || 0}
+        onSettleBill={handleSettleRunningOrder}
       />
     </div>
   );

@@ -135,7 +135,7 @@ export function PosTakeOrderManager() {
             ? {
                 orderId: table.activeOrder?.orderId,
                 orderNumber: table.activeOrder?.orderNumber || undefined,
-                editOrder: "1",
+                extraOrder: "1",
               }
             : {}),
           guests: table.currentGuests || table.activeReservation?.guests || table.capacity,
