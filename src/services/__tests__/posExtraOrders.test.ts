@@ -92,3 +92,4 @@ describe("Occupied Table Extra Order & Incremental KOT Flow", () => {
     expect(runningOrderMeta.amount).toBe(756);
   });
 });
+

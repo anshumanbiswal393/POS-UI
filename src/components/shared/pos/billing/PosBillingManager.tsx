@@ -43,6 +43,7 @@ import { usePosTables, usePosReservations, POS_RESERVATIONS_QUERY_KEY } from "@/
 import { posTablesService } from "@/services/posTablesService";
 import { savePosCustomer } from "@/services/posCustomerStore";
 import { isBackendOutletId } from "@/utils/outletId";
+import { printPosInvoice, settlementRecordToInvoicePayload } from "@/utils/printReceipt";
 import { POS_ROOM_SERVICE_ROOMS_KEY } from "@/hooks/queries/usePosRoomService";
 import { posMenuService } from "@/services/posMenuService";
 
@@ -2024,7 +2025,12 @@ export function PosBillingManager() {
         isOpen={isReceiptModalOpen}
         onClose={() => setIsReceiptModalOpen(false)}
         record={settlementRecord}
-        onPrint={() => toast.success("Sent receipt to USB thermal receipt printer")}
+        onPrint={() => {
+          if (settlementRecord) {
+            printPosInvoice(settlementRecordToInvoicePayload(settlementRecord, activeOutlet));
+            toast.success(`Printing Tax Invoice ${settlementRecord.billNumber}`);
+          }
+        }}
         onNewBill={handleNewBill}
       />
 

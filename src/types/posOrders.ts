@@ -96,9 +96,12 @@ export interface OnlineOrdersData {
 export interface KotItem {
   id: string;
   kotId: number;
+  kotNumber?: string;
   orderId?: string;
   orderNumber?: string;
   orderType: string;
+  tableOrRoom?: string;
+  waiterName?: string;
   customerName: string;
   customerPhone: string;
   itemCount: number;

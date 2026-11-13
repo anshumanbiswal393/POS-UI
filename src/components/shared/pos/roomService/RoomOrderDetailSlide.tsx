@@ -27,6 +27,8 @@ import {
   Plus,
 } from "lucide-react";
 import type { RoomServiceOrder, RoomServiceOrderStatus } from "@/types/posRoomService";
+import { toast } from "sonner";
+import { roomOrderToInvoicePayload, printPosInvoice } from "@/utils/printReceipt";
 
 interface RoomOrderDetailSlideProps {
   isOpen: boolean;
@@ -398,11 +400,15 @@ export function RoomOrderDetailSlide({
             </button>
             <button
               type="button"
-              onClick={() => alert(`KOT & Room Guest Folio printed for Room ${roomNumber}`)}
+              onClick={() => {
+                const payload = roomOrderToInvoicePayload(order);
+                printPosInvoice(payload);
+                toast.success(`Printing Room Folio Tax Invoice for Room ${roomNumber}`);
+              }}
               className="flex-1 py-2.5 px-3 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
-              Print KOT
+              Print Bill
             </button>
             <button
               type="button"

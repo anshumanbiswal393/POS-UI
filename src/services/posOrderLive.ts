@@ -91,9 +91,12 @@ export function mapLiveKotRecord(r: KotRecordApiDto & Record<string, any>): KotI
   return {
     id: String(r.id),
     kotId: Number(r.kotId || 0),
+    kotNumber: r.kotNumber || r.kot_number || undefined,
     orderId: r.orderId,
     orderNumber: r.orderNumber,
     orderType: r.orderType,
+    tableOrRoom: r.tableOrRoom || r.tableNumber || r.roomNumber || undefined,
+    waiterName: r.waiterName || r.waiter_name || undefined,
     customerName: r.customerName || "--",
     customerPhone: r.customerPhone || "--",
     itemCount: Number(r.itemCount || r.items?.length || 0),

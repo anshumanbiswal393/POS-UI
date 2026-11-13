@@ -29,6 +29,8 @@ import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { exportToExcel } from "@/utils/exportUtils";
 import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 import { toast } from "sonner";
+import { allOrderItemToInvoicePayload, printPosInvoice } from "@/utils/printReceipt";
+import { InvoiceTemplate } from "../billing/InvoiceTemplate";
 
 
 function getOrderDateIso(r: any): string {
@@ -1067,66 +1069,53 @@ export function PosAllOrdersManager() {
         </div>
       )}
 
-      {/* PRINT INVOICE MODAL */}
+      {/* PRINT INVOICE MODAL — Unified PMS Tax Invoice Format */}
       {printingOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-in fade-in">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-4">
-            <div className="text-center border-b border-dashed border-slate-300 pb-4">
-              <h2 className="font-serif text-[18px] font-bold text-slate-900">HIGHWAY INN RESTAURANT</h2>
-              <p className="text-[11px] text-slate-500">GSTIN: 27AABCT3518Q1ZY</p>
-              <p className="text-[11px] text-slate-500">Ph: +91 98765 43210</p>
-            </div>
-
-            <div className="text-[12px] space-y-1 border-b border-dashed border-slate-300 pb-3">
-              <div className="flex justify-between">
-                <span>Invoice: #{printingOrder.orderNo}</span>
-                <span>{printingOrder.createdAt.split(" ")[0]}</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 animate-in fade-in backdrop-blur-xs">
+          <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-slate-200 flex flex-col max-h-[92vh] overflow-hidden">
+            <div className="flex items-center justify-between p-3.5 border-b border-slate-200 bg-emerald-50 text-emerald-950 shrink-0">
+              <div className="flex items-center gap-2">
+                <Printer className="h-5 w-5 text-emerald-700" />
+                <div>
+                  <h3 className="text-sm font-bold">Tax Invoice #{printingOrder.orderNo}</h3>
+                  <p className="text-[11px] text-emerald-700">Official PMS format invoice preview</p>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span>Type: {printingOrder.orderTypeDisplay}</span>
-                <span>Time: {printingOrder.createdAt.split(" ")[1]}</span>
-              </div>
-              <div>Customer: {printingOrder.customerName}</div>
-            </div>
-
-            <div className="text-[12px] space-y-2 border-b border-dashed border-slate-300 pb-3">
-              <div className="font-semibold text-slate-800">Items:</div>
-              <div className="text-slate-600 text-[11.5px]">{printingOrder.itemsSummary}</div>
-            </div>
-
-            <div className="text-[12.5px] space-y-1 font-medium">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>{printingOrder.myAmountFormatted}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Taxes:</span>
-                <span>{printingOrder.taxAmountFormatted}</span>
-              </div>
-              <div className="flex justify-between text-[14px] font-bold text-slate-900 pt-2 border-t">
-                <span>TOTAL:</span>
-                <span>{printingOrder.grandTotalFormatted}</span>
-              </div>
-            </div>
-
-            <div className="flex justify-between gap-2 pt-3">
               <button
                 type="button"
                 onClick={() => setPrintingOrder(null)}
-                className="flex-1 rounded-lg border border-slate-300 py-2 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                className="h-7 w-7 rounded-full bg-white border border-emerald-200 hover:bg-emerald-100 flex items-center justify-center text-emerald-800 transition cursor-pointer"
               >
-                Close
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto bg-slate-100/80 flex justify-center flex-1">
+              <div className="w-full max-w-[760px] bg-white rounded-md shadow-md p-2">
+                <InvoiceTemplate invoice={allOrderItemToInvoicePayload(printingOrder, activeOutlet)} />
+              </div>
+            </div>
+
+            <div className="p-3 bg-white border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setPrintingOrder(null)}
+                className="flex-1 rounded-xl border border-slate-300 py-2.5 text-[12.5px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+              >
+                Close Preview
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  window.print();
+                  const payload = allOrderItemToInvoicePayload(printingOrder, activeOutlet);
+                  printPosInvoice(payload);
+                  toast.success(`Printing Tax Invoice #${printingOrder.orderNo}`);
                   setPrintingOrder(null);
                 }}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-sky-600 py-2 text-[12.5px] font-semibold text-white hover:bg-sky-700 cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-teal-700 py-2.5 text-[12.5px] font-bold text-white hover:bg-teal-800 cursor-pointer shadow-xs"
               >
                 <Printer className="h-4 w-4" />
-                <span>Print Bill</span>
+                <span>Print Tax Invoice</span>
               </button>
             </div>
           </div>
