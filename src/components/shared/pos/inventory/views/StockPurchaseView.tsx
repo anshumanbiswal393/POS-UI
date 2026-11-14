@@ -197,6 +197,8 @@ export function StockPurchaseView({
   const [formPaidAmount, setFormPaidAmount] = useState("");
   const [formPaymentMethod, setFormPaymentMethod] = useState("Cash");
   const [formTax, setFormTax] = useState("0");
+  const [formTaxType, setFormTaxType] = useState<"flat" | "percent">("flat");
+  const [formTaxRate, setFormTaxRate] = useState("5");
   const [formNotes, setFormNotes] = useState("");
   const [formItems, setFormItems] = useState<PurchaseLineItem[]>([
     { stockItemId: "", name: "", quantity: 1, unit: "Kg", unitPrice: 0, lineTotal: 0 },
@@ -502,6 +504,8 @@ export function StockPurchaseView({
     setFormPaidAmount("");
     setFormPaymentMethod("Cash");
     setFormTax("0");
+    setFormTaxType("flat");
+    setFormTaxRate("5");
     setFormNotes("");
     setFormItems([{ stockItemId: "", sku: "", name: "", quantity: 1, unit: "Kg", unitPrice: 0, lineTotal: 0 }]);
     setIsAddOpen(true);
@@ -543,7 +547,10 @@ export function StockPurchaseView({
 
   const formCalculations = useMemo(() => {
     const subtotal = formItems.reduce((acc, it) => acc + (it.lineTotal || 0), 0);
-    const tax = parseFloat(formTax) || 0;
+    const tax =
+      formTaxType === "percent"
+        ? Math.round(subtotal * (parseFloat(formTaxRate) || 0)) / 100
+        : parseFloat(formTax) || 0;
     const total = Math.round((subtotal + tax) * 100) / 100;
     let paid = 0;
     if (formPaymentStatus === "Done") {
@@ -555,7 +562,7 @@ export function StockPurchaseView({
     }
     const due = Math.max(0, Math.round((total - paid) * 100) / 100);
     return { subtotal, tax, total, paid, due };
-  }, [formItems, formTax, formPaymentStatus, formPaidAmount]);
+  }, [formItems, formTax, formTaxType, formTaxRate, formPaymentStatus, formPaidAmount]);
 
   const handlePaymentStatusChange = (status: "Done" | "Pending" | "Partial") => {
     setFormPaymentStatus(status);
@@ -1506,18 +1513,69 @@ export function StockPurchaseView({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600 font-medium">GST / Tax:</span>
-                      <div className="flex items-center gap-1">
-                        <span className="text-slate-500 font-mono text-[11px]">₹</span>
-                        <input
-                          type="number"
-                          step="any"
-                          min="0"
-                          value={formTax}
-                          onChange={(e) => setFormTax(e.target.value)}
-                          className="w-24 rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-right font-mono text-[12px] text-slate-800 focus:border-teal-500 focus:outline-none"
-                        />
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-600 font-medium">GST / Tax:</span>
+                        <div className="flex items-center gap-1.5">
+                          {/* Tax mode toggle: % vs Flat (₹) */}
+                          <div className="flex rounded-md border border-slate-200 bg-slate-100 p-0.5 text-[11px] font-bold">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormTaxType("percent");
+                              }}
+                              className={`px-1.5 py-0.5 rounded cursor-pointer transition ${
+                                formTaxType === "percent"
+                                  ? "bg-white text-teal-700 shadow-2xs"
+                                  : "text-slate-500 hover:text-slate-800"
+                              }`}
+                            >
+                              %
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormTaxType("flat");
+                              }}
+                              className={`px-1.5 py-0.5 rounded cursor-pointer transition ${
+                                formTaxType === "flat"
+                                  ? "bg-white text-teal-700 shadow-2xs"
+                                  : "text-slate-500 hover:text-slate-800"
+                              }`}
+                            >
+                              ₹ Flat
+                            </button>
+                          </div>
+
+                          {formTaxType === "percent" ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                step="any"
+                                min="0"
+                                value={formTaxRate}
+                                onChange={(e) => setFormTaxRate(e.target.value)}
+                                className="w-16 rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-right font-mono text-[12px] text-slate-800 focus:border-teal-500 focus:outline-none"
+                              />
+                              <span className="text-slate-500 font-mono text-[11px]">%</span>
+                              <span className="text-[11px] text-slate-500 font-mono pl-1">
+                                (₹{formCalculations.tax.toFixed(2)})
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-500 font-mono text-[11px]">₹</span>
+                              <input
+                                type="number"
+                                step="any"
+                                min="0"
+                                value={formTax}
+                                onChange={(e) => setFormTax(e.target.value)}
+                                className="w-24 rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-right font-mono text-[12px] text-slate-800 focus:border-teal-500 focus:outline-none"
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 

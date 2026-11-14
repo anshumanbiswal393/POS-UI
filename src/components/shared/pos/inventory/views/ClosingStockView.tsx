@@ -11,6 +11,8 @@ import {
   Loader2,
   AlertTriangle,
   ArrowRight,
+  Boxes,
+  ClipboardList,
 } from "lucide-react";
 import {
   useStockItems,
@@ -18,6 +20,7 @@ import {
   useStockCategories,
 } from "@/hooks/queries/usePosInventory";
 import { useOutletContext } from "@/context/PosOutletContext";
+import { AvailableStockView } from "./AvailableStockView";
 import {
   DataTableHeader,
   type DataTableColumn,
@@ -32,7 +35,17 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
-export function ClosingStockView() {
+export function ClosingStockView({
+  initialTab = "count",
+}: {
+  initialTab?: "available" | "count";
+} = {}) {
+  const [activeTab, setActiveTab] = useState<"available" | "count">(initialTab);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
   const { activeOutlet } = useOutletContext();
   const { data: stockItems, isLoading: isLoadingStock } = useStockItems();
   const { data: stockCategories = [] } = useStockCategories();
@@ -239,16 +252,58 @@ export function ClosingStockView() {
 
   return (
     <div className="space-y-4">
-      {/* 1. Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
-            Daily Stock Count
-          </h2>
-          <p className="text-[12px] text-slate-500">
-            Record physical stock counts and update closing balances.
-          </p>
-        </div>
+      {/* Tab Switcher: Available Stock vs Daily Stock Count */}
+      <div className="flex items-center gap-1.5 border-b border-slate-200 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab("available")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition cursor-pointer ${
+            activeTab === "available"
+              ? "bg-teal-600 text-white shadow-xs"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+          }`}
+        >
+          <Boxes className="h-4 w-4" />
+          <span>Available Stock</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[11px] font-bold ml-1 ${
+              activeTab === "available"
+                ? "bg-white/20 text-white"
+                : "bg-slate-200 text-slate-700"
+            }`}
+          >
+            {stockItems?.length || 0}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("count")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition cursor-pointer ${
+            activeTab === "count"
+              ? "bg-teal-600 text-white shadow-xs"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+          }`}
+        >
+          <ClipboardList className="h-4 w-4" />
+          <span>Daily Stock Count</span>
+        </button>
+      </div>
+
+      {activeTab === "available" ? (
+        <AvailableStockView />
+      ) : (
+        <>
+          {/* 1. Header */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
+                Daily Stock Count
+              </h2>
+              <p className="text-[12px] text-slate-500">
+                Record physical stock counts and update closing balances.
+              </p>
+            </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <input
@@ -623,6 +678,8 @@ export function ClosingStockView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </>
+      )}
     </div>
   );
 }
