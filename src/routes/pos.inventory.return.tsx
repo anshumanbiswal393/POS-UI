@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PurchaseReturnView } from "@/components/shared/pos/inventory/views/PurchaseReturnView";
+import { StockPurchaseView } from "@/components/shared/pos/inventory/views/StockPurchaseView";
 
 export const Route = createFileRoute("/pos/inventory/return")({
-  
-  component: PurchaseReturnView,
+  component: () => <StockPurchaseView initialTab="returns" />,
 });

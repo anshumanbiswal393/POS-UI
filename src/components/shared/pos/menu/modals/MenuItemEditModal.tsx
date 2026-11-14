@@ -3,7 +3,6 @@ import {
   Upload,
   Image as ImageIcon,
   Check,
-  Star,
   Trash2,
   RefreshCw,
   AlertCircle,
@@ -1134,7 +1133,7 @@ export function MenuItemEditModal({
                       <img src={img.url} alt={img.name} className="h-full w-full object-cover" />
                       {img.isPrimary && (
                         <div className="absolute top-2 left-2 rounded-full bg-teal-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-md flex items-center gap-1">
-                          <Star className="h-3 w-3 fill-current" />
+                          <Check className="h-3 w-3" />
                           Cover Image
                         </div>
                       )}
@@ -1160,7 +1159,6 @@ export function MenuItemEditModal({
                           onClick={() => handleSetPrimary(img.id)}
                           className="flex items-center gap-1 text-[11px] font-semibold text-teal-700 hover:text-teal-900 hover:underline cursor-pointer"
                         >
-                          <Star className="h-3 w-3" />
                           Set Cover
                         </button>
                       ) : (

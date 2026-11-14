@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
-  Star,
+  Bookmark,
   FileText,
   ArrowRight,
   ArrowLeft,
@@ -678,8 +678,8 @@ export const REPORT_DATASETS: Record<
       { id: "matrixClass", label: "Menu Matrix Class", align: "center", filterable: true, defaultWidth: 150, getValue: (r) => r.matrixClass },
     ],
     data: [
-      { id: "1", dishName: "Murgh Dum Biryani (Handi)", category: "Main Course", salesPrice: 480.0, ingredientCost: 134.4, grossMargin: 345.6, costPercent: 28.0, unitsSold: 420, totalProfit: 145152.0, matrixClass: "Star Item ⭐" },
-      { id: "2", dishName: "Paneer Butter Masala", category: "Main Course", salesPrice: 360.0, ingredientCost: 97.2, grossMargin: 262.8, costPercent: 27.0, unitsSold: 310, totalProfit: 81468.0, matrixClass: "Star Item ⭐" },
+      { id: "1", dishName: "Murgh Dum Biryani (Handi)", category: "Main Course", salesPrice: 480.0, ingredientCost: 134.4, grossMargin: 345.6, costPercent: 28.0, unitsSold: 420, totalProfit: 145152.0, matrixClass: "Top Performer" },
+      { id: "2", dishName: "Paneer Butter Masala", category: "Main Course", salesPrice: 360.0, ingredientCost: 97.2, grossMargin: 262.8, costPercent: 27.0, unitsSold: 310, totalProfit: 81468.0, matrixClass: "Top Performer" },
       { id: "3", dishName: "Tandoori Pomfret Fish", category: "Starters", salesPrice: 650.0, ingredientCost: 227.5, grossMargin: 422.5, costPercent: 35.0, unitsSold: 110, totalProfit: 46475.0, matrixClass: "Puzzle Item" },
       { id: "4", dishName: "Butter Garlic Naan", category: "Breads", salesPrice: 75.0, ingredientCost: 14.25, grossMargin: 60.75, costPercent: 19.0, unitsSold: 980, totalProfit: 59535.0, matrixClass: "Workhorse" },
       { id: "5", dishName: "Dal Makhani Slow Cooked", category: "Main Course", salesPrice: 290.0, ingredientCost: 63.8, grossMargin: 226.2, costPercent: 22.0, unitsSold: 340, totalProfit: 76908.0, matrixClass: "Workhorse" },
@@ -1507,10 +1507,10 @@ export function OtherReportsView() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pt-1">
         {activeReportsList.length === 0 ? (
           <div className="col-span-full rounded-2xl border border-slate-200 bg-white p-16 text-center shadow-2xs">
-            <Star className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+            <Bookmark className="h-10 w-10 text-slate-300 mx-auto mb-2" />
             <div className="text-[14px] font-bold text-slate-700">No Bookmarked Reports</div>
             <p className="text-[12px] text-slate-400 mt-1 max-w-sm mx-auto">
-              Click the star icon on any report across the other tabs to pin your frequent reports here.
+              Click the bookmark icon on any report across the other tabs to pin your frequent reports here.
             </p>
           </div>
         ) : (
@@ -1537,12 +1537,12 @@ export function OtherReportsView() {
                       className="p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"
                       title={isBookmarked ? "Remove Bookmark" : "Add Bookmark"}
                     >
-                      <Star
+                      <Bookmark
                         className={cn(
                           "h-4 w-4 transition-colors",
                           isBookmarked
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-slate-300 hover:text-amber-400"
+                            ? "fill-teal-600 text-teal-600"
+                            : "text-slate-300 hover:text-teal-600"
                         )}
                       />
                     </button>

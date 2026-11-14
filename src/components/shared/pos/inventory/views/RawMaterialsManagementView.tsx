@@ -10,7 +10,6 @@ import {
 } from "@/hooks/queries/usePosInventory";
 import {
   Plus,
-  Star,
   Check,
   Trash2,
   FolderTree,
@@ -382,7 +381,6 @@ export function RawMaterialsManagementView() {
     { id: "pricePerUnit", label: "PRICE / UNIT", sortable: true },
     { id: "isReturnable", label: "RETURNABLE", align: "center", sortable: true },
     { id: "expiryDate", label: "EXPIRY DATE", sortable: true },
-    { id: "isFavorite", label: "FAVOURITE", align: "center" },
     { id: "isActive", label: "STATUS", align: "center", sortable: true },
     { id: "actions", label: "ACTIONS", align: "right" },
   ];
@@ -608,20 +606,6 @@ export function RawMaterialsManagementView() {
                         })() : (
                           <span className="text-slate-400 text-xs">—</span>
                         )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => toggleFavorite(row.id)}
-                          className={`p-1.5 rounded-md transition cursor-pointer ${
-                            row.isFavorite
-                              ? "text-amber-500 hover:text-amber-600 bg-amber-50"
-                              : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-                          }`}
-                          title={row.isFavorite ? "Remove from favourites" : "Mark as favourite"}
-                        >
-                          <Star className={`h-4 w-4 ${row.isFavorite ? "fill-amber-400 text-amber-500" : ""}`} />
-                        </button>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button

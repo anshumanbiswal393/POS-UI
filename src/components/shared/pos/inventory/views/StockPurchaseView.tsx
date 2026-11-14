@@ -61,6 +61,7 @@ import {
 import { INVENTORY_QUERY_KEYS, useStockItems } from "@/hooks/queries/usePosInventory";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { PurchaseReturnView } from "./PurchaseReturnView";
 
 const formatToYmd = (date: Date): string => {
   const y = date.getFullYear();
@@ -83,10 +84,20 @@ const formatToDmy = (str?: string): string => {
   return `${parts[2].padStart(2, "0")}-${parts[1].padStart(2, "0")}-${parts[0]}`;
 };
 
-export function StockPurchaseView() {
+export function StockPurchaseView({
+  initialTab = "purchases",
+}: {
+  initialTab?: "purchases" | "returns";
+} = {}) {
   const { activeOutlet } = useOutletContext();
   const { data: stockItems = [] } = useStockItems();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<"purchases" | "returns">(initialTab);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
   const [purchases, setPurchases] = useState<UnifiedPurchaseDto[]>([]);
   const [vendors, setVendors] = useState<PurchaseVendor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,9 +164,6 @@ export function StockPurchaseView() {
     paymentStatus: true,
     actions: true,
   });
-
-  // Tab View: Purchases (Bills) vs Purchase Orders
-  const [activeTab, setActiveTab] = useState<"purchases" | "orders">("purchases");
 
   // Modals state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -674,42 +682,87 @@ export function StockPurchaseView() {
 
   return (
     <div className="space-y-6">
-      {/* 1. Top Header with Title, Date Presets & Primary Action */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-[20px] font-bold text-slate-900 tracking-tight">Purchase Entry</h2>
-            <span className="rounded-full bg-teal-50 border border-teal-200 px-2.5 py-0.5 text-[11px] font-semibold text-teal-700">
-              {filteredPurchases.length} Invoices
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <ExportToExcelButton
-            onClick={handleExportExcel}
-            className="h-9 px-4 rounded-xl text-[12.5px]"
-          />
-
-          <button
-            type="button"
-            onClick={() => setIsVendorModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[12.5px] font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 transition cursor-pointer"
+      {/* Tab Switcher: Purchases vs Purchase Returns */}
+      <div className="flex items-center gap-1.5 border-b border-slate-200 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab("purchases")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition cursor-pointer",
+            activeTab === "purchases"
+              ? "bg-teal-600 text-white shadow-xs"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+          )}
+        >
+          <ShoppingCart className="h-4 w-4" />
+          <span>Purchases</span>
+          <span
+            className={cn(
+              "px-2 py-0.5 rounded-full text-[11px] font-bold ml-1",
+              activeTab === "purchases"
+                ? "bg-white/20 text-white"
+                : "bg-slate-200 text-slate-700"
+            )}
           >
-            <Building2 className="h-4 w-4 text-teal-600" />
-            Vendors
-          </button>
+            {purchases.length}
+          </span>
+        </button>
 
-          <button
-            type="button"
-            onClick={handleOpenAdd}
-            className="flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2 text-[12.5px] font-semibold text-white shadow-sm hover:bg-teal-700 transition cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            Add Purchase
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab("returns")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition cursor-pointer",
+            activeTab === "returns"
+              ? "bg-teal-600 text-white shadow-xs"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+          )}
+        >
+          <PackageCheck className="h-4 w-4" />
+          <span>Purchase Returns</span>
+        </button>
       </div>
+
+      {activeTab === "returns" ? (
+        <PurchaseReturnView />
+      ) : (
+        <>
+          {/* 1. Top Header with Title, Date Presets & Primary Action */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-[20px] font-bold text-slate-900 tracking-tight">Purchase Entry</h2>
+                <span className="rounded-full bg-teal-50 border border-teal-200 px-2.5 py-0.5 text-[11px] font-semibold text-teal-700">
+                  {filteredPurchases.length} Invoices
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <ExportToExcelButton
+                onClick={handleExportExcel}
+                className="h-9 px-4 rounded-xl text-[12.5px]"
+              />
+
+              <button
+                type="button"
+                onClick={() => setIsVendorModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[12.5px] font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 transition cursor-pointer"
+              >
+                <Building2 className="h-4 w-4 text-teal-600" />
+                Vendors
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenAdd}
+                className="flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2 text-[12.5px] font-semibold text-white shadow-sm hover:bg-teal-700 transition cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                Add Purchase
+              </button>
+            </div>
+          </div>
 
       {/* 2. Date Range Filter Bar (PMS Style: dd-MM-yyyy, button & border styling, slide-to-choose) */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs">
@@ -1078,6 +1131,8 @@ export function StockPurchaseView() {
           itemName="purchases"
         />
       </div>
+        </>
+      )}
 
       {/* 6. Record Payment Modal */}
       {paymentModalInvoice && (

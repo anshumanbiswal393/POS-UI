@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Image as ImageIcon, CheckCircle2, XCircle, Star, Edit2 } from "lucide-react";
+import { X, Image as ImageIcon, CheckCircle2, XCircle, Edit2 } from "lucide-react";
 import type { MenuItem } from "@/types/posMenu";
 
 export function MenuItemViewModal({

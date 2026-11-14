@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import {
-  Star,
+  Bookmark,
   Search,
   Utensils,
   Calendar,
@@ -1377,18 +1377,18 @@ export function MainOtherReportsView() {
                           </p>
                         </div>
 
-                        {/* Card Bottom Row: Favorite Star Toggle */}
+                        {/* Card Bottom Row: Favorite Bookmark Toggle */}
                         <div className="flex items-center justify-end pt-1">
                           <button
                             type="button"
                             onClick={(e) => toggleFavorite(report.id, e)}
-                            className="p-1 text-slate-300 hover:text-amber-400 transition-colors cursor-pointer"
+                            className="p-1 text-slate-300 hover:text-teal-600 transition-colors cursor-pointer"
                             title={report.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
                           >
-                            <Star
+                            <Bookmark
                               className={`h-4 w-4 ${
                                 report.isFavorite
-                                  ? "fill-amber-400 text-amber-400"
+                                  ? "fill-teal-600 text-teal-600"
                                   : "text-slate-300 hover:text-slate-400"
                               }`}
                             />

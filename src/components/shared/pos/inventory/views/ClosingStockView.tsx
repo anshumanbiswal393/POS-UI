@@ -3,7 +3,6 @@ import {
   Search,
   Clock,
   RotateCcw,
-  Star,
   CheckCircle2,
   ChevronDown,
   MessageSquare,
@@ -310,15 +309,6 @@ export function ClosingStockView() {
               <option value="Weekly">Weekly</option>
             </select>
           </div>
-
-          <button
-            type="button"
-            onClick={() => toast.info("Filter by starred items")}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-          >
-            <Star className="h-3.5 w-3.5 text-amber-500" />
-            Favourites
-          </button>
 
           <button
             type="button"
