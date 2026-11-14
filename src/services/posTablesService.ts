@@ -474,11 +474,8 @@ export const posTablesService = {
     }
 
     if (names.length === 0) {
-
       const local = [...store().areas];
-
-      names = local.length > 0 ? local : ["Outdoor", "Indoor", "Terrace"];
-
+      names = local;
     }
 
     return Array.from(new Set(names));
