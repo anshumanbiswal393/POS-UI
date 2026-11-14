@@ -9,6 +9,7 @@ import {
   X,
   LayoutGrid,
   Table2,
+  Printer,
 } from "lucide-react";
 import { ColorActionPrint, ColorActionEdit, ColorActionView } from "@/components/common/ColorActionIcons";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
