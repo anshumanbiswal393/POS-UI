@@ -1093,7 +1093,7 @@ export function OtherReportsView() {
             </button>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-serif text-[19px] font-bold text-slate-900 tracking-tight">
+                <h2 className="text-[19px] font-bold text-slate-900 tracking-tight">
                   {selectedReport.title}
                 </h2>
                 <span className="rounded-md bg-teal-50 px-2.5 py-0.5 text-[11px] font-bold text-teal-700 border border-teal-200">

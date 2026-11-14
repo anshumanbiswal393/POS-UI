@@ -1149,16 +1149,16 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                     <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-stone-500">
                                       {restaurantName}
                                     </div>
-                                    <h1 className="mt-1 font-serif text-[38px] font-bold leading-none tracking-wide text-stone-900">
+                                    <h1 className="mt-1 text-[38px] font-bold leading-none tracking-wide text-stone-900">
                                       MENU
                                     </h1>
-                                    <p className="mt-1 font-serif text-[12px] italic text-stone-500">
+                                    <p className="mt-1 text-[12px] italic text-stone-500">
                                       {tagline ? `Made with love · ${tagline}` : "Made with love"}
                                     </p>
                                   </>
                                 ) : (
                                   <div className="flex items-center justify-between border-b border-stone-300/70 pb-2">
-                                    <span className="font-serif text-[14px] font-bold uppercase tracking-[0.18em] text-stone-800">
+                                    <span className="text-[14px] font-bold uppercase tracking-[0.18em] text-stone-800">
                                       {restaurantName}
                                     </span>
                                     <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-400">
@@ -1249,7 +1249,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
 
                               {/* Compact footer directly under menu — no large empty band */}
                               <div className="mt-3 shrink-0 space-y-1 border-t border-stone-300/80 pt-2.5 text-center">
-                                <p className="font-serif text-[11.5px] font-semibold uppercase tracking-[0.14em] text-stone-700">
+                                <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-stone-700">
                                   Thank you for dining with us!
                                 </p>
                                 {isLastPage && footerNote && (
@@ -1290,14 +1290,14 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                             /* First Page: Full Header */
                             selectedTemplate === "diner" ? (
                               <div className="text-center pb-2.5 pt-1 space-y-0.5 shrink-0 relative z-10 px-6">
-                                <div className="flex items-center justify-center gap-2 text-[#0f766e] text-[11px] font-serif italic tracking-widest">
+                                <div className="flex items-center justify-center gap-2 text-[#0f766e] text-[11px] italic tracking-widest">
                                   <span>❖ ❖ ❖ ❖</span>
                                   <span className="font-semibold text-slate-700 not-italic text-[12px] uppercase tracking-wider">
                                     ~ {tagline || "Authentic Kitchen & Lounge"} ~
                                   </span>
                                   <span>❖ ❖ ❖ ❖</span>
                                 </div>
-                                <h1 className="text-[26px] sm:text-[30px] font-black uppercase tracking-wider text-slate-900 font-serif leading-none py-1">
+                                <h1 className="text-[26px] sm:text-[30px] font-black uppercase tracking-wider text-slate-900 leading-none py-1">
                                   {restaurantName}
                                 </h1>
                                 <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] text-slate-600 font-medium">
@@ -1317,9 +1317,9 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                 <h1
                                   className={`text-[20px] sm:text-[23px] font-extrabold tracking-tight uppercase leading-tight ${
                                     selectedTemplate === "royal"
-                                      ? "font-serif text-[#78350f]"
+                                      ? "text-[#78350f]"
                                       : selectedTemplate === "lounge"
-                                        ? "text-[#fbbf24] tracking-widest font-serif"
+                                        ? "text-[#fbbf24] tracking-widest "
                                         : "font-sans text-slate-900"
                                   }`}
                                 >
@@ -1349,11 +1349,11 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                               <span
                                 className={`font-bold tracking-wider uppercase text-[11px] ${
                                   selectedTemplate === "diner"
-                                    ? "font-serif text-[#0f766e] font-black"
+                                    ? "text-[#0f766e] font-black"
                                     : selectedTemplate === "royal"
-                                      ? "font-serif text-[#92400e]"
+                                      ? "text-[#92400e]"
                                       : selectedTemplate === "lounge"
-                                        ? "text-[#fbbf24] font-serif"
+                                        ? "text-[#fbbf24] "
                                         : "text-slate-800"
                                 }`}
                               >
@@ -1381,7 +1381,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                       <div className="flex-1 border-t-2 border-[#0f766e] border-b border-[#0f766e]/40 h-[3px]" />
                                       <span className="text-[#0f766e] font-mono text-[9px] select-none">⧖</span>
                                     </div>
-                                    <h3 className="font-serif font-black uppercase tracking-[0.25em] text-[#0f766e] text-[12.5px] px-2 text-center">
+                                    <h3 className="font-black uppercase tracking-[0.25em] text-[#0f766e] text-[12.5px] px-2 text-center">
                                       {catGroup.category} {catGroup.isContinuation ? "(Cont.)" : ""}
                                     </h3>
                                     <div className="flex-1 flex items-center">
@@ -1405,11 +1405,11 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                     <h3
                                       className={`text-[12px] sm:text-[12.5px] font-bold uppercase tracking-wider ${
                                         selectedTemplate === "royal"
-                                          ? "font-serif text-[#92400e]"
+                                          ? "text-[#92400e]"
                                           : selectedTemplate === "modern"
                                             ? "text-primary"
                                             : selectedTemplate === "lounge"
-                                              ? "font-serif text-[#fbbf24]"
+                                              ? "text-[#fbbf24]"
                                               : "text-slate-800"
                                       }`}
                                     >
@@ -1437,9 +1437,9 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                               <span
                                                 className={`text-[12px] font-bold truncate ${
                                                   selectedTemplate === "diner"
-                                                    ? "font-serif uppercase font-black text-slate-900"
+                                                    ? "uppercase font-black text-slate-900"
                                                     : selectedTemplate === "royal"
-                                                      ? "font-serif text-[#2c1d11]"
+                                                      ? "text-[#2c1d11]"
                                                       : selectedTemplate === "lounge"
                                                         ? "text-amber-100"
                                                         : "text-slate-900"
@@ -1484,7 +1484,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                             <p
                                               className={`text-[9.5px] leading-tight opacity-75 mt-0.5 ${
                                                 selectedTemplate === "diner"
-                                                  ? "italic text-slate-600 font-serif"
+                                                  ? "italic text-slate-600 "
                                                   : selectedTemplate === "royal"
                                                     ? "italic"
                                                     : ""

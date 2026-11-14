@@ -252,7 +252,7 @@ export function CategoriesManagementView() {
       {/* 1. Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-lg font-bold text-foreground tracking-tight">
+          <h2 className="text-lg font-bold text-foreground tracking-tight">
             Stock Categories & Subcategories
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">

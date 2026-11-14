@@ -24,7 +24,7 @@ function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="font-display text-7xl font-semibold text-foreground">404</h1>
+        <h1 className="text-7xl font-semibold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
         <p className="mt-2 text-sm text-muted-foreground">This POS route does not exist.</p>
         <div className="mt-6">
@@ -106,6 +106,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", type: "image/jpeg", href: "/favicon.jpeg" },
       { rel: "shortcut icon", type: "image/jpeg", href: "/favicon.jpeg" },
       { rel: "apple-touch-icon", href: "/favicon.jpeg" },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap",
+      },
       { rel: "stylesheet", href: appCss },
     ],
   }),
@@ -122,6 +128,12 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <title>Retrod | POS</title>
         <link rel="icon" type="image/jpeg" href="/favicon.jpeg" />
         <link rel="shortcut icon" type="image/jpeg" href="/favicon.jpeg" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        />
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{

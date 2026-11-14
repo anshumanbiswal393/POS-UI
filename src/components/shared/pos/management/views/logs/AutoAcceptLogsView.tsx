@@ -144,7 +144,7 @@ export function AutoAcceptLogsView() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             <SlidersHorizontal className="h-5 w-5 text-teal-600" />
             Aggregator Auto-Accept Logs
           </h2>

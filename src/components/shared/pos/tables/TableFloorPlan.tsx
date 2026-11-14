@@ -133,7 +133,7 @@ export function TableFloorPlan({
       <div className="px-5 py-3.5 sm:px-6 sm:py-3.5 border-b border-slate-200/80 bg-white shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
               <span>Manage Tables</span>
               {stats && (
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">

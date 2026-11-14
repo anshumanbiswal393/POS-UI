@@ -247,7 +247,7 @@ export function DailyPreparationView() {
             <CookingPot className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="font-serif text-[20px] font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <h1 className="text-[20px] font-bold text-slate-900 tracking-tight flex items-center gap-2">
               Daily Kitchen Preparation
               <span className="text-[11px] font-sans font-bold bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full">
                 Plate & Raw Material Sync

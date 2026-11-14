@@ -624,7 +624,7 @@ export function PosAllOrdersManager() {
 
         {/* Left: Title, Table/Grid view */}
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">Order History</h1>
+          <h1 className="text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">Order History</h1>
 
           {/* Table / Grid view switcher with theme-based selected background */}
           <div className="flex items-center rounded-lg border border-slate-300 bg-slate-100 p-0.5 shadow-2xs">

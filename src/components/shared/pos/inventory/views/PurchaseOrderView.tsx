@@ -117,7 +117,7 @@ export function PurchaseOrderView() {
     <div className="space-y-4">
       {/* 1. Header & Actions matching Screenshot 2 */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">Purchase Order List</h2>
+        <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">Purchase Order List</h2>
 
         <div className="flex flex-wrap items-center gap-2">
           <button

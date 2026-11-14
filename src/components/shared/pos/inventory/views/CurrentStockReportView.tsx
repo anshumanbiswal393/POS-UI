@@ -84,7 +84,7 @@ export function CurrentStockReportView() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-lg font-bold text-foreground tracking-tight">Current Stock Report</h2>
+          <h2 className="text-lg font-bold text-foreground tracking-tight">Current Stock Report</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Real-time balance of all ingredients, raw materials, and beverage stock on hand.
           </p>

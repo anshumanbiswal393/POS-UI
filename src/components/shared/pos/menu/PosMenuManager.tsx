@@ -159,7 +159,7 @@ export function PosMenuManager() {
           }`}
         >
           <div className="flex items-center gap-2">
-            <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight">
+            <h1 className="text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight">
               {activeTab === "menu_list" && "Menu List"}
               {activeTab === "special_note_list" && "Special Notes"}
               {activeTab === "menucommission_list" && "Set Item Commission"}

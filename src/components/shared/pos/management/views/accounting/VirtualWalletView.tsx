@@ -397,7 +397,7 @@ export function VirtualWalletView() {
       {/* 1. Header with Add Action */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">Guest Virtual Wallet</h2>
+          <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">Guest Virtual Wallet</h2>
           <p className="text-[12px] text-slate-500 mt-0.5">
             Manage prepaid guest deposits, loyalty store credits, and real-time passbook ledger settlements.
           </p>

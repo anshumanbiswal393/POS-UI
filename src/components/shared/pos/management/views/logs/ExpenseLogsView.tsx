@@ -275,7 +275,7 @@ export function ExpenseLogsView() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             <Receipt className="h-5 w-5 text-teal-600" />
             Expense & Petty Cash Logs
           </h2>

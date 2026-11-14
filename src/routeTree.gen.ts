@@ -91,7 +91,6 @@ import { Route as PosInventoryReportsStockSummaryRouteImport } from './routes/po
 import { Route as PosInventoryReportsOtherReportsRouteImport } from './routes/pos.inventory.reports.other-reports'
 import { Route as PosInventoryReportsOrderwiseConsumptionRouteImport } from './routes/pos.inventory.reports.orderwise-consumption'
 import { Route as PosInventoryProductionExecutionRouteImport } from './routes/pos.inventory.production.execution'
-import { Route as PosInventoryProductionBarcodeRouteImport } from './routes/pos.inventory.production.barcode'
 import { Route as PosInventoryMastersUnitsRouteImport } from './routes/pos.inventory.masters.units'
 import { Route as PosInventoryMastersSuppliersRouteImport } from './routes/pos.inventory.masters.suppliers'
 import { Route as PosInventoryMastersRecipesRouteImport } from './routes/pos.inventory.masters.recipes'
@@ -569,12 +568,6 @@ const PosInventoryProductionExecutionRoute =
     path: '/execution',
     getParentRoute: () => PosInventoryProductionRoute,
   } as any)
-const PosInventoryProductionBarcodeRoute =
-  PosInventoryProductionBarcodeRouteImport.update({
-    id: '/barcode',
-    path: '/barcode',
-    getParentRoute: () => PosInventoryProductionRoute,
-  } as any)
 const PosInventoryMastersUnitsRoute =
   PosInventoryMastersUnitsRouteImport.update({
     id: '/units',
@@ -777,7 +770,6 @@ export interface FileRoutesByFullPath {
   '/pos/inventory/masters/recipes': typeof PosInventoryMastersRecipesRoute
   '/pos/inventory/masters/suppliers': typeof PosInventoryMastersSuppliersRoute
   '/pos/inventory/masters/units': typeof PosInventoryMastersUnitsRoute
-  '/pos/inventory/production/barcode': typeof PosInventoryProductionBarcodeRoute
   '/pos/inventory/production/execution': typeof PosInventoryProductionExecutionRoute
   '/pos/inventory/reports/orderwise-consumption': typeof PosInventoryReportsOrderwiseConsumptionRoute
   '/pos/inventory/reports/other-reports': typeof PosInventoryReportsOtherReportsRoute
@@ -887,7 +879,6 @@ export interface FileRoutesByTo {
   '/pos/inventory/masters/recipes': typeof PosInventoryMastersRecipesRoute
   '/pos/inventory/masters/suppliers': typeof PosInventoryMastersSuppliersRoute
   '/pos/inventory/masters/units': typeof PosInventoryMastersUnitsRoute
-  '/pos/inventory/production/barcode': typeof PosInventoryProductionBarcodeRoute
   '/pos/inventory/production/execution': typeof PosInventoryProductionExecutionRoute
   '/pos/inventory/reports/orderwise-consumption': typeof PosInventoryReportsOrderwiseConsumptionRoute
   '/pos/inventory/reports/other-reports': typeof PosInventoryReportsOtherReportsRoute
@@ -998,7 +989,6 @@ export interface FileRoutesById {
   '/pos/inventory/masters/recipes': typeof PosInventoryMastersRecipesRoute
   '/pos/inventory/masters/suppliers': typeof PosInventoryMastersSuppliersRoute
   '/pos/inventory/masters/units': typeof PosInventoryMastersUnitsRoute
-  '/pos/inventory/production/barcode': typeof PosInventoryProductionBarcodeRoute
   '/pos/inventory/production/execution': typeof PosInventoryProductionExecutionRoute
   '/pos/inventory/reports/orderwise-consumption': typeof PosInventoryReportsOrderwiseConsumptionRoute
   '/pos/inventory/reports/other-reports': typeof PosInventoryReportsOtherReportsRoute
@@ -1110,7 +1100,6 @@ export interface FileRouteTypes {
     | '/pos/inventory/masters/recipes'
     | '/pos/inventory/masters/suppliers'
     | '/pos/inventory/masters/units'
-    | '/pos/inventory/production/barcode'
     | '/pos/inventory/production/execution'
     | '/pos/inventory/reports/orderwise-consumption'
     | '/pos/inventory/reports/other-reports'
@@ -1220,7 +1209,6 @@ export interface FileRouteTypes {
     | '/pos/inventory/masters/recipes'
     | '/pos/inventory/masters/suppliers'
     | '/pos/inventory/masters/units'
-    | '/pos/inventory/production/barcode'
     | '/pos/inventory/production/execution'
     | '/pos/inventory/reports/orderwise-consumption'
     | '/pos/inventory/reports/other-reports'
@@ -1330,7 +1318,6 @@ export interface FileRouteTypes {
     | '/pos/inventory/masters/recipes'
     | '/pos/inventory/masters/suppliers'
     | '/pos/inventory/masters/units'
-    | '/pos/inventory/production/barcode'
     | '/pos/inventory/production/execution'
     | '/pos/inventory/reports/orderwise-consumption'
     | '/pos/inventory/reports/other-reports'
@@ -1972,13 +1959,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PosInventoryProductionExecutionRouteImport
       parentRoute: typeof PosInventoryProductionRoute
     }
-    '/pos/inventory/production/barcode': {
-      id: '/pos/inventory/production/barcode'
-      path: '/barcode'
-      fullPath: '/pos/inventory/production/barcode'
-      preLoaderRoute: typeof PosInventoryProductionBarcodeRouteImport
-      parentRoute: typeof PosInventoryProductionRoute
-    }
     '/pos/inventory/masters/units': {
       id: '/pos/inventory/masters/units'
       path: '/units'
@@ -2183,13 +2163,11 @@ const PosInventoryMastersRouteWithChildren =
   PosInventoryMastersRoute._addFileChildren(PosInventoryMastersRouteChildren)
 
 interface PosInventoryProductionRouteChildren {
-  PosInventoryProductionBarcodeRoute: typeof PosInventoryProductionBarcodeRoute
   PosInventoryProductionExecutionRoute: typeof PosInventoryProductionExecutionRoute
 }
 
 const PosInventoryProductionRouteChildren: PosInventoryProductionRouteChildren =
   {
-    PosInventoryProductionBarcodeRoute: PosInventoryProductionBarcodeRoute,
     PosInventoryProductionExecutionRoute: PosInventoryProductionExecutionRoute,
   }
 

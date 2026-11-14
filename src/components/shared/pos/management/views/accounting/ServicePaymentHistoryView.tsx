@@ -333,7 +333,7 @@ export function ServicePaymentHistoryView() {
       {/* 1. Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">Service Payment History</h2>
+          <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">Service Payment History</h2>
           <p className="text-[12.5px] text-slate-500 mt-0.5">
             Software licenses, POS subscription invoices, SMS packages, and add-on module renewals.
           </p>

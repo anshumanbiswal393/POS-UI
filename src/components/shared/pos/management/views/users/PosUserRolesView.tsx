@@ -319,7 +319,7 @@ export function PosUserRolesView() {
       {/* 1. Page Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-white border-b border-slate-200 shrink-0">
         <div>
-          <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">
+          <h1 className="text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">
             User Roles & Permissions
           </h1>
           <p className="text-[11px] text-slate-500">
@@ -467,7 +467,7 @@ export function PosUserRolesView() {
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
               <div>
                 <div className="flex items-center gap-2.5">
-                  <h3 className="font-serif text-[17px] font-bold text-slate-900">
+                  <h3 className="text-[17px] font-bold text-slate-900">
                     Permissions for:{" "}
                     <span className="text-teal-800 font-extrabold">{selectedRole.name}</span>
                   </h3>
@@ -619,7 +619,7 @@ export function PosUserRolesView() {
         <DialogContent className="sm:max-w-[420px]">
           <form onSubmit={handleSaveRole}>
             <DialogHeader>
-              <DialogTitle className="font-serif text-[17px] font-bold text-slate-900">
+              <DialogTitle className="text-[17px] font-bold text-slate-900">
                 {editingRole ? "Edit Role Details" : "Create Custom Role"}
               </DialogTitle>
               <p className="text-[11px] text-slate-500">
@@ -695,7 +695,7 @@ export function PosUserRolesView() {
       <Dialog open={!!deleteTargetRole} onOpenChange={(open) => !open && setDeleteTargetRole(null)}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle className="font-serif text-[16px] font-bold text-slate-900">
+            <DialogTitle className="text-[16px] font-bold text-slate-900">
               Delete Custom Role
             </DialogTitle>
             <p className="text-[12px] text-slate-500 leading-relaxed pt-1">

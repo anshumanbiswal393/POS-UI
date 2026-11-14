@@ -265,7 +265,7 @@ export function PosUsersView() {
       {/* 1. Page Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-white border-b border-slate-200 shrink-0">
         <div>
-          <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">
+          <h1 className="text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">
             Users
           </h1>
           <p className="text-[11px] text-slate-500">
@@ -353,7 +353,7 @@ export function PosUsersView() {
             <div className="h-12 w-12 rounded-full bg-teal-50 text-teal-800 flex items-center justify-center mb-3">
               <UsersIcon className="h-6 w-6" />
             </div>
-            <h3 className="font-serif text-[16px] font-bold text-slate-900 mb-1">
+            <h3 className="text-[16px] font-bold text-slate-900 mb-1">
               No staff users found
             </h3>
             <p className="text-[12px] text-slate-500 max-w-sm mb-4">
@@ -545,7 +545,7 @@ export function PosUsersView() {
         <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden">
           <form onSubmit={handleSaveUser}>
             <DialogHeader className="px-6 pt-5 pb-3 border-b border-slate-100 bg-slate-50/70">
-              <DialogTitle className="font-serif text-[18px] font-bold text-slate-900">
+              <DialogTitle className="text-[18px] font-bold text-slate-900">
                 {editingUser ? "Edit Staff User" : "Add New Staff User"}
               </DialogTitle>
               <p className="text-[11px] text-slate-500">
@@ -711,7 +711,7 @@ export function PosUsersView() {
       <Dialog open={!!pinTargetUser} onOpenChange={(open) => !open && setPinTargetUser(null)}>
         <DialogContent className="sm:max-w-[360px]">
           <DialogHeader>
-            <DialogTitle className="font-serif text-[16px] font-bold text-slate-900">
+            <DialogTitle className="text-[16px] font-bold text-slate-900">
               Reset Terminal PIN
             </DialogTitle>
             <p className="text-[11px] text-slate-500">
@@ -760,7 +760,7 @@ export function PosUsersView() {
       <Dialog open={!!deleteTargetUser} onOpenChange={(open) => !open && setDeleteTargetUser(null)}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle className="font-serif text-[16px] font-bold text-slate-900">
+            <DialogTitle className="text-[16px] font-bold text-slate-900">
               Remove Staff User
             </DialogTitle>
             <p className="text-[12px] text-slate-500 leading-relaxed pt-1">

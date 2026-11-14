@@ -112,7 +112,7 @@ export function PurchaseReturnView() {
     <div className="space-y-4">
       {/* 1. Header & Actions matching Screenshot 3 */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">
+        <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
           Purchase Return List
         </h2>
 

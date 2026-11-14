@@ -243,7 +243,7 @@ export function ClosingStockView() {
       {/* 1. Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">
+          <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
             Daily Stock Count
           </h2>
           <p className="text-[12px] text-slate-500">
@@ -542,7 +542,7 @@ export function ClosingStockView() {
       <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-[18px] font-serif font-bold text-slate-900">
+            <DialogTitle className="text-[18px] font-bold text-slate-900">
               Review Daily Stock Count
             </DialogTitle>
             <DialogDescription className="text-[13px] text-slate-500">

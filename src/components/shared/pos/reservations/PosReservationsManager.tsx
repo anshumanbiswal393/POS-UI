@@ -576,7 +576,7 @@ export function PosReservationsManager() {
       {/* Top Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border bg-card px-4 sm:px-6 py-2.5 shrink-0">
         <div>
-          <h1 className="font-serif text-[20px] sm:text-[22px] font-bold tracking-tight text-foreground leading-tight">
+          <h1 className="text-[20px] sm:text-[22px] font-bold tracking-tight text-foreground leading-tight">
             Reservations List
           </h1>
           <p className="text-[11px] text-foreground/70">

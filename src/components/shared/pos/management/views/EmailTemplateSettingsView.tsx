@@ -1252,13 +1252,13 @@ export function EmailTemplateSettingsView() {
                             <Crown className={isMobile ? "h-6 w-6" : "h-7 w-7"} />
                           </div>
                           <h1
-                            className={`font-serif font-extrabold tracking-tight uppercase text-[#78350f] ${
+                            className={`font-extrabold tracking-tight uppercase text-[#78350f] ${
                               isMobile ? "text-[18px] leading-tight" : "text-[24px]"
                             }`}
                           >
                             {restaurantName}
                           </h1>
-                          <p className="text-[11px] sm:text-[12px] font-serif italic text-amber-900/80">
+                          <p className="text-[11px] sm:text-[12px] italic text-amber-900/80">
                             ~ {brandTagline} ~
                           </p>
                           <p className="text-[9.5px] text-stone-500 uppercase tracking-widest pt-0.5 font-sans">
@@ -1270,7 +1270,7 @@ export function EmailTemplateSettingsView() {
                         </div>
 
                         {/* Letterhead Body */}
-                        <div className="py-3.5 space-y-3 text-[11.5px] sm:text-[12.5px] font-serif leading-relaxed">
+                        <div className="py-3.5 space-y-3 text-[11.5px] sm:text-[12.5px] leading-relaxed">
                           <p className="italic text-[#78350f] font-bold">
                             {activeUseCase === "reservation" ? "Honored Guest Mr. Arjun Sharma," : "Dear Honored Patron,"}
                           </p>
@@ -1418,7 +1418,7 @@ export function EmailTemplateSettingsView() {
                           >
                             <div>
                               <p>With Warm Regards,</p>
-                              <p className="font-bold text-[#78350f] font-serif">Executive Culinary Team</p>
+                              <p className="font-bold text-[#78350f] ">Executive Culinary Team</p>
                               <p>{restaurantName}</p>
                             </div>
                             <div className={isMobile ? "text-left text-[9.5px] font-sans text-stone-500" : "text-right text-[10px] font-sans text-stone-500"}>

@@ -174,7 +174,7 @@ export function PosLiveOrdersManager() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">Current Orders</h1>
+              <h1 className="text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">Current Orders</h1>
               <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2 py-0.2 text-[10.5px] font-bold text-teal-700 border border-teal-300">
                 <span className="h-1.5 w-1.5 rounded-full bg-teal-600 animate-pulse" />
                 Live Feed

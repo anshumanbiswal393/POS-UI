@@ -192,7 +192,7 @@ export function AdminManagementView() {
       {/* 1. Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">
+          <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
             Admin & User Access Management
           </h2>
           <p className="text-[12.5px] text-slate-500 mt-0.5">

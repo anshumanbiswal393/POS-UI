@@ -141,7 +141,7 @@ export function PaymentModal({
               Settlement & Payment
             </div>
             <div className="flex items-center gap-2.5">
-              <h2 className="font-display text-[20px] font-bold text-text-primary">
+              <h2 className="text-[20px] font-bold text-text-primary">
                 Pay Check #{invoiceNumber}
               </h2>
               <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-md bg-surface-2 text-text-primary border border-border">

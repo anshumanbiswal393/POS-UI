@@ -18,7 +18,7 @@ export function FloorPlanManagementView() {
             <ArrowLeft className="h-3.5 w-3.5" />
             Outlet Setup
           </Link>
-          <h2 className="font-serif text-[20px] sm:text-[22px] font-bold tracking-tight text-slate-900">Floor Plan</h2>
+          <h2 className="text-[20px] sm:text-[22px] font-bold tracking-tight text-slate-900">Floor Plan</h2>
         </div>
 
         <button

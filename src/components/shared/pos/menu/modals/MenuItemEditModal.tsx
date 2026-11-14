@@ -28,6 +28,7 @@ import {
   PosCreateSubmitButton,
 } from "@/components/layout/pos/PosCreatePanel";
 import { fileToDataUrl } from "@/utils/imageUtils";
+import { cn } from "@/lib/utils";
 
 const MAX_FILE_SIZE_MB = 5;
 const ALLOWED_EXTENSIONS = ["image/jpeg", "image/png", "image/webp", "image/jpg"];

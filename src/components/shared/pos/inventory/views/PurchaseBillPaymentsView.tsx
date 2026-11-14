@@ -127,7 +127,7 @@ export function PurchaseBillPaymentsView() {
     <div className="space-y-4">
       {/* 1. Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">
+        <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
           Purchase Bill Payments
         </h2>
       </div>

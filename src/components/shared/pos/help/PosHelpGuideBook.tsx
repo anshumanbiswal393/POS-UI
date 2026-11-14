@@ -610,7 +610,7 @@ export function PosHelpGuideBook() {
             <BookOpen className="h-4 w-4" />
           </div>
           <div>
-            <h1 className="font-serif text-[18px] sm:text-[20px] font-bold text-slate-900 leading-tight">
+            <h1 className="text-[18px] sm:text-[20px] font-bold text-slate-900 leading-tight">
               Retrod POS Operating Manual
             </h1>
             <p className="text-[11px] text-slate-500">
@@ -756,7 +756,7 @@ export function PosHelpGuideBook() {
               <div className="h-14 w-14 mx-auto rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
                 <BookOpen className="h-7 w-7 text-amber-300" />
               </div>
-              <h2 className="font-serif text-xl font-black tracking-tight text-white">
+              <h2 className="text-xl font-black tracking-tight text-white">
                 POS Billing & Operations Handbook
               </h2>
               <p className="text-xs text-teal-100/85 leading-relaxed">
@@ -789,7 +789,7 @@ export function PosHelpGuideBook() {
                     </span>
                   </div>
                   <div>
-                    <h3 className="font-serif text-[16px] font-bold text-slate-900">{pg.title}</h3>
+                    <h3 className="text-[16px] font-bold text-slate-900">{pg.title}</h3>
                     <p className="text-[11px] text-slate-500 font-medium">{pg.subtitle}</p>
                   </div>
                   <div>{pg.render()}</div>
@@ -853,7 +853,7 @@ export function PosHelpGuideBook() {
                     </div>
 
                     <div className="flex-1 py-3 overflow-y-auto pr-1">
-                      <h3 className="font-serif text-[15px] sm:text-[17px] font-bold text-slate-900 mb-1">
+                      <h3 className="text-[15px] sm:text-[17px] font-bold text-slate-900 mb-1">
                         {leftPageData.title}
                       </h3>
                       <p className="text-[11px] text-slate-500 mb-3 font-medium">
@@ -896,7 +896,7 @@ export function PosHelpGuideBook() {
                     <div className="h-12 w-12 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-inner">
                       <BookOpen className="h-6 w-6 text-emerald-200" />
                     </div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight uppercase font-serif">
+                    <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight uppercase ">
                       Retrod POS Staff Handbook
                     </h2>
                     <p className="text-[12px] sm:text-[13px] text-teal-100/90 font-medium leading-relaxed max-w-sm">
@@ -929,7 +929,7 @@ export function PosHelpGuideBook() {
                       </div>
 
                       <div className="flex-1 py-3 overflow-y-auto pr-1">
-                        <h3 className="font-serif text-[15px] sm:text-[17px] font-bold text-slate-900 mb-1">
+                        <h3 className="text-[15px] sm:text-[17px] font-bold text-slate-900 mb-1">
                           {rightPageData.title}
                         </h3>
                         <p className="text-[11px] text-slate-500 mb-3 font-medium">

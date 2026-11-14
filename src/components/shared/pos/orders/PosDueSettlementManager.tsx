@@ -419,7 +419,7 @@ export function PosDueSettlementManager() {
             Back
           </button>
           <div className="min-w-0">
-            <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-text-primary tracking-tight leading-tight">
+            <h1 className="text-[20px] sm:text-[22px] font-bold text-text-primary tracking-tight leading-tight">
               Collect payment
             </h1>
             <p className="text-[11.5px] text-text-secondary truncate">
@@ -560,7 +560,7 @@ export function PosDueSettlementManager() {
             <CreditCard className="h-4.5 w-4.5" />
           </div>
           <div>
-            <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">Pending Payments</h1>
+            <h1 className="text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">Pending Payments</h1>
             <p className="text-[11px] text-slate-500">
               Settle open bills · paid orders move to Order History
             </p>
