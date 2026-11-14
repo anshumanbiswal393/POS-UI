@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import { useOutletContext } from "@/context/PosOutletContext";
 import posManagementService, { type POSManagementLogDto } from "@/services/posManagementService";
+import { formatDateTimeIndian, formatDateIndian } from "@/utils/dateUtils";
 
 interface ClosingHourLogEntry {
   id: string;
@@ -41,10 +42,10 @@ export function ClosingHourLogsView() {
       const mapped: ClosingHourLogEntry[] = data.map((log: POSManagementLogDto) => ({
         id: log.id,
         logId: log.reference_id || `TIM-${log.id.slice(0, 8).toUpperCase()}`,
-        timestamp: log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "",
+        timestamp: formatDateTimeIndian(log.created_at),
         section: (log.details?.section as string) || "Entire Outlet",
         eventType: (log.details?.eventType as string) || "Regular Timing Shift",
-        effectiveFrom: (log.details?.effectiveFrom as string) || (log.created_at ? new Date(log.created_at).toLocaleDateString("en-IN") : ""),
+        effectiveFrom: (log.details?.effectiveFrom as string) || formatDateIndian(log.created_at),
         effectiveTo: (log.details?.effectiveTo as string) || "Active Schedule",
         reason: (log.details?.reason as string) || log.event_title || "Outlet operating hours update",
         authorizedBy: (log.details?.authorizedBy as string) || log.actor_name || "Management Admin",

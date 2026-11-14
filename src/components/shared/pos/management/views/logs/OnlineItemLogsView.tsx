@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import { useOutletContext } from "@/context/PosOutletContext";
 import posManagementService, { type POSManagementLogDto } from "@/services/posManagementService";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 interface ItemLogEntry {
   id: string;
@@ -42,7 +43,7 @@ export function OnlineItemLogsView() {
 
         return {
           id: log.id,
-          timestamp: log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "",
+          timestamp: formatDateTimeIndian(log.created_at),
           itemName: (log.details?.itemName as string) || log.event_title.split(" ")[0] || "Menu Item",
           category: (log.details?.category as string) || "Food Menu",
           channels: [(log.details?.platform as string) || "Retrod Store"],

@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 import { openPrintReportTable } from "@/utils/printReportTable";
 import { ColorActionPrint } from "@/components/common/ColorActionIcons";
-import { formatDateIndian } from "@/utils/dateUtils";
+import { formatDateIndian, formatDateTimeIndian } from "@/utils/dateUtils";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import {
   PosCreateCancelButton,
@@ -338,7 +338,7 @@ export function PaymentInformationView() {
       accessorKey: "timestamp",
       sortable: true,
       defaultWidth: 160,
-      render: (_, row) => <div className="text-[11.5px] text-slate-500 font-mono">{row.timestamp}</div>,
+      render: (_, row) => <div className="text-[11.5px] text-slate-500 font-mono">{formatDateTimeIndian(row.timestamp)}</div>,
     },
     {
       id: "actions",

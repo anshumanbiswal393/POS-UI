@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import { useOutletContext } from "@/context/PosOutletContext";
 import posManagementService, { type POSManagementLogDto } from "@/services/posManagementService";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 interface NotificationLogEntry {
   id: string;
@@ -48,7 +49,7 @@ export function NotificationsLogsView() {
         return {
           id: log.id,
           msgId: log.reference_id || `MSG-${log.id.slice(0, 8).toUpperCase()}`,
-          timestamp: log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "",
+          timestamp: formatDateTimeIndian(log.created_at),
           channel: (log.details?.channel as string) || "WhatsApp",
           recipient: (log.details?.recipient as string) || (log.details?.target_email as string) || log.actor_name || "Customer",
           templateType: (log.details?.templateType as string) || (log.details?.subject as string) || "Bill E-Receipt",

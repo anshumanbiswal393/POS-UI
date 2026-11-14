@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import { useOutletContext } from "@/context/PosOutletContext";
 import posManagementService, { type POSManagementLogDto } from "@/services/posManagementService";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 interface WithdrawalLogEntry {
   id: string;
@@ -50,7 +51,7 @@ export function WithdrawalLogsView() {
       const mapped: WithdrawalLogEntry[] = data.map((log: POSManagementLogDto) => ({
         id: log.id,
         withdrawalId: log.reference_id || `WTH-${log.id.slice(0, 8).toUpperCase()}`,
-        timestamp: log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "",
+        timestamp: formatDateTimeIndian(log.created_at),
         terminal: (log.details?.terminal as string) || "Terminal POS 1 (Counter)",
         amount: Number(log.details?.amount || 0),
         reason: (log.details?.reason as string) || log.event_title || "Bank Deposit Drop",

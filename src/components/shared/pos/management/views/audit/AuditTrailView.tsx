@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { History, ShieldCheck, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { useOutletContext } from "@/context/PosOutletContext";
@@ -54,7 +55,7 @@ export function AuditTrailView() {
 
         return {
           id: item.id,
-          timestamp: item.timestamp || (item.created_at ? new Date(item.created_at).toLocaleString("en-IN") : ""),
+          timestamp: formatDateTimeIndian(item.timestamp || item.created_at),
           user: item.actor_name || "System",
           role,
           action: item.action,

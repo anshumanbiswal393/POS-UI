@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import { useOutletContext } from "@/context/PosOutletContext";
 import posManagementService, { type POSSupportTicketDto } from "@/services/posManagementService";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 interface SupportTicket {
   id: string;
@@ -59,7 +60,7 @@ export function SupportManagementView() {
         return {
           id: t.id,
           ticketNumber: t.ticket_number || `RET-SUP-${t.id.slice(0, 4).toUpperCase()}`,
-          timestamp: t.created_at ? new Date(t.created_at).toLocaleString("en-IN") : "",
+          timestamp: formatDateTimeIndian(t.created_at),
           customerName: t.contact_phone ? `Staff (${t.contact_phone})` : "Store User",
           contact: t.contact_phone || "Internal POS Terminal",
           category: t.category?.replace(/_/g, " ") || "General Support",

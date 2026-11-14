@@ -317,9 +317,14 @@ function resolveDishCategory(item: MenuItem): string {
   return rawCat.charAt(0).toUpperCase() + rawCat.slice(1);
 }
 
+const STORAGE_PREFIX = "retrod:physical-menu";
+const getPhotosStorageKey = (outletId?: string) => `${STORAGE_PREFIX}:showcase-photos:${outletId || "default"}`;
+
 export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
   const { activeOutlet } = useOutletContext();
   const { data: menuItems, isLoading } = useMenuItems(activeOutlet.id);
+
+  const photosStorageKey = getPhotosStorageKey(activeOutlet.id);
 
   // Template Selection (Defaults to Art Deco 2-Column Diner format)
   const [selectedTemplate, setSelectedTemplate] = useState<MenuTemplateId>("diner");
@@ -351,10 +356,55 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Showcase template: 2–3 large zigzag circle photos (reference card layout)
+  // Showcase template: 2–3 large zigzag circle photos with localStorage persistence across refreshes
   const [showcasePhotos, setShowcasePhotos] =
-    useState<Record<ShowcasePhotoKey, ShowcasePhotoSlot>>(EMPTY_SHOWCASE_PHOTOS);
-  const [showcaseSeeded, setShowcaseSeeded] = useState(false);
+    useState<Record<ShowcasePhotoKey, ShowcasePhotoSlot>>(() => {
+      if (typeof window !== "undefined") {
+        try {
+          const raw = localStorage.getItem(photosStorageKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === "object" && (parsed.photo1 || parsed.photo2 || parsed.photo3)) {
+              return {
+                photo1: { dishId: parsed.photo1?.dishId || "", customUrl: parsed.photo1?.customUrl || "" },
+                photo2: { dishId: parsed.photo2?.dishId || "", customUrl: parsed.photo2?.customUrl || "" },
+                photo3: { dishId: parsed.photo3?.dishId || "", customUrl: parsed.photo3?.customUrl || "" },
+              };
+            }
+          }
+        } catch {}
+      }
+      return EMPTY_SHOWCASE_PHOTOS;
+    });
+
+  const [showcaseSeeded, setShowcaseSeeded] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem(photosStorageKey);
+        if (raw) return true;
+      } catch {}
+    }
+    return false;
+  });
+
+  // Reload saved photos if outlet changes
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem(photosStorageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          setShowcasePhotos({
+            photo1: { dishId: parsed.photo1?.dishId || "", customUrl: parsed.photo1?.customUrl || "" },
+            photo2: { dishId: parsed.photo2?.dishId || "", customUrl: parsed.photo2?.customUrl || "" },
+            photo3: { dishId: parsed.photo3?.dishId || "", customUrl: parsed.photo3?.customUrl || "" },
+          });
+          setShowcaseSeeded(true);
+        }
+      }
+    } catch {}
+  }, [photosStorageKey]);
 
   // Sync outlet name when active outlet switches
   useMemo(() => {
@@ -402,6 +452,9 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
     if (showcaseSeeded || dishesWithImages.length === 0) return;
 
     setShowcasePhotos((prev) => {
+      if (prev.photo1.dishId || prev.photo2.dishId || prev.photo3.dishId) {
+        return prev;
+      }
       const keys: ShowcasePhotoKey[] = ["photo1", "photo2", "photo3"];
       const next = { ...prev };
       keys.forEach((key, idx) => {
@@ -409,11 +462,16 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
         const dish = dishesWithImages[idx % dishesWithImages.length];
         if (dish) next[key] = { dishId: dish.id, customUrl: "" };
       });
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(photosStorageKey, JSON.stringify(next));
+        } catch {}
+      }
       return next;
     });
 
     setShowcaseSeeded(true);
-  }, [dishesWithImages, showcaseSeeded]);
+  }, [dishesWithImages, showcaseSeeded, photosStorageKey]);
 
   const resolvedShowcasePhotos = useMemo(() => {
     return {
@@ -427,10 +485,18 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
     key: ShowcasePhotoKey,
     patch: Partial<ShowcasePhotoSlot>,
   ) => {
-    setShowcasePhotos((prev) => ({
-      ...prev,
-      [key]: { ...prev[key], ...patch },
-    }));
+    setShowcasePhotos((prev) => {
+      const next = {
+        ...prev,
+        [key]: { ...prev[key], ...patch },
+      };
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(photosStorageKey, JSON.stringify(next));
+        } catch {}
+      }
+      return next;
+    });
   };
 
   // Grouped Menu Items by Category (Strict Category Isolation & Culinary Ordering)

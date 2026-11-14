@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import { useOutletContext } from "@/context/PosOutletContext";
 import posManagementService, { type POSExpenseDto } from "@/services/posManagementService";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 interface ExpenseLogEntry {
   id: string;
@@ -58,7 +59,7 @@ export function ExpenseLogsView() {
         return {
           id: exp.id,
           voucherNo: exp.expense_number || `EXP-${exp.id.slice(0, 8).toUpperCase()}`,
-          timestamp: exp.expense_date ? new Date(exp.expense_date).toLocaleString("en-IN") : "",
+          timestamp: formatDateTimeIndian(exp.expense_date),
           category: exp.category || "General Expense",
           amount: parseFloat(exp.amount) || 0,
           paymentMode: exp.payment_mode || "Petty Cash Drawer",

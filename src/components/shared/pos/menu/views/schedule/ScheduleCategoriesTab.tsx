@@ -11,6 +11,7 @@ import type { ScheduleCategoryItem } from "@/types/posMenu";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { toast } from "sonner";
 import { ColorActionEdit } from "@/components/common/ColorActionIcons";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 export function ScheduleCategoriesTab() {
   const { data: categories, isLoading, isFetching } = useScheduleCategories();
@@ -119,8 +120,12 @@ export function ScheduleCategoriesTab() {
         accessorKey: "createdAt",
         enableSorting: true,
         enableFiltering: true,
-        minWidth: 120,
-        cell: ({ row }) => <span className="text-slate-500 text-[12px]">{row.createdAt}</span>,
+        minWidth: 150,
+        cell: ({ row }) => (
+          <span className="text-slate-600 font-medium text-[11.5px]">
+            {formatDateTimeIndian(row.createdAt)}
+          </span>
+        ),
       },
       {
         id: "modifiedAt",
@@ -128,8 +133,12 @@ export function ScheduleCategoriesTab() {
         accessorKey: "modifiedAt",
         enableSorting: true,
         enableFiltering: true,
-        minWidth: 120,
-        cell: ({ row }) => <span className="text-slate-500 text-[12px]">{row.modifiedAt}</span>,
+        minWidth: 150,
+        cell: ({ row }) => (
+          <span className="text-slate-600 font-medium text-[11.5px]">
+            {formatDateTimeIndian(row.modifiedAt)}
+          </span>
+        ),
       },
       {
         id: "image",

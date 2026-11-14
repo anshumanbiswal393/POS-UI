@@ -335,10 +335,11 @@ describe("POS Reservations & Dynamic Table Status", () => {
       // Seat the guest
       await posTablesService.seatGuests("tbl-complete-13", res.id);
 
-      // Before payment: visible in POS Bookings list as seated
+      // While seated: excluded from POS Bookings sidebar (only upcoming bookings show there; seated guests show in /pos/reservations and on tables)
       const beforeReservations = await posTablesService.getReservations();
       const posBookingsBefore = filterActivePosReservations(beforeReservations, "all");
-      expect(posBookingsBefore.some((r) => r.id === res.id && r.status === "seated")).toBe(true);
+      expect(posBookingsBefore.some((r) => r.id === res.id)).toBe(false);
+      expect(posBookingsBefore.some((r) => r.id === futureRes.id)).toBe(true);
 
       // After full payment: complete reservation (matching by table when order payment settles)
       const completed = await posTablesService.completeReservation({

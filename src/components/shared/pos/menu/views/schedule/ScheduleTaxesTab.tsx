@@ -10,6 +10,7 @@ import type { ScheduleTaxItem } from "@/types/posMenu";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { toast } from "sonner";
 import { ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 import {
   PosCreateCancelButton,
   PosCreatePanel,
@@ -165,8 +166,12 @@ export function ScheduleTaxesTab() {
         accessorKey: "createdAt",
         enableSorting: true,
         enableFiltering: true,
-        minWidth: 120,
-        cell: ({ row }) => <span className="text-slate-500 text-[12px]">{row.createdAt}</span>,
+        minWidth: 150,
+        cell: ({ row }) => (
+          <span className="text-slate-600 font-medium text-[11.5px]">
+            {formatDateTimeIndian(row.createdAt)}
+          </span>
+        ),
       },
       {
         id: "actions",

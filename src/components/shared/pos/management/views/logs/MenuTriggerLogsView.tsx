@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import { useOutletContext } from "@/context/PosOutletContext";
 import posManagementService, { type POSManagementLogDto } from "@/services/posManagementService";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 interface MenuTriggerLogEntry {
   id: string;
@@ -50,7 +51,7 @@ export function MenuTriggerLogsView() {
         return {
           id: log.id,
           syncId: log.reference_id || `SYNC-${log.id.slice(0, 8).toUpperCase()}`,
-          timestamp: log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "",
+          timestamp: formatDateTimeIndian(log.created_at),
           platforms,
           triggerType: (log.details?.triggerType as string) || "Price Revision",
           itemsAffectedCount: Number(log.details?.itemsAffectedCount || 1),

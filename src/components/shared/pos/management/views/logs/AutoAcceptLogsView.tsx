@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import { useOutletContext } from "@/context/PosOutletContext";
 import posManagementService, { type POSManagementLogDto } from "@/services/posManagementService";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 interface AutoAcceptLogEntry {
   id: string;
@@ -40,7 +41,7 @@ export function AutoAcceptLogsView() {
       const data = await posManagementService.getManagementLogs(activeOutlet.id, "AUTO_ACCEPT");
       const mapped: AutoAcceptLogEntry[] = data.map((log: POSManagementLogDto) => ({
         id: log.id,
-        timestamp: log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "",
+        timestamp: formatDateTimeIndian(log.created_at),
         platform: (log.details?.platform as string) || "Retrod Online Store",
         previousState: Boolean(log.details?.previousState),
         newState: Boolean(log.details?.newState ?? log.details?.autoAccept ?? true),

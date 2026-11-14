@@ -60,23 +60,20 @@ export function formatDateTimeIndian(
 ): string {
   if (value === null || value === undefined || value === "") return fallback;
 
-  const datePart = formatDateIndian(value, "");
-  if (!datePart) return fallback;
-
-  let d: Date;
   if (typeof value === "string") {
-    // If it was only YYYY-MM-DD without time
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value.trim()) || /^\d{2}-\d{2}-\d{4}$/.test(value.trim())) {
-      return datePart;
+    const trimmed = value.trim();
+    // If it is only a date (YYYY-MM-DD or DD-MM-YYYY) without any time component
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed) || /^\d{2}-\d{2}-\d{4}$/.test(trimmed)) {
+      return formatDateIndian(trimmed, fallback);
     }
-    d = new Date(value);
-  } else if (typeof value === "number") {
-    d = new Date(value);
-  } else {
-    d = value;
   }
 
-  if (isNaN(d.getTime())) return datePart;
+  const d = typeof value === "string" ? new Date(value) : typeof value === "number" ? new Date(value) : value;
+  if (!d || isNaN(d.getTime())) return typeof value === "string" ? formatDateIndian(value, fallback) : fallback;
+
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
 
   const rawHours = d.getHours();
   const rawMinutes = d.getMinutes();
@@ -85,7 +82,7 @@ export function formatDateTimeIndian(
   const hStr = String(hours12).padStart(2, "0");
   const mStr = String(rawMinutes).padStart(2, "0");
 
-  return `${datePart} ${hStr}:${mStr} ${ampm}`;
+  return `${day}-${month}-${year} ${hStr}:${mStr} ${ampm}`;
 }
 
 /**

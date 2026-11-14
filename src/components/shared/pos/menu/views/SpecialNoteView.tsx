@@ -11,6 +11,7 @@ import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import type { SpecialNote } from "@/types/posMenu";
 import { toast } from "sonner";
 import { useOutletContext } from "@/context/PosOutletContext";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 export function SpecialNoteView({ onBack }: { onBack?: () => void }) {
   const { activeOutlet } = useOutletContext();
@@ -58,8 +59,12 @@ export function SpecialNoteView({ onBack }: { onBack?: () => void }) {
         accessorKey: "createdAt",
         enableSorting: true,
         enableFiltering: true,
-        minWidth: 140,
-        cell: ({ row }) => <span className="text-slate-500">{row.createdAt}</span>,
+        minWidth: 150,
+        cell: ({ row }) => (
+          <span className="text-slate-600 font-medium text-[11.5px]">
+            {formatDateTimeIndian(row.createdAt)}
+          </span>
+        ),
       },
       {
         id: "available",

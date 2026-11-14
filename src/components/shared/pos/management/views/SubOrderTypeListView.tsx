@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Plus, ChevronDown, Search, Edit2, Trash2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
+import { formatDateIndian } from "@/utils/dateUtils";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { posManagementService } from "@/services/posManagementService";
@@ -39,7 +40,7 @@ export function SubOrderTypeListView() {
             type: (r.type as any) || "Area",
             orderType: r.order_type || "Dine In",
             status: (r.status as any) || "Active",
-            created: r.created_at ? new Date(r.created_at).toLocaleDateString() : "Today",
+            created: r.created_at ? formatDateIndian(r.created_at) : "Today",
           }))
         );
       })

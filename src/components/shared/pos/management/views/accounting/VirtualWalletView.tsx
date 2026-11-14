@@ -23,6 +23,7 @@ import {
 import { openPrintReportTable } from "@/utils/printReportTable";
 import { toast } from "sonner";
 import { ColorActionPrint, ColorActionView } from "@/components/common/ColorActionIcons";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import {
   PosCreateCancelButton,
@@ -78,8 +79,8 @@ export function VirtualWalletView() {
           amount: parseFloat(w.balance) || 0,
           totalCredited: parseFloat(w.total_credited) || 0,
           totalDebited: parseFloat(w.total_debited) || 0,
-          lastUsedDate: w.last_transaction_at ? new Date(w.last_transaction_at).toLocaleString("en-IN") : "",
-          created: w.created_at ? new Date(w.created_at).toLocaleString("en-IN") : "",
+          lastUsedDate: formatDateTimeIndian(w.last_transaction_at),
+          created: formatDateTimeIndian(w.created_at),
           transactions: [],
         }))
       );

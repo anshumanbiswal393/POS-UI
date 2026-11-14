@@ -20,7 +20,7 @@ import type {
 } from "./types";
 import { cn } from "@/lib/utils";
 import { fuzzyFilter } from "@/utils/fuzzySearch";
-import { compareDates, formatDateIndian } from "@/utils/dateUtils";
+import { compareDates, formatDateIndian, formatDateTimeIndian } from "@/utils/dateUtils";
 
 export type { PosDataGridColumn };
 
@@ -698,7 +698,10 @@ export function PosDataGrid<T>({
                           const isDateCol = /date|dob|timestamp|created_?at|updated_?at/i.test(colId);
                           const isIsoDate = typeof rawValue === "string" && /^\d{4}-\d{2}-\d{2}(T|\b)/.test(rawValue);
                           if (isDateCol || isIsoDate || rawValue instanceof Date) {
-                            const formatted = formatDateIndian(rawValue);
+                            const hasTime =
+                              (typeof rawValue === "string" && (rawValue.includes("T") || rawValue.includes(":"))) ||
+                              (rawValue instanceof Date && (rawValue.getHours() !== 0 || rawValue.getMinutes() !== 0));
+                            const formatted = hasTime ? formatDateTimeIndian(rawValue) : formatDateIndian(rawValue);
                             if (formatted) return formatted;
                           }
                           return String(rawValue);

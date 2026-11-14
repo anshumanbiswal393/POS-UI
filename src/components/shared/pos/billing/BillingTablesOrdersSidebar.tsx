@@ -31,6 +31,7 @@ import type { CurrentOrderRecord } from "@/services/posOrdersService";
 import { NewReservationModal } from "../tables/NewReservationModal";
 import { fuzzyFilter } from "@/utils/fuzzySearch";
 import { formatDateIndian } from "@/utils/dateUtils";
+import { usePosDate, getTodayIso } from "@/hooks/usePosDate";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -108,16 +109,39 @@ export function filterActivePosOrders(
 }
 
 /**
- * Exclude completed or cancelled reservations from the POS billing Bookings tab.
+ * Exclude completed, seated, cancelled, or no-show reservations from the POS billing Bookings tab.
+ * Only that particular day's upcoming reservations are displayed.
+ * Seated and completed reservations belong in the full /pos/reservations list.
  */
 export function filterActivePosReservations(
   reservations: ReservationItem[],
   statusFilter = "all",
   searchQuery = "",
+  targetDateIso?: string,
+  realTodayIso?: string,
 ): ReservationItem[] {
   let safeRes = (Array.isArray(reservations) ? reservations : []).filter(
-    (res) => res && res.status !== "completed" && res.status !== "cancelled",
+    (res) =>
+      res &&
+      res.status !== "completed" &&
+      res.status !== "cancelled" &&
+      res.status !== "no_show" &&
+      res.status !== "seated",
   );
+
+  // If a target date is specified, filter to only that particular day's upcoming bookings
+  if (targetDateIso) {
+    const formattedTarget = formatDateIndian(targetDateIso, "");
+    safeRes = safeRes.filter((res) => {
+      if (!res.reservationDate) return true;
+      if (res.reservationDate.toLowerCase() === "today") {
+        return !realTodayIso || targetDateIso === realTodayIso;
+      }
+      const formattedRes = formatDateIndian(res.reservationDate, "");
+      return !formattedRes || formattedRes === formattedTarget;
+    });
+  }
+
   if (statusFilter !== "all") {
     safeRes = safeRes.filter(
       (res) => (res.status || "").toLowerCase() === statusFilter.toLowerCase(),
@@ -205,20 +229,26 @@ export function BillingTablesOrdersSidebar({
     [currentOrders, orderSearchQuery],
   );
 
+  const { selectedDateStr } = usePosDate();
+  const realTodayIso = getTodayIso();
+  const targetDateIso = selectedDateStr || realTodayIso;
+
   const activeReservations = useMemo(
-    () => filterActivePosReservations(reservations),
-    [reservations],
+    () => filterActivePosReservations(reservations, "all", "", targetDateIso, realTodayIso),
+    [reservations, targetDateIso, realTodayIso],
   );
 
-  // Filtered Reservations (active bookings only — completed/cancelled stay in /pos/reservations)
+  // Filtered Reservations (active upcoming bookings for that particular day only)
   const filteredReservations = useMemo(
     () =>
       filterActivePosReservations(
         reservations,
         reservationStatusFilter,
         reservationSearchQuery,
+        targetDateIso,
+        realTodayIso,
       ),
-    [reservations, reservationStatusFilter, reservationSearchQuery],
+    [reservations, reservationStatusFilter, reservationSearchQuery, targetDateIso, realTodayIso],
   );
 
   // Format table display ID (e.g. T01, T02)
@@ -535,7 +565,7 @@ export function BillingTablesOrdersSidebar({
         <div className="px-3 py-2 border-b border-slate-100 bg-white shrink-0 space-y-2">
           <div className="flex items-center justify-between gap-1">
             <div className="flex items-center gap-1">
-              {(["all", "reserved", "seated"] as const).map((st) => (
+              {(["all", "reserved"] as const).map((st) => (
                 <button
                   key={st}
                   type="button"
