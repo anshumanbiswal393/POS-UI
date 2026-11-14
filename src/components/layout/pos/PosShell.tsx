@@ -7,6 +7,7 @@ import { PosSubscriptionRenewalBanner } from "@/components/common/PosSubscriptio
 import { useIsCompactViewport } from "@/hooks/use-mobile";
 import { usePosKeyboardShortcuts } from "@/hooks/usePosKeyboardShortcuts";
 import { cn } from "@/lib/utils";
+import { toTitleCase, isExcludedFromTitleCase } from "@/utils/textUtils";
 
 export function PosShell({ children }: { children: React.ReactNode }) {
   usePosKeyboardShortcuts();
@@ -26,6 +27,48 @@ export function PosShell({ children }: { children: React.ReactNode }) {
     }
     setMobileOpen(false);
   }, [pathname, isBillingPage]);
+
+  // Centralized title-casing for all user text inputs across the entire POS application
+  useEffect(() => {
+    function handleGlobalInput(e: Event) {
+      const target = e.target as HTMLInputElement | null;
+      if (!target || target.tagName !== "INPUT") return;
+
+      const type = target.type?.toLowerCase();
+      // Only process text-like inputs
+      if (type && !["text", "search", ""].includes(type)) return;
+
+      const name = target.name;
+      const id = target.id;
+      const placeholder = target.placeholder;
+      const noTitleCase =
+        target.hasAttribute("data-no-title-case") ||
+        target.hasAttribute("data-pos-search") ||
+        target.id === "pos-global-search" ||
+        target.id === "pos-global-search-mobile";
+
+      if (isExcludedFromTitleCase(type, name, id, placeholder, noTitleCase)) {
+        return;
+      }
+
+      const raw = target.value;
+      if (!raw) return;
+
+      const formatted = toTitleCase(raw);
+      if (formatted !== raw) {
+        const cursor = target.selectionStart;
+        target.value = formatted;
+        if (cursor !== null && target.setSelectionRange) {
+          try {
+            target.setSelectionRange(cursor, cursor);
+          } catch {}
+        }
+      }
+    }
+
+    document.addEventListener("input", handleGlobalInput, true);
+    return () => document.removeEventListener("input", handleGlobalInput, true);
+  }, []);
 
   const isSidebarCollapsed = isCompactNav ? false : desktopCollapsed;
   const showMobileSidebar = isCompactNav && mobileOpen;

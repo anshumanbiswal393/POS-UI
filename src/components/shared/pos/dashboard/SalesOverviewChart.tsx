@@ -89,18 +89,18 @@ export function SalesOverviewChart({ data }: SalesOverviewChartProps) {
                   <stop offset="95%" stopColor="var(--primary)" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
               <XAxis
                 dataKey="hour"
                 tickLine={false}
-                axisLine={{ stroke: "#e2e8f0" }}
-                tick={{ fill: "#94a3b8", fontSize: 11 }}
+                axisLine={{ stroke: "var(--border)" }}
+                tick={{ fill: "#000000", fontSize: 11 }}
               />
               <YAxis
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(val) => (val === 0 ? "₹0" : `₹${val / 1000}K`)}
-                tick={{ fill: "#94a3b8", fontSize: 11 }}
+                tick={{ fill: "#000000", fontSize: 11 }}
                 domain={[0, 20000]}
               />
               <Tooltip
@@ -121,7 +121,7 @@ export function SalesOverviewChart({ data }: SalesOverviewChartProps) {
               <Line
                 type="monotone"
                 dataKey="yesterdaySales"
-                stroke="#94a3b8"
+                stroke="#0d9488"
                 strokeDasharray="4 4"
                 strokeWidth={1.5}
                 dot={false}

@@ -19,6 +19,8 @@ import type {
   ColumnSortState,
 } from "./types";
 import { cn } from "@/lib/utils";
+import { fuzzyFilter } from "@/utils/fuzzySearch";
+import { compareDates, formatDateIndian } from "@/utils/dateUtils";
 
 export type { PosDataGridColumn };
 
@@ -321,20 +323,16 @@ export function PosDataGrid<T>({
     return result;
   }, [columns, columnOrder, visibleColumns]);
 
-  // 8. Filtering Logic
+  // 8. Filtering Logic (Fuzzy Multi-Field Search)
   const filteredData = useMemo(() => {
     let result = data;
 
-    // Apply Global Search if present
-    if (globalSearch.trim()) {
-      const query = globalSearch.toLowerCase().trim();
-      result = result.filter((row: any) => {
-        return columns.some((col) => {
-          if (!col.id) return false;
-          const val = getRawCellValue(row, col.id);
-          return val !== undefined && val !== null && String(val).toLowerCase().includes(query);
-        });
-      });
+    // Apply Global Search if present with multi-field fuzzy matching
+    if (globalSearch && globalSearch.trim()) {
+      const searchExtractors = columns
+        .filter((col) => Boolean(col.id))
+        .map((col) => (row: any) => getRawCellValue(row, col.id!));
+      result = fuzzyFilter(result, globalSearch, searchExtractors);
     }
 
     // Apply Column-level Filters
@@ -367,7 +365,7 @@ export function PosDataGrid<T>({
     return result;
   }, [data, globalSearch, columnFilters, columns, getRawCellValue, distinctValues]);
 
-  // 9. Sorting Logic
+  // 9. Sorting Logic (Supports accurate chronological date comparison)
   const sortedData = useMemo(() => {
     if (!sortConfig) return filteredData;
     const colId = sortConfig.colId;
@@ -384,7 +382,18 @@ export function PosDataGrid<T>({
       if (typeof valA === "number" && typeof valB === "number") {
         cmp = valA - valB;
       } else {
-        cmp = String(valA).localeCompare(String(valB), undefined, { numeric: true });
+        const isDateCol = /date|time|at|created|updated|expires|dob|timestamp/i.test(colId);
+        const isDateVal =
+          (typeof valA === "string" && /^\d{4}-\d{2}-\d{2}|^\d{2}-\d{2}-\d{4}/.test(valA)) ||
+          (typeof valB === "string" && /^\d{4}-\d{2}-\d{2}|^\d{2}-\d{2}-\d{4}/.test(valB)) ||
+          valA instanceof Date ||
+          valB instanceof Date;
+
+        if (isDateCol || isDateVal) {
+          cmp = compareDates(valA, valB);
+        } else {
+          cmp = String(valA).localeCompare(String(valB), undefined, { numeric: true });
+        }
       }
 
       return sortConfig.direction === "asc" ? cmp : -cmp;
@@ -651,7 +660,7 @@ export function PosDataGrid<T>({
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => {}}
-                            className="h-3.5 w-3.5 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer accent-primary"
+                            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer accent-primary"
                           />
                         </div>
                       </td>
@@ -686,6 +695,12 @@ export function PosDataGrid<T>({
                           return (rawCol.cell as any)(rawValue, row, index);
                         }
                         if (rawValue !== undefined && rawValue !== null && String(rawValue) !== "") {
+                          const isDateCol = /date|dob|timestamp|created_?at|updated_?at/i.test(colId);
+                          const isIsoDate = typeof rawValue === "string" && /^\d{4}-\d{2}-\d{2}(T|\b)/.test(rawValue);
+                          if (isDateCol || isIsoDate || rawValue instanceof Date) {
+                            const formatted = formatDateIndian(rawValue);
+                            if (formatted) return formatted;
+                          }
                           return String(rawValue);
                         }
                         return "--";

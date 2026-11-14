@@ -9,6 +9,7 @@ import type {
 } from "@/types/posBilling";
 import { FoodTypeIcon } from "@/components/ui/FoodTypeIcon";
 import { cn } from "@/lib/utils";
+import { fuzzyFilter } from "@/utils/fuzzySearch";
 
 type BillingMenuCatalogProps = {
   items: BillingMenuItem[];
@@ -67,20 +68,25 @@ export function BillingMenuCatalog({
 
   const filteredItems = useMemo(() => {
     const safeItems = Array.isArray(items) ? items : [];
-    return safeItems.filter((item) => {
+    let result = safeItems.filter((item) => {
       if (!item) return false;
       if (selectedCategory !== "All Items" && item.category !== selectedCategory) return false;
       if (selectedDiet !== "all" && item.diet !== selectedDiet) return false;
-      if (effectiveQuery.trim()) {
-        const query = effectiveQuery.toLowerCase().trim();
-        return (
-          (item.name || "").toLowerCase().includes(query) ||
-          (item.code || "").toLowerCase().includes(query) ||
-          (item.category || "").toLowerCase().includes(query)
-        );
-      }
       return true;
     });
+
+    if (effectiveQuery.trim()) {
+      result = fuzzyFilter(result, effectiveQuery, [
+        (item) => item.name || "",
+        (item) => item.code || "",
+        (item) => item.category || "",
+        (item) => item.subCategory || "",
+        (item) => item.description || "",
+        (item) => String(item.price || ""),
+      ]);
+    }
+
+    return result;
   }, [items, selectedCategory, selectedDiet, effectiveQuery]);
 
   const getCartInfo = (item: BillingMenuItem, chosenVariant?: BillingItemVariant | null) => {

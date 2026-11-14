@@ -35,6 +35,8 @@ import {
   PosCreateSubmitButton,
 } from "@/components/layout/pos/PosCreatePanel";
 import type { StockItem } from "@/types/posInventory";
+import { fuzzyFilter } from "@/utils/fuzzySearch";
+import { formatDateIndian, compareDates } from "@/utils/dateUtils";
 
 const STANDARD_UNITS = [
   "Kg",
@@ -384,21 +386,28 @@ export function RawMaterialsManagementView() {
     { id: "actions", label: "ACTIONS", align: "right" },
   ];
 
-  // Filtering
-  const filteredItems = items.filter((item) => {
-    const query = searchQuery.trim().toLowerCase();
-    const matchesSearch =
-      !query ||
-      item.name.toLowerCase().includes(query) ||
-      item.code.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query) ||
-      item.subCategory.toLowerCase().includes(query);
-    const matchesCategory =
-      categoryFilter === "All" || item.category === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  // Filtering with multi-field fuzzy search
+  const filteredItems = (() => {
+    let result = items;
+    if (categoryFilter !== "All") {
+      result = result.filter((item) => item.category === categoryFilter);
+    }
+    if (searchQuery.trim()) {
+      result = fuzzyFilter(result, searchQuery, [
+        (item) => item.name,
+        (item) => item.code,
+        (item) => item.category,
+        (item) => item.subCategory,
+        (item) => item.unit,
+        (item) => String(item.availableStock),
+        (item) => String(item.pricePerUnit),
+        (item) => item.expiryDate || "",
+      ]);
+    }
+    return result;
+  })();
 
-  // Sorting
+  // Sorting with chronological date support
   const sortedItems = [...filteredItems].sort((a, b) => {
     if (!sortConfig) return 0;
     const { colId, direction } = sortConfig;
@@ -414,6 +423,10 @@ export function RawMaterialsManagementView() {
     if (aVal === bVal) return 0;
     if (aVal === null || aVal === undefined) return 1;
     if (bVal === null || bVal === undefined) return -1;
+    if (colId === "expiryDate") {
+      const cmp = compareDates(aVal, bVal);
+      return direction === "asc" ? cmp : -cmp;
+    }
     if (typeof aVal === "string") {
       return direction === "asc"
         ? aVal.localeCompare(String(bVal))
@@ -580,9 +593,9 @@ export function RawMaterialsManagementView() {
                           const isExpired = diffDays < 0;
                           return (
                             <div className="flex flex-col text-xs">
-                              <span className="font-semibold text-slate-900 flex items-center gap-1">
-                                <Calendar className="h-3 w-3 text-slate-400" />
-                                {row.expiryDate}
+                              <span className="font-semibold text-foreground flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-primary" />
+                                {formatDateIndian(row.expiryDate)}
                               </span>
                               {isExpired ? (
                                 <span className="text-[10px] font-bold text-rose-600">Expired</span>

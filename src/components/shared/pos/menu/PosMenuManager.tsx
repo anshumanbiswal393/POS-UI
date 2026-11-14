@@ -61,7 +61,7 @@ export function PosMenuManager() {
   ];
 
   return (
-    <div className="flex flex-col md:flex-row flex-1 min-h-[calc(100dvh-3.5rem)] md:h-[calc(100dvh-3.5rem)] bg-[#f8fafc] md:overflow-hidden">
+    <div className="flex flex-col md:flex-row flex-1 min-h-[calc(100dvh-3.5rem)] md:h-[calc(100dvh-3.5rem)] bg-background md:overflow-hidden">
       {/* Mobile Sub-Navigation Bar (<md) */}
       <div className="md:hidden border-b border-slate-200 bg-white px-3 py-2 shrink-0 flex items-center gap-1.5 overflow-x-auto">
         <Link

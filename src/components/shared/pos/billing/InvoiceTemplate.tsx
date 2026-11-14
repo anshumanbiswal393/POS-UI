@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import { formatDateIndian } from "@/utils/dateUtils";
 import {
   type PosInvoicePrintPayload,
   formatINR,
@@ -123,7 +124,8 @@ export function InvoiceTemplate({
   const gstin = p.gstin || prop.gstin;
   const fssai = p.fssai || "11521008000492";
 
-  const issueDate = p.issueDate || (p.payments?.[0]?.date?.split(" ")[0]) || new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const rawDate = p.issueDate || (p.payments?.[0]?.date?.split(" ")[0]) || new Date();
+  const issueDate = formatDateIndian(rawDate);
   const issueTime = p.issueTime || new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
 
   const taxableVal = p.taxableAmount !== undefined ? p.taxableAmount : Math.max(0, p.subtotal - (p.discountAmount || 0));

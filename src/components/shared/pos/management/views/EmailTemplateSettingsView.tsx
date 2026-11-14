@@ -587,7 +587,7 @@ export function EmailTemplateSettingsView() {
 
                 {/* Email Client Simulated Envelope */}
                 <div
-                  className={`w-full transition-all duration-200 shadow-xl rounded-2xl border border-slate-300 bg-[#f8fafc] overflow-hidden ${
+                  className={`w-full transition-all duration-200 shadow-xl rounded-2xl border border-border bg-white overflow-hidden ${
                     isMobile ? "max-w-[380px]" : "max-w-[620px]"
                   }`}
                 >

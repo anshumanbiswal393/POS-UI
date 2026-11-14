@@ -1,6 +1,7 @@
 // Unified POS Tax Invoice Print Generator
 // Matches the official PMS Folio/Invoice standard from PMS FolioView.tsx and print-templates.ts
 
+import { formatDateIndian } from "./dateUtils";
 import type { BillSettlementRecord } from "@/types/posBilling";
 import type { AllOrderItem } from "@/types/posOrders";
 import type { RoomServiceOrder } from "@/types/posRoomService";
@@ -163,7 +164,7 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
   const gstin = p.gstin || prop.gstin;
   const fssai = p.fssai || "11521008000492";
 
-  const issueDate = p.issueDate || new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const issueDate = p.issueDate ? formatDateIndian(p.issueDate) : formatDateIndian(new Date());
   const issueTime = p.issueTime || new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
 
   const taxableVal = p.taxableAmount !== undefined ? p.taxableAmount : Math.max(0, p.subtotal - (p.discountAmount || 0));
@@ -174,7 +175,7 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
   const itemRowsHtml = p.items.length > 0
     ? p.items.map((item, idx) => {
         const srNo = item.sr || idx + 1;
-        const rowDate = item.date || issueDate;
+        const rowDate = item.date ? formatDateIndian(item.date) : issueDate;
         const sac = item.sac || "996331";
         const unitRate = item.unitPrice;
         const lineTotal = item.isComplimentary ? 0 : item.amount;
@@ -188,9 +189,9 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
             <td>${escapeHtml(rowDate)}</td>
             <td class="text-left">
               <strong>${escapeHtml(item.name)}</strong>
-              ${item.variant ? `<span style="font-size:9.5px; color:#475569;"> (${escapeHtml(item.variant)})</span>` : ""}
-              ${item.notes ? `<div style="font-size:9px; color:#64748b; font-style:italic;">Note: ${escapeHtml(item.notes)}</div>` : ""}
-              ${item.isComplimentary ? '<span style="font-size:9px; font-weight:800; background:#e2e8f0; padding:1px 4px; border-radius:2px; margin-left:4px;">COMPLIMENTARY</span>' : ""}
+              ${item.variant ? `<span style="font-size:9.5px; font-weight:700; color:#000000;"> (${escapeHtml(item.variant)})</span>` : ""}
+              ${item.notes ? `<div style="font-size:9px; color:#000000; font-weight:600; font-style:italic;">Note: ${escapeHtml(item.notes)}</div>` : ""}
+              ${item.isComplimentary ? '<span style="font-size:9px; font-weight:800; background:#f0fdf4; border:1px solid #16a34a; color:#15803d; padding:1px 4px; border-radius:2px; margin-left:4px;">COMPLIMENTARY</span>' : ""}
             </td>
             <td>${escapeHtml(sac)}</td>
             <td>${item.quantity}</td>
@@ -308,7 +309,7 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
       border-bottom: 2px double #000;
       padding: 5px 10px;
       font-weight: bold;
-      background: #f8fafc;
+      background: #ffffff;
       font-size: 10.5px;
     }
     .sub-header-center {
@@ -338,7 +339,7 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
     }
     .info-label {
       font-weight: bold;
-      color: #333;
+      color: #000;
     }
     .info-val {
       font-weight: 600;
@@ -354,7 +355,7 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
       border: 1px solid #000;
       padding: 5px 6px;
       text-align: center;
-      background: #f1f5f9;
+      background: #ffffff;
       font-weight: bold;
       font-size: 10px;
       text-transform: uppercase;
@@ -370,7 +371,7 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
     .item-table .font-bold { font-weight: bold; }
     .item-table tr.grand-total td {
       font-weight: bold;
-      background: #f8fafc;
+      background: #ffffff;
       border-top: 2px solid #000;
     }
 
@@ -400,7 +401,7 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
       font-style: italic;
       margin-bottom: 8px;
       font-size: 10.5px;
-      color: #333;
+      color: #000;
     }
 
     .mini-pay-table {
@@ -409,7 +410,7 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
       margin-bottom: 8px;
     }
     .mini-pay-table th, .mini-pay-table td {
-      border: 1px solid #aaa;
+      border: 1px solid #000;
       padding: 3px 6px;
       font-size: 9.5px;
       text-align: left;
@@ -417,7 +418,7 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
     .mini-pay-table td.text-right { text-align: right; font-family: monospace; }
     .mini-pay-table tr.total-row td {
       font-weight: bold;
-      background: #f8fafc;
+      background: #ffffff;
     }
 
     .totals-table {
@@ -432,7 +433,7 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
     .totals-table td.label {
       font-weight: 600;
       text-align: left;
-      color: #333;
+      color: #000;
     }
     .totals-table td.val-bold {
       font-weight: bold;
@@ -448,7 +449,7 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
       border-bottom: 1.5px solid #000;
       font-weight: 800;
       font-size: 12px;
-      background: #f8fafc;
+      background: #ffffff;
       padding: 4px;
     }
 
@@ -460,13 +461,13 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
       padding: 6px 10px;
       font-weight: bold;
       font-size: 10.5px;
-      background: #fafafa;
+      background: #ffffff;
     }
     .policy-row {
       border-bottom: 1px solid #000;
       padding: 6px 10px;
       font-size: 9.5px;
-      color: #444;
+      color: #000;
     }
     .policy-row ol {
       margin-left: 16px;
@@ -981,7 +982,7 @@ export function allOrderItemToInvoicePayload(
     orderNo: order.orderNo,
     orderType: order.orderTypeDisplay || "Dine-In",
     source: order.isOnlineOrder ? "Online Order" : order.orderTypeDisplay || "POS",
-    issueDate: datePart || new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+    issueDate: datePart ? formatDateIndian(datePart) : formatDateIndian(new Date()),
     issueTime: timePart || new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }),
     outletName: outlet?.name || prop.name,
     outletAddress: outlet?.address || prop.address,
@@ -1053,7 +1054,7 @@ export function roomOrderToInvoicePayload(
     orderNo: order.orderNumber,
     orderType: "Room Service",
     source: "Room Service Division",
-    issueDate: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+    issueDate: formatDateIndian(new Date()),
     issueTime: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }),
     outletName: outlet?.name || prop.name,
     outletAddress: outlet?.address || prop.address,
@@ -1134,7 +1135,7 @@ export function roomFolioOrderToInvoicePayload(
     orderNo: order.orderNumber,
     orderType: "Room Service",
     source: "Room Folio Billing",
-    issueDate: datePart || new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+    issueDate: datePart ? formatDateIndian(datePart) : formatDateIndian(new Date()),
     issueTime: timePart || new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }),
     outletName: outlet?.name || prop.name,
     outletAddress: outlet?.address || prop.address,

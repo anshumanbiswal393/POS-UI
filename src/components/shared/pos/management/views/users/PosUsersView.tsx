@@ -26,6 +26,8 @@ import {
 } from "@/services/posUsersRbacService";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { Button } from "@/components/ui/button";
+import { fuzzyFilter } from "@/utils/fuzzySearch";
+import { formatDateIndian } from "@/utils/dateUtils";
 import {
   Dialog,
   DialogContent,
@@ -223,30 +225,39 @@ export function PosUsersView() {
     document.body.removeChild(link);
   };
 
-  // Filtered List
+  // Filtered List with multi-field fuzzy search
   const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        !q ||
-        u.name.toLowerCase().includes(q) ||
-        u.username.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
-        (u.phone && u.phone.toLowerCase().includes(q));
+    let result = users;
 
-      const matchesRole =
-        roleFilter === "all" ||
-        u.role === roleFilter ||
-        u.role_code === roleFilter ||
-        u.role_name?.toLowerCase() === roleFilter.toLowerCase();
+    if (roleFilter !== "all") {
+      result = result.filter(
+        (u) =>
+          u.role === roleFilter ||
+          u.role_code === roleFilter ||
+          u.role_name?.toLowerCase() === roleFilter.toLowerCase()
+      );
+    }
 
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && u.is_active) ||
-        (statusFilter === "inactive" && !u.is_active);
+    if (statusFilter !== "all") {
+      result = result.filter((u) =>
+        statusFilter === "active" ? u.is_active : !u.is_active
+      );
+    }
 
-      return matchesSearch && matchesRole && matchesStatus;
-    });
+    if (searchQuery.trim()) {
+      result = fuzzyFilter(result, searchQuery, [
+        (u) => u.name,
+        (u) => u.username,
+        (u) => u.email,
+        (u) => u.phone || "",
+        (u) => u.role_name || u.role,
+        (u) => u.outlet_name || "",
+        (u) => (u.is_active ? "Active" : "Inactive"),
+        (u) => u.created_at || "",
+      ]);
+    }
+
+    return result;
   }, [users, searchQuery, roleFilter, statusFilter]);
 
   return (
@@ -483,14 +494,8 @@ export function PosUsersView() {
                         </td>
 
                         {/* 6. Created Date */}
-                        <td className="px-4 py-3 text-slate-500 text-[11px]">
-                          {u.created_at
-                            ? new Date(u.created_at).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
-                            : "—"}
+                        <td className="px-4 py-3 text-foreground/70 text-[11px]">
+                          {u.created_at ? formatDateIndian(u.created_at) : "—"}
                         </td>
 
                         {/* 7. Actions */}

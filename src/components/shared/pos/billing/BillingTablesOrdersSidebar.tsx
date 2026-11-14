@@ -29,6 +29,8 @@ import { useCurrentOrdersTimeline } from "@/hooks/queries/usePosOrders";
 import type { RestaurantTable, ReservationItem } from "@/types/posTables";
 import type { CurrentOrderRecord } from "@/services/posOrdersService";
 import { NewReservationModal } from "../tables/NewReservationModal";
+import { fuzzyFilter } from "@/utils/fuzzySearch";
+import { formatDateIndian } from "@/utils/dateUtils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,14 +96,15 @@ export function filterActivePosOrders(
       String(ord.currentStage || "").toLowerCase() !== "settled" &&
       String((ord as CurrentOrderRecord & { status?: string }).status || "").toLowerCase() !== "cancelled",
   );
-  const q = searchQuery.trim().toLowerCase();
-  if (!q) return safeOrders;
-  return safeOrders.filter(
-    (ord) =>
-      (ord.orderNumber || "").toLowerCase().includes(q) ||
-      (ord.customerName || "").toLowerCase().includes(q) ||
-      (ord.tableOrRoom && ord.tableOrRoom.toLowerCase().includes(q)),
-  );
+  if (!searchQuery.trim()) return safeOrders;
+  return fuzzyFilter(safeOrders, searchQuery, [
+    (ord) => ord.orderNumber || "",
+    (ord) => ord.customerName || "",
+    (ord) => ord.tableOrRoom || "",
+    (ord) => ord.waiterName || "",
+    (ord) => ord.currentStage || "",
+    (ord) => String(ord.totalAmount || ""),
+  ]);
 }
 
 /**
@@ -112,25 +115,23 @@ export function filterActivePosReservations(
   statusFilter = "all",
   searchQuery = "",
 ): ReservationItem[] {
-  const safeRes = (Array.isArray(reservations) ? reservations : []).filter(
+  let safeRes = (Array.isArray(reservations) ? reservations : []).filter(
     (res) => res && res.status !== "completed" && res.status !== "cancelled",
   );
-  return safeRes.filter((res) => {
-    if (
-      statusFilter !== "all" &&
-      (res.status || "").toLowerCase() !== statusFilter.toLowerCase()
-    ) {
-      return false;
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchName = (res.customerName || "").toLowerCase().includes(q);
-      const matchPhone = (res.customerPhone || "").toLowerCase().includes(q);
-      const matchTable = (res.tableNumber || "").toLowerCase().includes(q);
-      return matchName || matchPhone || matchTable;
-    }
-    return true;
-  });
+  if (statusFilter !== "all") {
+    safeRes = safeRes.filter(
+      (res) => (res.status || "").toLowerCase() === statusFilter.toLowerCase(),
+    );
+  }
+  if (!searchQuery.trim()) return safeRes;
+  return fuzzyFilter(safeRes, searchQuery, [
+    (res) => res.customerName || "",
+    (res) => res.customerPhone || "",
+    (res) => res.tableNumber || "",
+    (res) => res.notes || "",
+    (res) => res.reservationDate || "",
+    (res) => res.reservationTime || "",
+  ]);
 }
 
 export function BillingTablesOrdersSidebar({
@@ -911,9 +912,9 @@ export function BillingTablesOrdersSidebar({
                     )}
 
                     {/* Bottom Action: Seat & Take Order */}
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                      <span className="text-[10px] text-slate-400">
-                        {res.reservationDate || "Today"}
+                    <div className="flex items-center justify-between pt-1 border-t border-border">
+                      <span className="text-[10px] text-foreground/70">
+                        {res.reservationDate ? formatDateIndian(res.reservationDate) : "Today"}
                       </span>
                       <button
                         type="button"

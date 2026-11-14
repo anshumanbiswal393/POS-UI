@@ -188,7 +188,7 @@ function buildHtmlSpreadsheet(options: ExportToExcelOptions): string {
     text-align: center;
     height: 24pt;
     vertical-align: middle;
-    border: 1px solid #CBD5E1;
+    border: 1px solid #0D9488;
   }
   th.col-header {
     background-color: #0F766E;
@@ -203,7 +203,7 @@ function buildHtmlSpreadsheet(options: ExportToExcelOptions): string {
     white-space: normal;
   }
   td.cell-text {
-    border: 1px solid #CBD5E1;
+    border: 1px solid #0D9488;
     font-size: 10.5pt;
     padding: 6px 10px;
     vertical-align: middle;
@@ -211,7 +211,7 @@ function buildHtmlSpreadsheet(options: ExportToExcelOptions): string {
     mso-number-format: '\\@';
   }
   td.cell-date {
-    border: 1px solid #CBD5E1;
+    border: 1px solid #0D9488;
     font-size: 10.5pt;
     padding: 6px 10px;
     vertical-align: middle;
@@ -219,7 +219,7 @@ function buildHtmlSpreadsheet(options: ExportToExcelOptions): string {
     mso-number-format: '\\@';
   }
   td.cell-num {
-    border: 1px solid #CBD5E1;
+    border: 1px solid #0D9488;
     font-size: 10.5pt;
     padding: 6px 10px;
     vertical-align: middle;
@@ -227,7 +227,7 @@ function buildHtmlSpreadsheet(options: ExportToExcelOptions): string {
     mso-number-format: '#,##0';
   }
   td.cell-curr {
-    border: 1px solid #CBD5E1;
+    border: 1px solid #0D9488;
     font-size: 10.5pt;
     font-weight: bold;
     color: #0F766E;
@@ -237,7 +237,7 @@ function buildHtmlSpreadsheet(options: ExportToExcelOptions): string {
     mso-number-format: '₹\\ #,##0.00';
   }
   .row-alt {
-    background-color: #F8FAFC;
+    background-color: #FFFFFF;
   }
   .summary-row td {
     background-color: #CCFBF1;

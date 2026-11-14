@@ -28,6 +28,7 @@ import { MenuCategoryManagerModal } from "../modals/MenuCategoryManagerModal";
 import { toast } from "sonner";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { cn } from "@/lib/utils";
+import { fuzzyFilter } from "@/utils/fuzzySearch";
 
 function MenuImageCell({
   item,
@@ -96,18 +97,20 @@ export function MenuListManagerView() {
   const [categoryModalMode, setCategoryModalMode] = useState<"menu" | "view" | "add">("menu");
   const categoryMenuRef = useRef<HTMLDivElement>(null);
 
-  // Search filter state for searching through menu name and code
+  // Search filter state for multi-field fuzzy search through menu name, code, category, subcategory, price, etc.
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredMenuItems = useMemo(() => {
     if (!searchQuery.trim()) return menuItems;
-    const q = searchQuery.toLowerCase().trim();
-    return menuItems.filter((item) => {
-      const nameMatch = item.name?.toLowerCase().includes(q);
-      const codeMatch = item.code?.toLowerCase().includes(q);
-      const catMatch = item.category?.toLowerCase().includes(q);
-      return Boolean(nameMatch || codeMatch || catMatch);
-    });
+    return fuzzyFilter(menuItems, searchQuery, [
+      (item) => item.name,
+      (item) => item.code,
+      (item) => item.category,
+      (item) => item.subCategory,
+      (item) => item.description,
+      (item) => String(item.price || ""),
+      (item) => item.status,
+    ]);
   }, [menuItems, searchQuery]);
 
   useEffect(() => {

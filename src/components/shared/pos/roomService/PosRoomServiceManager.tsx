@@ -30,6 +30,7 @@ import {
   RotateCw,
   SlidersHorizontal,
 } from "lucide-react";
+import { fuzzyMatch } from "@/utils/fuzzySearch";
 
 export function PosRoomServiceManager() {
   const [viewMode, setViewMode] = useState<"pipeline" | "floor_grid">("pipeline");
@@ -96,23 +97,26 @@ export function PosRoomServiceManager() {
     setIsNewModalOpen(true);
   };
 
-  // Filtered orders for pipeline
+  // Filtered orders for pipeline (with multi-field fuzzy search)
   const filteredOrders = orders.filter((o) => {
     if (statusFilter !== "all" && o.status !== statusFilter) return false;
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchRoom = o.roomNumber.toLowerCase().includes(q);
-      const matchGuest = o.guest.name.toLowerCase().includes(q);
-      const matchOrder = o.orderNumber.toLowerCase().includes(q);
-      return matchRoom || matchGuest || matchOrder;
+      return fuzzyMatch(searchQuery, [
+        o.roomNumber,
+        o.guest?.name || "",
+        o.guest?.phone || "",
+        o.orderNumber,
+        o.status,
+        ...(o.items || []).map((it) => it.name),
+      ]);
     }
     return true;
   });
 
   return (
-    <div className="flex flex-col flex-1 min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100dvh-3.5rem)] w-full lg:overflow-hidden bg-slate-100 font-sans">
+    <div className="flex flex-col flex-1 min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100dvh-3.5rem)] w-full lg:overflow-hidden bg-background font-sans">
       {/* 1. Header Toolbar - Flush with TopBar */}
-      <div className="px-3 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
+      <div className="px-3 sm:px-6 py-2.5 bg-card border-b border-border shrink-0">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-4">
           <div>
             <div className="flex items-center gap-2">
@@ -120,10 +124,10 @@ export function PosRoomServiceManager() {
                 <BedDouble className="w-5 h-5" />
               </span>
               <div>
-                <h1 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 tracking-tight leading-none">
+                <h1 className="font-serif text-xl sm:text-2xl font-bold text-foreground tracking-tight leading-none">
                   Room Orders
                 </h1>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-foreground/70 mt-0.5">
                   Guest room orders, butler dispatch queue, and PMS folio billing.
                 </p>
               </div>
@@ -133,25 +137,25 @@ export function PosRoomServiceManager() {
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             {/* Search */}
             <div className="relative flex-1 sm:flex-initial min-w-[160px]">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-foreground/60 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search room, guest..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:w-56 pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="w-full sm:w-56 pl-8 pr-3 py-1.5 text-xs bg-surface border border-border text-foreground rounded-xl focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
             </div>
 
             {/* View Mode Toggle: Pipeline vs Floor Grid */}
-            <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200/60">
+            <div className="flex items-center p-1 bg-surface rounded-xl border border-border">
               <button
                 type="button"
                 onClick={() => setViewMode("pipeline")}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   viewMode === "pipeline"
-                    ? "bg-white text-slate-900 shadow-xs"
-                    : "text-slate-500 hover:text-slate-900"
+                    ? "bg-card text-foreground shadow-xs"
+                    : "text-foreground/70 hover:text-foreground"
                 }`}
               >
                 <ListOrdered className="w-3.5 h-3.5" />

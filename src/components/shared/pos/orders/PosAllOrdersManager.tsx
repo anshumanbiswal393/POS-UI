@@ -31,6 +31,8 @@ import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 import { toast } from "sonner";
 import { allOrderItemToInvoicePayload, printPosInvoice } from "@/utils/printReceipt";
 import { InvoiceTemplate } from "../billing/InvoiceTemplate";
+import { fuzzyMatch } from "@/utils/fuzzySearch";
+import { formatDateIndian } from "@/utils/dateUtils";
 
 
 function getOrderDateIso(r: any): string {
@@ -85,7 +87,7 @@ function orderStatusClass(status: string) {
   if (key === "printed" || key === "running") {
     return "bg-amber-50 text-amber-800 border-amber-200";
   }
-  return "bg-slate-50 text-slate-700 border-slate-200";
+  return "bg-surface text-foreground border-border";
 }
 
 export function PosAllOrdersManager() {
@@ -225,36 +227,40 @@ export function PosAllOrdersManager() {
           return false;
       }
 
-      // Order ID
-      if (
-        appliedFilters.orderId &&
-        !r.orderNo.toLowerCase().includes(appliedFilters.orderId.toLowerCase())
-      ) {
-        return false;
+      // Order ID & Global Multi-Field Fuzzy Search across guest, table, item, phone, amount
+      if (appliedFilters.orderId) {
+        const matches = fuzzyMatch(appliedFilters.orderId, [
+          r.orderNo,
+          r.customerName,
+          r.customerPhone || "",
+          r.tableNo || "",
+          r.itemsSummary,
+          r.assignTo,
+          r.paymentMode,
+          r.status,
+          r.orderTypeDisplay,
+          r.grandTotalFormatted,
+          r.createdAt,
+        ]);
+        if (!matches) return false;
       }
 
-      // Customer Name
-      if (
-        appliedFilters.customerName &&
-        !r.customerName.toLowerCase().includes(appliedFilters.customerName.toLowerCase())
-      ) {
-        return false;
+      // Customer Name Fuzzy Search
+      if (appliedFilters.customerName) {
+        const matches = fuzzyMatch(appliedFilters.customerName, [r.customerName, r.customerPhone || ""]);
+        if (!matches) return false;
       }
 
-      // Customer Phone
-      if (
-        appliedFilters.customerPhone &&
-        !r.customerPhone?.includes(appliedFilters.customerPhone)
-      ) {
-        return false;
+      // Customer Phone Search
+      if (appliedFilters.customerPhone) {
+        const matches = fuzzyMatch(appliedFilters.customerPhone, [r.customerPhone || "", r.customerName]);
+        if (!matches) return false;
       }
 
-      // Table No
-      if (
-        appliedFilters.tableNo &&
-        !r.tableNo?.toLowerCase().includes(appliedFilters.tableNo.toLowerCase())
-      ) {
-        return false;
+      // Table No Search
+      if (appliedFilters.tableNo) {
+        const matches = fuzzyMatch(appliedFilters.tableNo, [r.tableNo || "", r.orderTypeDisplay]);
+        if (!matches) return false;
       }
 
       // Status
@@ -348,7 +354,7 @@ export function PosAllOrdersManager() {
         minWidth: 120,
         defaultWidth: 130,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="font-bold text-slate-900">{row.orderNo}</span>
+          <span className="font-bold text-foreground">{row.orderNo}</span>
         ),
       },
       {
@@ -360,7 +366,7 @@ export function PosAllOrdersManager() {
         minWidth: 150,
         defaultWidth: 170,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="font-semibold text-slate-800">{row.orderTypeDisplay}</span>
+          <span className="font-semibold text-foreground">{row.orderTypeDisplay}</span>
         ),
       },
       {
@@ -381,7 +387,7 @@ export function PosAllOrdersManager() {
         enableFiltering: true,
         minWidth: 130,
         defaultWidth: 140,
-        cell: ({ row }: { row: OrderRowType }) => <span className="text-slate-600">{row.assignTo}</span>,
+        cell: ({ row }: { row: OrderRowType }) => <span className="text-foreground/80">{row.assignTo}</span>,
       },
       {
         id: "itemsSummary",
@@ -390,7 +396,7 @@ export function PosAllOrdersManager() {
         minWidth: 200,
         defaultWidth: 220,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="text-slate-600 font-normal leading-relaxed text-[12px]">
+          <span className="text-foreground/80 font-normal leading-relaxed text-[12px]">
             {row.itemsSummary}
           </span>
         ),
@@ -404,7 +410,7 @@ export function PosAllOrdersManager() {
         minWidth: 140,
         defaultWidth: 150,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="font-medium">{row.myAmountFormatted}</span>
+          <span className="font-medium text-foreground">{row.myAmountFormatted}</span>
         ),
       },
       {
@@ -416,7 +422,7 @@ export function PosAllOrdersManager() {
         minWidth: 110,
         defaultWidth: 120,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="text-slate-500">{row.taxAmountFormatted}</span>
+          <span className="text-foreground/70">{row.taxAmountFormatted}</span>
         ),
       },
       {
@@ -428,7 +434,7 @@ export function PosAllOrdersManager() {
         minWidth: 130,
         defaultWidth: 140,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="text-slate-500">{row.discountAmountFormatted}</span>
+          <span className="text-foreground/70">{row.discountAmountFormatted}</span>
         ),
       },
       {
@@ -440,7 +446,7 @@ export function PosAllOrdersManager() {
         minWidth: 150,
         defaultWidth: 160,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="font-bold text-slate-900">{row.grandTotalFormatted}</span>
+          <span className="font-bold text-foreground">{row.grandTotalFormatted}</span>
         ),
       },
       {
@@ -451,7 +457,7 @@ export function PosAllOrdersManager() {
         enableFiltering: true,
         minWidth: 120,
         defaultWidth: 130,
-        cell: ({ row }: { row: OrderRowType }) => <span className="font-medium">{row.paymentMode}</span>,
+        cell: ({ row }: { row: OrderRowType }) => <span className="font-medium text-foreground">{row.paymentMode}</span>,
       },
       {
         id: "status",
@@ -475,8 +481,8 @@ export function PosAllOrdersManager() {
         accessorKey: "createdAt",
         enableSorting: true,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="text-slate-500 text-[11.5px] whitespace-nowrap">
-            {row.createdAt}
+          <span className="text-foreground text-[11.5px] whitespace-nowrap">
+            {formatDateIndian(row.createdAt)}
           </span>
         ),
       },
@@ -485,12 +491,12 @@ export function PosAllOrdersManager() {
         header: "Actions",
         align: "center",
         cell: ({ row: r }: { row: OrderRowType }) => (
-          <div className="flex items-center justify-center gap-1.5 text-slate-500 py-1">
+          <div className="flex items-center justify-center gap-1.5 text-foreground/70 py-1">
             <button
               type="button"
               onClick={() => setViewingOrder(r)}
               title="View Details"
-              className="rounded-lg border border-slate-200 bg-white p-1 hover:text-sky-600 hover:border-sky-300 transition cursor-pointer shadow-2xs"
+              className="rounded-lg border border-border bg-card p-1 hover:text-sky-600 hover:border-sky-300 transition cursor-pointer shadow-2xs"
             >
               <Eye className="h-3.5 w-3.5" />
             </button>
@@ -498,7 +504,7 @@ export function PosAllOrdersManager() {
               type="button"
               onClick={() => setPrintingOrder(r)}
               title="Print Invoice"
-              className="rounded-lg border border-slate-200 bg-white p-1 hover:text-emerald-600 hover:border-emerald-300 transition cursor-pointer shadow-2xs"
+              className="rounded-lg border border-border bg-card p-1 hover:text-emerald-600 hover:border-emerald-300 transition cursor-pointer shadow-2xs"
             >
               <Printer className="h-3.5 w-3.5" />
             </button>
@@ -506,7 +512,7 @@ export function PosAllOrdersManager() {
               type="button"
               onClick={() => alert(`Edit Order #${r.orderNo}`)}
               title="Edit Order"
-              className="rounded-lg border border-slate-200 bg-white p-1 hover:text-amber-600 hover:border-amber-300 transition cursor-pointer shadow-2xs"
+              className="rounded-lg border border-border bg-card p-1 hover:text-amber-600 hover:border-amber-300 transition cursor-pointer shadow-2xs"
             >
               <Edit className="h-3.5 w-3.5" />
             </button>
@@ -514,7 +520,7 @@ export function PosAllOrdersManager() {
               type="button"
               onClick={() => alert(`Reorder items from #${r.orderNo}`)}
               title="Reorder"
-              className="rounded-lg border border-slate-200 bg-white p-1 hover:text-purple-600 hover:border-purple-300 transition cursor-pointer shadow-2xs"
+              className="rounded-lg border border-border bg-card p-1 hover:text-purple-600 hover:border-purple-300 transition cursor-pointer shadow-2xs"
             >
               <RotateCcw className="h-3.5 w-3.5" />
             </button>
@@ -688,16 +694,16 @@ export function PosAllOrdersManager() {
               </div>
             </div>
 
-            {/* Order ID */}
-            <div className="min-w-[120px] flex-1">
+            {/* Smart Multi-Field Search */}
+            <div className="min-w-[150px] flex-1">
               <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
-                Order ID
+                Search Orders
               </label>
               <input
                 type="text"
                 value={orderIdInput}
                 onChange={(e) => setOrderIdInput(e.target.value)}
-                placeholder="e.g. 10519"
+                placeholder="Order ID, Guest, Phone, Item, Table..."
                 className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-[12.5px] text-slate-800 placeholder:text-slate-400 shadow-2xs hover:border-slate-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition"
               />
             </div>

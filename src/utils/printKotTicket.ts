@@ -162,12 +162,12 @@ function buildKotHtml(payload: KotPrintPayload) {
     td {
       vertical-align: top;
       padding: 5px 0;
-      border-bottom: 1px dotted #888;
+      border-bottom: 1.5px solid #000;
     }
-    .idx { width: 14px; font-weight: 800; color: #444; }
+    .idx { width: 14px; font-weight: 900; color: #000; }
     .item { text-align: left; }
     .name { font-size: 13px; font-weight: 900; }
-    .variant { font-size: 11px; font-weight: 700; color: #333; }
+    .variant { font-size: 11px; font-weight: 800; color: #000; }
     .note {
       font-size: 11px;
       margin-top: 2px;

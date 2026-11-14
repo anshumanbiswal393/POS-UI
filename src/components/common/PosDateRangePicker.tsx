@@ -1,10 +1,11 @@
 import * as React from "react";
 import { format, parseISO, subDays, startOfMonth, endOfMonth, isValid } from "date-fns";
-import { Calendar as CalendarIcon, ChevronDown, X, Sparkles } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronDown, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar, type DateRange } from "@/components/ui/calendar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { formatDateIndian, parseDateSafeIndian } from "@/utils/dateUtils";
 
 export interface PosDateRangePickerProps {
   /** Start date in YYYY-MM-DD format */
@@ -39,12 +40,8 @@ export interface PosDateRangePickerProps {
 
 function parseDateSafe(val?: string): Date | undefined {
   if (!val) return undefined;
-  try {
-    const d = parseISO(val);
-    return isValid(d) ? d : undefined;
-  } catch {
-    return undefined;
-  }
+  const parsed = parseDateSafeIndian(val);
+  return parsed || undefined;
 }
 
 function formatDateSafe(d?: Date): string {
@@ -156,25 +153,21 @@ export function PosDateRangePicker({
     },
   ];
 
-  // Formatted trigger label
+  // Formatted trigger label in Indian DD-MM-YYYY format
   const displayText = React.useMemo(() => {
     const fromDate = parseDateSafe(from);
     const toDate = parseDateSafe(to);
 
     if (fromDate && toDate) {
-      const sameDay = format(fromDate, "yyyy-MM-dd") === format(toDate, "yyyy-MM-dd");
-      if (sameDay) {
-        return format(fromDate, "MMM dd, yyyy");
+      const fromStr = formatDateIndian(fromDate);
+      const toStr = formatDateIndian(toDate);
+      if (fromStr === toStr) {
+        return fromStr;
       }
-      // If same year, compact into "Nov 04 – Nov 07, 2026"
-      if (fromDate.getFullYear() === toDate.getFullYear()) {
-        return `${format(fromDate, "MMM dd")} – ${format(toDate, "MMM dd, yyyy")}`;
-      }
-      // Across different years: "Nov 04, 2026 – Jan 02, 2027"
-      return `${format(fromDate, "MMM dd, yyyy")} – ${format(toDate, "MMM dd, yyyy")}`;
+      return `${fromStr} – ${toStr}`;
     }
     if (fromDate) {
-      return format(fromDate, "MMM dd, yyyy");
+      return formatDateIndian(fromDate);
     }
     return placeholder;
   }, [from, to, placeholder]);
@@ -198,7 +191,7 @@ export function PosDateRangePicker({
   return (
     <div className={cn("inline-flex flex-col gap-1", className?.includes("w-full") && "w-full")}>
       {label ? (
-        <span className="text-[11.5px] font-semibold text-slate-700 dark:text-slate-300">
+        <span className="text-[11.5px] font-semibold text-foreground">
           {label}
         </span>
       ) : null}
@@ -209,9 +202,9 @@ export function PosDateRangePicker({
             type="button"
             disabled={disabled}
             className={cn(
-              "inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white font-medium text-slate-700 shadow-2xs hover:bg-slate-50/80 hover:border-slate-400 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:opacity-50 disabled:cursor-not-allowed",
+              "inline-flex items-center gap-2 rounded-lg border border-border bg-card font-medium text-foreground shadow-2xs hover:bg-primary-tint/20 hover:border-primary/50 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:opacity-50 disabled:cursor-not-allowed",
               size === "sm" ? "px-2.5 py-1 text-xs h-8" : "px-3 py-2 text-[12.5px] h-10",
-              hasSelection && "border-teal-500/50 bg-teal-50/20 text-slate-900 font-semibold",
+              hasSelection && "border-teal-500/50 bg-teal-50/20 text-foreground font-semibold",
               className,
             )}
           >
@@ -219,11 +212,11 @@ export function PosDateRangePicker({
               className={cn(
                 "shrink-0",
                 size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4",
-                hasSelection ? "text-teal-600" : "text-slate-400",
+                hasSelection ? "text-teal-600" : "text-foreground/60",
               )}
             />
 
-            <span className="truncate whitespace-nowrap text-[12.5px] font-medium text-slate-800">
+            <span className="truncate whitespace-nowrap text-[12.5px] font-medium text-foreground">
               {displayText}
             </span>
 
@@ -246,12 +239,12 @@ export function PosDateRangePicker({
                     e.stopPropagation();
                     commitRange(undefined);
                   }}
-                  className="rounded-full p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition cursor-pointer"
+                  className="rounded-full p-0.5 text-foreground/60 hover:bg-primary-tint/30 hover:text-foreground transition cursor-pointer"
                 >
                   <X className="h-3 w-3" />
                 </span>
               ) : (
-                <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                <ChevronDown className="h-3.5 w-3.5 text-foreground/60 shrink-0" />
               )}
             </div>
           </button>
@@ -259,13 +252,13 @@ export function PosDateRangePicker({
 
         <PopoverContent
           align={align}
-          className="w-auto max-w-[calc(100vw-1rem)] max-h-[85dvh] overflow-y-auto p-0 border border-slate-200 bg-white shadow-2xl rounded-2xl z-50 text-slate-900"
+          className="w-auto max-w-[calc(100vw-1rem)] max-h-[85dvh] overflow-y-auto p-0 border border-border bg-card shadow-2xl rounded-2xl z-50 text-foreground"
         >
           <div className="flex flex-col md:flex-row">
             {/* Presets Column */}
             {showPresets ? (
-              <div className="border-b md:border-b-0 md:border-r border-slate-100 bg-slate-50/60 p-3 min-w-[140px] flex md:flex-col gap-1 justify-between flex-wrap">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1 hidden md:block">
+              <div className="border-b md:border-b-0 md:border-r border-border bg-surface p-3 min-w-[140px] flex md:flex-col gap-1 justify-between flex-wrap">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-foreground/70 px-2 py-1 hidden md:block">
                   Quick Ranges
                 </div>
                 {presets.map((preset) => (
@@ -273,7 +266,7 @@ export function PosDateRangePicker({
                     key={preset.label}
                     type="button"
                     onClick={() => applyPreset(preset.range())}
-                    className="rounded-lg px-2.5 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-700 transition cursor-pointer"
+                    className="rounded-lg px-2.5 py-1.5 text-left text-xs font-semibold text-foreground hover:bg-primary-tint/20 hover:text-primary transition cursor-pointer"
                   >
                     {preset.label}
                   </button>
@@ -285,7 +278,7 @@ export function PosDateRangePicker({
                       commitRange(undefined);
                       setOpen(false);
                     }}
-                    className="rounded-lg px-2.5 py-1.5 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer mt-auto border-t border-slate-200/60 pt-2"
+                    className="rounded-lg px-2.5 py-1.5 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer mt-auto border-t border-border pt-2"
                   >
                     Clear Filter
                   </button>
@@ -295,12 +288,12 @@ export function PosDateRangePicker({
 
             {/* Calendar Sliding Range Area */}
             <div className="p-3">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-2 px-1 text-xs">
-                <span className="font-semibold text-slate-700">
+              <div className="flex items-center justify-between border-b border-border pb-2.5 mb-2 px-1 text-xs">
+                <span className="font-semibold text-foreground">
                   {tempRange?.from && tempRange?.to
-                    ? `${format(tempRange.from, "MMM dd, yyyy")} – ${format(tempRange.to, "MMM dd, yyyy")}`
+                    ? `${formatDateIndian(tempRange.from)} – ${formatDateIndian(tempRange.to)}`
                     : tempRange?.from
-                      ? `Select End Date (from ${format(tempRange.from, "MMM dd, yyyy")})`
+                      ? `Select End Date (from ${formatDateIndian(tempRange.from)})`
                       : "Click Start Date, then slide to End Date"}
                 </span>
                 <span className="text-[11px] text-teal-600 font-bold">
@@ -319,11 +312,11 @@ export function PosDateRangePicker({
               />
 
               {/* Bottom Quick Controls */}
-              <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-2 px-1">
+              <div className="flex items-center justify-between border-t border-border pt-2.5 mt-2 px-1">
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="px-3 py-1 text-xs font-medium text-slate-500 hover:text-slate-800 transition cursor-pointer"
+                  className="px-3 py-1 text-xs font-medium text-foreground hover:text-primary transition cursor-pointer"
                 >
                   Cancel
                 </button>

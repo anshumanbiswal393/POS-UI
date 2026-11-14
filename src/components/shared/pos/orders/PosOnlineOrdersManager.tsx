@@ -31,6 +31,8 @@ import { exportToExcel } from "@/utils/exportUtils";
 import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
+import { fuzzyMatch } from "@/utils/fuzzySearch";
+import { formatDateIndian } from "@/utils/dateUtils";
 
 export function PosOnlineOrdersManager() {
   const [platformTab, setPlatformTab] = useState<"all" | "zomato" | "swiggy" | "direct_web">("all");
@@ -89,11 +91,19 @@ export function PosOnlineOrdersManager() {
       }
 
       if (searchOrderNo.trim()) {
-        const q = searchOrderNo.toLowerCase();
-        const matchesNo = r.orderNo.toLowerCase().includes(q);
-        const matchesCustomer = r.customerName.toLowerCase().includes(q);
-        const matchesOtp = r.otp.includes(q);
-        if (!matchesNo && !matchesCustomer && !matchesOtp) return false;
+        const matches = fuzzyMatch(searchOrderNo, [
+          r.orderNo,
+          r.customerName,
+          r.customerPhone || "",
+          r.otp,
+          r.platform,
+          r.riderDetails || "",
+          r.statusDisplay || "",
+          r.itemsText || "",
+          r.dateTime || "",
+          String(r.grandTotal || ""),
+        ]);
+        if (!matches) return false;
       }
 
       return true;
@@ -267,7 +277,7 @@ export function PosOnlineOrdersManager() {
             <div className="mt-0.5 text-[11px] text-text-secondary font-medium">
               {row.outletName}
             </div>
-            <div className="text-[10.5px] text-text-disabled">{row.dateTime}</div>
+            <div className="text-[10.5px] text-text-disabled">{formatDateIndian(row.dateTime) || row.dateTime}</div>
           </div>
         ),
       },

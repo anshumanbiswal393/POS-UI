@@ -1,4 +1,5 @@
 import { PosDateCalendarPopover } from "./PosDateCalendarPopover";
+import { PosGlobalSearch } from "./PosGlobalSearch";
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
@@ -241,19 +242,8 @@ export function PosTopBar({
         </div>
 
         {/* Center: Search input on wide Laptop/Desktop (>=xl so sidebar + actions never crush it) */}
-        <div className="hidden xl:block relative min-w-[210px] flex-1 max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-disabled" />
-          <input
-            id="pos-global-search"
-            data-pos-search
-            type="text"
-            placeholder="Search orders, tables, rooms, menu... (F3)"
-            aria-label="Search orders, tables, rooms"
-            className="h-9 w-full rounded-md border border-border bg-surface-2/60 pl-9 pr-14 text-[12.5px] text-text-primary placeholder:text-text-disabled focus:border-primary focus:bg-surface focus:outline-hidden transition-all"
-          />
-          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden xl:inline-flex items-center rounded border border-border bg-surface px-1.5 py-0.5 text-[9.5px] font-semibold text-text-disabled">
-            F3 / ⌘K
-          </kbd>
+        <div className="hidden xl:block min-w-[210px] flex-1 max-w-md">
+          <PosGlobalSearch id="pos-global-search" />
         </div>
 
         {/* Right: Actions + Date + Notifications + User Guide + Profile */}
@@ -568,18 +558,11 @@ export function PosTopBar({
       {/* Expandable Compact Global Search Bar (<xl) */}
       {mobileSearchOpen && (
         <div className="xl:hidden border-t border-border bg-surface px-2.5 sm:px-4 py-2 animate-in slide-in-from-top-1 duration-150">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-disabled" />
-            <input
-              ref={mobileSearchInputRef}
-              id="pos-global-search-mobile"
-              data-pos-search
-              type="text"
-              placeholder="Search orders, tables, rooms, menu..."
-              aria-label="Search orders, tables, rooms"
-              className="h-9 w-full rounded-md border border-border bg-surface-2/60 pl-9 pr-3 text-[12.5px] text-text-primary placeholder:text-text-disabled focus:border-primary focus:bg-surface focus:outline-hidden transition-all"
-            />
-          </div>
+          <PosGlobalSearch
+            id="pos-global-search-mobile"
+            isMobile={true}
+            onCloseMobile={() => setMobileSearchOpen(false)}
+          />
         </div>
       )}
     </header>

@@ -27,6 +27,8 @@ import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { exportToExcel } from "@/utils/exportUtils";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { fuzzyFilter } from "@/utils/fuzzySearch";
+import { formatDateIndian } from "@/utils/dateUtils";
 
 const VISIBLE_COLUMNS_KEY = "retrod:pos-due-settlement:visible-columns";
 
@@ -60,22 +62,20 @@ export function PosDueSettlementManager() {
     [dueBills],
   );
 
-  // List follows top-nav business day — no month/aging timelines
+  // List follows top-nav business day — with intelligent multi-field fuzzy search
   const filteredRecords = useMemo(() => {
-    return dueBills.filter((r) => {
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        if (
-          !r.billNo.toLowerCase().includes(q) &&
-          !r.customerName.toLowerCase().includes(q) &&
-          !r.tableOrRoom.toLowerCase().includes(q) &&
-          !r.customerPhone.includes(q)
-        ) {
-          return false;
-        }
-      }
-      return true;
-    });
+    if (!searchQuery.trim()) return dueBills;
+    return fuzzyFilter(dueBills, searchQuery, [
+      (r) => r.billNo,
+      (r) => r.customerName,
+      (r) => r.tableOrRoom,
+      (r) => r.customerPhone,
+      (r) => r.waiterName || "",
+      (r) => r.itemsSummary || "",
+      (r) => r.dueDate || "",
+      (r) => String(r.dueAmount || ""),
+      (r) => String(r.totalAmount || ""),
+    ]);
   }, [dueBills, searchQuery]);
 
   const handleOpenSettle = (bill: DueBill) => {
@@ -100,9 +100,9 @@ export function PosDueSettlementManager() {
         defaultWidth: 160,
         render: (_, bill) => (
           <div>
-            <div className="font-mono text-[13px] font-black text-slate-900">{bill.billNo}</div>
+            <div className="font-mono text-[13px] font-black text-foreground">{bill.billNo}</div>
             <div className="text-[11.5px] font-bold text-teal-800 mt-0.5">{bill.tableOrRoom}</div>
-            <div className="text-[10.5px] text-slate-400">Date: {bill.dueDate}</div>
+            <div className="text-[10.5px] text-foreground/70">Date: {formatDateIndian(bill.dueDate)}</div>
           </div>
         ),
       },
@@ -115,19 +115,19 @@ export function PosDueSettlementManager() {
         defaultWidth: 180,
         render: (_, bill) => (
           <div>
-            <div className="font-bold text-slate-900 text-[12.5px] flex items-center gap-1">
-              <User className="h-3 w-3 text-slate-400" />
+            <div className="font-bold text-foreground text-[12.5px] flex items-center gap-1">
+              <User className="h-3 w-3 text-foreground/60" />
               <span>{bill.customerName}</span>
             </div>
             {bill.customerPhone && bill.customerPhone !== "--" && (
-              <div className="text-[11px] text-slate-500 font-mono flex items-center gap-1 mt-0.5">
-                <Phone className="h-2.5 w-2.5 text-slate-400" />
+              <div className="text-[11px] text-foreground/70 font-mono flex items-center gap-1 mt-0.5">
+                <Phone className="h-2.5 w-2.5 text-foreground/60" />
                 <span>{bill.customerPhone}</span>
               </div>
             )}
-            <div className="text-[10.5px] text-slate-500 mt-0.5">
+            <div className="text-[10.5px] text-foreground/70 mt-0.5">
               Waiter:{" "}
-              <span className="font-semibold text-slate-700">{bill.waiterName || "Captain"}</span>
+              <span className="font-semibold text-foreground">{bill.waiterName || "Captain"}</span>
             </div>
           </div>
         ),

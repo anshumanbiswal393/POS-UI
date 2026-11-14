@@ -48,6 +48,8 @@ import { usePosDate } from "@/hooks/usePosDate";
 import { NewReservationModal } from "../tables/NewReservationModal";
 import { ReservationDetailSlide } from "../tables/ReservationDetailSlide";
 import { SwitchTableModal } from "../tables/SwitchTableModal";
+import { fuzzyMatch } from "@/utils/fuzzySearch";
+import { formatDateIndian } from "@/utils/dateUtils";
 import { exportToExcel } from "@/utils/exportUtils";
 import {
   PosDataGrid,
@@ -134,17 +136,22 @@ export function PosReservationsManager() {
   const [selectedReservation, setSelectedReservation] = useState<ReservationItem | null>(null);
   const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
 
-  // Filtered reservations
+  // Filtered reservations (Intelligent Multi-Field Fuzzy Search)
   const filteredReservations = useMemo(() => {
     return reservations.filter((res) => {
-      // 1. Search Query
+      // 1. Multi-Field Fuzzy Search
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchName = res.customerName.toLowerCase().includes(q);
-        const matchPhone = (res.customerPhone || "").toLowerCase().includes(q);
-        const matchTable = (res.tableNumber || "").toLowerCase().includes(q);
-        const matchNotes = (res.notes || "").toLowerCase().includes(q);
-        if (!matchName && !matchPhone && !matchTable && !matchNotes) {
+        const matches = fuzzyMatch(searchQuery, [
+          res.customerName,
+          res.customerPhone || "",
+          res.tableNumber || "",
+          res.notes || "",
+          res.reservationDate || "",
+          res.reservationTime || "",
+          res.status || "",
+          String(res.guestCount || res.guests || ""),
+        ]);
+        if (!matches) {
           return false;
         }
       }
@@ -274,7 +281,7 @@ export function PosReservationsManager() {
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-slate-900 truncate text-[12.5px]">
+                <span className="font-bold text-foreground truncate text-[12.5px]">
                   {res.customerName}
                 </span>
                 {res.isVip && (
@@ -284,8 +291,8 @@ export function PosReservationsManager() {
                 )}
               </div>
               {res.customerPhone ? (
-                <div className="flex items-center gap-1 text-[11px] text-slate-500 font-mono mt-0.5">
-                  <Phone className="w-2.5 h-2.5 text-slate-400" />
+                <div className="flex items-center gap-1 text-[11px] text-foreground/70 font-mono mt-0.5">
+                  <Phone className="w-2.5 h-2.5 text-foreground/60" />
                   <span>{res.customerPhone}</span>
                 </div>
               ) : null}
@@ -302,8 +309,8 @@ export function PosReservationsManager() {
         align: "center",
         minWidth: 120,
         render: (_, res) => (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 font-bold text-slate-700 text-xs">
-            <Users className="w-3.5 h-3.5 text-slate-400" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary-tint/30 font-bold text-foreground text-xs">
+            <Users className="w-3.5 h-3.5 text-primary" />
             {res.guests} Pax
           </span>
         ),
@@ -322,8 +329,8 @@ export function PosReservationsManager() {
           const areaName = table?.area || "Dining Area";
           return (
             <div>
-              <div className="font-bold text-slate-900 text-xs">{res.tableNumber}</div>
-              <div className="text-[11px] text-slate-500">{areaName}</div>
+              <div className="font-bold text-foreground text-xs">{res.tableNumber}</div>
+              <div className="text-[11px] text-foreground/70">{areaName}</div>
             </div>
           );
         },
@@ -336,9 +343,9 @@ export function PosReservationsManager() {
         filterable: true,
         minWidth: 130,
         render: (_, res) => (
-          <div className="flex items-center gap-1.5 font-medium text-slate-700 text-xs">
-            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>{res.reservationDate || "Today"}</span>
+          <div className="flex items-center gap-1.5 font-medium text-foreground text-xs">
+            <Calendar className="w-3.5 h-3.5 text-primary shrink-0" />
+            <span>{res.reservationDate ? formatDateIndian(res.reservationDate) : "Today"}</span>
           </div>
         ),
       },
@@ -350,11 +357,11 @@ export function PosReservationsManager() {
         filterable: true,
         minWidth: 140,
         render: (_, res) => (
-          <div className="flex items-center gap-1.5 font-medium text-slate-700 text-xs">
-            <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <div className="flex items-center gap-1.5 font-medium text-foreground text-xs">
+            <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
             <span>{res.reservationTime}</span>
             {res.endTime && (
-              <span className="text-slate-400 text-[10.5px]"> – {res.endTime}</span>
+              <span className="text-foreground/60 text-[10.5px]"> – {res.endTime}</span>
             )}
           </div>
         ),
@@ -512,12 +519,12 @@ export function PosReservationsManager() {
   return (
     <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50 pb-8">
       {/* Top Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 sm:px-6 py-2.5 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border bg-card px-4 sm:px-6 py-2.5 shrink-0">
         <div>
-          <h1 className="font-serif text-[20px] sm:text-[22px] font-bold tracking-tight text-slate-900 leading-tight">
+          <h1 className="font-serif text-[20px] sm:text-[22px] font-bold tracking-tight text-foreground leading-tight">
             Reservations List
           </h1>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-foreground/70">
             Real-time table bookings, guest arrivals, and reservation schedules
           </p>
         </div>
@@ -527,17 +534,17 @@ export function PosReservationsManager() {
           <button
             type="button"
             onClick={handleExportExcel}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground bg-card border border-border rounded-xl hover:bg-primary-tint/20 shadow-2xs transition cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
+            <Download className="w-3.5 h-3.5 text-foreground/70" />
             Excel
           </button>
           <button
             type="button"
             onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground bg-card border border-border rounded-xl hover:bg-primary-tint/20 shadow-2xs transition cursor-pointer"
           >
-            <Printer className="w-3.5 h-3.5 text-slate-500" />
+            <Printer className="w-3.5 h-3.5 text-foreground/70" />
             Print
           </button>
           <button
@@ -553,16 +560,16 @@ export function PosReservationsManager() {
 
       <div className="responsive-page-x py-4 sm:py-5 space-y-4">
         {/* View Switcher & Filter Toolbar — Aligned in one line */}
-        <div className="flex items-center gap-2 bg-white p-2.5 sm:p-3 rounded-xl border border-slate-300 shadow-2xs overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-2 bg-card p-2.5 sm:p-3 rounded-xl border border-border shadow-2xs overflow-x-auto scrollbar-none">
           {/* View Mode Buttons */}
-          <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200/60 shrink-0">
+          <div className="inline-flex p-1 rounded-xl bg-surface border border-border shrink-0">
             <button
               type="button"
               onClick={() => setViewMode("table")}
               className={`inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer whitespace-nowrap ${
                 viewMode === "table"
                   ? "bg-teal-700 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  : "text-foreground hover:text-primary"
               }`}
             >
               <TableIcon className="w-3.5 h-3.5" />
@@ -574,7 +581,7 @@ export function PosReservationsManager() {
               className={`inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer whitespace-nowrap ${
                 viewMode === "grid"
                   ? "bg-teal-700 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  : "text-foreground hover:text-primary"
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
@@ -590,7 +597,7 @@ export function PosReservationsManager() {
                 setAreaFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 focus:border-teal-500 focus:outline-hidden cursor-pointer shrink-0"
+              className="h-8.5 rounded-lg border border-border bg-card px-2.5 text-xs font-medium text-foreground focus:border-teal-500 focus:outline-hidden cursor-pointer shrink-0"
             >
               <option value="all">All Dining Areas</option>
               {areas.map((a) => (
@@ -608,7 +615,7 @@ export function PosReservationsManager() {
               setStatusFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 focus:border-teal-500 focus:outline-hidden cursor-pointer shrink-0"
+            className="h-8.5 rounded-lg border border-border bg-card px-2.5 text-xs font-medium text-foreground focus:border-teal-500 focus:outline-hidden cursor-pointer shrink-0"
           >
             <option value="all">All Statuses</option>
             <option value="reserved">Reserved</option>
@@ -649,7 +656,7 @@ export function PosReservationsManager() {
             className={`h-8.5 px-2.5 rounded-lg border text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
               !fromDate && !toDate
                 ? "bg-teal-700 text-white border-teal-800 shadow-2xs"
-                : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+                : "bg-card text-foreground border-border hover:bg-primary-tint/20"
             }`}
             title="Toggle between All Dates and Selected Date"
           >
@@ -658,7 +665,7 @@ export function PosReservationsManager() {
 
           {/* Search Input */}
           <div className="relative min-w-[180px] sm:min-w-[220px] flex-1">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-foreground/60 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search code, guest, phone, table..."
@@ -667,7 +674,7 @@ export function PosReservationsManager() {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              className="h-8.5 w-full rounded-lg border border-slate-300 bg-white pl-8 pr-3 text-[12px] font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-hidden"
+              className="h-8.5 w-full rounded-lg border border-border bg-card pl-8 pr-3 text-[12px] font-medium text-foreground placeholder-foreground/60 focus:border-teal-500 focus:outline-hidden"
             />
           </div>
 
