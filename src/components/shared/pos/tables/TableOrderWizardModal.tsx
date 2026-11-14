@@ -510,7 +510,7 @@ export function TableOrderWizardModal({
             {/* 1. PAX first */}
             <div>
               <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
-                Number of Guests / Pax
+                Pax
               </label>
               <div className="flex items-center gap-1.5 flex-wrap">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 10, 12].map((num) => (

@@ -243,7 +243,7 @@ export function PosReservationsManager() {
       "Guest Name": r.customerName,
       "Phone": r.customerPhone || "N/A",
       "Email": r.customerEmail || "N/A",
-      "Guests (Pax)": r.guests,
+      "Pax": r.guests,
       "Table": r.tableNumber,
       "Date": r.reservationDate,
       "Time": r.reservationTime,
@@ -274,7 +274,7 @@ export function PosReservationsManager() {
       { header: "TIME / SLOT", align: "center" as const },
       { header: "SOURCE", align: "left" as const },
       { header: "STATUS", align: "center" as const },
-      { header: "PAX", align: "center" as const },
+      { header: "Pax", align: "center" as const },
       { header: "DEPOSIT (₹)", align: "right" as const },
     ];
 
@@ -357,7 +357,7 @@ export function PosReservationsManager() {
       },
       {
         id: "guests",
-        header: "Guests / Pax",
+        header: "Pax",
         accessorKey: "guests",
         sortable: true,
         filterable: true,

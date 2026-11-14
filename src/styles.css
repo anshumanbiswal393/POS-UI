@@ -163,11 +163,11 @@
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
 
-  /* Neutrals & Borders — Balanced contrast, not too dark/black, not too bold */
-  --border: #cbd5e1;
-  --border-subtle: #e2e8f0;
-  --border-strong: #94a3b8;
-  --input: #cbd5e1;
+  /* Neutrals & Borders — Balanced medium contrast, not too dark/black and not too light */
+  --border: #64748b;
+  --border-subtle: #94a3b8;
+  --border-strong: #475569;
+  --input: #64748b;
   --ring: oklch(0.47 0.095 166);
 
   /* Semantic Feedback */
@@ -965,7 +965,7 @@
 .pos-data-table table,
 table.excel-format {
   border-collapse: collapse !important;
-  border: 1.5px solid #000000 !important;
+  border: 1.5px solid var(--border-strong) !important;
   text-align: center !important;
 }
 
@@ -975,8 +975,8 @@ table.excel-format {
 .pos-data-table table td,
 table.excel-format th,
 table.excel-format td {
-  border-right: 1px solid #000000 !important;
-  border-bottom: 1px solid #000000 !important;
+  border-right: 1px solid var(--border) !important;
+  border-bottom: 1px solid var(--border) !important;
   text-align: center !important;
   vertical-align: middle !important;
 }
@@ -984,7 +984,7 @@ table.excel-format td {
 .pos-excel-grid th,
 .pos-data-table table th,
 table.excel-format th {
-  border-bottom: 2px solid #000000 !important;
+  border-bottom: 2px solid var(--border-strong) !important;
   font-weight: 700 !important;
 }
 

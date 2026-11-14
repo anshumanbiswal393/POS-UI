@@ -605,7 +605,7 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
         </td>
         <td style="width: 50%;">
           <div class="info-row"><span class="info-label">Room / Table No:</span><span class="info-val">${escapeHtml(p.tableOrRoom || "—")}</span></div>
-          <div class="info-row"><span class="info-label">No Of Pax:</span><span class="info-val">${escapeHtml(String(p.pax || 1))}</span></div>
+          <div class="info-row"><span class="info-label">Pax:</span><span class="info-val">${escapeHtml(String(p.pax || 1))}</span></div>
           <div class="info-row"><span class="info-label">Date Of Arrival:</span><span class="info-val">${escapeHtml(issueDate)} ${escapeHtml(issueTime)}</span></div>
           <div class="info-row"><span class="info-label">Date Of Departure:</span><span class="info-val">${escapeHtml(issueDate)} ${escapeHtml(issueTime)}</span></div>
           <div class="info-row"><span class="info-label">Duration Of Stay:</span><span class="info-val">${escapeHtml(p.captainName || "1 Day")}</span></div>

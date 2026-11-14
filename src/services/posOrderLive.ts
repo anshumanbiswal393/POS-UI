@@ -563,6 +563,7 @@ export async function liveGetDueBills(outletId?: string) {
         b.agingBucket ||
         (b.daysOverdue > 30 ? "30+" : b.daysOverdue > 15 ? "16-30" : "0-15"),
       status: isSettled ? "Settled" : paidAmount > 0 ? "Partial" : (b.status || "Pending"),
+      orderStatus: isSettled ? "Paid" : "Ongoing",
     };
   });
 

@@ -28,6 +28,7 @@ import { AddCustomerDrawer } from "./AddCustomerDrawer";
 import { useSpecialNotes } from "@/hooks/queries/usePosMenu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FoodTypeIcon } from "@/components/ui/FoodTypeIcon";
 
 export type RunningOrderSummary = {
   id: string;

@@ -225,7 +225,7 @@ export function InvoiceTemplate({
             <span className="font-bold text-black">{p.tableOrRoom || "—"}</span>
           </div>
           <div className="flex justify-between">
-            <span className="font-bold text-slate-700">No Of Pax:</span>
+            <span className="font-bold text-slate-700">Pax:</span>
             <span>{p.pax || 1}</span>
           </div>
           <div className="flex justify-between">

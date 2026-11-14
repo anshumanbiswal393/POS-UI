@@ -142,7 +142,7 @@ const DATASETS: Record<string, { columns: DataTableColumn<any>[]; data: any[] }>
       { id: "empId", label: "Staff ID", sortable: true, getValue: (r) => r.empId },
       { id: "outlet", label: "Outlet", sortable: true, getValue: (r) => r.outlet },
       { id: "shift", label: "Shift", sortable: true, filterable: true, getValue: (r) => r.shift },
-      { id: "totalPax", label: "Total Pax / Covers", align: "right", sortable: true, getValue: (r) => String(r.totalPax) },
+      { id: "totalPax", label: "Pax", align: "right", sortable: true, getValue: (r) => String(r.totalPax) },
       { id: "totalBills", label: "Total Bills", align: "right", sortable: true, getValue: (r) => String(r.totalBills) },
       { id: "totalSales", label: "Total Sales (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.totalSales.toLocaleString()}` },
       { id: "avgPerPax", label: "Avg Spend / Pax (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.avgPerPax}` },

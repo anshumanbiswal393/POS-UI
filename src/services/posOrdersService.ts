@@ -625,6 +625,7 @@ export interface DueBill {
   dueDate: string;
   daysOverdue: number;
   status: "Pending" | "Partial" | "Settled";
+  orderStatus?: "Ongoing" | "Paid";
   settlementMode?: "Cash" | "Card" | "UPI" | "Room Charge" | "Split";
   agingBucket: "0-15" | "16-30" | "30+";
   createdAt?: string;
@@ -697,6 +698,7 @@ export async function getDueBills(outletId?: string): Promise<DueBill[]> {
           dueDate: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
           daysOverdue: 0,
           status: due === 0 ? "Settled" : paid > 0 ? "Partial" : "Pending",
+          orderStatus: due === 0 ? "Paid" : "Ongoing",
           agingBucket: "0-15",
           createdAt: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
         });
