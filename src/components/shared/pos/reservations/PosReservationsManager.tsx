@@ -69,31 +69,6 @@ function getTodayIso() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-const AVATAR_COLORS = [
-  "bg-emerald-100 text-emerald-800 border-emerald-200",
-  "bg-blue-100 text-blue-800 border-blue-200",
-  "bg-purple-100 text-purple-800 border-purple-200",
-  "bg-amber-100 text-amber-800 border-amber-200",
-  "bg-rose-100 text-rose-800 border-rose-200",
-  "bg-teal-100 text-teal-800 border-teal-200",
-];
-
-function getInitials(name?: string) {
-  if (!name) return "G";
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function getAvatarColor(name?: string) {
-  if (!name) return AVATAR_COLORS[0];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-
 const VISIBLE_COLUMNS_KEY = "retrod:pos-reservations:visible-columns";
 
 export function PosReservationsManager() {
@@ -326,32 +301,23 @@ export function PosReservationsManager() {
         filterable: true,
         minWidth: 220,
         render: (_, res) => (
-          <div className="flex items-center gap-2.5 py-1">
-            <div
-              className={`w-8 h-8 rounded-full border flex items-center justify-center font-bold text-xs shrink-0 ${getAvatarColor(
-                res.customerName,
-              )}`}
-            >
-              {getInitials(res.customerName)}
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-foreground truncate text-[12.5px]">
-                  {res.customerName}
+          <div className="py-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-foreground truncate text-[12.5px]">
+                {res.customerName}
+              </span>
+              {res.isVip && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                  <Crown className="w-2.5 h-2.5" /> VIP
                 </span>
-                {res.isVip && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                    <Crown className="w-2.5 h-2.5" /> VIP
-                  </span>
-                )}
-              </div>
-              {res.customerPhone ? (
-                <div className="flex items-center gap-1 text-[11px] text-foreground/70 font-mono mt-0.5">
-                  <Phone className="w-2.5 h-2.5 text-foreground/60" />
-                  <span>{res.customerPhone}</span>
-                </div>
-              ) : null}
+              )}
             </div>
+            {res.customerPhone ? (
+              <div className="flex items-center gap-1 text-[11px] text-foreground/70 font-mono mt-0.5">
+                <Phone className="w-2.5 h-2.5 text-foreground/60" />
+                <span>{res.customerPhone}</span>
+              </div>
+            ) : null}
           </div>
         ),
       },
@@ -843,30 +809,21 @@ export function PosReservationsManager() {
                         </div>
 
                         {/* Guest details */}
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-10 h-10 rounded-full border flex items-center justify-center font-bold text-sm shrink-0 ${getAvatarColor(
-                              res.customerName,
-                            )}`}
-                          >
-                            {getInitials(res.customerName)}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-sm text-slate-900 truncate">
-                                {res.customerName}
-                              </span>
-                              {res.isVip && (
-                                <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                              )}
-                            </div>
-                            {res.customerPhone && (
-                              <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
-                                <Phone className="w-3 h-3 text-slate-400" />
-                                {res.customerPhone}
-                              </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-sm text-slate-900 truncate">
+                              {res.customerName}
+                            </span>
+                            {res.isVip && (
+                              <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                             )}
                           </div>
+                          {res.customerPhone && (
+                            <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
+                              <Phone className="w-3 h-3 text-slate-400" />
+                              {res.customerPhone}
+                            </div>
+                          )}
                         </div>
 
                         {/* Notes / Details */}
