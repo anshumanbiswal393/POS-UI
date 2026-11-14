@@ -31,8 +31,8 @@ export function OrderTypesDonutChart({ orderTypes }: OrderTypesDonutChartProps) 
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
-      <div className="flex shrink-0 items-center justify-between border-b border-slate-200 pb-1.5">
+    <div className="flex h-full min-h-0 flex-col rounded-xl border border-black bg-white p-3 shadow-2xs">
+      <div className="flex shrink-0 items-center justify-between border-b border-black pb-1.5">
         <h2 className="text-[13.5px] font-bold text-slate-900">Order Types</h2>
         <span className="text-[11px] font-semibold text-slate-500">{totalCount} Orders</span>
       </div>

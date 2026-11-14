@@ -21,7 +21,7 @@ export function TableStatusCard({ tables }: TableStatusCardProps) {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
+    <div className="flex h-full min-h-0 flex-col rounded-xl border border-black bg-white p-3 shadow-2xs">
       <div className="flex shrink-0 items-center justify-between">
         <h2 className="text-[14px] font-bold text-slate-900">Table status</h2>
         <Link
@@ -61,7 +61,7 @@ export function TableStatusCard({ tables }: TableStatusCardProps) {
       )}
 
       {/* Legend */}
-      <div className="mt-2 flex shrink-0 items-center justify-center gap-4 border-t border-slate-100 pt-2 text-[11px]">
+      <div className="mt-2 flex shrink-0 items-center justify-center gap-4 border-t border-black pt-2 text-[11px]">
         <div className="flex items-center gap-1.5 font-medium text-slate-600">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
           <span>Available</span>

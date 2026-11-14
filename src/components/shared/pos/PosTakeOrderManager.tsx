@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { Layers } from "lucide-react";
 import {
   usePosTables,
   useDiningAreas,
@@ -14,6 +15,7 @@ import {
   useUpdateAreaMutation,
   useDeleteAreaMutation,
   useAddTableMutation,
+  useUpdateTableMutation,
   useDeleteTableMutation,
   useCreateTableOrderMutation,
   useUpdateTableOrderMutation,
@@ -29,6 +31,7 @@ import {
 import { TableFloorPlan } from "./tables/TableFloorPlan";
 import { AddTableModal } from "./tables/AddTableModal";
 import { AddAreaModal } from "./tables/AddAreaModal";
+import { FloorTableDirectoryDrawer } from "./tables/FloorTableDirectoryDrawer";
 import { AssignGuestModal } from "./tables/AssignGuestModal";
 import { TableOrderWizardModal } from "./tables/TableOrderWizardModal";
 import { TableOrderEditModal } from "./tables/TableOrderEditModal";
@@ -65,6 +68,7 @@ export function PosTakeOrderManager() {
   const [isAssignGuestOpen, setIsAssignGuestOpen] = useState(false);
   const [isTakeOrderWizardOpen, setIsTakeOrderWizardOpen] = useState(false);
   const [isEditOrderOpen, setIsEditOrderOpen] = useState(false);
+  const [isFloorTableListOpen, setIsFloorTableListOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<RestaurantTable | null>(null);
   const [wizardTableId, setWizardTableId] = useState<string | undefined>(undefined);
   const [bookingTableId, setBookingTableId] = useState<string | undefined>(undefined);
@@ -86,6 +90,7 @@ export function PosTakeOrderManager() {
   const updateAreaMutation = useUpdateAreaMutation();
   const deleteAreaMutation = useDeleteAreaMutation();
   const addTableMutation = useAddTableMutation();
+  const updateTableMutation = useUpdateTableMutation();
   const deleteTableMutation = useDeleteTableMutation();
   const createTableOrderMutation = useCreateTableOrderMutation();
   const updateTableOrderMutation = useUpdateTableOrderMutation();
@@ -376,11 +381,21 @@ export function PosTakeOrderManager() {
           </div>
         </div>
 
-        <div className="text-xs text-slate-500 font-medium hidden sm:block">
-          {activeSlide === "restaurant"
-            ? "Restaurant Seating & Table Ordering"
-            : "In-House Guest Room Orders"}
-        </div>
+        {activeSlide === "restaurant" ? (
+          <button
+            type="button"
+            onClick={() => setIsFloorTableListOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-black bg-white hover:bg-black/5 text-[12.5px] font-bold text-black shadow-2xs transition cursor-pointer"
+            title="List of floors and tables"
+          >
+            <Layers className="h-4 w-4 text-emerald-700" />
+            <span>List of Floors &amp; Tables</span>
+          </button>
+        ) : (
+          <div className="text-xs text-slate-700 font-bold hidden sm:block">
+            In-House Guest Room Orders
+          </div>
+        )}
       </div>
 
       {/* Main Slide Content */}
@@ -470,11 +485,37 @@ export function PosTakeOrderManager() {
       {/* 2. Add Table Modal */}
       <AddTableModal
         isOpen={isAddTableOpen}
-        onClose={() => setIsAddTableOpen(false)}
+        onClose={() => {
+          setIsAddTableOpen(false);
+          setEditingTable(null);
+        }}
         areas={diningAreas}
         defaultArea={activeArea}
         onAddTable={handleAddTable}
+        editingTable={editingTable}
+        onUpdateTable={(tblId, data) => updateTableMutation.mutate({ tableId: tblId, data })}
         nextTableNumberHint={allTables.length + 1}
+      />
+
+      {/* 2.1 List of Floors & Tables Directory Drawer */}
+      <FloorTableDirectoryDrawer
+        isOpen={isFloorTableListOpen}
+        onClose={() => setIsFloorTableListOpen(false)}
+        areas={diningAreas}
+        tables={allTables}
+        onOpenAddArea={() => setIsAddAreaOpen(true)}
+        onOpenAddTable={(defaultArea) => {
+          if (defaultArea) setActiveArea(defaultArea);
+          setEditingTable(null);
+          setIsAddTableOpen(true);
+        }}
+        onEditTable={(tbl) => {
+          setEditingTable(tbl);
+          setIsAddTableOpen(true);
+        }}
+        onDeleteTable={(tblId) => deleteTableMutation.mutate(tblId)}
+        onRenameArea={handleRenameArea}
+        onDeleteArea={handleDeleteArea}
       />
 
       {/* 3. Assign Guest to Table Modal */}

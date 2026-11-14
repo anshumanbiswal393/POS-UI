@@ -440,209 +440,196 @@ async function patchTableStatus(
 
 }
 
+export function getStoredAreas(outletId?: string): string[] {
+  if (typeof window === "undefined") return [];
+  const key = `retrod_pos_areas_${cleanOutletId(outletId) || "default"}`;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveStoredAreas(outletId: string | undefined, areas: string[]) {
+  if (typeof window === "undefined") return;
+  const key = `retrod_pos_areas_${cleanOutletId(outletId) || "default"}`;
+  try {
+    localStorage.setItem(key, JSON.stringify(areas));
+  } catch {}
+}
+
+export function getStoredTables(outletId?: string): RestaurantTable[] {
+  if (typeof window === "undefined") return [];
+  const key = `retrod_pos_tables_${cleanOutletId(outletId) || "default"}`;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveStoredTables(outletId: string | undefined, tables: RestaurantTable[]) {
+  if (typeof window === "undefined") return;
+  const key = `retrod_pos_tables_${cleanOutletId(outletId) || "default"}`;
+  try {
+    localStorage.setItem(key, JSON.stringify(tables));
+  } catch {}
+}
+
 export const posTablesService = {
 
   getAreas: async (): Promise<string[]> => {
-
     const effectiveId = scopedOutletId || (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null);
     const cid = cleanOutletId(effectiveId);
 
     let names: string[] = [];
 
     if (cid) {
-
       try {
-
         const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
-
           params: { outlet_id: cid, outletId: cid, page_size: 200 },
-
         });
-
         names = unwrapRows<any>(res.data)
-
           .map((s) => String(s.name || "").trim())
-
           .filter(Boolean);
-
       } catch (err) {
-
-        console.error("Failed to fetch areas from DB", err);
-
+        console.warn("Failed to fetch areas from DB, using local sync", err);
       }
-
     }
 
-    if (names.length === 0) {
-      const local = [...store().areas];
-      names = local;
+    const local = getStoredAreas(cid);
+    const inMem = store().areas;
+    const combined = Array.from(new Set([...names, ...local, ...inMem])).filter(Boolean);
+    if (combined.length > 0) {
+      saveStoredAreas(cid, combined);
+      store().areas = combined;
     }
-
-    return Array.from(new Set(names));
-
+    return combined;
   },
 
   addArea: async (areaName: string): Promise<string[]> => {
-
     const trimmed = areaName.trim();
-
     if (!trimmed) return posTablesService.getAreas();
 
     const effectiveId = scopedOutletId || (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null);
     const cid = cleanOutletId(effectiveId);
 
+    // Save locally first to ensure immediate persistence
+    const currentLocal = getStoredAreas(cid);
+    if (!currentLocal.some((a) => a.toLowerCase() === trimmed.toLowerCase())) {
+      const nextAreas = [...currentLocal, trimmed];
+      saveStoredAreas(cid, nextAreas);
+      store().areas = nextAreas;
+    }
+
     if (cid) {
-
       try {
-
         await httpClient.post(API_ENDPOINTS.TABLES.AREAS, {
-
           outlet: cid,
-
+          outlet_id: cid,
           name: trimmed,
-
           is_active: true,
-
         });
-
       } catch (err) {
-
-        console.warn("Section creation returned error or already exists", err);
-
+        console.warn("Section creation on backend returned error or already exists", err);
       }
-
-      return posTablesService.getAreas();
-
     }
 
-    if (!store().areas.includes(trimmed)) {
-
-      store().areas = [...store().areas, trimmed];
-
-    }
-
-    return [...store().areas];
-
+    return posTablesService.getAreas();
   },
 
   updateArea: async (oldName: string, newName: string): Promise<string[]> => {
-
     const trimmed = newName.trim();
-
     if (!trimmed || oldName.trim().toLowerCase() === trimmed.toLowerCase()) {
-
       return posTablesService.getAreas();
-
     }
 
     const effectiveId = scopedOutletId || (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null);
     const cid = cleanOutletId(effectiveId);
 
-    if (cid) {
+    // Update locally
+    const currentLocal = getStoredAreas(cid);
+    const updatedLocal = currentLocal.map((a) =>
+      a.toLowerCase() === oldName.toLowerCase() ? trimmed : a,
+    );
+    saveStoredAreas(cid, updatedLocal);
+    store().areas = updatedLocal;
 
-      try {
-
-        const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
-
-          params: { outlet_id: cid, outletId: cid, page_size: 200 },
-
-        });
-
-        const sections = unwrapRows<any>(res.data);
-
-        const section = sections.find(
-
-          (s) => String(s.name).trim().toLowerCase() === oldName.trim().toLowerCase(),
-
-        );
-
-        if (section?.id) {
-
-          await httpClient.patch(`${API_ENDPOINTS.TABLES.AREAS}${section.id}/`, {
-
-            name: trimmed,
-
-          });
-
-        }
-
-      } catch (err) {
-
-        console.error("Failed to update area in DB", err);
-
+    // Update in-memory tables & stored tables
+    store().tables.forEach((t) => {
+      if ((t.area || "").toLowerCase() === oldName.toLowerCase()) {
+        t.area = trimmed;
       }
+    });
+    const currentStoredTables = getStoredTables(cid);
+    saveStoredTables(
+      cid,
+      currentStoredTables.map((t) =>
+        (t.area || "").toLowerCase() === oldName.toLowerCase() ? { ...t, area: trimmed } : t,
+      ),
+    );
 
-      return posTablesService.getAreas();
-
-    }
-
-    const idx = store().areas.findIndex((a) => a.toLowerCase() === oldName.toLowerCase());
-
-    if (idx !== -1) {
-
-      store().areas[idx] = trimmed;
-
-      store().tables.forEach((t) => {
-
-        if (t.area.toLowerCase() === oldName.toLowerCase()) {
-
-          t.area = trimmed;
-
+    if (cid) {
+      try {
+        const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+          params: { outlet_id: cid, outletId: cid, page_size: 200 },
+        });
+        const sections = unwrapRows<any>(res.data);
+        const section = sections.find(
+          (s) => String(s.name).trim().toLowerCase() === oldName.trim().toLowerCase(),
+        );
+        if (section?.id) {
+          await httpClient.patch(`${API_ENDPOINTS.TABLES.AREAS}${section.id}/`, {
+            name: trimmed,
+          });
         }
-
-      });
-
+      } catch (err) {
+        console.warn("Failed to update area on backend:", err);
+      }
     }
 
-    return [...store().areas];
-
+    return posTablesService.getAreas();
   },
 
   deleteArea: async (areaName: string): Promise<string[]> => {
-
     const trimmed = areaName.trim();
-
     const effectiveId = scopedOutletId || (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null);
     const cid = cleanOutletId(effectiveId);
 
+    // Remove locally
+    const currentLocal = getStoredAreas(cid);
+    const filteredLocal = currentLocal.filter((a) => a.toLowerCase() !== trimmed.toLowerCase());
+    saveStoredAreas(cid, filteredLocal);
+    store().areas = filteredLocal;
+
+    // Remove tables belonging to this area locally
+    store().tables = store().tables.filter((t) => (t.area || "").toLowerCase() !== trimmed.toLowerCase());
+    const currentStoredTables = getStoredTables(cid);
+    saveStoredTables(
+      cid,
+      currentStoredTables.filter((t) => (t.area || "").toLowerCase() !== trimmed.toLowerCase()),
+    );
+
     if (cid) {
-
       try {
-
         const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
-
           params: { outlet_id: cid, outletId: cid, page_size: 200 },
-
         });
-
         const sections = unwrapRows<any>(res.data);
-
         const section = sections.find(
-
           (s) => String(s.name).trim().toLowerCase() === trimmed.toLowerCase(),
-
         );
-
         if (section?.id) {
-
           await httpClient.delete(`${API_ENDPOINTS.TABLES.AREAS}${section.id}/`);
-
         }
-
       } catch (err) {
-
-        console.error("Failed to delete area in DB", err);
-
+        console.warn("Failed to delete area on backend:", err);
       }
-
-      return posTablesService.getAreas();
-
     }
 
-    store().areas = store().areas.filter((a) => a.toLowerCase() !== trimmed.toLowerCase());
-
-    return [...store().areas];
-
+    return posTablesService.getAreas();
   },
 
   addTable: async (input: {
@@ -714,100 +701,165 @@ export const posTablesService = {
 
       }
 
-      if (!section?.id) {
-
-        throw new Error("Unable to create or locate dining section.");
-
+      if (section?.id) {
+        const shapeApi =
+          input.shape === "circle" ? "ROUND" : input.shape === "rectangle" ? "RECTANGLE" : "SQUARE";
+        const cleanNum = input.tableNumber.replace(/^Table\s*#?/i, "").trim() || input.tableNumber;
+        try {
+          const res = await httpClient.post(API_ENDPOINTS.TABLES.LIST, {
+            outlet: cid,
+            outlet_id: cid,
+            section: section.id,
+            table_number: cleanNum,
+            capacity: input.capacity,
+            shape: shapeApi,
+            status: "VACANT",
+            is_active: true,
+          });
+          const apiMapped = mapApiTable(res.data, input.area);
+          const currentStored = getStoredTables(cid);
+          saveStoredTables(cid, [...currentStored.filter((t) => t.id !== apiMapped.id), apiMapped]);
+          store().tables = [...store().tables.filter((t) => t.id !== apiMapped.id), apiMapped];
+          return apiMapped;
+        } catch (apiErr) {
+          console.warn("Backend table creation returned error, falling back to local sync", apiErr);
+        }
       }
-
-      const shapeApi =
-
-        input.shape === "circle" ? "ROUND" : input.shape === "rectangle" ? "RECTANGLE" : "SQUARE";
-
-      const cleanNum = input.tableNumber.replace(/^Table\s*#?/i, "").trim() || input.tableNumber;
-
-      const res = await httpClient.post(API_ENDPOINTS.TABLES.LIST, {
-
-        section: section.id,
-
-        table_number: cleanNum,
-
-        capacity: input.capacity,
-
-        shape: shapeApi,
-
-        status: "VACANT",
-
-        is_active: true,
-
-      });
-
-      return mapApiTable(res.data, input.area);
-
     }
 
     const rawNum = parseInt(input.tableNumber.replace(/\D/g, ""), 10) || store().tables.length + 1;
-
     const defaultShape = input.capacity >= 6 ? "rectangle" : "square";
+    const formattedNum = input.tableNumber.startsWith("Table #")
+      ? input.tableNumber
+      : input.tableNumber.startsWith("#")
+        ? `Table ${input.tableNumber}`
+        : `Table #${input.tableNumber}`;
 
     const newTable: RestaurantTable = {
-
       id: `tbl-${Date.now()}`,
-
-      tableNumber: input.tableNumber.startsWith("Table #")
-
-        ? input.tableNumber
-
-        : input.tableNumber.startsWith("#")
-
-          ? `Table ${input.tableNumber}`
-
-          : `Table #${input.tableNumber}`,
-
+      tableNumber: formattedNum,
       tableNumberRaw: rawNum,
-
       capacity: input.capacity,
-
       currentGuests: 0,
-
       shape: input.shape || defaultShape,
-
       area: input.area || "Dining Area",
-
       status: "vacant",
-
     };
 
     store().tables = [...store().tables, newTable];
+    const currentStored = getStoredTables(cid);
+    saveStoredTables(cid, [...currentStored.filter((t) => t.id !== newTable.id), newTable]);
+
+    // Ensure the area is saved locally
+    if (input.area) {
+      const currentAreas = getStoredAreas(cid);
+      if (!currentAreas.some((a) => a.toLowerCase() === input.area.toLowerCase())) {
+        const updatedAreas = [...currentAreas, input.area];
+        saveStoredAreas(cid, updatedAreas);
+        store().areas = updatedAreas;
+      }
+    }
 
     return newTable;
-
   },
 
-  deleteTable: async (tableId: string): Promise<boolean> => {
-
-    const effectiveId = scopedOutletId || (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null);
+  updateTable: async (
+    tableId: string,
+    data: Partial<RestaurantTable>,
+  ): Promise<RestaurantTable | null> => {
+    const effectiveId =
+      scopedOutletId ||
+      (typeof window !== "undefined"
+        ? localStorage.getItem("retrod_pos_active_outlet_id")
+        : null);
     const cid = cleanOutletId(effectiveId);
 
     if (cid && isBackendOutletId(tableId)) {
+      try {
+        let sectionId: string | undefined;
+        if (data.area) {
+          const sectionsRes = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+            params: { outlet_id: cid, outletId: cid, page_size: 200 },
+          });
+          const sections = unwrapRows<any>(sectionsRes.data);
+          const found = sections.find(
+            (s) =>
+              String(s.name).trim().toLowerCase() === (data.area || "").trim().toLowerCase(),
+          );
+          if (found) sectionId = found.id;
+        }
 
-      await httpClient.delete(`${API_ENDPOINTS.TABLES.LIST}${tableId}/`);
+        const payload: Record<string, unknown> = {};
+        if (data.tableNumber) {
+          payload.table_number =
+            data.tableNumber.replace(/^Table\s*#?/i, "").trim() || data.tableNumber;
+        }
+        if (data.capacity) payload.capacity = data.capacity;
+        if (data.shape) {
+          payload.shape =
+            data.shape === "circle"
+              ? "ROUND"
+              : data.shape === "rectangle"
+                ? "RECTANGLE"
+                : "SQUARE";
+        }
+        if (sectionId) payload.section = sectionId;
 
-      return true;
-
+        const res = await httpClient.patch(`${API_ENDPOINTS.TABLES.LIST}${tableId}/`, payload);
+        const updated = mapApiTable(res.data, data.area);
+        const stored = getStoredTables(cid).map((t) =>
+          t.id === tableId ? { ...t, ...updated } : t,
+        );
+        saveStoredTables(cid, stored);
+        store().tables = store().tables.map((t) => (t.id === tableId ? { ...t, ...updated } : t));
+        return updated;
+      } catch (err) {
+        console.warn("Backend updateTable failed, updating locally:", err);
+      }
     }
 
+    const stored = getStoredTables(cid);
+    const updatedList = stored.map((t) => (t.id === tableId ? { ...t, ...data } : t));
+    saveStoredTables(cid, updatedList);
+
+    store().tables = store().tables.map((t) => (t.id === tableId ? { ...t, ...data } : t));
+    return store().tables.find((t) => t.id === tableId) || null;
+  },
+
+  deleteTable: async (tableId: string): Promise<boolean> => {
+    const effectiveId =
+      scopedOutletId ||
+      (typeof window !== "undefined"
+        ? localStorage.getItem("retrod_pos_active_outlet_id")
+        : null);
+    const cid = cleanOutletId(effectiveId);
+
+    // Update locally first
     store().tables = store().tables.filter((t) => t.id !== tableId);
+    const stored = getStoredTables(cid);
+    saveStoredTables(
+      cid,
+      stored.filter((t) => t.id !== tableId),
+    );
+
+    if (cid && isBackendOutletId(tableId)) {
+      try {
+        await httpClient.delete(`${API_ENDPOINTS.TABLES.LIST}${tableId}/`);
+      } catch (err) {
+        console.warn("Backend deleteTable error:", err);
+      }
+    }
 
     return true;
-
   },
 
   getTables: async (area?: DiningArea, outletIdOverride?: string): Promise<RestaurantTable[]> => {
     const effectiveId =
       outletIdOverride ||
       scopedOutletId ||
-      (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null);
+      (typeof window !== "undefined"
+        ? localStorage.getItem("retrod_pos_active_outlet_id")
+        : null);
     const cid = cleanOutletId(effectiveId);
     if (cid) {
       let mapped: RestaurantTable[] = [];
@@ -825,6 +877,17 @@ export const posTablesService = {
         ...t,
         area: t.area && t.area.trim() ? t.area : "Dining Area",
       }));
+
+      // Merge with stored local tables to guarantee zero data loss
+      const stored = getStoredTables(cid);
+      const dbIds = new Set(mapped.map((t) => t.id));
+      const dbNums = new Set(mapped.map((t) => t.tableNumber.toLowerCase()));
+      const extraLocal = stored.filter(
+        (t) => !dbIds.has(t.id) && !dbNums.has(t.tableNumber.toLowerCase()),
+      );
+      mapped = [...mapped, ...extraLocal];
+      saveStoredTables(cid, mapped);
+      store().tables = mapped;
 
       // Real tables only from DB - zero hardcoded mock fallbacks
 

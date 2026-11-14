@@ -966,9 +966,9 @@ export function MainOtherReportsView() {
             </p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden print:border-none print:shadow-none print:rounded-none print:overflow-visible print:w-full print:m-0 print:p-0">
+          <div className="rounded-2xl border-2 border-black bg-white shadow-xs overflow-hidden print:border-none print:shadow-none print:rounded-none print:overflow-visible print:w-full print:m-0 print:p-0">
             <div className="overflow-x-auto print:overflow-visible print:w-full print:m-0 print:p-0">
-              <table className="w-full text-left text-[13px] border-collapse print:w-full print:text-[11px]">
+              <table className="w-full text-center text-[13px] border-collapse border border-black print:w-full print:text-[11px]">
                 <DataTableHeader
                   columns={activeColumns}
                   data={reportDataset}
@@ -980,28 +980,16 @@ export function MainOtherReportsView() {
                 />
 
                 {/* Screen Paginated Body */}
-                <tbody className="divide-y divide-slate-100 print:hidden">
+                <tbody className="divide-y divide-black border-b border-black print:hidden">
                   {paginatedReportData.map((row) => (
-                    <tr key={row.id} className="hover:bg-slate-50/70 transition">
+                    <tr key={row.id} className="hover:bg-slate-50 transition border-b border-black">
                       {activeColumns.map((col) => (
                         <td
                           key={col.id}
-                          className={`py-3 px-3.5 align-middle ${
-                            col.align === "center"
-                              ? "text-center"
-                              : col.align === "right"
-                              ? "text-right"
-                              : "text-left"
-                          }`}
+                          className="py-3 px-3.5 align-middle text-center border-r border-black border-b border-black text-black font-semibold text-[12.5px] whitespace-nowrap"
                         >
                           {col.getValue ? (
-                            <span
-                              className={
-                                col.align === "right"
-                                  ? "font-mono font-medium text-slate-800"
-                                  : "text-slate-800 font-medium"
-                              }
-                            >
+                            <span className="text-black font-bold">
                               {col.getValue(row)}
                             </span>
                           ) : (
@@ -1014,19 +1002,13 @@ export function MainOtherReportsView() {
                 </tbody>
 
                 {/* Print Full Report Body (All records printed without pagination cutting) */}
-                <tbody className="hidden print:table-row-group divide-y divide-slate-300">
+                <tbody className="hidden print:table-row-group divide-y divide-black">
                   {reportDataset.map((row, rIdx) => (
-                    <tr key={row.id || rIdx} className="print:border-b print:border-slate-300">
+                    <tr key={row.id || rIdx} className="print:border-b print:border-black">
                       {activeColumns.map((col) => (
                         <td
                           key={col.id}
-                          className={`py-2 px-3 text-[11px] align-middle print:border print:border-slate-300 ${
-                            col.align === "center"
-                              ? "text-center"
-                              : col.align === "right"
-                              ? "text-right font-mono font-medium"
-                              : "text-left"
-                          }`}
+                          className="py-2 px-3 text-[11px] align-middle text-center print:border print:border-black text-black font-semibold"
                         >
                           {col.getValue ? (
                             col.getValue(row)

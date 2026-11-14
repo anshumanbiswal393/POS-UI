@@ -11,9 +11,9 @@ interface LiveOrdersWidgetProps {
 export function LiveOrdersWidget({ orders }: LiveOrdersWidgetProps) {
   const visibleOrders = orders.slice(0, VISIBLE_ORDER_ROWS);
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
+    <div className="flex h-full min-h-0 flex-col rounded-xl border border-black bg-white p-3 shadow-2xs">
       {/* Header */}
-      <div className="flex shrink-0 items-center justify-between border-b border-slate-200 pb-1.5">
+      <div className="flex shrink-0 items-center justify-between border-b border-black pb-1.5">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
           <h2 className="text-[13.5px] font-bold text-slate-900">Current Orders</h2>
@@ -75,7 +75,7 @@ export function LiveOrdersWidget({ orders }: LiveOrdersWidgetProps) {
       )}
 
       {/* Footer Link */}
-      <div className="shrink-0 border-t border-slate-200 pt-1.5 text-center">
+      <div className="shrink-0 border-t border-black pt-1.5 text-center">
         <Link
           to="/pos/orders"
           className="text-[11.5px] font-bold text-primary hover:underline"

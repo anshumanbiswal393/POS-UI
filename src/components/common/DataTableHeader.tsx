@@ -1477,15 +1477,12 @@ export function DataTableFooter({
   const getContainerStyle = () => {
     switch (themeVariant) {
       case "primary":
-        return "border-t border-border bg-surface-2/40 text-text-primary";
       case "dark":
       case "slate":
-        return "border-t border-slate-800 bg-slate-950 text-slate-200";
       case "surface":
-        return "border-t border-border bg-surface-2 text-muted-foreground";
       case "subtle":
       default:
-        return "border-t border-border/80 bg-surface/90 text-muted-foreground";
+        return "border-t-2 border-black bg-white text-black";
     }
   };
 
@@ -1499,13 +1496,13 @@ export function DataTableFooter({
     >
       <div className="flex items-center gap-3 flex-wrap">
         {selectedCount !== undefined && selectedCount > 0 ? (
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-primary/10 border border-primary/20 text-primary font-bold text-[11.5px] animate-in fade-in-50">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-primary/10 border border-black text-primary font-bold text-[11.5px] animate-in fade-in-50">
             <span>{selectedCount} selected</span>
             {onClearSelection && (
               <button
                 type="button"
                 onClick={onClearSelection}
-                className="text-muted-foreground hover:text-primary transition-colors underline cursor-pointer"
+                className="text-black hover:underline font-bold transition-colors cursor-pointer"
               >
                 Clear
               </button>
@@ -1513,31 +1510,31 @@ export function DataTableFooter({
           </div>
         ) : null}
 
-        <span className="font-medium text-muted-foreground text-[12px]">
+        <span className="font-semibold text-black text-[12px]">
           {count === 0 ? (
             "No records"
           ) : count <= pageSize ? (
             <>
-              Showing <strong className="text-foreground font-semibold">{count}</strong> of{" "}
-              <strong className="text-foreground font-semibold">{count}</strong> {itemName}
+              Showing <strong className="text-black font-bold">{count}</strong> of{" "}
+              <strong className="text-black font-bold">{count}</strong> {itemName}
             </>
           ) : (
             <>
-              Showing <strong className="text-foreground font-semibold">{startItem}</strong> to{" "}
-              <strong className="text-foreground font-semibold">{endItem}</strong> of{" "}
-              <strong className="text-foreground font-semibold">{count}</strong> {itemName}
+              Showing <strong className="text-black font-bold">{startItem}</strong> to{" "}
+              <strong className="text-black font-bold">{endItem}</strong> of{" "}
+              <strong className="text-black font-bold">{count}</strong> {itemName}
             </>
           )}
         </span>
 
         {onPageSizeChange && (
-          <div className="flex items-center gap-1.5 pl-3 border-l border-border/80">
-            <span className="text-muted-foreground text-[11.5px]">Rows per page:</span>
+          <div className="flex items-center gap-1.5 pl-3 border-l border-black">
+            <span className="text-black font-medium text-[11.5px]">Rows per page:</span>
             <select
               value={pageSize}
               onChange={(e) => handlePageSizeChange(Number(e.target.value))}
               disabled={disabled}
-              className="h-7 px-2 py-0.5 rounded-lg border border-border bg-surface text-[11.5px] font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition shadow-2xs"
+              className="h-7 px-2 py-0.5 rounded-lg border border-black bg-white text-[11.5px] font-semibold text-black focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition shadow-2xs"
             >
               {pageSizeOptions.map((opt) => (
                 <option key={opt} value={opt}>
@@ -1556,7 +1553,7 @@ export function DataTableFooter({
           <button
             type="button"
             onClick={onPrint}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md border border-border bg-surface text-muted-foreground hover:text-foreground hover:bg-surface-2 transition text-[11.5px] font-medium cursor-pointer shadow-2xs"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md border border-black bg-white text-black hover:bg-slate-100 transition text-[11.5px] font-bold cursor-pointer shadow-2xs"
             title="Print"
           >
             <Printer className="h-3.5 w-3.5" />
@@ -1571,7 +1568,7 @@ export function DataTableFooter({
               type="button"
               onClick={() => onPageChange(Math.max(1, currentPage - 1))}
               disabled={disabled || currentPage <= 1}
-              className="h-7 w-7 rounded-md border border-border bg-surface flex items-center justify-center text-xs font-semibold text-muted-foreground hover:bg-surface-2 hover:text-foreground disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer shadow-2xs select-none"
+              className="h-7 w-7 rounded-md border border-black bg-white flex items-center justify-center text-xs font-bold text-black hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer shadow-2xs select-none"
               title="Previous page"
               aria-label="Previous page"
             >
@@ -1589,7 +1586,7 @@ export function DataTableFooter({
                     "h-7 min-w-[28px] px-2 rounded-md font-bold text-xs flex items-center justify-center transition cursor-pointer shadow-2xs select-none",
                     currentPage === page
                       ? "bg-primary text-primary-foreground font-extrabold shadow-xs"
-                      : "border border-border bg-surface text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+                      : "border border-black bg-white text-black hover:bg-slate-100"
                   )}
                 >
                   {page}
@@ -1597,7 +1594,7 @@ export function DataTableFooter({
               ) : (
                 <span
                   key={`ellipsis-${idx}`}
-                  className="h-7 w-5 flex items-center justify-center text-xs text-muted-foreground select-none"
+                  className="h-7 w-5 flex items-center justify-center text-xs font-bold text-black select-none"
                 >
                   ...
                 </span>
@@ -1608,7 +1605,7 @@ export function DataTableFooter({
               type="button"
               onClick={() => onPageChange(Math.min(effectiveTotalPages, currentPage + 1))}
               disabled={disabled || currentPage >= effectiveTotalPages}
-              className="h-7 w-7 rounded-md border border-border bg-surface flex items-center justify-center text-xs font-semibold text-muted-foreground hover:bg-surface-2 hover:text-foreground disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer shadow-2xs select-none"
+              className="h-7 w-7 rounded-md border border-black bg-white flex items-center justify-center text-xs font-bold text-black hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer shadow-2xs select-none"
               title="Next page"
               aria-label="Next page"
             >

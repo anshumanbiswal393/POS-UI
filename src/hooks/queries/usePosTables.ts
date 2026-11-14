@@ -158,6 +158,36 @@ export function useDeleteTableMutation() {
   });
 }
 
+export function useUpdateTableMutation() {
+  const { outletId, highwayDemo } = useOutletScopedTables();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      tableId,
+      data,
+    }: {
+      tableId: string;
+      data: Partial<import("@/types/posTables").RestaurantTable>;
+    }) => {
+      setTablesOutletScope(outletId, highwayDemo);
+      return posTablesService.updateTable(tableId, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_TABLE_STATS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_AREAS_QUERY_KEY });
+      toast.success("Table updated successfully");
+    },
+    onError: (err: unknown) => {
+      const message =
+        (err as { message?: string })?.message ||
+        (err as { data?: { detail?: string } })?.data?.detail ||
+        "Could not update table";
+      toast.error(String(message));
+    },
+  });
+}
+
 export function usePosTables(area?: DiningArea) {
   const { outletId, highwayDemo } = useOutletScopedTables();
   return useQuery({

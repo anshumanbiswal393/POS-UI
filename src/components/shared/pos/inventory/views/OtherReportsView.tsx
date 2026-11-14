@@ -1361,9 +1361,9 @@ export function OtherReportsView() {
         </div>
 
         {/* Report Table Card with Header & Footer */}
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden print:border-none print:shadow-none print:rounded-none">
+        <div className="rounded-2xl border-2 border-black bg-white shadow-2xs overflow-hidden print:border-none print:shadow-none print:rounded-none">
           <div className="overflow-x-auto print:overflow-visible">
-            <table className="w-full text-left text-[13px] border-collapse print:text-[11px]">
+            <table className="w-full text-center text-[13px] border-collapse border border-black print:text-[11px]">
               <DataTableHeader
                 columns={activeColumns}
                 data={filteredDataset}
@@ -1377,10 +1377,10 @@ export function OtherReportsView() {
               />
 
               {/* Paginated Screen Body */}
-              <tbody className="divide-y divide-slate-100 print:hidden">
+              <tbody className="divide-y divide-black border-b border-black print:hidden">
                 {paginatedDataset.length === 0 ? (
                   <tr>
-                    <td colSpan={activeColumns.length} className="py-14 text-center">
+                    <td colSpan={activeColumns.length} className="py-14 text-center border-b border-black">
                       <div className="flex flex-col items-center justify-center max-w-sm mx-auto text-slate-400">
                         <FileText className="h-10 w-10 text-slate-300 mb-2 stroke-[1.5]" />
                         <p className="text-[14px] font-semibold text-slate-700">No report records found</p>
@@ -1394,14 +1394,11 @@ export function OtherReportsView() {
                   </tr>
                 ) : (
                   paginatedDataset.map((row) => (
-                    <tr key={row.id} className="hover:bg-slate-50/70 transition">
+                    <tr key={row.id} className="hover:bg-slate-50/70 transition border-b border-black">
                       {activeColumns.map((col) => {
                         const cellVal = col.getValue
                           ? col.getValue(row)
                           : String((row as any)[col.id || ""] || "");
-
-                        const isRight = col.align === "right";
-                        const isCenter = col.align === "center";
 
                         // Check for status badges
                         const isHealth = col.id === "healthStatus" || col.id === "varianceStatus" || col.id === "status" || col.id === "inspectionStatus" || col.id === "paymentStatus" || col.id === "urgency" || col.id === "riskStatus";
@@ -1409,22 +1406,17 @@ export function OtherReportsView() {
                         return (
                           <td
                             key={col.id}
-                            className={cn(
-                              "px-4 py-3.5 align-middle text-[12.5px] whitespace-nowrap",
-                              isRight && "text-right font-mono font-medium text-slate-900",
-                              isCenter && "text-center",
-                              !isRight && !isCenter && "text-slate-800"
-                            )}
+                            className="px-4 py-3 align-middle text-[12.5px] border-r border-black border-b border-black text-center text-black font-semibold whitespace-nowrap"
                           >
                             {isHealth ? (
                               <span
                                 className={cn(
-                                  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold border",
+                                  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold border border-black",
                                   String(cellVal).includes("Optimal") || String(cellVal).includes("Done") || String(cellVal).includes("Passed") || String(cellVal).includes("Target") || String(cellVal).includes("On-Time") || String(cellVal).includes("Verified")
-                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                    ? "bg-emerald-50 text-emerald-800"
                                     : String(cellVal).includes("Warning") || String(cellVal).includes("Reorder") || String(cellVal).includes("Pending") || String(cellVal).includes("Alert") || String(cellVal).includes("Shortage")
-                                    ? "bg-amber-50 text-amber-700 border-amber-200"
-                                    : "bg-rose-50 text-rose-700 border-rose-200"
+                                    ? "bg-amber-50 text-amber-800"
+                                    : "bg-rose-50 text-rose-800"
                                 )}
                               >
                                 {cellVal}
@@ -1441,18 +1433,13 @@ export function OtherReportsView() {
               </tbody>
 
               {/* Complete Print Body (All records printed without pagination cutting) */}
-              <tbody className="hidden print:table-row-group divide-y divide-slate-300">
+              <tbody className="hidden print:table-row-group divide-y divide-black">
                 {filteredDataset.map((row) => (
-                  <tr key={row.id} className="border-b border-slate-300">
+                  <tr key={row.id} className="border-b border-black">
                     {activeColumns.map((col) => (
                       <td
                         key={col.id}
-                        className={cn(
-                          "px-3 py-2 text-[11px] border border-slate-300 align-middle",
-                          col.align === "right" && "text-right font-mono",
-                          col.align === "center" && "text-center",
-                          col.align !== "right" && col.align !== "center" && "text-left"
-                        )}
+                        className="px-3 py-2 text-[11px] border border-black align-middle text-center text-black font-semibold"
                       >
                         {col.getValue ? col.getValue(row) : String((row as any)[col.id || ""] || "")}
                       </td>

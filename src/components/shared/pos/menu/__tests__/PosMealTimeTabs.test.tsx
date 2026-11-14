@@ -194,3 +194,4 @@ describe("POS Menu Meal-Time Categories & Filtering Logic", () => {
     expect(counts.Dinner).toBe(5);
   });
 });
+
