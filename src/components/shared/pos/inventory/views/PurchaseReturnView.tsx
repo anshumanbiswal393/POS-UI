@@ -12,6 +12,7 @@ import {
 } from "@/components/common/DataTableHeader";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { toast } from "sonner";
+import { ColorActionView, ColorActionDelete } from "@/components/common/ColorActionIcons";
 
 export function PurchaseReturnView() {
   const { data: purchaseReturns } = usePurchaseReturns();
@@ -278,14 +279,14 @@ export function PurchaseReturnView() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5 text-slate-400">
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
                           onClick={() => toast.info(`Viewing Debit Note ${pr.debitNoteNo}`)}
-                          className="p-1 hover:text-teal-600 hover:bg-slate-100 rounded transition cursor-pointer"
+                          className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 shadow-2xs transition cursor-pointer"
                           title="View"
                         >
-                          <Eye className="h-4 w-4" />
+                          <ColorActionView className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
@@ -293,10 +294,10 @@ export function PurchaseReturnView() {
                             deleteMutation.mutate(pr.id);
                             toast.success(`Deleted Debit Note ${pr.debitNoteNo}`);
                           }}
-                          className="p-1 hover:text-red-600 hover:bg-slate-100 rounded transition cursor-pointer"
+                          className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
                           title="Delete"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <ColorActionDelete className="h-4 w-4" />
                         </button>
                       </div>
                     </td>

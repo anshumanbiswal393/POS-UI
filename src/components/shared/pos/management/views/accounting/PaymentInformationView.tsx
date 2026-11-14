@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { openPrintReportTable } from "@/utils/printReportTable";
+import { ColorActionPrint } from "@/components/common/ColorActionIcons";
 import { formatDateIndian } from "@/utils/dateUtils";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import {
@@ -434,7 +435,7 @@ export function PaymentInformationView() {
             className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-xs disabled:opacity-50"
             title="Print Payments Master Report"
           >
-            <Printer className="h-4 w-4 text-slate-500" />
+            <ColorActionPrint className="h-4 w-4" />
             Print
           </button>
           <button

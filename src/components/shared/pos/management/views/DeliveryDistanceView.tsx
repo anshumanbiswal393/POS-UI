@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 
 interface DistanceTier {
@@ -75,14 +76,14 @@ export function DeliveryDistanceView() {
         align: "right",
         defaultWidth: 110,
         render: (_, row) => (
-          <div className="inline-flex items-center gap-1.5 text-slate-400">
+          <div className="inline-flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => toast.info(`Editing tier ${row.fromKm}-${row.toKm} km`)}
-              className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-teal-600 transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 shadow-2xs transition cursor-pointer"
               title="Edit"
             >
-              <Edit2 className="h-3.5 w-3.5" />
+              <ColorActionEdit className="h-4 w-4" />
             </button>
             <button
               type="button"
@@ -90,10 +91,10 @@ export function DeliveryDistanceView() {
                 setDistanceTiers((prev) => prev.filter((i) => i.id !== row.id));
                 toast.success(`Removed tier`);
               }}
-              className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-red-600 transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
               title="Delete"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <ColorActionDelete className="h-4 w-4" />
             </button>
           </div>
         ),

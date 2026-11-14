@@ -32,6 +32,7 @@ import {
   ArrowLeftRight,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ColorActionPrint, ColorActionView } from "@/components/common/ColorActionIcons";
 import {
   usePosReservations,
   usePosTables,
@@ -512,9 +513,9 @@ export function PosReservationsManager() {
               type="button"
               onClick={() => handleOpenDetail(res)}
               title="View Details"
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 transition cursor-pointer shadow-2xs"
             >
-              <Eye className="w-3.5 h-3.5" />
+              <ColorActionView className="w-4 h-4" />
             </button>
             {res.status === "reserved" && (
               <button
@@ -597,7 +598,7 @@ export function PosReservationsManager() {
             onClick={handlePrint}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground bg-card border border-border rounded-xl hover:bg-primary-tint/20 shadow-2xs transition cursor-pointer"
           >
-            <Printer className="w-3.5 h-3.5 text-foreground/70" />
+            <ColorActionPrint className="w-3.5 h-3.5" />
             Print
           </button>
           <button

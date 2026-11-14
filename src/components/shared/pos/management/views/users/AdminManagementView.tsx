@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Plus, Eye, Edit2, Trash2, ShieldCheck, X, Building2, Mail, Phone, Calendar, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { ColorActionView, ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
 import { PosDataGrid } from "@/components/ui/data-grid";
 import type { DataGridColumn } from "@/components/ui/data-grid/types";
 import { AddAdminUserModal, type AdminUserFormData } from "./AddAdminUserModal";
@@ -153,14 +154,14 @@ export function AdminManagementView() {
       align: "right",
       width: 120,
       render: (_: any, row: AdminUser) => (
-        <div className="flex items-center justify-end gap-1 text-slate-400">
+        <div className="flex items-center justify-end gap-1.5">
           <button
             type="button"
             onClick={() => setViewingAdmin(row)}
-            className="p-1 hover:text-teal-600 hover:bg-slate-100 rounded transition cursor-pointer"
+            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 shadow-2xs transition cursor-pointer"
             title="View Details"
           >
-            <Eye className="h-4 w-4" />
+            <ColorActionView className="h-4 w-4" />
           </button>
           <button
             type="button"
@@ -168,18 +169,18 @@ export function AdminManagementView() {
               setEditingAdmin(row);
               setIsAddModalOpen(true);
             }}
-            className="p-1 hover:text-teal-600 hover:bg-slate-100 rounded transition cursor-pointer"
+            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 shadow-2xs transition cursor-pointer"
             title="Edit User"
           >
-            <Edit2 className="h-4 w-4" />
+            <ColorActionEdit className="h-4 w-4" />
           </button>
           <button
             type="button"
             onClick={() => handleDeleteAdmin(row.id, row.name)}
-            className="p-1 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
             title="Delete User"
           >
-            <Trash2 className="h-4 w-4" />
+            <ColorActionDelete className="h-4 w-4" />
           </button>
         </div>
       ),

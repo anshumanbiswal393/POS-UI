@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { openPrintReportTable } from "@/utils/printReportTable";
 import { toast } from "sonner";
+import { ColorActionPrint, ColorActionView } from "@/components/common/ColorActionIcons";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import {
   PosCreateCancelButton,
@@ -322,10 +323,10 @@ export function VirtualWalletView() {
           <button
             type="button"
             onClick={() => setStatementWallet(row)}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-teal-50 hover:text-teal-600 transition cursor-pointer inline-flex items-center justify-center"
+            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 shadow-2xs transition cursor-pointer mx-auto"
             title="View Passbook Statement"
           >
-            <FileText className="h-4 w-4" />
+            <ColorActionView className="h-4 w-4" />
           </button>
         ),
       },
@@ -408,7 +409,7 @@ export function VirtualWalletView() {
             className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-xs disabled:opacity-50"
             title="Print Guest Wallets Master Report"
           >
-            <Printer className="h-4 w-4 text-slate-500" />
+            <ColorActionPrint className="h-4 w-4" />
             Print
           </button>
           <button

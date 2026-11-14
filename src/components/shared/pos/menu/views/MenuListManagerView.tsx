@@ -23,6 +23,7 @@ import {
 import { useOutletContext } from "@/context/PosOutletContext";
 import { MenuItemEditModal } from "../modals/MenuItemEditModal";
 import { ItemImageManagerModal } from "../modals/ItemImageManagerModal";
+import { ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
 import { MenuItemViewModal } from "../modals/MenuItemViewModal";
 import { MenuCategoryManagerModal } from "../modals/MenuCategoryManagerModal";
 import { toast } from "sonner";
@@ -405,19 +406,19 @@ export function MenuListManagerView() {
           <button
             type="button"
             onClick={() => handleOpenEdit(row)}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-teal-50 hover:text-teal-700 transition cursor-pointer"
+            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 shadow-2xs transition cursor-pointer"
             title="Edit Item"
           >
-            <Edit2 className="h-4 w-4" />
+            <ColorActionEdit className="h-4 w-4" />
           </button>
 
           <button
             type="button"
             onClick={() => handleDeleteItem(row.id, row.name)}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
+            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
             title="Delete Item"
           >
-            <Trash2 className="h-4 w-4" />
+            <ColorActionDelete className="h-4 w-4" />
           </button>
         </div>
       ),

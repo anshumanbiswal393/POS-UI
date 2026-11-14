@@ -16,6 +16,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
 import {
   DataTableHeader,
   DataTableFooter,
@@ -444,22 +445,22 @@ export function ExpenseManagementView() {
         align: "right" as const,
         width: 100,
         render: (_: any, item: ListingItem) => (
-          <div className="inline-flex items-center gap-1 text-slate-400">
+          <div className="inline-flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => openEditEntryModal(item)}
-              className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-teal-600 transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 shadow-2xs transition cursor-pointer"
               title="Edit Entry"
             >
-              <Edit2 className="h-3.5 w-3.5" />
+              <ColorActionEdit className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => handleDeleteListing(item.id)}
-              className="rounded-lg p-1.5 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
               title="Delete Entry"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <ColorActionDelete className="h-4 w-4" />
             </button>
           </div>
         ),
@@ -523,22 +524,22 @@ export function ExpenseManagementView() {
         align: "right" as const,
         width: 110,
         render: (_: any, m: MasterItem) => (
-          <div className="inline-flex items-center gap-1 text-slate-400">
+          <div className="inline-flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => openEditMasterModal(m)}
-              className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-teal-600 transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 shadow-2xs transition cursor-pointer"
               title="Edit Master"
             >
-              <Edit2 className="h-3.5 w-3.5" />
+              <ColorActionEdit className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => handleDeleteMaster(m.id)}
-              className="rounded-lg p-1.5 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
               title="Delete Master"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <ColorActionDelete className="h-4 w-4" />
             </button>
           </div>
         ),

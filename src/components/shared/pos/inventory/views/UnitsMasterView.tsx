@@ -13,6 +13,7 @@ import {
   type DataTableColumn,
 } from "@/components/common/DataTableHeader";
 import { toast } from "sonner";
+import { ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
 
 const DEMO_UNITS = [
     {
@@ -217,13 +218,14 @@ export function UnitsMasterView() {
                     <td className="px-4 py-3 text-slate-600">{u.type}</td>
                     <td className="px-4 py-3 font-mono text-slate-700 text-[12.5px]">{u.ratio}</td>
                     <td className="px-4 py-3 text-right">
-                      <div className="inline-flex items-center gap-1 text-slate-400">
+                      <div className="inline-flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => toast.info(`Editing ${u.name}`)}
-                          className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
+                          className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 shadow-2xs transition cursor-pointer"
+                          title="Edit Unit"
                         >
-                          <Edit2 className="h-4 w-4" />
+                          <ColorActionEdit className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
@@ -237,9 +239,10 @@ export function UnitsMasterView() {
                               toast.success(`Deleted unit ${u.name}`);
                             }
                           }}
-                          className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-rose-600 transition cursor-pointer"
+                          className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
+                          title="Delete Unit"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <ColorActionDelete className="h-4 w-4" />
                         </button>
                       </div>
                     </td>

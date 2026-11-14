@@ -14,6 +14,7 @@ import {
   Layers,
   X,
 } from "lucide-react";
+import { ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
 import { toast } from "sonner";
 import { PosDataGrid } from "@/components/ui/data-grid";
 import type { DataGridColumn } from "@/components/ui/data-grid/types";
@@ -218,17 +219,17 @@ export function CategoriesManagementView() {
       align: "right",
       width: 100,
       render: (_: any, row: StockCategory) => (
-        <div className="flex items-center justify-end gap-1 text-muted-foreground">
+        <div className="flex items-center justify-end gap-1.5">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               openEditModal(row);
             }}
-            className="p-1 hover:text-primary hover:bg-surface-2 rounded transition cursor-pointer"
+            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 shadow-2xs transition cursor-pointer"
             title="Edit Category & Subcategories"
           >
-            <Edit2 className="h-3.5 w-3.5" />
+            <ColorActionEdit className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
@@ -236,10 +237,10 @@ export function CategoriesManagementView() {
               e.stopPropagation();
               handleDelete(row.id, row.name);
             }}
-            className="p-1 hover:text-red-500 hover:bg-surface-2 rounded transition cursor-pointer"
+            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
             title="Delete Category"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <ColorActionDelete className="h-3.5 w-3.5" />
           </button>
         </div>
       ),

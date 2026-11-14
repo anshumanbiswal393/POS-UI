@@ -4,16 +4,13 @@ import { formatINR } from "@/services/posDashboardService";
 import {
   Search,
   ChevronDown,
-  Eye,
-  Printer,
-  Edit,
-  RotateCcw,
   Split,
   Calendar,
   X,
   LayoutGrid,
   Table2,
 } from "lucide-react";
+import { ColorActionPrint, ColorActionEdit, ColorActionView } from "@/components/common/ColorActionIcons";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useAllOrders } from "@/hooks/queries/usePosOrders";
 import type { AllOrderItem } from "@/types/posOrders";
@@ -92,7 +89,6 @@ function orderStatusClass(status: string) {
 }
 
 export function PosAllOrdersManager() {
-  const [activeTab, setActiveTab] = useState<"order" | "advance_order">("order");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [mounted, setMounted] = useState(false);
   // Toggle state: collapsed (Picture 1) vs expanded (Picture 2)
@@ -195,10 +191,6 @@ export function PosAllOrdersManager() {
 
   const filteredRecords = useMemo(() => {
     return sourceRecords.filter((r) => {
-      // Tab filter
-      if (activeTab === "advance_order" && !r.isAdvanceOrder) return false;
-      if (activeTab === "order" && r.isAdvanceOrder) return false;
-
       // Date range filter
       const orderDate = getOrderDateIso(r);
       if (appliedFilters.startDate && orderDate) {
@@ -271,7 +263,7 @@ export function PosAllOrdersManager() {
 
       return true;
     });
-  }, [activeTab, appliedFilters, sourceRecords]);
+  }, [appliedFilters, sourceRecords]);
 
   const filteredGrandTotal = useMemo(() => {
     if (!filteredRecords.length) return formatINR(0);
@@ -550,38 +542,30 @@ export function PosAllOrdersManager() {
         header: "Actions",
         align: "center",
         cell: ({ row: r }: { row: OrderRowType }) => (
-          <div className="flex items-center justify-center gap-1.5 text-foreground/70 py-1">
+          <div className="flex items-center justify-center gap-1.5 py-1">
             <button
               type="button"
               onClick={() => setViewingOrder(r)}
               title="View Details"
-              className="rounded-lg border border-border bg-card p-1 hover:text-sky-600 hover:border-sky-300 transition cursor-pointer shadow-2xs"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 transition cursor-pointer shadow-2xs"
             >
-              <Eye className="h-3.5 w-3.5" />
+              <ColorActionView className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => setPrintingOrder(r)}
               title="Print Invoice"
-              className="rounded-lg border border-border bg-card p-1 hover:text-emerald-600 hover:border-emerald-300 transition cursor-pointer shadow-2xs"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-emerald-500 hover:bg-emerald-50/60 transition cursor-pointer shadow-2xs"
             >
-              <Printer className="h-3.5 w-3.5" />
+              <ColorActionPrint className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => alert(`Edit Order #${r.orderNo}`)}
               title="Edit Order"
-              className="rounded-lg border border-border bg-card p-1 hover:text-amber-600 hover:border-amber-300 transition cursor-pointer shadow-2xs"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 transition cursor-pointer shadow-2xs"
             >
-              <Edit className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => alert(`Reorder items from #${r.orderNo}`)}
-              title="Reorder"
-              className="rounded-lg border border-border bg-card p-1 hover:text-purple-600 hover:border-purple-300 transition cursor-pointer shadow-2xs"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
+              <ColorActionEdit className="h-4 w-4" />
             </button>
           </div>
         ),
@@ -636,49 +620,20 @@ export function PosAllOrdersManager() {
       {/* 1. Top Header Row - Flush with TopBar */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
 
-        {/* Left: Title, Order tabs, Table/Grid view */}
+        {/* Left: Title, Table/Grid view */}
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">Order History</h1>
-          <div className="flex items-center rounded-lg border border-slate-300 bg-slate-100 p-0.5 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("order");
-                setCurrentPage(1);
-              }}
-              className={`rounded-md px-3 py-1 text-[12px] font-bold transition cursor-pointer ${
-                activeTab === "order"
-                  ? "bg-white text-teal-800 shadow-2xs border border-slate-300"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Order
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("advance_order");
-                setCurrentPage(1);
-              }}
-              className={`rounded-md px-3 py-1 text-[12px] font-bold transition cursor-pointer ${
-                activeTab === "advance_order"
-                  ? "bg-white text-teal-800 shadow-2xs border border-slate-300"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Advance Order
-            </button>
-          </div>
 
+          {/* Table / Grid view switcher with theme-based selected background */}
           <div className="flex items-center rounded-lg border border-slate-300 bg-slate-100 p-0.5 shadow-2xs">
             <button
               type="button"
               onClick={() => setViewMode("table")}
               title="Table view"
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-bold transition cursor-pointer ${
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer ${
                 viewMode === "table"
-                  ? "bg-white text-teal-800 shadow-2xs border border-slate-300"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-slate-700 hover:text-slate-900 hover:bg-slate-200/60"
               }`}
             >
               <Table2 className="h-3.5 w-3.5" />
@@ -688,10 +643,10 @@ export function PosAllOrdersManager() {
               type="button"
               onClick={() => setViewMode("grid")}
               title="Grid view"
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-bold transition cursor-pointer ${
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer ${
                 viewMode === "grid"
-                  ? "bg-white text-teal-800 shadow-2xs border border-slate-300"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-slate-700 hover:text-slate-900 hover:bg-slate-200/60"
               }`}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
@@ -1020,38 +975,30 @@ export function PosAllOrdersManager() {
                 {order.itemsSummary}
               </p>
 
-              <div className="mt-auto flex items-center justify-end gap-1.5 border-t border-slate-100 pt-2.5 mt-3 text-slate-500">
+              <div className="mt-auto flex items-center justify-end gap-1.5 border-t border-slate-100 pt-2.5 mt-3">
                 <button
                   type="button"
                   onClick={() => setViewingOrder(order)}
                   title="View Details"
-                  className="rounded-lg border border-slate-200 bg-white p-1.5 hover:border-sky-300 hover:text-sky-600 transition cursor-pointer shadow-2xs"
+                  className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 transition cursor-pointer shadow-2xs"
                 >
-                  <Eye className="h-3.5 w-3.5" />
+                  <ColorActionView className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setPrintingOrder(order)}
                   title="Print Invoice"
-                  className="rounded-lg border border-slate-200 bg-white p-1.5 hover:border-emerald-300 hover:text-emerald-600 transition cursor-pointer shadow-2xs"
+                  className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-emerald-500 hover:bg-emerald-50/60 transition cursor-pointer shadow-2xs"
                 >
-                  <Printer className="h-3.5 w-3.5" />
+                  <ColorActionPrint className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
                   onClick={() => alert(`Edit Order #${order.orderNo}`)}
                   title="Edit Order"
-                  className="rounded-lg border border-slate-200 bg-white p-1.5 hover:border-amber-300 hover:text-amber-600 transition cursor-pointer shadow-2xs"
+                  className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 transition cursor-pointer shadow-2xs"
                 >
-                  <Edit className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => alert(`Reorder items from #${order.orderNo}`)}
-                  title="Reorder"
-                  className="rounded-lg border border-slate-200 bg-white p-1.5 hover:border-purple-300 hover:text-purple-600 transition cursor-pointer shadow-2xs"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
+                  <ColorActionEdit className="h-4 w-4" />
                 </button>
               </div>
             </article>

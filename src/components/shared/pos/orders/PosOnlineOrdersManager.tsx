@@ -33,6 +33,7 @@ import { exportToExcel } from "@/utils/exportUtils";
 import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
+import { ColorActionPrint, ColorActionView } from "@/components/common/ColorActionIcons";
 import { fuzzyMatch } from "@/utils/fuzzySearch";
 import { formatDateIndian } from "@/utils/dateUtils";
 
@@ -488,9 +489,9 @@ export function PosOnlineOrdersManager() {
               type="button"
               onClick={() => setViewingOrder(ord)}
               title="View Full Order Details"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-surface hover:bg-surface-2 text-text-primary shadow-2xs transition cursor-pointer"
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 bg-white hover:bg-sky-50 hover:border-sky-500 shadow-2xs transition cursor-pointer"
             >
-              <Eye className="h-3.5 w-3.5 text-text-secondary" />
+              <ColorActionView className="h-4 w-4" />
             </button>
           </div>
         ),
@@ -578,7 +579,7 @@ export function PosOnlineOrdersManager() {
             className="flex h-8 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-[11.5px] font-bold text-text-primary hover:bg-surface-2 shadow-2xs transition cursor-pointer disabled:opacity-50"
             title="Print Online Orders Master Report"
           >
-            <Printer className="h-3.5 w-3.5 text-text-secondary" />
+            <ColorActionPrint className="h-3.5 w-3.5" />
             <span>Print</span>
           </button>
 
@@ -794,8 +795,8 @@ export function PosOnlineOrdersManager() {
               </div>
 
               <div className="flex items-start gap-3 py-1.5 last:pb-0">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 shadow-2xs">
-                  <Eye className="h-4 w-4 text-slate-600" />
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white shadow-2xs">
+                  <ColorActionView className="h-4 w-4" />
                 </div>
                 <div>
                   <span className="font-extrabold text-slate-900">👁️ Eye Icon (Details):</span>

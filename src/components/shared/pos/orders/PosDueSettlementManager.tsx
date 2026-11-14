@@ -28,6 +28,7 @@ import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { exportToExcel } from "@/utils/exportUtils";
 import { openPrintReportTable } from "@/utils/printReportTable";
 import { toast } from "sonner";
+import { ColorActionPrint } from "@/components/common/ColorActionIcons";
 import { cn } from "@/lib/utils";
 import { fuzzyFilter } from "@/utils/fuzzySearch";
 import { formatDateIndian } from "@/utils/dateUtils";
@@ -574,7 +575,7 @@ export function PosDueSettlementManager() {
             className="flex items-center gap-1.5 h-8.5 px-3 rounded-lg border border-slate-300 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs disabled:opacity-50"
             title="Print Pending Payments Report"
           >
-            <Printer className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+            <ColorActionPrint className="h-3.5 w-3.5 shrink-0" />
             <span>Print</span>
           </button>
         </div>

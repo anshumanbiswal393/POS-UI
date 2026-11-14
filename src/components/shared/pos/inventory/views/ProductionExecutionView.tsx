@@ -25,6 +25,7 @@ import {
   PosCreatePanel,
   PosCreateSubmitButton,
 } from "@/components/layout/pos/PosCreatePanel";
+import { ColorActionPrint, ColorActionView } from "@/components/common/ColorActionIcons";
 import { toast } from "sonner";
 import { exportToExcel } from "@/utils/exportUtils";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
@@ -656,9 +657,9 @@ export function ProductionExecutionView() {
                           type="button"
                           onClick={() => setSelectedBatchDetails(b)}
                           title="View Batch Details & Deduction Log"
-                          className="flex items-center gap-1 rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer"
+                          className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 shadow-2xs transition cursor-pointer"
                         >
-                          <Eye className="h-4 w-4" />
+                          <ColorActionView className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
