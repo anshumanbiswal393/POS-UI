@@ -4,13 +4,13 @@ import { X, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const posCreateCancelClassName =
-  "rounded-lg border border-black bg-white px-5 py-2.5 text-[13px] font-bold text-foreground hover:bg-slate-100 cursor-pointer transition-colors shadow-2xs";
+  "rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-[13px] font-bold text-foreground hover:bg-slate-100 cursor-pointer transition-colors shadow-2xs";
 
 export const posCreateSubmitClassName =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-black bg-primary px-5 py-2.5 text-[13px] font-bold text-primary-foreground shadow-2xs hover:bg-primary/90 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary bg-primary px-5 py-2.5 text-[13px] font-bold text-primary-foreground shadow-2xs hover:bg-primary/90 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 
 export const posCreateInputClassName =
-  "w-full rounded-lg border border-black bg-white px-3.5 py-2.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition";
+  "w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition";
 
 export function PosCreateCancelButton({
   children = "Cancel",
@@ -90,7 +90,7 @@ export function PosCreatePanel({
   );
 
   const footerBar = footer ? (
-    <div className="flex shrink-0 items-center justify-end gap-3 border-t border-black bg-primary-tint/30 px-6 py-3.5">
+    <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-primary-tint/30 px-6 py-3.5">
       {footer}
     </div>
   ) : null;
@@ -110,17 +110,17 @@ export function PosCreatePanel({
         aria-modal="true"
         aria-labelledby="pos-create-panel-title"
         className={cn(
-          "relative z-10 flex w-full max-h-[92vh] flex-col rounded-2xl border-2 border-black bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden my-auto",
+          "relative z-10 flex w-full max-h-[92vh] flex-col rounded-2xl border border-slate-300 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden my-auto",
           size === "xl" ? "max-w-4xl" : size === "lg" ? "max-w-3xl" : "max-w-xl",
           className,
         )}
       >
         {/* Fixed Header */}
-        <div className="shrink-0 border-b border-black bg-primary-tint/60 px-6 py-4">
+        <div className="shrink-0 border-b border-slate-200 bg-primary-tint/60 px-6 py-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               {Icon ? (
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground border border-black shadow-2xs font-bold">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground border border-primary shadow-2xs font-bold">
                   <Icon className="h-4.5 w-4.5" />
                 </div>
               ) : null}
@@ -140,7 +140,7 @@ export function PosCreatePanel({
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="rounded-lg p-1.5 text-slate-700 transition-colors hover:bg-black/10 hover:text-black border border-black cursor-pointer shrink-0"
+              className="rounded-lg p-1.5 text-slate-700 transition-colors hover:bg-black/10 hover:text-black border border-slate-300 cursor-pointer shrink-0"
             >
               <X className="h-4.5 w-4.5" />
             </button>

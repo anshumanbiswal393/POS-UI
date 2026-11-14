@@ -24,9 +24,9 @@ export function MenuItemViewModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-      <div className="w-full max-w-xl max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl border-2 border-black overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-xl max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl border border-slate-300 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-center justify-between border-b-2 border-black px-6 py-4 bg-slate-50">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50">
           <div className="flex items-center gap-2.5">
             <span
               className={`flex h-6 w-6 items-center justify-center rounded-md border text-[11px] font-bold ${

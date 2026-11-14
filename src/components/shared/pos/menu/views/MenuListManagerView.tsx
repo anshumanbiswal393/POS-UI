@@ -494,9 +494,9 @@ export function MenuListManagerView() {
   return (
     <div className="space-y-4">
       {/* 1. Header Toolbar & Clean Compact Master Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border-2 border-black shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-300 shadow-2xs">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-800 border-2 border-black font-bold">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-800 border border-teal-200 font-bold">
             <UtensilsCrossed className="h-5 w-5" />
           </div>
           <div>
@@ -515,7 +515,7 @@ export function MenuListManagerView() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by menu name or code..."
-              className="h-10 w-full rounded-xl border border-black bg-white pl-9 pr-8 text-[13px] text-black placeholder:text-slate-500 focus:border-teal-600 focus:bg-white focus:outline-hidden transition"
+              className="h-10 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-8 text-[13px] text-black placeholder:text-slate-500 focus:border-teal-600 focus:bg-white focus:outline-hidden transition"
             />
             {searchQuery && (
               <button
@@ -535,7 +535,7 @@ export function MenuListManagerView() {
               refetch();
               toast.success("Menu items refreshed");
             }}
-            className="flex items-center gap-1.5 rounded-xl border border-black bg-white px-3.5 py-2 text-[12.5px] font-bold text-black hover:bg-slate-50 transition cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-[12.5px] font-bold text-black hover:bg-slate-50 transition cursor-pointer shadow-2xs"
             title="Refresh List"
           >
             <RefreshCw
@@ -548,14 +548,14 @@ export function MenuListManagerView() {
             <button
               type="button"
               onClick={() => setCategoryMenuOpen((v) => !v)}
-              className="flex items-center gap-1.5 rounded-xl border border-black bg-white hover:bg-slate-50 px-3.5 py-2 text-[12.5px] font-bold text-black shadow-2xs transition cursor-pointer"
+              className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-2 text-[12.5px] font-bold text-black shadow-2xs transition cursor-pointer"
             >
               <Layers className="h-4 w-4 text-teal-700" />
               <span>Category</span>
               <ChevronDown className="h-3.5 w-3.5 opacity-70" />
             </button>
             {categoryMenuOpen && (
-              <div className="absolute right-0 z-20 mt-1.5 w-56 rounded-xl border-2 border-black bg-white p-1.5 shadow-lg animate-in fade-in zoom-in-95">
+              <div className="absolute right-0 z-20 mt-1.5 w-56 rounded-xl border border-slate-300 bg-white p-1.5 shadow-lg animate-in fade-in zoom-in-95">
                 <button
                   type="button"
                   onClick={() => {
@@ -586,7 +586,7 @@ export function MenuListManagerView() {
 
           <Link
             to="/pos/inventory/production"
-            className="flex items-center gap-1.5 rounded-xl border border-black bg-white hover:bg-slate-50 px-3.5 py-2 text-[12.5px] font-bold text-black shadow-2xs transition cursor-pointer"
+            className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-2 text-[12.5px] font-bold text-black shadow-2xs transition cursor-pointer"
             title="Log daily cooked dishes and plate counts"
           >
             <CookingPot className="h-4 w-4 text-teal-700" />
@@ -596,7 +596,7 @@ export function MenuListManagerView() {
           <button
             type="button"
             onClick={handleOpenAdd}
-            className="flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground border border-black hover:opacity-90 px-4 py-2 text-[12.5px] font-bold shadow-xs transition cursor-pointer"
+            className="flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground border border-primary hover:opacity-90 px-4 py-2 text-[12.5px] font-bold shadow-xs transition cursor-pointer"
           >
             <Plus className="h-4 w-4" />
             <span>Add New Item</span>
@@ -605,7 +605,7 @@ export function MenuListManagerView() {
       </div>
 
       {/* 2. Meal-Time Filter Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto p-1.5 bg-white rounded-xl border-2 border-black">
+      <div className="flex items-center gap-2 overflow-x-auto p-1.5 bg-white rounded-xl border border-slate-300">
         {MEAL_TIME_TABS.map((tab) => {
           const isSelected = selectedMealTime === tab;
           const count = mealTimeCounts[tab];
@@ -617,14 +617,14 @@ export function MenuListManagerView() {
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-bold transition cursor-pointer border",
                 isSelected
-                  ? "bg-primary text-primary-foreground border-black shadow-xs ring-1 ring-black/20"
-                  : "bg-white text-black border-black hover:bg-slate-50",
+                  ? "bg-primary text-primary-foreground border-primary shadow-xs ring-1 ring-primary/20"
+                  : "bg-white text-black border-slate-300 hover:bg-slate-50",
               )}
             >
               <span>{tab}</span>
               <span
                 className={cn(
-                  "px-2 py-0.5 rounded-full text-[11px] font-extrabold border border-black",
+                  "px-2 py-0.5 rounded-full text-[11px] font-extrabold border border-slate-200",
                   isSelected
                     ? "bg-white text-primary"
                     : "bg-slate-100 text-black",

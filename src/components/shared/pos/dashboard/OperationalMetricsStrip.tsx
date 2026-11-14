@@ -10,7 +10,7 @@ export function OperationalMetricsStrip({ operations }: OperationalMetricsStripP
   return (
     <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
       {/* 1. Avg. preparation */}
-      <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-black bg-white px-2.5 py-2 shadow-2xs">
+      <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-2.5 py-2 shadow-2xs">
         <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/30 text-primary">
           <Clock className="h-4 w-4" />
         </div>
@@ -25,7 +25,7 @@ export function OperationalMetricsStrip({ operations }: OperationalMetricsStripP
       </div>
 
       {/* 2. Successful */}
-      <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-black bg-white px-2.5 py-2 shadow-2xs">
+      <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-2.5 py-2 shadow-2xs">
         <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/30 text-primary">
           <CheckCircle2 className="h-4 w-4" />
         </div>
@@ -38,8 +38,8 @@ export function OperationalMetricsStrip({ operations }: OperationalMetricsStripP
       </div>
 
       {/* 3. Complimentary */}
-      <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-black bg-white px-2.5 py-2 shadow-2xs">
-        <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-lg bg-slate-100 border border-black text-black">
+      <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-2.5 py-2 shadow-2xs">
+        <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-lg bg-slate-100 border border-slate-200 text-black">
           <Gift className="h-4 w-4" />
         </div>
         <div className="min-w-0">
@@ -53,8 +53,8 @@ export function OperationalMetricsStrip({ operations }: OperationalMetricsStripP
       </div>
 
       {/* 4. Cancelled */}
-      <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-black bg-white px-2.5 py-2 shadow-2xs">
-        <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-lg bg-slate-100 border border-black text-black">
+      <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-2.5 py-2 shadow-2xs">
+        <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-lg bg-slate-100 border border-slate-200 text-black">
           <XCircle className="h-4 w-4" />
         </div>
         <div className="min-w-0">
@@ -66,9 +66,9 @@ export function OperationalMetricsStrip({ operations }: OperationalMetricsStripP
       </div>
 
       {/* 5. Discounts & NC */}
-      <div className="col-span-2 xl:col-span-1 flex min-w-0 items-center justify-between gap-2 rounded-xl border border-black bg-white px-2.5 py-2 shadow-2xs">
+      <div className="col-span-2 xl:col-span-1 flex min-w-0 items-center justify-between gap-2 rounded-xl border border-slate-300 bg-white px-2.5 py-2 shadow-2xs">
         <div className="flex min-w-0 items-center gap-2.5">
-          <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-lg bg-slate-100 border border-black text-black">
+          <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-lg bg-slate-100 border border-slate-200 text-black">
             <AlertTriangle className="h-4 w-4" />
           </div>
           <div className="min-w-0">

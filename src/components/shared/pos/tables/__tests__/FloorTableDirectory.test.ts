@@ -29,7 +29,7 @@ describe("Floor & Table Directory and Persistence", () => {
     expect(content).toContain("Are you sure you want to delete");
 
     // Excel grid formatting
-    expect(content).toContain("text-center border-collapse border border-black");
+    expect(content).toContain("text-center border-collapse border border-slate-300");
   });
 
   it("posTablesService supports dual persistence for floors and tables", () => {

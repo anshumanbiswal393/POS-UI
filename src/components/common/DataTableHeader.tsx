@@ -380,14 +380,14 @@ export function DataTableHeader<T = any>({
     onAutosizeChange?.(all);
   };
 
-  // Theme variant styling classes aligned with POS design system (Strict Excel Black Borders)
+  // Theme variant styling classes aligned with POS design system (Clean Excel Borders)
   const getThemeClasses = () => {
     switch (themeVariant) {
       case "primary":
         return {
-          row: "bg-primary text-primary-foreground border-b-2 border-black shadow-xs",
+          row: "bg-primary text-primary-foreground border-b border-slate-300 shadow-xs",
           th: "bg-primary text-primary-foreground",
-          border: "border-r border-black",
+          border: "border-r border-slate-300",
           text: "text-primary-foreground font-extrabold text-[11.5px] uppercase tracking-wider whitespace-nowrap text-center",
           iconBtn:
             "text-primary-foreground/75 hover:text-primary-foreground hover:bg-white/15",
@@ -398,9 +398,9 @@ export function DataTableHeader<T = any>({
       case "dark":
       case "slate":
         return {
-          row: "bg-slate-900 text-white dark:bg-slate-950 dark:text-slate-100 border-b-2 border-black shadow-xs",
+          row: "bg-slate-900 text-white dark:bg-slate-950 dark:text-slate-100 border-b border-slate-300 shadow-xs",
           th: "bg-slate-900 text-white dark:bg-slate-950 dark:text-slate-100",
-          border: "border-r border-black",
+          border: "border-r border-slate-300",
           text: "text-white font-extrabold text-[11.5px] uppercase tracking-wider whitespace-nowrap text-center",
           iconBtn: "text-slate-400 hover:text-white hover:bg-slate-800/80",
           activeFilterBtn:
@@ -410,15 +410,15 @@ export function DataTableHeader<T = any>({
       case "surface":
       default:
         return {
-          row: "bg-white text-black border-b-2 border-black",
+          row: "bg-white text-black border-b border-slate-300",
           th: "bg-white text-black",
-          border: "border-r border-black",
+          border: "border-r border-slate-300",
           text: "text-black font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap text-center",
           iconBtn:
             "text-black hover:text-black hover:bg-black/10",
           activeFilterBtn:
             "text-primary bg-primary/10 font-bold border border-primary/30",
-          checkbox: "border-black",
+          checkbox: "border-slate-400",
         };
     }
   };
@@ -648,7 +648,7 @@ export function DataTableHeader<T = any>({
               maxWidth: "48px",
             }}
             className={cn(
-              "sticky left-0 z-10 w-12 px-3 py-3 text-center border-r border-black border-b-2 border-black select-none",
+              "sticky left-0 z-10 w-12 px-3 py-3 text-center border-r border-b border-slate-300 select-none",
               theme.th
             )}
           >
@@ -660,7 +660,7 @@ export function DataTableHeader<T = any>({
                   if (el) el.indeterminate = Boolean(isSomeSelected && !isAllSelected);
                 }}
                 onChange={() => onToggleSelectAll?.()}
-                className="rounded border-black text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer accent-white"
+                className="rounded border-slate-400 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer accent-white"
                 aria-label="Select all"
               />
             </div>
@@ -695,7 +695,7 @@ export function DataTableHeader<T = any>({
                 ...pinned.style,
               }}
               className={cn(
-                "px-3.5 py-3 transition-colors font-sans select-none whitespace-nowrap border-r border-black border-b-2 border-black text-center",
+                "px-3.5 py-3 transition-colors font-sans select-none whitespace-nowrap border-r border-b border-slate-300 text-center",
                 !isPinned ? "relative" : "",
                 theme.th,
                 pinned.className,
@@ -1482,7 +1482,7 @@ export function DataTableFooter({
       case "surface":
       case "subtle":
       default:
-        return "border-t-2 border-black bg-white text-black";
+        return "border-t border-slate-300 bg-white text-black";
     }
   };
 
@@ -1496,7 +1496,7 @@ export function DataTableFooter({
     >
       <div className="flex items-center gap-3 flex-wrap">
         {selectedCount !== undefined && selectedCount > 0 ? (
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-primary/10 border border-black text-primary font-bold text-[11.5px] animate-in fade-in-50">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-primary/10 border border-slate-300 text-primary font-bold text-[11.5px] animate-in fade-in-50">
             <span>{selectedCount} selected</span>
             {onClearSelection && (
               <button
@@ -1528,13 +1528,13 @@ export function DataTableFooter({
         </span>
 
         {onPageSizeChange && (
-          <div className="flex items-center gap-1.5 pl-3 border-l border-black">
+          <div className="flex items-center gap-1.5 pl-3 border-l border-slate-300">
             <span className="text-black font-medium text-[11.5px]">Rows per page:</span>
             <select
               value={pageSize}
               onChange={(e) => handlePageSizeChange(Number(e.target.value))}
               disabled={disabled}
-              className="h-7 px-2 py-0.5 rounded-lg border border-black bg-white text-[11.5px] font-semibold text-black focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition shadow-2xs"
+              className="h-7 px-2 py-0.5 rounded-lg border border-slate-300 bg-white text-[11.5px] font-semibold text-black focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition shadow-2xs"
             >
               {pageSizeOptions.map((opt) => (
                 <option key={opt} value={opt}>
@@ -1553,7 +1553,7 @@ export function DataTableFooter({
           <button
             type="button"
             onClick={onPrint}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md border border-black bg-white text-black hover:bg-slate-100 transition text-[11.5px] font-bold cursor-pointer shadow-2xs"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-300 bg-white text-black hover:bg-slate-100 transition text-[11.5px] font-bold cursor-pointer shadow-2xs"
             title="Print"
           >
             <Printer className="h-3.5 w-3.5" />
@@ -1568,7 +1568,7 @@ export function DataTableFooter({
               type="button"
               onClick={() => onPageChange(Math.max(1, currentPage - 1))}
               disabled={disabled || currentPage <= 1}
-              className="h-7 w-7 rounded-md border border-black bg-white flex items-center justify-center text-xs font-bold text-black hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer shadow-2xs select-none"
+              className="h-7 w-7 rounded-md border border-slate-300 bg-white flex items-center justify-center text-xs font-bold text-black hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer shadow-2xs select-none"
               title="Previous page"
               aria-label="Previous page"
             >
@@ -1586,7 +1586,7 @@ export function DataTableFooter({
                     "h-7 min-w-[28px] px-2 rounded-md font-bold text-xs flex items-center justify-center transition cursor-pointer shadow-2xs select-none",
                     currentPage === page
                       ? "bg-primary text-primary-foreground font-extrabold shadow-xs"
-                      : "border border-black bg-white text-black hover:bg-slate-100"
+                      : "border border-slate-300 bg-white text-black hover:bg-slate-100"
                   )}
                 >
                   {page}
@@ -1605,7 +1605,7 @@ export function DataTableFooter({
               type="button"
               onClick={() => onPageChange(Math.min(effectiveTotalPages, currentPage + 1))}
               disabled={disabled || currentPage >= effectiveTotalPages}
-              className="h-7 w-7 rounded-md border border-black bg-white flex items-center justify-center text-xs font-bold text-black hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer shadow-2xs select-none"
+              className="h-7 w-7 rounded-md border border-slate-300 bg-white flex items-center justify-center text-xs font-bold text-black hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer shadow-2xs select-none"
               title="Next page"
               aria-label="Next page"
             >

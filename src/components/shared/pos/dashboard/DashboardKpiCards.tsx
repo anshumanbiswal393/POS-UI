@@ -10,8 +10,8 @@ export function DashboardKpiCards({ stats }: DashboardKpiCardsProps) {
   return (
     <div className="grid shrink-0 grid-cols-1 min-[360px]:grid-cols-2 gap-2 lg:grid-cols-4">
       {/* 1. Total collections */}
-      <div className="flex items-center gap-2.5 rounded-xl border border-black bg-white px-3 py-2 shadow-2xs">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-black text-primary">
+      <div className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-2xs">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/30 text-primary">
           <IndianRupee className="h-4.5 w-4.5" />
         </div>
         <div className="min-w-0">
@@ -26,8 +26,8 @@ export function DashboardKpiCards({ stats }: DashboardKpiCardsProps) {
       </div>
 
       {/* 2. Total orders */}
-      <div className="flex items-center gap-2.5 rounded-xl border border-black bg-white px-3 py-2 shadow-2xs">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-black text-black">
+      <div className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-2xs">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-slate-200 text-black">
           <ShoppingBag className="h-4.5 w-4.5" />
         </div>
         <div className="min-w-0">
@@ -42,8 +42,8 @@ export function DashboardKpiCards({ stats }: DashboardKpiCardsProps) {
       </div>
 
       {/* 3. Active tables */}
-      <div className="flex items-center gap-2.5 rounded-xl border border-black bg-white px-3 py-2 shadow-2xs">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-black text-black">
+      <div className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-2xs">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-slate-200 text-black">
           <Utensils className="h-4.5 w-4.5" />
         </div>
         <div className="min-w-0 flex-1">
@@ -57,7 +57,7 @@ export function DashboardKpiCards({ stats }: DashboardKpiCardsProps) {
             </span>
           </div>
           <div className="mt-0.5 flex items-center gap-1.5">
-            <div className="h-1.5 w-14 overflow-hidden rounded-full bg-slate-200 border border-black">
+            <div className="h-1.5 w-14 overflow-hidden rounded-full bg-slate-200 border border-slate-300">
               <div
                 className="h-full rounded-full bg-primary"
                 style={{ width: `${stats.occupancyPercentage}%` }}
@@ -71,8 +71,8 @@ export function DashboardKpiCards({ stats }: DashboardKpiCardsProps) {
       </div>
 
       {/* 4. Unpaid bills */}
-      <div className="flex items-center gap-2.5 rounded-xl border border-black bg-white px-3 py-2 shadow-2xs">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-black text-black">
+      <div className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-2xs">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-slate-200 text-black">
           <ReceiptText className="h-4.5 w-4.5" />
         </div>
         <div className="min-w-0">

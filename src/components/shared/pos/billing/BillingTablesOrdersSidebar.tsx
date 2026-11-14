@@ -374,17 +374,17 @@ export function BillingTablesOrdersSidebar({
       className={`bg-white rounded-xl border border-slate-200/90 shadow-2xs flex flex-col h-full max-h-full overflow-hidden w-full select-none ${className}`}
     >
       {/* 1. Header Tabs: [ Tables ] & [ Orders ] & [ Reservations ] with Theme Colors */}
-      <div className="p-2 border-b border-black bg-white shrink-0">
+      <div className="p-2 border-b border-slate-200 bg-white shrink-0">
         <div className="flex items-center gap-2">
-          {/* Tabs Container — Clean White with crisp Black border */}
-          <div className="flex-1 grid grid-cols-3 gap-1 p-1 bg-white rounded-xl border border-black shadow-2xs">
+          {/* Tabs Container — Clean White with refined border */}
+          <div className="flex-1 grid grid-cols-3 gap-1 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs">
             {/* Tables Tab */}
             <button
               type="button"
               onClick={() => setActiveTab("tables")}
               className={`py-2 px-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
                 activeTab === "tables"
-                  ? "bg-primary text-primary-foreground shadow-xs border border-black"
+                  ? "bg-primary text-primary-foreground shadow-xs border border-primary"
                   : "bg-white text-black hover:bg-slate-100 border border-transparent"
               }`}
             >
@@ -398,7 +398,7 @@ export function BillingTablesOrdersSidebar({
               onClick={() => setActiveTab("orders")}
               className={`py-2 px-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer relative ${
                 activeTab === "orders"
-                  ? "bg-primary text-primary-foreground shadow-xs border border-black"
+                  ? "bg-primary text-primary-foreground shadow-xs border border-primary"
                   : "bg-white text-black hover:bg-slate-100 border border-transparent"
               }`}
             >
@@ -406,7 +406,7 @@ export function BillingTablesOrdersSidebar({
               <span>Orders</span>
               {activeOrders.length > 0 && (
                 <span
-                  className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 border border-black ${
+                  className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 border border-slate-200 ${
                     activeTab === "orders" ? "bg-white text-primary" : "bg-primary text-white"
                   }`}
                 >
@@ -421,7 +421,7 @@ export function BillingTablesOrdersSidebar({
               onClick={() => setActiveTab("reservations")}
               className={`py-2 px-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer relative ${
                 activeTab === "reservations"
-                  ? "bg-primary text-primary-foreground shadow-xs border border-black"
+                  ? "bg-primary text-primary-foreground shadow-xs border border-primary"
                   : "bg-white text-black hover:bg-slate-100 border border-transparent"
               }`}
             >
@@ -429,7 +429,7 @@ export function BillingTablesOrdersSidebar({
               <span>Bookings</span>
               {activeReservations.length > 0 && (
                 <span
-                  className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 border border-black ${
+                  className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 border border-slate-200 ${
                     activeTab === "reservations" ? "bg-white text-primary" : "bg-primary text-white"
                   }`}
                 >

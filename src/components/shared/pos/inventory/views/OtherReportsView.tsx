@@ -1361,9 +1361,9 @@ export function OtherReportsView() {
         </div>
 
         {/* Report Table Card with Header & Footer */}
-        <div className="rounded-2xl border-2 border-black bg-white shadow-2xs overflow-hidden print:border-none print:shadow-none print:rounded-none">
+        <div className="rounded-2xl border border-slate-300 bg-white shadow-2xs overflow-hidden print:border-none print:shadow-none print:rounded-none">
           <div className="overflow-x-auto print:overflow-visible">
-            <table className="w-full text-center text-[13px] border-collapse border border-black print:text-[11px]">
+            <table className="w-full text-center text-[13px] border-collapse border border-slate-300 print:text-[11px]">
               <DataTableHeader
                 columns={activeColumns}
                 data={filteredDataset}
@@ -1377,10 +1377,10 @@ export function OtherReportsView() {
               />
 
               {/* Paginated Screen Body */}
-              <tbody className="divide-y divide-black border-b border-black print:hidden">
+              <tbody className="divide-y divide-slate-300 border-b border-slate-300 print:hidden">
                 {paginatedDataset.length === 0 ? (
                   <tr>
-                    <td colSpan={activeColumns.length} className="py-14 text-center border-b border-black">
+                    <td colSpan={activeColumns.length} className="py-14 text-center border-b border-slate-300">
                       <div className="flex flex-col items-center justify-center max-w-sm mx-auto text-slate-400">
                         <FileText className="h-10 w-10 text-slate-300 mb-2 stroke-[1.5]" />
                         <p className="text-[14px] font-semibold text-slate-700">No report records found</p>
@@ -1394,7 +1394,7 @@ export function OtherReportsView() {
                   </tr>
                 ) : (
                   paginatedDataset.map((row) => (
-                    <tr key={row.id} className="hover:bg-slate-50/70 transition border-b border-black">
+                    <tr key={row.id} className="hover:bg-slate-50/70 transition border-b border-slate-300">
                       {activeColumns.map((col) => {
                         const cellVal = col.getValue
                           ? col.getValue(row)
@@ -1406,7 +1406,7 @@ export function OtherReportsView() {
                         return (
                           <td
                             key={col.id}
-                            className="px-4 py-3 align-middle text-[12.5px] border-r border-black border-b border-black text-center text-black font-semibold whitespace-nowrap"
+                            className="px-4 py-3 align-middle text-[12.5px] border-r border-b border-slate-300 text-center text-black font-semibold whitespace-nowrap"
                           >
                             {isHealth ? (
                               <span

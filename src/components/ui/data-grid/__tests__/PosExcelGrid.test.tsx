@@ -26,18 +26,18 @@ describe("POS Excel Table Grid Standard & View Action", () => {
       <PosDataGrid columns={columns} data={data} keyField="id" />
     );
 
-    // Outer table container has border-2 border-black and pos-excel-grid
+    // Outer table container has border border-slate-300 and pos-excel-grid
     expect(html).toContain("pos-excel-grid");
-    expect(html).toContain("border-2 border-black");
+    expect(html).toContain("border border-slate-300");
 
-    // Table tag has border-collapse border border-black text-center
-    expect(html).toContain("border-collapse border border-black text-center");
+    // Table tag has border-collapse border border-slate-300 text-center
+    expect(html).toContain("border-collapse border border-slate-300 text-center");
 
-    // Header cells have column border (border-r) and row border (border-b-2) in black, center aligned
-    expect(html).toContain("border-r border-b-2 border-black text-center");
+    // Header cells have column border (border-r) and row border (border-b) in slate-300, center aligned
+    expect(html).toContain("border-r border-b border-slate-300 text-center");
 
-    // Data cells have column border (border-r) and row border (border-b) in black, center aligned
-    expect(html).toContain("border-r border-b border-black align-middle text-center");
+    // Data cells have column border (border-r) and row border (border-b) in slate-300, center aligned
+    expect(html).toContain("border-r border-b border-slate-300 align-middle text-center");
 
     // Cell data elements are center-aligned
     expect(html).toContain("flex items-center justify-center text-center mx-auto");

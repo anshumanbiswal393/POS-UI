@@ -520,23 +520,23 @@ export function BillingCartRegister({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-black shadow-2xs">
-            <table className="w-full text-center border-collapse border border-black text-[11.5px]">
+          <div className="overflow-x-auto rounded-lg border border-slate-300 shadow-2xs">
+            <table className="w-full text-center border-collapse border border-slate-300 text-[11.5px]">
               <thead>
-                <tr className="bg-primary text-primary-foreground border-b-2 border-black font-extrabold text-[10.5px] uppercase tracking-wider">
-                  <th className="py-2 px-2 border-r border-black border-b-2 border-black text-left">
+                <tr className="bg-primary text-primary-foreground border-b border-slate-300 font-extrabold text-[10.5px] uppercase tracking-wider">
+                  <th className="py-2 px-2 border-r border-b border-slate-300 text-left">
                     Item
                   </th>
-                  <th className="py-2 px-1 border-r border-black border-b-2 border-black text-center w-16">
+                  <th className="py-2 px-1 border-r border-b border-slate-300 text-center w-16">
                     Qty
                   </th>
-                  <th className="py-2 px-1 border-r border-black border-b-2 border-black text-center w-16">
+                  <th className="py-2 px-1 border-r border-b border-slate-300 text-center w-16">
                     Rate
                   </th>
-                  <th className="py-2 px-1 border-r border-black border-b-2 border-black text-center w-18">
+                  <th className="py-2 px-1 border-r border-b border-slate-300 text-center w-18">
                     Amount
                   </th>
-                  <th className="py-2 px-1 border-b-2 border-black text-center w-12">
+                  <th className="py-2 px-1 border-b border-slate-300 text-center w-12">
                     Act
                   </th>
                 </tr>
@@ -553,12 +553,12 @@ export function BillingCartRegister({
                   return (
                     <tr
                       key={cartItem.cartId}
-                      className={`border-b border-black text-center transition ${
+                      className={`border-b border-slate-300 text-center transition ${
                         cartItem.isComplimentary ? "bg-purple-50" : "hover:bg-slate-50 bg-white"
                       }`}
                     >
                       {/* Item Name + Diet + Variant */}
-                      <td className="py-1.5 px-2 border-r border-black border-b border-black text-left align-middle">
+                      <td className="py-1.5 px-2 border-r border-b border-slate-300 text-left align-middle">
                         <div className="flex items-center gap-1">
                           <FoodTypeIcon type={cartItem.item.diet} size="sm" />
                           <span className="font-bold text-[11.5px] text-black truncate max-w-[120px] sm:max-w-[150px]" title={cartItem.item.name}>
@@ -566,7 +566,7 @@ export function BillingCartRegister({
                           </span>
                         </div>
                         {cartItem.selectedVariant && (
-                          <span className="text-[9px] bg-slate-100 text-black border border-black px-1 rounded font-bold inline-block mt-0.5">
+                          <span className="text-[9px] bg-slate-100 text-black border border-slate-300 px-1 rounded font-bold inline-block mt-0.5">
                             {cartItem.selectedVariant.name}
                           </span>
                         )}
@@ -579,8 +579,8 @@ export function BillingCartRegister({
                       </td>
 
                       {/* Qty Stepper */}
-                      <td className="py-1.5 px-1 border-r border-black border-b border-black text-center align-middle">
-                        <div className="inline-flex items-center gap-0.5 bg-white border border-black rounded p-0.5 shadow-2xs">
+                      <td className="py-1.5 px-1 border-r border-b border-slate-300 text-center align-middle">
+                        <div className="inline-flex items-center gap-0.5 bg-white border border-slate-300 rounded p-0.5 shadow-2xs">
                           <button
                             type="button"
                             onClick={() => onUpdateCartQty(cartItem.cartId, cartItem.quantity - 1)}
@@ -602,12 +602,12 @@ export function BillingCartRegister({
                       </td>
 
                       {/* Rate */}
-                      <td className="py-1.5 px-1 border-r border-black border-b border-black text-center align-middle font-mono font-bold text-[11.5px] text-black">
+                      <td className="py-1.5 px-1 border-r border-b border-slate-300 text-center align-middle font-mono font-bold text-[11.5px] text-black">
                         ₹{unitPrice}
                       </td>
 
                       {/* Amount */}
-                      <td className="py-1.5 px-1 border-r border-black border-b border-black text-center align-middle font-mono font-extrabold text-[11.5px] text-black">
+                      <td className="py-1.5 px-1 border-r border-b border-slate-300 text-center align-middle font-mono font-extrabold text-[11.5px] text-black">
                         {cartItem.isComplimentary ? (
                           <span className="text-purple-700 font-extrabold text-[9.5px] bg-purple-100 px-1 py-0.5 rounded border border-purple-300">
                             FREE
@@ -618,7 +618,7 @@ export function BillingCartRegister({
                       </td>
 
                       {/* Actions: Free & Delete */}
-                      <td className="py-1.5 px-1 border-b border-black text-center align-middle">
+                      <td className="py-1.5 px-1 border-b border-slate-300 text-center align-middle">
                         <div className="flex items-center justify-center gap-1">
                           {canDiscount && (
                             <button

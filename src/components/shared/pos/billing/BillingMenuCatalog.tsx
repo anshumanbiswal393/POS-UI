@@ -222,8 +222,8 @@ export function BillingMenuCatalog({
                 className={cn(
                   "shrink-0 rounded-lg px-3 py-1.5 text-[11.5px] font-bold whitespace-nowrap transition-all cursor-pointer border",
                   active
-                    ? "border-black bg-primary text-primary-foreground shadow-xs"
-                    : "border-black bg-white text-black hover:bg-slate-100",
+                    ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                    : "border-slate-300 bg-white text-black hover:bg-slate-100",
                 )}
               >
                 {meal === "All" ? "All Menus" : `${meal} Menu`}
@@ -232,7 +232,7 @@ export function BillingMenuCatalog({
           })}
         </div>
 
-        {/* Categories: rounded-lg border border-black (no circular corners) */}
+        {/* Categories: rounded-lg border border-slate-300 (no circular corners) */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
           {allCategories.map((cat) => {
             const active = selectedCategory === cat;
@@ -244,8 +244,8 @@ export function BillingMenuCatalog({
                 className={cn(
                   "shrink-0 rounded-lg px-3 py-1.5 text-[11.5px] font-bold whitespace-nowrap transition-all cursor-pointer border",
                   active
-                    ? "border-black bg-primary text-primary-foreground shadow-xs"
-                    : "border-black bg-white text-black hover:bg-slate-100",
+                    ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                    : "border-slate-300 bg-white text-black hover:bg-slate-100",
                 )}
               >
                 {cat}
@@ -432,7 +432,7 @@ export function BillingMenuCatalog({
                       <button
                         type="button"
                         onClick={() => handleAddClick(item)}
-                        className="inline-flex h-8 items-center gap-1 rounded-lg px-3 text-[11.5px] font-bold shadow-xs transition bg-primary text-primary-foreground hover:opacity-95 active:scale-[0.98] cursor-pointer border border-black"
+                        className="inline-flex h-8 items-center gap-1 rounded-lg px-3 text-[11.5px] font-bold shadow-xs transition bg-primary text-primary-foreground hover:opacity-95 active:scale-[0.98] cursor-pointer border border-primary"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         Add

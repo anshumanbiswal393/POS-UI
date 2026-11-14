@@ -966,9 +966,9 @@ export function MainOtherReportsView() {
             </p>
           </div>
         ) : (
-          <div className="rounded-2xl border-2 border-black bg-white shadow-xs overflow-hidden print:border-none print:shadow-none print:rounded-none print:overflow-visible print:w-full print:m-0 print:p-0">
+          <div className="rounded-2xl border border-slate-300 bg-white shadow-xs overflow-hidden print:border-none print:shadow-none print:rounded-none print:overflow-visible print:w-full print:m-0 print:p-0">
             <div className="overflow-x-auto print:overflow-visible print:w-full print:m-0 print:p-0">
-              <table className="w-full text-center text-[13px] border-collapse border border-black print:w-full print:text-[11px]">
+              <table className="w-full text-center text-[13px] border-collapse border border-slate-300 print:w-full print:text-[11px]">
                 <DataTableHeader
                   columns={activeColumns}
                   data={reportDataset}
@@ -980,13 +980,13 @@ export function MainOtherReportsView() {
                 />
 
                 {/* Screen Paginated Body */}
-                <tbody className="divide-y divide-black border-b border-black print:hidden">
+                <tbody className="divide-y divide-slate-300 border-b border-slate-300 print:hidden">
                   {paginatedReportData.map((row) => (
-                    <tr key={row.id} className="hover:bg-slate-50 transition border-b border-black">
+                    <tr key={row.id} className="hover:bg-slate-50 transition border-b border-slate-300">
                       {activeColumns.map((col) => (
                         <td
                           key={col.id}
-                          className="py-3 px-3.5 align-middle text-center border-r border-black border-b border-black text-black font-semibold text-[12.5px] whitespace-nowrap"
+                          className="py-3 px-3.5 align-middle text-center border-r border-b border-slate-300 text-black font-semibold text-[12.5px] whitespace-nowrap"
                         >
                           {col.getValue ? (
                             <span className="text-black font-bold">

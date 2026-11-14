@@ -335,7 +335,7 @@ export function PosGlobalSearch({
           onKeyDown={handleKeyDown}
           placeholder="Search orders, guests, menu, tables, staff... (F3)"
           aria-label="Global POS search across orders, guests, reservations, menu, inventory"
-          className="h-9 w-full rounded-md border border-black bg-white pl-9 pr-14 text-[12.5px] font-medium text-foreground placeholder:text-foreground/60 focus:border-primary focus:bg-white focus:outline-hidden transition-all shadow-2xs"
+          className="h-9 w-full rounded-md border border-slate-300 bg-white pl-9 pr-14 text-[12.5px] font-medium text-foreground placeholder:text-foreground/60 focus:border-primary focus:bg-white focus:outline-hidden transition-all shadow-2xs"
         />
 
         {query ? (
@@ -351,7 +351,7 @@ export function PosGlobalSearch({
             <X className="h-3.5 w-3.5" />
           </button>
         ) : !isMobile ? (
-          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden xl:inline-flex items-center rounded border border-black bg-surface px-1.5 py-0.5 text-[9.5px] font-bold text-foreground/70">
+          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden xl:inline-flex items-center rounded border border-slate-300 bg-surface px-1.5 py-0.5 text-[9.5px] font-bold text-foreground/70">
             F3 / ⌘K
           </kbd>
         ) : null}
@@ -359,8 +359,8 @@ export function PosGlobalSearch({
 
       {/* Global Search Results Dropdown Overlay */}
       {isOpen && query.trim().length > 0 && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-[75vh] sm:max-h-[460px] overflow-y-auto rounded-xl border-2 border-black bg-white shadow-2xl animate-in fade-in-50 zoom-in-95 duration-150">
-          <div className="p-2 border-b-2 border-black bg-surface flex items-center justify-between text-[11px] font-bold text-foreground/70">
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-[75vh] sm:max-h-[460px] overflow-y-auto rounded-xl border border-slate-300 bg-white shadow-2xl animate-in fade-in-50 zoom-in-95 duration-150">
+          <div className="p-2 border-b border-slate-200 bg-surface flex items-center justify-between text-[11px] font-bold text-foreground/70">
             <span>Search Results ({filteredResults.length})</span>
             <span className="text-[10px] text-foreground/60">Press Enter to select · Esc to close</span>
           </div>

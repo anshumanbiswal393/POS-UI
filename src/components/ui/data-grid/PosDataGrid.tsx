@@ -556,8 +556,8 @@ export function PosDataGrid<T>({
       )}
 
       {/* Main Grid Table Container */}
-      <div className="overflow-x-auto border-2 border-black rounded-lg pos-data-table pos-excel-grid">
-        <table className="w-full min-w-full border-collapse border border-black text-center text-[12.5px]">
+      <div className="overflow-x-auto border border-slate-300 rounded-lg pos-data-table pos-excel-grid">
+        <table className="w-full min-w-full border-collapse border border-slate-300 text-center text-[12.5px]">
           <DataTableHeader
             columns={columns}
             data={data}
@@ -633,7 +633,7 @@ export function PosDataGrid<T>({
                     key={rowKey}
                     onClick={() => onRowClick?.(row, index)}
                     className={cn(
-                      "transition-colors group border-b border-black",
+                      "transition-colors group border-b border-slate-300",
                       isSelected
                         ? "bg-primary/10 hover:bg-primary/15 dark:bg-primary/20"
                         : isEven
@@ -646,7 +646,7 @@ export function PosDataGrid<T>({
                     {isSelectable && (
                       <td
                         className={cn(
-                          "w-12 px-3 py-2.5 text-center border-r border-black border-b border-black sticky left-0 z-10 select-none",
+                          "w-12 px-3 py-2.5 text-center border-r border-b border-slate-300 sticky left-0 z-10 select-none",
                           isSelected
                             ? "bg-primary/15 dark:bg-primary/25"
                             : isEven
@@ -660,7 +660,7 @@ export function PosDataGrid<T>({
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => {}}
-                            className="h-3.5 w-3.5 rounded border-black text-primary focus:ring-primary cursor-pointer accent-primary"
+                            className="h-3.5 w-3.5 rounded border-slate-400 text-primary focus:ring-primary cursor-pointer accent-primary"
                           />
                         </div>
                       </td>
@@ -715,7 +715,7 @@ export function PosDataGrid<T>({
                           style={pin.style}
                           className={cn(
                             dense ? "py-2 px-3.5" : "py-2.5 px-3.5",
-                            "border-r border-black border-b border-black align-middle text-center text-foreground transition-colors",
+                            "border-r border-b border-slate-300 align-middle text-center text-foreground transition-colors",
                             pin.className
                           )}
                         >

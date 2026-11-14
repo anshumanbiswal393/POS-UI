@@ -7,8 +7,8 @@ describe("POS Billing UI Standardization", () => {
     const sidebarPath = path.resolve(__dirname, "../BillingTablesOrdersSidebar.tsx");
     const content = fs.readFileSync(sidebarPath, "utf-8");
 
-    // Tab switcher container is white with black border (not black/dark grey)
-    expect(content).toContain("bg-white rounded-xl border border-black");
+    // Tab switcher container is white with border (not black/dark grey)
+    expect(content).toContain("bg-white rounded-xl border border-slate-300");
 
     // Active tab has theme color, inactive is white with black text
     expect(content).toContain('activeTab === "tables"');
@@ -16,12 +16,12 @@ describe("POS Billing UI Standardization", () => {
     expect(content).toContain("bg-white text-black hover:bg-slate-100");
   });
 
-  it("BillingCartRegister displays cart in Excel tabular format with centered columns and black borders", () => {
+  it("BillingCartRegister displays cart in Excel tabular format with centered columns and reduced-contrast borders", () => {
     const cartPath = path.resolve(__dirname, "../BillingCartRegister.tsx");
     const content = fs.readFileSync(cartPath, "utf-8");
 
     // Excel table format
-    expect(content).toContain("border-collapse border border-black");
+    expect(content).toContain("border-collapse border border-slate-300");
     expect(content).toContain("w-full text-center");
     expect(content).toContain("Item");
     expect(content).toContain("Qty");

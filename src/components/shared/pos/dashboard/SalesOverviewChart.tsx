@@ -26,7 +26,7 @@ export function SalesOverviewChart({ data }: SalesOverviewChartProps) {
   }, []);
 
   return (
-    <div className="flex h-full flex-col justify-between rounded-xl border border-black bg-white p-3.5 sm:p-4 shadow-2xs">
+    <div className="flex h-full flex-col justify-between rounded-xl border border-slate-300 bg-white p-3.5 sm:p-4 shadow-2xs">
       {/* Card Header & Controls */}
       <div className="flex items-center justify-between">
         <div>
