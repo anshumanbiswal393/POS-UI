@@ -380,15 +380,15 @@ export function DataTableHeader<T = any>({
     onAutosizeChange?.(all);
   };
 
-  // Theme variant styling classes aligned with POS design system
+  // Theme variant styling classes aligned with POS design system (Strict Excel Black Borders)
   const getThemeClasses = () => {
     switch (themeVariant) {
       case "primary":
         return {
-          row: "bg-primary text-primary-foreground border-b-2 border-primary-pressed shadow-xs",
+          row: "bg-primary text-primary-foreground border-b-2 border-black shadow-xs",
           th: "bg-primary text-primary-foreground",
-          border: "border-r border-primary-foreground/20",
-          text: "text-primary-foreground font-extrabold text-[11.5px] uppercase tracking-wider whitespace-nowrap",
+          border: "border-r border-black",
+          text: "text-primary-foreground font-extrabold text-[11.5px] uppercase tracking-wider whitespace-nowrap text-center",
           iconBtn:
             "text-primary-foreground/75 hover:text-primary-foreground hover:bg-white/15",
           activeFilterBtn: "bg-white text-primary font-bold shadow-xs",
@@ -398,10 +398,10 @@ export function DataTableHeader<T = any>({
       case "dark":
       case "slate":
         return {
-          row: "bg-slate-900 text-white dark:bg-slate-950 dark:text-slate-100 border-b-2 border-slate-800 shadow-xs",
+          row: "bg-slate-900 text-white dark:bg-slate-950 dark:text-slate-100 border-b-2 border-black shadow-xs",
           th: "bg-slate-900 text-white dark:bg-slate-950 dark:text-slate-100",
-          border: "border-r border-slate-700/70 dark:border-border/80",
-          text: "text-white font-extrabold text-[11.5px] uppercase tracking-wider whitespace-nowrap",
+          border: "border-r border-black",
+          text: "text-white font-extrabold text-[11.5px] uppercase tracking-wider whitespace-nowrap text-center",
           iconBtn: "text-slate-400 hover:text-white hover:bg-slate-800/80",
           activeFilterBtn:
             "bg-primary text-primary-foreground font-bold shadow-xs",
@@ -410,15 +410,15 @@ export function DataTableHeader<T = any>({
       case "surface":
       default:
         return {
-          row: "bg-slate-50/95 dark:bg-surface-2 text-slate-800 dark:text-foreground border-b-2 border-slate-200 dark:border-border",
-          th: "bg-slate-50/95 dark:bg-surface-2 text-slate-800 dark:text-foreground",
-          border: "border-r border-slate-200 dark:border-border/80",
-          text: "text-slate-800 dark:text-foreground font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap",
+          row: "bg-white text-black border-b-2 border-black",
+          th: "bg-white text-black",
+          border: "border-r border-black",
+          text: "text-black font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap text-center",
           iconBtn:
-            "text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-surface-3",
+            "text-black hover:text-black hover:bg-black/10",
           activeFilterBtn:
             "text-primary bg-primary/10 font-bold border border-primary/30",
-          checkbox: "border-primary",
+          checkbox: "border-black",
         };
     }
   };
@@ -648,9 +648,8 @@ export function DataTableHeader<T = any>({
               maxWidth: "48px",
             }}
             className={cn(
-              "sticky left-0 z-10 w-12 px-3 py-3 text-center border-r select-none",
-              theme.th,
-              theme.border
+              "sticky left-0 z-10 w-12 px-3 py-3 text-center border-r border-black border-b-2 border-black select-none",
+              theme.th
             )}
           >
             <div className="flex items-center justify-center">
@@ -661,7 +660,7 @@ export function DataTableHeader<T = any>({
                   if (el) el.indeterminate = Boolean(isSomeSelected && !isAllSelected);
                 }}
                 onChange={() => onToggleSelectAll?.()}
-                className="rounded border-slate-300 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer accent-white"
+                className="rounded border-black text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer accent-white"
                 aria-label="Select all"
               />
             </div>
@@ -692,20 +691,13 @@ export function DataTableHeader<T = any>({
               onDragEnd={handleDragEnd}
               style={{
                 width: isPinned || activeWidths[colId] ? `${colWidth}px` : undefined,
-                // Keep header label on one line by default; user resize still overrides via activeWidths
                 minWidth: `${activeWidths[colId] || isPinned ? colWidth : defaultMinWidth}px`,
                 ...pinned.style,
               }}
               className={cn(
-                "px-3.5 py-3 transition-colors font-sans select-none whitespace-nowrap",
+                "px-3.5 py-3 transition-colors font-sans select-none whitespace-nowrap border-r border-black border-b-2 border-black text-center",
                 !isPinned ? "relative" : "",
                 theme.th,
-                !isLast && theme.border,
-                col.align === "center"
-                  ? "text-center"
-                  : col.align === "right"
-                    ? "text-right"
-                    : "text-left",
                 pinned.className,
                 autosizedColumns[colId]
                   ? "w-auto whitespace-nowrap"
@@ -716,16 +708,16 @@ export function DataTableHeader<T = any>({
               )}
             >
               {colId === "actions" ? (
-                <span className="text-right block pr-2 font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap">
+                <span className="text-center block font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap mx-auto">
                   {col.label}
                 </span>
               ) : (
-                <div className="flex items-center justify-between gap-1.5 font-sans whitespace-nowrap">
+                <div className="flex items-center justify-center gap-1.5 font-sans whitespace-nowrap mx-auto text-center">
                   {/* Column Title + Sort Trigger */}
                   <div
                     onClick={() => col.sortable && handleToggleSort(colId)}
                     className={cn(
-                      "flex items-center gap-1 transition-colors select-none whitespace-nowrap shrink-0",
+                      "flex items-center justify-center gap-1 transition-colors select-none whitespace-nowrap shrink-0",
                       col.sortable ? "cursor-pointer hover:opacity-80" : "",
                       enableColumnReorder && colId !== "actions" && "cursor-grab active:cursor-grabbing"
                     )}
@@ -737,7 +729,7 @@ export function DataTableHeader<T = any>({
                           : undefined
                     }
                   >
-                    <span className={theme.text}>{col.label}</span>
+                    <span className={cn(theme.text, "text-center")}>{col.label}</span>
                     {columnPins[colId] && columnPins[colId] !== "none" && (
                       <span className="print:hidden" title={`Pinned ${columnPins[colId]}`}>
                         <Pin className="h-3 w-3 text-amber-300 dark:text-amber-400 fill-amber-300/40 shrink-0 rotate-45" />

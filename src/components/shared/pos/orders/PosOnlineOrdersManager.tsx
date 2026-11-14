@@ -490,7 +490,7 @@ export function PosOnlineOrdersManager() {
               type="button"
               onClick={() => setViewingOrder(ord)}
               title="View Full Order Details"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 bg-white hover:bg-sky-50 hover:border-sky-500 shadow-2xs transition cursor-pointer"
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
             >
               <ColorActionView className="h-4 w-4" />
             </button>

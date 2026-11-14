@@ -324,7 +324,7 @@ export function VirtualWalletView() {
           <button
             type="button"
             onClick={() => setStatementWallet(row)}
-            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 shadow-2xs transition cursor-pointer mx-auto"
+            className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer mx-auto"
             title="View Passbook Statement"
           >
             <ColorActionView className="h-4 w-4" />

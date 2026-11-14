@@ -259,11 +259,11 @@ export function BillerAppManagementView() {
         align: "right",
         defaultWidth: 150,
         cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-1.5">
+          <div className="flex items-center justify-center gap-1.5 mx-auto">
             <button
               type="button"
               onClick={() => setViewingUser(row)}
-              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 shadow-2xs transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
               title="View Details"
             >
               <ColorActionView className="h-4 w-4" />
@@ -274,7 +274,7 @@ export function BillerAppManagementView() {
                 setEditingUser(row);
                 setIsAddModalOpen(true);
               }}
-              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 shadow-2xs transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
               title="Edit Profile"
             >
               <ColorActionEdit className="h-4 w-4" />
@@ -282,7 +282,7 @@ export function BillerAppManagementView() {
             <button
               type="button"
               onClick={() => handleCopyUser(row)}
-              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-teal-500 hover:bg-teal-50/60 shadow-2xs transition cursor-pointer text-slate-500"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer text-black"
               title="Copy Credentials"
             >
               <Copy className="h-3.5 w-3.5" />
@@ -290,7 +290,7 @@ export function BillerAppManagementView() {
             <button
               type="button"
               onClick={() => handleDeleteUser(row.id, row.name)}
-              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
               title="Delete User"
             >
               <ColorActionDelete className="h-4 w-4" />

@@ -33,13 +33,13 @@ describe("ColorActionIcons (Reference Screenshots 3 & 4)", () => {
     expect(html).toContain('fill="#38bdf8"');
   });
 
-  it("renders ColorActionView with colorful eye iris and highlight", () => {
+  it("renders ColorActionView with solid black silhouette eye matching reference image", () => {
     const html = renderToStaticMarkup(<ColorActionView className="w-5 h-5" />);
     expect(html).toContain("viewBox=\"0 0 24 24\"");
-    // Vibrant iris (#0284c7)
-    expect(html).toContain('fill="#0284c7"');
-    // Pupil (#0f172a)
-    expect(html).toContain('fill="#0f172a"');
+    // Solid black outer shape (#000000)
+    expect(html).toContain('fill="#000000"');
+    // White circular iris (#ffffff)
+    expect(html).toContain('fill="#ffffff"');
   });
 
   it("renders ColorActionDelete with colorful red accents", () => {

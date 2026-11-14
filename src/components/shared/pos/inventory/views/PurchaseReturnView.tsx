@@ -295,7 +295,7 @@ export function PurchaseReturnView() {
                         <button
                           type="button"
                           onClick={() => toast.info(`Viewing Debit Note ${pr.debitNoteNo}`)}
-                          className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 shadow-2xs transition cursor-pointer"
+                          className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
                           title="View"
                         >
                           <ColorActionView className="h-4 w-4" />
@@ -306,7 +306,7 @@ export function PurchaseReturnView() {
                             deleteMutation.mutate(pr.id);
                             toast.success(`Deleted Debit Note ${pr.debitNoteNo}`);
                           }}
-                          className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
+                          className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
                           title="Delete"
                         >
                           <ColorActionDelete className="h-4 w-4" />

@@ -1041,7 +1041,7 @@ export function StockPurchaseView() {
                               type="button"
                               onClick={() => setDetailsModalInvoice(p)}
                               title="View Invoice & Received Items"
-                              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 shadow-2xs transition cursor-pointer"
+                              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
                             >
                               <ColorActionView className="h-4 w-4" />
                             </button>
@@ -1049,7 +1049,7 @@ export function StockPurchaseView() {
                               type="button"
                               onClick={() => handleDeletePurchase(p)}
                               title="Delete Purchase"
-                              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
+                              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
                             >
                               <ColorActionDelete className="h-4 w-4" />
                             </button>

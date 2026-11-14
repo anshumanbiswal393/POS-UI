@@ -113,7 +113,7 @@ export function PosDataGrid<T>({
         defaultWidth: col.width || col.defaultWidth,
         minWidth: col.minWidth,
         maxWidth: col.maxWidth,
-        align: col.align || "left",
+        align: "center", // Center aligned by default for Excel grid standard
         sortable,
         filterable,
         getValue,
@@ -556,8 +556,8 @@ export function PosDataGrid<T>({
       )}
 
       {/* Main Grid Table Container */}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-full border-collapse text-left text-[12.5px]">
+      <div className="overflow-x-auto border-2 border-black rounded-lg pos-data-table pos-excel-grid">
+        <table className="w-full min-w-full border-collapse border border-black text-center text-[12.5px]">
           <DataTableHeader
             columns={columns}
             data={data}
@@ -581,7 +581,7 @@ export function PosDataGrid<T>({
             themeVariant={themeVariant}
           />
 
-          <tbody className="divide-y divide-border/60 bg-surface">
+          <tbody className="bg-surface">
             {isGridLoading ? (
               <tr>
                 <td
@@ -633,7 +633,7 @@ export function PosDataGrid<T>({
                     key={rowKey}
                     onClick={() => onRowClick?.(row, index)}
                     className={cn(
-                      "transition-colors group",
+                      "transition-colors group border-b border-black",
                       isSelected
                         ? "bg-primary/10 hover:bg-primary/15 dark:bg-primary/20"
                         : isEven
@@ -646,7 +646,7 @@ export function PosDataGrid<T>({
                     {isSelectable && (
                       <td
                         className={cn(
-                          "w-12 px-3 py-2.5 text-center border-r border-border/80 sticky left-0 z-10 select-none",
+                          "w-12 px-3 py-2.5 text-center border-r border-black border-b border-black sticky left-0 z-10 select-none",
                           isSelected
                             ? "bg-primary/15 dark:bg-primary/25"
                             : isEven
@@ -660,7 +660,7 @@ export function PosDataGrid<T>({
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => {}}
-                            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer accent-primary"
+                            className="h-3.5 w-3.5 rounded border-black text-primary focus:ring-primary cursor-pointer accent-primary"
                           />
                         </div>
                       </td>
@@ -715,16 +715,13 @@ export function PosDataGrid<T>({
                           style={pin.style}
                           className={cn(
                             dense ? "py-2 px-3.5" : "py-2.5 px-3.5",
-                            "border-r border-border/60 last:border-r-0 align-middle text-foreground transition-colors",
-                            col.align === "center"
-                              ? "text-center"
-                              : col.align === "right"
-                              ? "text-right"
-                              : "text-left",
+                            "border-r border-black border-b border-black align-middle text-center text-foreground transition-colors",
                             pin.className
                           )}
                         >
-                          {renderCell()}
+                          <div className="flex items-center justify-center text-center mx-auto w-full min-h-[26px]">
+                            {renderCell()}
+                          </div>
                         </td>
                       );
                     })}

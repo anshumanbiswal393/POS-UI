@@ -514,7 +514,7 @@ export function PosReservationsManager() {
               type="button"
               onClick={() => handleOpenDetail(res)}
               title="View Details"
-              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 transition cursor-pointer shadow-2xs"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
             >
               <ColorActionView className="w-4 h-4" />
             </button>

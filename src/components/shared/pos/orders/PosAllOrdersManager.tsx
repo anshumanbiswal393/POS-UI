@@ -549,7 +549,7 @@ export function PosAllOrdersManager() {
               type="button"
               onClick={() => setViewingOrder(r)}
               title="View Details"
-              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 transition cursor-pointer shadow-2xs"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
             >
               <ColorActionView className="h-4 w-4" />
             </button>
@@ -557,7 +557,7 @@ export function PosAllOrdersManager() {
               type="button"
               onClick={() => setPrintingOrder(r)}
               title="Print Invoice"
-              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-emerald-500 hover:bg-emerald-50/60 transition cursor-pointer shadow-2xs"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
             >
               <ColorActionPrint className="h-4 w-4" />
             </button>
@@ -565,7 +565,7 @@ export function PosAllOrdersManager() {
               type="button"
               onClick={() => alert(`Edit Order #${r.orderNo}`)}
               title="Edit Order"
-              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 transition cursor-pointer shadow-2xs"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
             >
               <ColorActionEdit className="h-4 w-4" />
             </button>
@@ -977,12 +977,12 @@ export function PosAllOrdersManager() {
                 {order.itemsSummary}
               </p>
 
-              <div className="mt-auto flex items-center justify-end gap-1.5 border-t border-slate-100 pt-2.5 mt-3">
+              <div className="mt-auto flex items-center justify-end gap-1.5 border-t border-black pt-2.5 mt-3">
                 <button
                   type="button"
                   onClick={() => setViewingOrder(order)}
                   title="View Details"
-                  className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 transition cursor-pointer shadow-2xs"
+                  className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
                 >
                   <ColorActionView className="h-4 w-4" />
                 </button>
@@ -990,7 +990,7 @@ export function PosAllOrdersManager() {
                   type="button"
                   onClick={() => setPrintingOrder(order)}
                   title="Print Invoice"
-                  className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-emerald-500 hover:bg-emerald-50/60 transition cursor-pointer shadow-2xs"
+                  className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
                 >
                   <ColorActionPrint className="h-4 w-4" />
                 </button>
@@ -998,7 +998,7 @@ export function PosAllOrdersManager() {
                   type="button"
                   onClick={() => alert(`Edit Order #${order.orderNo}`)}
                   title="Edit Order"
-                  className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 transition cursor-pointer shadow-2xs"
+                  className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
                 >
                   <ColorActionEdit className="h-4 w-4" />
                 </button>

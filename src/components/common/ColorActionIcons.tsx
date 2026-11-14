@@ -63,20 +63,17 @@ export function ColorActionEdit({ className = "w-4 h-4", ...props }: React.SVGPr
 export function ColorActionView({ className = "w-4 h-4", ...props }: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} {...props}>
-      {/* Eye outer border */}
+      {/* Outer eye silhouette - solid black almond shape matching reference image */}
       <path
-        d="M2 12C3.8 6.5 7.5 4 12 4C16.5 4 20.2 6.5 22 12C20.2 17.5 16.5 20 12 20C7.5 20 3.8 17.5 2 12Z"
-        fill="#f0f9ff"
-        stroke="#0f172a"
-        strokeWidth="2"
-        strokeLinejoin="round"
+        d="M1 12C3.2 6.5 7.2 4 12 4C16.8 4 20.8 6.5 23 12C20.8 17.5 16.8 20 12 20C7.2 20 3.2 17.5 1 12Z"
+        fill="#000000"
       />
-      {/* Iris */}
-      <circle cx="12" cy="12" r="4.2" fill="#0284c7" />
-      {/* Pupil */}
-      <circle cx="12" cy="12" r="2.2" fill="#0f172a" />
-      {/* Gleam */}
-      <circle cx="13.2" cy="10.8" r="1.1" fill="#ffffff" />
+      {/* White circular iris */}
+      <circle cx="12" cy="12" r="4.6" fill="#ffffff" />
+      {/* Black center pupil */}
+      <circle cx="12" cy="12" r="2.6" fill="#000000" />
+      {/* White reflection dot notch on pupil */}
+      <circle cx="13.3" cy="10.7" r="0.85" fill="#ffffff" />
     </svg>
   );
 }

@@ -697,7 +697,7 @@ export function ProductionMasterView() {
                             type="button"
                             onClick={() => setViewingRecipe(r)}
                             title="View Recipe Details"
-                            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 shadow-2xs transition cursor-pointer"
+                            className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
                           >
                             <ColorActionView className="h-4 w-4" />
                           </button>
@@ -705,7 +705,7 @@ export function ProductionMasterView() {
                             type="button"
                             onClick={() => handleOpenEdit(r)}
                             title="Edit Recipe"
-                            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 shadow-2xs transition cursor-pointer"
+                            className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
                           >
                             <ColorActionEdit className="h-4 w-4" />
                           </button>

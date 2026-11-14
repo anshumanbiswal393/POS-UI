@@ -935,3 +935,48 @@
 .animate-chevron-slide-2 {
   animation: chevronSlideLoop 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.8s;
 }
+
+/* ==========================================================================
+   Excel-Style POS Data Table Grid Standard
+   - Proper column lines (vertical borders)
+   - Proper row lines (horizontal borders)
+   - Solid high-contrast black gridlines (no grey borders)
+   - Center alignment for all headers and cell elements
+   ========================================================================== */
+.pos-excel-grid,
+.pos-data-table table,
+table.excel-format {
+  border-collapse: collapse !important;
+  border: 1.5px solid #000000 !important;
+  text-align: center !important;
+}
+
+.pos-excel-grid th,
+.pos-excel-grid td,
+.pos-data-table table th,
+.pos-data-table table td,
+table.excel-format th,
+table.excel-format td {
+  border-right: 1px solid #000000 !important;
+  border-bottom: 1px solid #000000 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+.pos-excel-grid th,
+.pos-data-table table th,
+table.excel-format th {
+  border-bottom: 2px solid #000000 !important;
+  font-weight: 700 !important;
+}
+
+/* Ensure flex/inline elements inside table cells and headers remain centered */
+.pos-excel-grid th > div,
+.pos-excel-grid td > div,
+.pos-data-table table th > div,
+.pos-data-table table td > div,
+table.excel-format th > div,
+table.excel-format td > div {
+  justify-content: center !important;
+  text-align: center !important;
+}
