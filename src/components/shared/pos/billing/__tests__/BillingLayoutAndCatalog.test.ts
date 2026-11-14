@@ -29,25 +29,26 @@ describe("POS Billing UI Standardization", () => {
     expect(content).toContain("Amount");
   });
 
-  it("BillingHeader renders meal-time tabs in top pill container styled like order types", () => {
-    const headerPath = path.resolve(__dirname, "../BillingHeader.tsx");
-    const content = fs.readFileSync(headerPath, "utf-8");
-
-    // Meal-time tabs in top pill bar
-    expect(content).toContain('["All", "Breakfast", "Lunch", "Dinner"]');
-    expect(content).toContain("${meal} Menu");
-    expect(content).toContain("bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 overflow-x-auto");
-  });
-
-  it("BillingMenuCatalog has meal filtering, squared category borders, plate counts, and clearly visible sold-out button", () => {
+  it("BillingMenuCatalog renders meal-time tabs at top of menu selection without 'Menu' suffix and Excel dishes table", () => {
     const catalogPath = path.resolve(__dirname, "../BillingMenuCatalog.tsx");
     const content = fs.readFileSync(catalogPath, "utf-8");
+
+    // Meal-time tabs at top of menu selection without 'Menu' suffix
+    expect(content).toContain('["All", "Breakfast", "Lunch", "Dinner"]');
+    expect(content).toContain("<span>{meal}</span>");
+
+    // Excel table with vertical column borders and centered element data
+    expect(content).toContain("table className=");
+    expect(content).toContain("excel-format");
+    expect(content).toContain("border-r");
+    expect(content).toContain("border-b");
+    expect(content).toContain("text-center");
 
     // Meal-time filtering support
     expect(content).toContain("selectedMealTime");
     expect(content).toContain("targetMeal");
 
-    // Categories with rounded-lg border border-slate-300 (no circular corners)
+    // Categories with rounded-lg border (no circular corners)
     expect(content).toContain("rounded-lg px-3 py-1.5 text-[11.5px] font-bold whitespace-nowrap transition-all cursor-pointer border");
 
     // Plate count format without long (Sold Out) string
@@ -56,6 +57,22 @@ describe("POS Billing UI Standardization", () => {
     // Sold out button styling
     expect(content).toContain("Sold Out");
     expect(content).toContain("border-rose-600");
+  });
+
+  it("PosKotManager has Kitchen Orders heading matching sidebar navigation", () => {
+    const kotPath = path.resolve(__dirname, "../../orders/PosKotManager.tsx");
+    const content = fs.readFileSync(kotPath, "utf-8");
+
+    expect(content).toContain("Kitchen Orders");
+    expect(content).not.toContain("Kitchen Display");
+  });
+
+  it("PosGlobalSearch has removed the F3 tag from search bar", () => {
+    const searchPath = path.resolve(__dirname, "../../../../layout/pos/PosGlobalSearch.tsx");
+    const content = fs.readFileSync(searchPath, "utf-8");
+
+    expect(content).not.toContain("(F3)");
+    expect(content).not.toContain("F3 / ⌘K");
   });
 
   it("PosBillingManager wires selectedMealTime and provides gap so top nav border does not overlap content cards", () => {

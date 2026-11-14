@@ -32,9 +32,9 @@ export function BillingMenuCatalog({
   searchQuery,
   onSearchChange,
   selectedMealTime: controlledMealTime,
-  onSelectMealTime: _onSelectMealTime,
+  onSelectMealTime,
 }: BillingMenuCatalogProps) {
-  const [internalMealTime] = useState<string>("All");
+  const [internalMealTime, setInternalMealTime] = useState<string>("All");
   const selectedMealTime = controlledMealTime ?? internalMealTime;
   const [selectedCategory, setSelectedCategory] = useState<string>("All Items");
   const [selectedDiet, setSelectedDiet] = useState<BillingDietType>("all");
@@ -215,7 +215,31 @@ export function BillingMenuCatalog({
           </div>
         </div>
 
-        {/* Categories: rounded-lg border border-slate-300 (no circular corners) */}
+        {/* Meal-Time Tabs: All, Breakfast, Lunch, Dinner */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+          <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-border shrink-0">
+            {(["All", "Breakfast", "Lunch", "Dinner"] as const).map((meal) => {
+              const active = selectedMealTime === meal;
+              return (
+                <button
+                  key={meal}
+                  type="button"
+                  onClick={() => (onSelectMealTime ? onSelectMealTime(meal) : setInternalMealTime(meal))}
+                  className={cn(
+                    "flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer",
+                    active
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-white/80",
+                  )}
+                >
+                  <span>{meal}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Categories: rounded-lg border border-border (no circular corners) */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
           {allCategories.map((cat) => {
             const active = selectedCategory === cat;
@@ -228,7 +252,7 @@ export function BillingMenuCatalog({
                   "shrink-0 rounded-lg px-3 py-1.5 text-[11.5px] font-bold whitespace-nowrap transition-all cursor-pointer border",
                   active
                     ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                    : "border-slate-300 bg-white text-black hover:bg-slate-100",
+                    : "border-border bg-white text-black hover:bg-slate-100",
                 )}
               >
                 {cat}
@@ -238,196 +262,194 @@ export function BillingMenuCatalog({
         </div>
       </div>
 
-      {/* Column labels */}
-      <div className="hidden sm:grid shrink-0 grid-cols-[minmax(0,1fr)_7.5rem_5.5rem_6rem] gap-2 border-b border-border/60 bg-surface-2/50 px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-text-secondary/80">
-        <span>Dish</span>
-        <span className="text-center">Portion</span>
-        <span className="text-right">Price</span>
-        <span className="text-right">Action</span>
-      </div>
+      {/* Excel Table Format for Dishes with Column Lines and Centered Data */}
+      <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto p-2 sm:p-2.5">
+        <table className="w-full min-w-[520px] excel-format border-collapse border border-border text-center">
+          <thead>
+            <tr className="bg-slate-100/90 text-[11px] font-bold uppercase tracking-wider text-slate-800">
+              <th className="py-2 px-3 border-r border-b border-border text-center">Dish</th>
+              <th className="py-2 px-3 border-r border-b border-border text-center w-36">Portion</th>
+              <th className="py-2 px-3 border-r border-b border-border text-center w-28">Price</th>
+              <th className="py-2 px-3 border-b border-border text-center w-28">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredItems.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="py-12 text-center text-slate-500 border-b border-border">
+                  <UtensilsCrossed className="h-6 w-6 text-slate-400 mx-auto mb-2" />
+                  <p className="font-bold text-sm text-slate-700">No dishes found</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Try another search, meal time, or category</p>
+                </td>
+              </tr>
+            ) : (
+              filteredItems.map((item) => {
+                const hasVariants = Boolean(item.variants && item.variants.length > 0);
+                const chosenVarId =
+                  selectedVariants[item.id] || (hasVariants ? item.variants![0].id : "");
+                const chosenVariant = hasVariants
+                  ? item.variants!.find((v) => v.id === chosenVarId) || item.variants![0]
+                  : null;
+                const displayPrice = chosenVariant ? chosenVariant.price : item.price;
+                const { inCart, totalQty, cartId } = getCartInfo(item, chosenVariant);
+                const hasImage = Boolean(item.imageUrl && !brokenImages[item.id]);
 
-      {/* Item list */}
-      <div className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-2.5 space-y-1.5">
-        {filteredItems.length === 0 ? (
-          <div className="flex h-full min-h-[12rem] flex-col items-center justify-center gap-2 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-2 text-text-secondary/50">
-              <UtensilsCrossed className="h-5 w-5" />
-            </div>
-            <p className="text-[13px] font-bold text-text-primary">No dishes found</p>
-            <p className="text-[11.5px] text-text-secondary">Try another search or category</p>
-          </div>
-        ) : (
-          filteredItems.map((item) => {
-            const hasVariants = Boolean(item.variants && item.variants.length > 0);
-            const chosenVarId =
-              selectedVariants[item.id] || (hasVariants ? item.variants![0].id : "");
-            const chosenVariant = hasVariants
-              ? item.variants!.find((v) => v.id === chosenVarId) || item.variants![0]
-              : null;
-            const displayPrice = chosenVariant ? chosenVariant.price : item.price;
-            const { inCart, totalQty, cartId } = getCartInfo(item, chosenVariant);
-            const hasImage = Boolean(item.imageUrl && !brokenImages[item.id]);
-
-            return (
-              <div
-                key={item.id}
-                className={cn(
-                  "group grid grid-cols-1 items-center gap-2.5 rounded-xl border px-2.5 py-2 sm:grid-cols-[minmax(0,1fr)_7.5rem_5.5rem_6rem] sm:gap-2 sm:px-3 sm:py-2 transition-all",
-                  inCart
-                    ? "border-primary/35 bg-primary-tint/70 shadow-2xs"
-                    : "border-border/70 bg-surface hover:border-primary/25 hover:bg-surface-2/40",
-                )}
-              >
-                {/* Dish */}
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-border/80 bg-surface-2 shadow-2xs">
-                    {hasImage ? (
-                      <img
-                        src={item.imageUrl}
-                        alt=""
-                        onError={() =>
-                          setBrokenImages((prev) => ({ ...prev, [item.id]: true }))
-                        }
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-surface-2 to-border/40 text-text-secondary/45">
-                        <UtensilsCrossed className="h-4 w-4" />
-                      </div>
+                return (
+                  <tr
+                    key={item.id}
+                    className={cn(
+                      "transition-colors hover:bg-slate-50/80",
+                      inCart && "bg-primary-tint/30",
                     )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <FoodTypeIcon type={item.diet} size="sm" />
-                      <span className="truncate text-[13px] font-bold tracking-tight text-text-primary">
-                        {item.name}
-                      </span>
-                      {item.plates !== undefined ? (
-                        <span
-                          className={cn(
-                            "rounded-md px-1.5 py-0.2 text-[10px] font-bold tracking-tight inline-flex items-center border",
-                            item.plates <= 0
-                              ? "bg-rose-100 text-rose-800 border-rose-300"
-                              : item.plates <= 3
-                                ? "bg-amber-100 text-amber-800 border-amber-300"
-                                : "bg-emerald-100 text-emerald-800 border-emerald-300",
+                  >
+                    {/* Dish Name, Image, Diet & Code */}
+                    <td className="py-2 px-3 border-r border-b border-border text-center">
+                      <div className="flex items-center justify-center gap-2.5 max-w-sm mx-auto">
+                        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-border bg-surface-2 shadow-2xs">
+                          {hasImage ? (
+                            <img
+                              src={item.imageUrl}
+                              alt=""
+                              onError={() =>
+                                setBrokenImages((prev) => ({ ...prev, [item.id]: true }))
+                              }
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-400">
+                              <UtensilsCrossed className="h-4 w-4" />
+                            </div>
                           )}
-                        >
-                          {item.plates} {item.plates === 1 ? "Plate" : "Plates"}
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-0.5 truncate font-mono text-[10.5px] text-text-secondary">
-                      {item.code}
-                      {item.description ? (
-                        <span className="font-sans text-text-secondary/80">
-                          {" "}
-                          · {item.description}
-                        </span>
-                      ) : null}
-                    </p>
-                  </div>
-                </div>
+                        </div>
+                        <div className="min-w-0 text-left">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <FoodTypeIcon type={item.diet} size="sm" />
+                            <span className="truncate text-[12.5px] font-bold text-slate-900">
+                              {item.name}
+                            </span>
+                            {item.plates !== undefined ? (
+                              <span
+                                className={cn(
+                                  "rounded px-1.5 py-0.2 text-[10px] font-bold border",
+                                  item.plates <= 0
+                                    ? "bg-rose-100 text-rose-800 border-rose-300"
+                                    : item.plates <= 3
+                                      ? "bg-amber-100 text-amber-800 border-amber-300"
+                                      : "bg-emerald-100 text-emerald-800 border-emerald-300",
+                                )}
+                              >
+                                {item.plates} {item.plates === 1 ? "Plate" : "Plates"}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-0.5 truncate font-mono text-[10.5px] text-slate-600">
+                            {item.code}
+                            {item.description ? ` · ${item.description}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
 
-                {/* Portion */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-border/40 sm:border-t-0 sm:pt-0 sm:contents">
-                <div className="flex justify-start sm:justify-center">
-                  {hasVariants ? (
-                    <div className="inline-flex items-center rounded-lg border border-border bg-surface-2/80 p-0.5">
-                      {item.variants!.map((v) => {
-                        const isSelected = v.id === chosenVarId;
-                        return (
+                    {/* Portion */}
+                    <td className="py-2 px-3 border-r border-b border-border text-center">
+                      <div className="flex items-center justify-center">
+                        {hasVariants ? (
+                          <div className="inline-flex items-center rounded-lg border border-border bg-slate-100 p-0.5">
+                            {item.variants!.map((v) => {
+                              const isSelected = v.id === chosenVarId;
+                              return (
+                                <button
+                                  key={v.id}
+                                  type="button"
+                                  onClick={() =>
+                                    setSelectedVariants((prev) => ({ ...prev, [item.id]: v.id }))
+                                  }
+                                  className={cn(
+                                    "rounded px-2 py-0.5 text-[10.5px] font-bold transition cursor-pointer",
+                                    isSelected
+                                      ? "bg-primary text-primary-foreground shadow-xs"
+                                      : "text-slate-600 hover:text-slate-900",
+                                  )}
+                                >
+                                  {v.name.split(" ")[0]}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span className="rounded border border-border bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                            Standard
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Price */}
+                    <td className="py-2 px-3 border-r border-b border-border text-center font-bold text-[13px] text-slate-900">
+                      ₹{displayPrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </td>
+
+                    {/* Action */}
+                    <td className="py-2 px-3 border-b border-border text-center">
+                      <div className="flex items-center justify-center">
+                        {inCart && cartId ? (
+                          <div className="inline-flex h-7 items-center overflow-hidden rounded-lg border border-primary/40 bg-white shadow-2xs">
+                            <button
+                              type="button"
+                              onClick={() => onUpdateCartQty(cartId, totalQty - 1)}
+                              className="flex h-7 w-7 items-center justify-center text-primary hover:bg-primary-tint cursor-pointer"
+                              title="Decrease"
+                            >
+                              <Minus className="h-3 w-3" />
+                            </button>
+                            <span className="min-w-[1.25rem] text-center font-bold text-[12px] text-primary">
+                              {totalQty}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (item.plates !== undefined) {
+                                  const isHalf = (chosenVariant?.name || "").toLowerCase().includes("half");
+                                  const nextPlates = (totalQty + 1) * (isHalf ? 0.5 : 1.0);
+                                  if (nextPlates > item.plates) {
+                                    toast.error(`Only ${item.plates} plates available for "${item.name}".`);
+                                    return;
+                                  }
+                                }
+                                onUpdateCartQty(cartId, totalQty + 1);
+                              }}
+                              className="flex h-7 w-7 items-center justify-center text-primary hover:bg-primary-tint cursor-pointer"
+                              title="Increase"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : item.plates !== undefined && item.plates <= 0 ? (
                           <button
-                            key={v.id}
                             type="button"
-                            onClick={() =>
-                              setSelectedVariants((prev) => ({ ...prev, [item.id]: v.id }))
-                            }
-                            className={cn(
-                              "rounded-md px-2 py-1 text-[10.5px] font-bold transition cursor-pointer",
-                              isSelected
-                                ? "bg-primary text-primary-foreground shadow-xs"
-                                : "text-text-secondary hover:text-text-primary",
-                            )}
+                            disabled
+                            className="inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-[11px] font-bold border border-rose-600 bg-rose-50 text-rose-700 cursor-not-allowed select-none"
                           >
-                            {v.name.split(" ")[0]}
+                            Sold Out
                           </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <span className="rounded-md border border-border/60 bg-surface-2/60 px-2 py-1 text-[10.5px] font-semibold text-text-secondary">
-                      Standard
-                    </span>
-                  )}
-                </div>
-
-                {/* Price */}
-                <div className="text-left font-mono text-[13px] font-extrabold tabular-nums text-text-primary sm:text-right">
-                  ₹{displayPrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                </div>
-
-                {/* Action */}
-                <div className="flex justify-start sm:justify-end">
-                  {inCart && cartId ? (
-                    <div className="inline-flex h-8 items-center overflow-hidden rounded-lg border border-primary/30 bg-surface shadow-2xs">
-                      <button
-                        type="button"
-                        onClick={() => onUpdateCartQty(cartId, totalQty - 1)}
-                        className="flex h-8 w-8 items-center justify-center text-primary hover:bg-primary-tint cursor-pointer"
-                        title="Decrease"
-                      >
-                        <Minus className="h-3.5 w-3.5" />
-                      </button>
-                      <span className="min-w-[1.5rem] text-center font-mono text-[12px] font-extrabold text-primary">
-                        {totalQty}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (item.plates !== undefined) {
-                            const isHalf = (chosenVariant?.name || "").toLowerCase().includes("half");
-                            const nextPlates = (totalQty + 1) * (isHalf ? 0.5 : 1.0);
-                            if (nextPlates > item.plates) {
-                              toast.error(`Only ${item.plates} plates available for "${item.name}".`);
-                              return;
-                            }
-                          }
-                          onUpdateCartQty(cartId, totalQty + 1);
-                        }}
-                        className="flex h-8 w-8 items-center justify-center text-primary hover:bg-primary-tint cursor-pointer"
-                        title="Increase"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    item.plates !== undefined && item.plates <= 0 ? (
-                      <button
-                        type="button"
-                        disabled
-                        style={{ color: "#be123c", backgroundColor: "#fff1f2", borderColor: "#e11d48" }}
-                        className="inline-flex h-8 items-center justify-center rounded-lg px-3 text-[11px] font-extrabold border-2 border-rose-600 bg-rose-50 text-rose-700 shadow-2xs cursor-not-allowed select-none"
-                      >
-                        Sold Out
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleAddClick(item)}
-                        className="inline-flex h-8 items-center gap-1 rounded-lg px-3 text-[11.5px] font-bold shadow-xs transition bg-primary text-primary-foreground hover:opacity-95 active:scale-[0.98] cursor-pointer border border-primary"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                        Add
-                      </button>
-                    )
-                  )}
-                </div>
-                </div>
-              </div>
-            );
-          })
-        )}
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleAddClick(item)}
+                            className="inline-flex h-7 items-center justify-center gap-1 rounded-lg bg-teal-700 px-3 text-[11.5px] font-bold text-white hover:bg-teal-800 active:scale-98 transition cursor-pointer shadow-xs"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            <span>Add</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
