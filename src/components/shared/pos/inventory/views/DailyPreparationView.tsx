@@ -19,6 +19,7 @@ import { useDailyPreps, useDeleteDailyPrep } from "@/hooks/queries/usePosDailyPr
 import { useMenuItems } from "@/hooks/queries/usePosMenu";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { CreateDailyPrepModal } from "../modals/CreateDailyPrepModal";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 import { FoodTypeIcon } from "@/components/ui/FoodTypeIcon";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import type { DailyPreparationRecord } from "@/services/posDailyPrepService";
@@ -33,6 +34,7 @@ export function DailyPreparationView() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>("today"); // "today" | "all" | specific YYYY-MM-DD
+  const [deleteTarget, setDeleteTarget] = useState<DailyPreparationRecord | null>(null);
 
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
@@ -85,14 +87,6 @@ export function DailyPreparationView() {
   }, [todayPreps]);
 
   const handleDelete = (record: DailyPreparationRecord) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to delete this batch of ${record.plates} plates for "${record.menuItemName}"?\n\nThis will rollback ${record.plates} plates from POS stock and restore the consumed raw materials.`,
-      )
-    ) {
-      return;
-    }
-
     deleteMutation.mutate(
       { id: record.id, rollbackStock: true },
       {
@@ -227,7 +221,7 @@ export function DailyPreparationView() {
       cell: ({ row }) => (
         <button
           type="button"
-          onClick={() => handleDelete(row)}
+          onClick={() => setDeleteTarget(row)}
           disabled={deleteMutation.isPending}
           className="h-8 w-8 inline-flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
           title="Delete Batch & Rollback Stock"
@@ -429,6 +423,35 @@ export function DailyPreparationView() {
       <CreateDailyPrepModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+      />
+
+      {/* 6. Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete Kitchen Preparation Batch"
+        itemName={deleteTarget?.menuItemName}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to delete this batch of{" "}
+              <span className="font-semibold text-slate-900">{deleteTarget.plates} plates</span> for{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.menuItemName}"</span>?
+              <br className="my-1" />
+              This will automatically rollback{" "}
+              <span className="font-semibold text-slate-900">{deleteTarget.plates} plates</span> from
+              POS stock and restore the consumed raw materials to your inventory.
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            handleDelete(deleteTarget);
+            setDeleteTarget(null);
+          }
+        }}
       />
     </div>
   );

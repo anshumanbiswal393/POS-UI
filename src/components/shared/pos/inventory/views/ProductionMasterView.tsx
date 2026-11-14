@@ -38,6 +38,7 @@ import {
 } from "@/components/common/DataTableHeader";
 import { useNavigate } from "@tanstack/react-router";
 import { useStockItems } from "@/hooks/queries/usePosInventory";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 import {
   posProductionService,
   type ProductionRecipeDto,
@@ -49,6 +50,7 @@ export function ProductionMasterView() {
   const [recipes, setRecipes] = useState<ProductionRecipeDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<ProductionRecipeDto | null>(null);
 
   const { data: stockItems = [], isLoading: isStockLoading } = useStockItems();
 
@@ -437,7 +439,6 @@ export function ProductionMasterView() {
   };
 
   const handleDeleteRecipe = async (recipe: ProductionRecipeDto) => {
-    if (!window.confirm(`Are you sure you want to delete recipe '${recipe.name}'?`)) return;
     try {
       await posProductionService.deleteRecipe(recipe.id);
       setRecipes((prev) => prev.filter((r) => r.id !== recipe.id));
@@ -720,7 +721,7 @@ export function ProductionMasterView() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDeleteRecipe(r)}
+                            onClick={() => setDeleteTarget(r)}
                             title="Delete Recipe"
                             className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
                           >
@@ -1111,6 +1112,30 @@ export function ProductionMasterView() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete Production Recipe"
+        itemName={deleteTarget?.name}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to permanently delete production recipe{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.name}"</span> ({deleteTarget.code})?
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            handleDeleteRecipe(deleteTarget);
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }

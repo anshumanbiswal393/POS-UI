@@ -33,6 +33,7 @@ import {
   type RecipeFormValues,
   type RecipeIngredientInput,
 } from "@/components/shared/pos/inventory/modals/CreateRecipeModal";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 import { ExploreRecipesModal } from "@/components/shared/pos/inventory/modals/ExploreRecipesModal";
 
 interface RecipeRow {
@@ -87,6 +88,7 @@ export function RecipeManagementView() {
   const [pageSize, setPageSize] = useState(10);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<DishRecipe | null>(null);
   const [isExploreOpen, setIsExploreOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<RecipeRow | null>(null);
   const [createPrefill, setCreatePrefill] = useState<Partial<RecipeFormValues> | null>(null);
@@ -536,18 +538,7 @@ export function RecipeManagementView() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (confirm(`Delete recipe "${item.name}"?`)) {
-                              if (isLive) {
-                                deleteRecipe.mutate(item.id, {
-                                  onSuccess: () => toast.success(`Deleted "${item.name}"`),
-                                });
-                              } else {
-                                setLocalRecipes((prev) => prev.filter((r) => r.id !== item.id));
-                                toast.success(`Deleted "${item.name}"`);
-                              }
-                            }
-                          }}
+                          onClick={() => setDeleteTarget(item)}
                           className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
                           title="Delete Recipe"
                         >
@@ -611,6 +602,37 @@ export function RecipeManagementView() {
         existingNames={recipes.map((r) => r.name)}
         onUseSuggestion={handleUseSuggestion}
         onAddSelected={handleAddFromSuggestions}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete Dish Recipe"
+        itemName={deleteTarget?.name}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to permanently delete recipe{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.name}"</span>?
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            if (isLive) {
+              deleteRecipe.mutate(deleteTarget.id, {
+                onSuccess: () => toast.success(`Deleted "${deleteTarget.name}"`),
+              });
+            } else {
+              setLocalRecipes((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+              toast.success(`Deleted "${deleteTarget.name}"`);
+            }
+            setDeleteTarget(null);
+          }
+        }}
       />
     </div>
   );

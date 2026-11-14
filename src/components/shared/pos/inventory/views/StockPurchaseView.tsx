@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ColorActionView, ColorActionDelete } from "@/components/common/ColorActionIcons";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 import { cn } from "@/lib/utils";
 import { exportToExcel } from "@/utils/exportUtils";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
@@ -169,6 +170,8 @@ export function StockPurchaseView({
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [paymentModalInvoice, setPaymentModalInvoice] = useState<UnifiedPurchaseDto | null>(null);
   const [detailsModalInvoice, setDetailsModalInvoice] = useState<UnifiedPurchaseDto | null>(null);
+  const [deleteVendorTarget, setDeleteVendorTarget] = useState<PurchaseVendor | null>(null);
+  const [deletePurchaseTarget, setDeletePurchaseTarget] = useState<UnifiedPurchaseDto | null>(null);
 
   // Vendor Management Modal State
   const [isVendorModalOpen, setIsVendorModalOpen] = useState(false);
@@ -481,7 +484,6 @@ export function StockPurchaseView({
   };
 
   const handleDeleteVendor = async (vendor: PurchaseVendor) => {
-    if (!window.confirm(`Are you sure you want to remove vendor "${vendor.name}"?`)) return;
     try {
       await posPurchasesService.deleteVendor(vendor.id);
       setVendors((prev) => prev.filter((v) => v.id !== vendor.id));
@@ -641,7 +643,6 @@ export function StockPurchaseView({
   };
 
   const handleDeletePurchase = async (p: UnifiedPurchaseDto) => {
-    if (!window.confirm(`Delete purchase invoice ${p.invoiceNo}?`)) return;
     try {
       await posPurchasesService.deletePurchase(p.id);
       setPurchases((prev) => prev.filter((item) => item.id !== p.id));
@@ -1107,7 +1108,7 @@ export function StockPurchaseView({
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDeletePurchase(p)}
+                              onClick={() => setDeletePurchaseTarget(p)}
                               title="Delete Purchase"
                               className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
                             >
@@ -2036,7 +2037,7 @@ export function StockPurchaseView({
                         <div className="flex items-center gap-2 self-end sm:self-center">
                           <button
                             type="button"
-                            onClick={() => handleDeleteVendor(v)}
+                            onClick={() => setDeleteVendorTarget(v)}
                             className="flex items-center gap-1 rounded-xl p-2 text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition cursor-pointer"
                             title={`Remove vendor ${v.name}`}
                           >
@@ -2071,6 +2072,55 @@ export function StockPurchaseView({
         </div>,
         document.body,
       )}
+
+      {/* Delete Purchase Invoice Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deletePurchaseTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeletePurchaseTarget(null);
+        }}
+        title="Delete Purchase Invoice"
+        itemName={deletePurchaseTarget?.invoiceNo}
+        description={
+          deletePurchaseTarget ? (
+            <>
+              Are you sure you want to permanently delete purchase invoice{" "}
+              <span className="font-semibold text-slate-900">"{deletePurchaseTarget.invoiceNo}"</span> from{" "}
+              <span className="font-semibold text-slate-900">{deletePurchaseTarget.vendor}</span>?
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deletePurchaseTarget) {
+            handleDeletePurchase(deletePurchaseTarget);
+            setDeletePurchaseTarget(null);
+          }
+        }}
+      />
+
+      {/* Delete Vendor Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteVendorTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteVendorTarget(null);
+        }}
+        title="Remove Vendor"
+        itemName={deleteVendorTarget?.name}
+        description={
+          deleteVendorTarget ? (
+            <>
+              Are you sure you want to remove vendor{" "}
+              <span className="font-semibold text-slate-900">"{deleteVendorTarget.name}"</span>?
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteVendorTarget) {
+            handleDeleteVendor(deleteVendorTarget);
+            setDeleteVendorTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }

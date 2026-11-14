@@ -37,6 +37,7 @@ import {
 import type { StockItem } from "@/types/posInventory";
 import { fuzzyFilter } from "@/utils/fuzzySearch";
 import { formatDateIndian, compareDates } from "@/utils/dateUtils";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 
 const STANDARD_UNITS = [
   "Kg",
@@ -293,6 +294,8 @@ export function RawMaterialsManagementView() {
       },
     );
   };
+
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const toggleFavorite = (id: string) => {
     const row = items.find((it) => it.id === id);
@@ -639,7 +642,7 @@ export function RawMaterialsManagementView() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(row.id)}
+                            onClick={() => setDeleteTarget({ id: row.id, name: row.name })}
                             className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
                             title="Delete Item"
                           >
@@ -1041,6 +1044,31 @@ export function RawMaterialsManagementView() {
         </div>,
         document.body,
       )}
+
+      {/* Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete Raw Material"
+        itemName={deleteTarget?.name}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to permanently delete raw material{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.name}"</span>?
+              This will remove the item from raw materials inventory and stock reports.
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            handleDelete(deleteTarget.id);
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }

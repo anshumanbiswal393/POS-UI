@@ -27,6 +27,7 @@ import {
   RecordWastageModal,
   type WastageFormValues,
 } from "@/components/shared/pos/inventory/modals/RecordWastageModal";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 
 type WastageEntry = {
   id: string;
@@ -63,6 +64,7 @@ export function StockWastageView() {
   const [search, setSearch] = useState("");
   const [reasonFilter, setReasonFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
+  const [deleteTarget, setDeleteTarget] = useState<WastageEntry | null>(null);
   const { activeOutlet } = useOutletContext();
   const isLive = isBackendOutletId(activeOutlet.id);
   const { data: stockItems = [] } = useStockItems();
@@ -269,7 +271,6 @@ export function StockWastageView() {
   };
 
   const handleDelete = (entry: WastageEntry) => {
-    if (!confirm(`Remove wastage entry ${entry.id} (${entry.item})?`)) return;
     const qty = parseFloat(entry.quantity) || 0;
     deleteWastage.mutate(
       { id: entry.id, stockItemId: entry.stockItemId, quantity: qty },
@@ -470,7 +471,7 @@ export function StockWastageView() {
                     <td className="px-4 py-3 text-right">
                       <button
                         type="button"
-                        onClick={() => handleDelete(w)}
+                        onClick={() => setDeleteTarget(w)}
                         className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
                         title="Remove entry"
                       >
@@ -502,6 +503,30 @@ export function StockWastageView() {
         onClose={() => setIsRecordOpen(false)}
         onSave={handleRecord}
         stockItems={stockItems}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Remove Wastage Entry"
+        itemName={deleteTarget?.item}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to remove wastage entry{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.id}"</span> ({deleteTarget.item})?
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            handleDelete(deleteTarget);
+            setDeleteTarget(null);
+          }
+        }}
       />
     </div>
   );

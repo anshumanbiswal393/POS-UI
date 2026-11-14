@@ -14,6 +14,7 @@ import {
 } from "@/components/common/DataTableHeader";
 import { toast } from "sonner";
 import { ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 
 const DEMO_UNITS = [
     {
@@ -73,6 +74,7 @@ export function UnitsMasterView() {
   const saveUnit = useSaveUnit();
   const deleteUnit = useDeleteUnit();
   const [localUnits, setLocalUnits] = useState(DEMO_UNITS);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const units = isLive
     ? (apiUnits as Array<Record<string, unknown>>).map((u) => ({
         id: String(u.id),
@@ -229,16 +231,7 @@ export function UnitsMasterView() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (isLive) {
-                              deleteUnit.mutate(u.id, {
-                                onSuccess: () => toast.success(`Deleted unit ${u.name}`),
-                              });
-                            } else {
-                              setLocalUnits(units.filter((x) => x.id !== u.id));
-                              toast.success(`Deleted unit ${u.name}`);
-                            }
-                          }}
+                          onClick={() => setDeleteTarget({ id: u.id, name: u.name })}
                           className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
                           title="Delete Unit"
                         >
@@ -303,6 +296,37 @@ export function UnitsMasterView() {
           />
         </div>
       </PosCreatePanel>
+
+      {/* Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete Measurement Unit"
+        itemName={deleteTarget?.name}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to permanently delete measurement unit{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.name}"</span>?
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            if (isLive) {
+              deleteUnit.mutate(deleteTarget.id, {
+                onSuccess: () => toast.success(`Deleted unit ${deleteTarget.name}`),
+              });
+            } else {
+              setLocalUnits(units.filter((x) => x.id !== deleteTarget.id));
+              toast.success(`Deleted unit ${deleteTarget.name}`);
+            }
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }
