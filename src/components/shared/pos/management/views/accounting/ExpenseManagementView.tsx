@@ -859,10 +859,14 @@ export function ExpenseManagementView() {
                 </label>
                 <input
                   type="date"
+                  max={new Date().toISOString().slice(0, 10)}
                   value={formDate}
                   onBlur={() => markEntryTouched("date")}
                   onChange={(e) => {
-                    setFormDate(e.target.value);
+                    const val = e.target.value;
+                    const todayIso = new Date().toISOString().slice(0, 10);
+                    if (val && val > todayIso) return;
+                    setFormDate(val);
                     markEntryTouched("date");
                   }}
                   className={`w-full rounded-xl border px-3.5 py-2 text-[13px] text-slate-800 focus:outline-none transition shadow-2xs ${

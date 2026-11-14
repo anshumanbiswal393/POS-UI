@@ -1066,6 +1066,7 @@ export function OtherReportsView() {
 
     openPrintReportTable({
       title: selectedReport.title.toUpperCase(),
+      hotelName: "Anshu Suite Restaurant",
       subtitle: `Category: ${selectedReport.category.toUpperCase()} • Total Records: ${filteredDataset.length}`,
       dateRange: `${formatToDmy(startDate)} to ${formatToDmy(endDate)}`,
       columns,
@@ -1276,6 +1277,12 @@ export function OtherReportsView() {
                     onSelect={handleDateRangeSelect}
                     selectionTarget={activeDateField === "from" ? "arrival" : "departure"}
                     durationUnit="days"
+                    toDate={new Date()}
+                    disabled={(date: Date) => {
+                      const t = new Date();
+                      t.setHours(23, 59, 59, 999);
+                      return date > t;
+                    }}
                     className="rounded-xl"
                   />
                 </div>

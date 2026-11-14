@@ -600,10 +600,14 @@ export function ServicePaymentHistoryView() {
                 </label>
                 <input
                   type="date"
+                  max={new Date().toISOString().slice(0, 10)}
                   value={formInvoiceDate}
                   onBlur={() => markTouched("invoiceDate")}
                   onChange={(e) => {
-                    setFormInvoiceDate(e.target.value);
+                    const val = e.target.value;
+                    const todayIso = new Date().toISOString().slice(0, 10);
+                    if (val && val > todayIso) return;
+                    setFormInvoiceDate(val);
                     markTouched("invoiceDate");
                   }}
                   className={`w-full rounded-xl border px-3.5 py-2 text-[13px] text-slate-800 focus:outline-none transition shadow-2xs ${

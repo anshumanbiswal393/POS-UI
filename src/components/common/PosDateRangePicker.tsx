@@ -36,6 +36,8 @@ export interface PosDateRangePickerProps {
   disabled?: boolean;
   /** Number of visible calendar months */
   numberOfMonths?: 1 | 2;
+  /** Whether future dates can be browsed and selected. Default is false (strictly disabled). Set to true only for reservation calendars. */
+  allowFutureDates?: boolean;
 }
 
 function parseDateSafe(val?: string): Date | undefined {
@@ -64,6 +66,7 @@ export function PosDateRangePicker({
   size = "default",
   disabled = false,
   numberOfMonths = 2,
+  allowFutureDates = false,
 }: PosDateRangePickerProps) {
   const [open, setOpen] = React.useState(false);
   const isMobile = useIsMobile();
@@ -98,8 +101,21 @@ export function PosDateRangePicker({
       }
       return;
     }
-    const fromStr = formatDateSafe(range.from);
-    const toStr = range.to ? formatDateSafe(range.to) : fromStr;
+
+    let effectiveFrom = range.from;
+    let effectiveTo = range.to || effectiveFrom;
+
+    if (!allowFutureDates) {
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+      if (effectiveFrom > todayEnd) return;
+      if (effectiveTo > todayEnd) {
+        effectiveTo = todayEnd;
+      }
+    }
+
+    const fromStr = formatDateSafe(effectiveFrom);
+    const toStr = formatDateSafe(effectiveTo);
 
     onFromChange?.(fromStr);
     onToChange?.(toStr);
@@ -149,7 +165,14 @@ export function PosDateRangePicker({
     },
     {
       label: "This Month",
-      range: () => ({ from: startOfMonth(today), to: endOfMonth(today) }),
+      range: () => {
+        const start = startOfMonth(today);
+        const end = endOfMonth(today);
+        return {
+          from: start,
+          to: allowFutureDates ? end : (end > today ? today : end),
+        };
+      },
     },
   ];
 
@@ -308,6 +331,16 @@ export function PosDateRangePicker({
                 numberOfMonths={effectiveMonths}
                 selected={tempRange}
                 onSelect={handleCalendarSelect}
+                toDate={allowFutureDates ? undefined : new Date()}
+                disabled={
+                  allowFutureDates
+                    ? undefined
+                    : (date: Date) => {
+                        const t = new Date();
+                        t.setHours(23, 59, 59, 999);
+                        return date > t;
+                      }
+                }
                 className="rounded-xl"
               />
 

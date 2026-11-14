@@ -294,6 +294,7 @@ export function PosReservationsManager() {
     const totalDeposit = filteredReservations.reduce((sum, r) => sum + Number(r.depositAmount || 0), 0);
 
     openPrintReportTable({
+      hotelName: "Anshu Suite Restaurant",
       title: "RESERVATIONS MASTER LIST",
       subtitle: `Stay / Reservation Window: ${fromDate} to ${toDate} • Total: ${filteredReservations.length} Bookings`,
       dateRange: `${formatDateIndian(fromDate)} to ${formatDateIndian(toDate)}`,
@@ -678,11 +679,12 @@ export function PosReservationsManager() {
             <option value="cancelled">Cancelled</option>
           </select>
 
-          {/* Sliding Date Range Picker */}
+          {/* Sliding Date Range Picker (Reservations can search future dates) */}
           <div className="shrink-0">
             <PosDateRangePicker
               from={fromDate}
               to={toDate}
+              allowFutureDates={true}
               onSelect={({ from, to }) => {
                 setFromDate(from);
                 setToDate(to);

@@ -372,6 +372,7 @@ export function PosAllOrdersManager() {
 
     openPrintReportTable({
       title: "ORDER HISTORY MASTER REPORT",
+      hotelName: activeOutlet?.name || "Anshu Suite Restaurant",
       subtitle: `Type: ${appliedFilters.orderType || "All"} • Status: ${appliedFilters.status || "All"} • Total Orders: ${filteredRecords.length}`,
       dateRange: `${formatDateIndian(appliedFilters.startDate)} to ${formatDateIndian(appliedFilters.endDate)}`,
       columns: reportCols,

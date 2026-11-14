@@ -665,6 +665,7 @@ export function MainOtherReportsView() {
 
     openPrintReportTable({
       title: (selectedReport.title || "POS REPORT").toUpperCase(),
+      hotelName: "Anshu Suite Restaurant",
       subtitle: `Category: ${selectedReport.category || "Reports"} • Outlet: ${selectedOutlet === "ALL" ? "All Outlets" : selectedOutlet} • Total Records: ${reportDataset.length}`,
       dateRange: `${formatDateIndian(fromDate)} to ${formatDateIndian(toDate)}`,
       columns,

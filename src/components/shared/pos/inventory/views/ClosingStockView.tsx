@@ -254,8 +254,14 @@ export function ClosingStockView() {
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="date"
+            max={new Date().toISOString().slice(0, 10)}
             value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              const todayIso = new Date().toISOString().slice(0, 10);
+              if (val && val > todayIso) return;
+              setSelectedDate(val);
+            }}
             className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
           />
 

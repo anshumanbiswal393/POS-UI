@@ -375,6 +375,7 @@ export function VirtualWalletView() {
 
     openPrintReportTable({
       title: "GUEST VIRTUAL WALLET MASTER REPORT",
+      hotelName: "Anshu Suite Restaurant",
       subtitle: `Total Active Wallets: ${filteredRecords.length} • Total Float: ₹${totalBal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
       columns: reportCols,
       rows: reportRows,
@@ -504,8 +505,14 @@ export function VirtualWalletView() {
             <label className="text-[11.5px] font-semibold text-slate-600">Registered From</label>
             <input
               type="date"
+              max={new Date().toISOString().slice(0, 10)}
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                const todayIso = new Date().toISOString().slice(0, 10);
+                if (val && val > todayIso) return;
+                setStartDate(val);
+              }}
               className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
             />
           </div>
@@ -514,8 +521,14 @@ export function VirtualWalletView() {
             <label className="text-[11.5px] font-semibold text-slate-600">Registered To</label>
             <input
               type="date"
+              max={new Date().toISOString().slice(0, 10)}
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                const todayIso = new Date().toISOString().slice(0, 10);
+                if (val && val > todayIso) return;
+                setEndDate(val);
+              }}
               className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
             />
           </div>

@@ -150,8 +150,14 @@ export function PurchaseReturnView() {
             </label>
             <input
               type="date"
+              max={new Date().toISOString().slice(0, 10)}
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                const todayIso = new Date().toISOString().slice(0, 10);
+                if (val && val > todayIso) return;
+                setStartDate(val);
+              }}
               className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] text-slate-800 focus:border-teal-500 focus:outline-none"
             />
           </div>
@@ -160,8 +166,14 @@ export function PurchaseReturnView() {
             <label className="block text-[11.5px] font-medium text-slate-600 mb-1">End Date</label>
             <input
               type="date"
+              max={new Date().toISOString().slice(0, 10)}
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                const todayIso = new Date().toISOString().slice(0, 10);
+                if (val && val > todayIso) return;
+                setEndDate(val);
+              }}
               className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] text-slate-800 focus:border-teal-500 focus:outline-none"
             />
           </div>

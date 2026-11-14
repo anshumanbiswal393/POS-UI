@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { getActivePropertyFallback } from "./printReceipt";
 
 /**
  * Universal Excel Export Engine for Retrod POS
@@ -91,7 +92,8 @@ function buildHtmlSpreadsheet(options: ExportToExcelOptions): string {
   const rows = options.rows || [];
   const sheetName = options.sheetName || "POS Report";
   const title = options.title || options.filename || "Report Export";
-  const propertyName = options.propertyName || "RETROD LUXURY POS";
+  const rawPropName = options.propertyName || getActivePropertyFallback().name || "Anshu Suite Restaurant";
+  const propertyName = rawPropName.toLowerCase().includes("retrod") ? "Anshu Suite Restaurant" : rawPropName;
   const summaryFooter = options.summaryFooter;
   const colCount = Math.max(columns.length, 1);
 

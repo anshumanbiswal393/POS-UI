@@ -67,10 +67,17 @@ export function generateReportPrintHtml(options: PrintReportOptions): string {
     ...(options.property || {}),
   };
 
-  const propName = options.hotelName || mergedProp?.name || "ANSHU SUITE";
-  const propAddress = mergedProp?.address || "Fortune Tower, Khorda, Odisha, India, - 751001";
-  const propPhone = mergedProp?.phone || "9895898999";
-  const propGstin = mergedProp?.gstin || "HGFDRTWC14517713";
+  const rawPropName = options.hotelName || mergedProp?.name || "Anshu Suite Restaurant";
+  const propName = rawPropName.toLowerCase().includes("retrod") ? "Anshu Suite Restaurant" : rawPropName;
+  const propAddress = mergedProp?.address && !mergedProp.address.includes("Plot 42")
+    ? mergedProp.address
+    : "Fortune Tower, Khorda, Odisha, India, - 751001";
+  const propPhone = mergedProp?.phone && !mergedProp.phone.includes("2640")
+    ? mergedProp.phone
+    : "9895898999";
+  const propGstin = mergedProp?.gstin && !mergedProp.gstin.includes("27AABCR")
+    ? mergedProp.gstin
+    : "HGFDRTWC14517713";
   const propLogo = mergedProp?.logo || "";
 
   const now = new Date();
@@ -132,7 +139,8 @@ export function generateReportPrintHtml(options: PrintReportOptions): string {
     }
   }
 
-  const generatedBy = options.generatedBy || "Retrod POS";
+  const rawGeneratedBy = options.generatedBy || `${propName} POS`;
+  const generatedBy = rawGeneratedBy.toLowerCase().includes("retrod") ? `${propName} POS` : rawGeneratedBy;
   const displayDate = options.dateRange || printDateStr;
 
   return `<!DOCTYPE html>

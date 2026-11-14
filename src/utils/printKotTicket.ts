@@ -211,7 +211,7 @@ function buildKotHtml(payload: KotPrintPayload) {
   <div class="slip">
     <div class="center">
       <div class="title">KITCHEN ORDER TICKET</div>
-      <div class="sub">${escapeHtml(payload.outletName || "RETROD KITCHEN")}</div>
+      <div class="sub">${escapeHtml(payload.outletName || "Anshu Suite Kitchen")}</div>
     </div>
 
     <hr class="rule" />

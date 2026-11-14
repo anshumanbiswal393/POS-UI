@@ -120,14 +120,40 @@ export function getActivePropertyFallback(): {
   gstin: string;
 } {
   let activeStoredProp: any = null;
+  let activeOutletName = "";
   if (typeof window !== "undefined") {
     try {
       const raw = localStorage.getItem("retrod:active-property");
       if (raw) activeStoredProp = JSON.parse(raw);
     } catch {}
+    try {
+      const userRaw = localStorage.getItem("retrod:auth-user") || localStorage.getItem("retrod_user");
+      if (userRaw) {
+        const u = JSON.parse(userRaw);
+        if (u?.outlet_name) activeOutletName = u.outlet_name;
+        else if (u?.property) activeOutletName = u.property.split("·")[0].trim();
+      }
+    } catch {}
+    try {
+      const activeId = localStorage.getItem("retrod_pos_active_outlet_id");
+      const outletsRaw = localStorage.getItem("retrod_pos_custom_outlets");
+      if (activeId && outletsRaw) {
+        const list = JSON.parse(outletsRaw);
+        const match = Array.isArray(list) ? list.find((o: any) => o.id === activeId) : null;
+        if (match?.name) activeOutletName = match.name;
+      }
+    } catch {}
   }
 
-  const name = activeStoredProp?.name || "RETROD RESTAURANT & BAR";
+  const isOldDummyName =
+    !activeStoredProp?.name ||
+    activeStoredProp.name.toLowerCase().includes("retrod") ||
+    activeStoredProp.name.trim() === "Main Outlet";
+
+  const name = !isOldDummyName
+    ? activeStoredProp.name
+    : (activeOutletName || "Anshu Suite Restaurant");
+
   const addressParts = [
     activeStoredProp?.address_line_1,
     activeStoredProp?.address_line_2,
@@ -137,14 +163,38 @@ export function getActivePropertyFallback(): {
     activeStoredProp?.postal_code ? `- ${activeStoredProp.postal_code}` : "",
   ].filter(Boolean);
 
-  const address = addressParts.length > 0
-    ? addressParts.join(", ")
-    : (activeStoredProp?.address || "Plot 42, Park Street, F&B Division, Mumbai - 400050");
-  const phone = activeStoredProp?.contact_phone || activeStoredProp?.phone || "+91 22 2640 8899";
-  const email = activeStoredProp?.contact_email || activeStoredProp?.email || "pos@retrod.com";
-  const website = activeStoredProp?.website || "www.retrod.com";
+  const isOldDummyAddress =
+    !activeStoredProp?.address ||
+    activeStoredProp.address.includes("Plot 42") ||
+    activeStoredProp.address.includes("Mumbai");
+
+  const address =
+    addressParts.length > 0 && !addressParts.join(", ").includes("Plot 42")
+      ? addressParts.join(", ")
+      : (!isOldDummyAddress
+          ? activeStoredProp.address
+          : "Fortune Tower, Khorda, Odisha, India, - 751001");
+
+  const isOldDummyPhone =
+    !activeStoredProp?.phone ||
+    activeStoredProp.phone.includes("2640") ||
+    activeStoredProp.phone.includes("8899");
+
+  const phone = !isOldDummyPhone
+    ? (activeStoredProp?.contact_phone || activeStoredProp?.phone)
+    : "9895898999";
+
+  const email = activeStoredProp?.contact_email || activeStoredProp?.email || "anshumanbiswal393@gmail.com";
+  const website = activeStoredProp?.website || "https://retrodtech.com/";
   const logo = activeStoredProp?.website_logo || activeStoredProp?.kot_logo || activeStoredProp?.logo || "";
-  const gstin = activeStoredProp?.tax_id || activeStoredProp?.gst_number || "27AABCR8841M1ZU";
+
+  const isOldDummyGstin =
+    !activeStoredProp?.tax_id &&
+    (!activeStoredProp?.gst_number || activeStoredProp.gst_number.includes("27AABCR"));
+
+  const gstin = !isOldDummyGstin
+    ? (activeStoredProp?.tax_id || activeStoredProp?.gst_number)
+    : "HGFDRTWC14517713";
 
   return { name, address, phone, email, website, logo, gstin };
 }
@@ -155,13 +205,17 @@ export function getActivePropertyFallback(): {
  */
 export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
   const prop = getActivePropertyFallback();
-  const outletName = p.outletName || prop.name;
-  const outletAddress = p.outletAddress || prop.address;
-  const outletPhone = p.outletPhone || prop.phone;
+  const rawOutletName = p.outletName || prop.name;
+  const outletName = rawOutletName.toLowerCase().includes("retrod") ? "Anshu Suite Restaurant" : rawOutletName;
+  const rawAddress = p.outletAddress || prop.address;
+  const outletAddress = rawAddress.includes("Plot 42") ? "Fortune Tower, Khorda, Odisha, India, - 751001" : rawAddress;
+  const rawPhone = p.outletPhone || prop.phone;
+  const outletPhone = rawPhone.includes("2640") ? "9895898999" : rawPhone;
   const outletEmail = p.outletEmail || prop.email;
   const outletWebsite = p.outletWebsite || prop.website;
   const outletLogo = p.outletLogo || prop.logo;
-  const gstin = p.gstin || prop.gstin;
+  const rawGstin = p.gstin || prop.gstin;
+  const gstin = rawGstin.includes("27AABCR") ? "HGFDRTWC14517713" : rawGstin;
   const fssai = p.fssai || "11521008000492";
 
   const issueDate = p.issueDate ? formatDateIndian(p.issueDate) : formatDateIndian(new Date());

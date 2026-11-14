@@ -397,6 +397,7 @@ export function PaymentInformationView() {
 
     openPrintReportTable({
       title: "DIGITAL PAYMENTS & RECONCILIATION REPORT",
+      hotelName: "Anshu Suite Restaurant",
       subtitle: `Total Transactions: ${filteredRecords.length} • Total Volume: ₹${totalGross.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
       dateRange: `${formatDateIndian(fromDate)} to ${formatDateIndian(toDate)}`,
       columns: reportCols,
@@ -511,8 +512,14 @@ export function PaymentInformationView() {
             <label className="text-[11.5px] font-semibold text-slate-600">From Date</label>
             <input
               type="date"
+              max={new Date().toISOString().slice(0, 10)}
               value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                const todayIso = new Date().toISOString().slice(0, 10);
+                if (val && val > todayIso) return;
+                setFromDate(val);
+              }}
               className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
             />
           </div>
@@ -521,8 +528,14 @@ export function PaymentInformationView() {
             <label className="text-[11.5px] font-semibold text-slate-600">To Date</label>
             <input
               type="date"
+              max={new Date().toISOString().slice(0, 10)}
               value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                const todayIso = new Date().toISOString().slice(0, 10);
+                if (val && val > todayIso) return;
+                setToDate(val);
+              }}
               className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
             />
           </div>

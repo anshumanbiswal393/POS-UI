@@ -35,10 +35,10 @@ describe("Unified POS Tax Invoice (PMS standard)", () => {
       source: "POS Dine-In",
       issueDate: "13-Nov-2026",
       issueTime: "01:30 PM",
-      outletName: "RETROD FINE DINING & BAR",
-      outletAddress: "Plot 42, Park Street, Mumbai - 400050",
-      outletPhone: "+91 22 2640 8899",
-      gstin: "27AABCR8841M1ZU",
+      outletName: "Anshu Suite Restaurant",
+      outletAddress: "Fortune Tower, Khorda, Odisha, India, - 751001",
+      outletPhone: "9895898999",
+      gstin: "HGFDRTWC14517713",
       fssai: "11521008000492",
       guestName: "Rahul Sharma",
       guestPhone: "+91 98765 43210",
@@ -84,7 +84,7 @@ describe("Unified POS Tax Invoice (PMS standard)", () => {
 
     expect(html).toContain("<!DOCTYPE html>");
     expect(html).toContain("class=\"invoice-box\"");
-    expect(html).toContain("RETROD FINE DINING &amp; BAR");
+    expect(html).toContain("Anshu Suite Restaurant");
     expect(html).toContain("TAX INVOICE");
     expect(html).toContain("ORIGINAL FOR RECIPIENT");
     expect(html).toContain("Table T-04");

@@ -399,8 +399,14 @@ export function DailyPreparationView() {
             <Calendar className="h-4 w-4 text-slate-400" />
             <input
               type="date"
+              max={new Date().toISOString().slice(0, 10)}
               value={selectedDateFilter !== "today" && selectedDateFilter !== "all" ? selectedDateFilter : ""}
-              onChange={(e) => setSelectedDateFilter(e.target.value || "today")}
+              onChange={(e) => {
+                const val = e.target.value;
+                const todayIso = new Date().toISOString().slice(0, 10);
+                if (val && val > todayIso) return;
+                setSelectedDateFilter(val || "today");
+              }}
               className="h-9 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-medium text-slate-700 focus:border-teal-500 focus:outline-hidden"
               title="Pick specific date"
             />

@@ -192,8 +192,14 @@ export function CreateDailyPrepModal({ isOpen, onClose, preselectedItemId }: Pro
             </label>
             <input
               type="date"
+              max={new Date().toISOString().slice(0, 10)}
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                const todayIso = new Date().toISOString().slice(0, 10);
+                if (val && val > todayIso) return;
+                setDate(val);
+              }}
               className="w-full h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-900 focus:border-teal-500 focus:outline-hidden"
               required
             />

@@ -284,6 +284,7 @@ export function PosOnlineOrdersManager() {
 
     openPrintReportTable({
       title: "ONLINE AGGREGATOR ORDERS REPORT",
+      hotelName: "Anshu Suite Restaurant",
       subtitle: `Platform: ${platformTab.toUpperCase()} • Range: ${selectedRange} • Total Orders: ${filteredRecords.length}`,
       dateRange: selectedRange,
       columns: reportCols,

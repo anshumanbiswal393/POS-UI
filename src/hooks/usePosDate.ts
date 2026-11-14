@@ -34,11 +34,11 @@ export function usePosDate() {
       const urlParams = new URLSearchParams(window.location.search);
       const urlDate = urlParams.get("date");
       if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) {
-        return urlDate;
+        if (urlDate <= realTodayStr) return urlDate;
       }
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored && /^\d{4}-\d{2}-\d{2}$/.test(stored)) {
-        return stored;
+        if (stored <= realTodayStr) return stored;
       }
     }
     return realTodayStr;
@@ -49,6 +49,8 @@ export function usePosDate() {
   const updateDate = useCallback(
     (newDateStr: string) => {
       if (!newDateStr || !/^\d{4}-\d{2}-\d{2}$/.test(newDateStr)) return;
+      // Do not allow navigating to future operational dates
+      if (newDateStr > realTodayStr) return;
       setSelectedDateStr(newDateStr);
       if (typeof window !== "undefined") {
         localStorage.setItem(STORAGE_KEY, newDateStr);

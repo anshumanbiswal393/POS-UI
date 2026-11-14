@@ -386,6 +386,7 @@ export function PosDueSettlementManager() {
 
     openPrintReportTable({
       title: "PENDING PAYMENTS & DUE SETTLEMENT REPORT",
+      hotelName: "Anshu Suite Restaurant",
       subtitle: `Total Outstanding Due: ₹${totalDue.toLocaleString("en-IN", { minimumFractionDigits: 2 })} • Bills: ${filteredRecords.length}`,
       columns: reportCols,
       rows: reportRows,
