@@ -534,7 +534,7 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
 
     <!-- 2. Subheader Bar -->
     <div class="sub-header">
-      <div>Order Source: ${escapeHtml(p.source || p.orderType || "Dine-In")}</div>
+      <div>Booking Source : ${escapeHtml(p.source || p.orderType || "Direct")}</div>
       <div class="sub-header-center">TAX INVOICE</div>
       <div>ORIGINAL FOR RECIPIENT</div>
     </div>
@@ -550,11 +550,12 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
           <div class="info-row"><span class="info-label">Company GST:</span><span class="info-val">${escapeHtml(p.companyGst || "—")}</span></div>
         </td>
         <td style="width: 50%;">
-          <div class="info-row"><span class="info-label">Table / Room No:</span><span class="info-val">${escapeHtml(p.tableOrRoom || "Counter")}</span></div>
+          <div class="info-row"><span class="info-label">Room / Table No:</span><span class="info-val">${escapeHtml(p.tableOrRoom || "—")}</span></div>
           <div class="info-row"><span class="info-label">No Of Pax:</span><span class="info-val">${escapeHtml(String(p.pax || 1))}</span></div>
-          <div class="info-row"><span class="info-label">Date of Order:</span><span class="info-val">${escapeHtml(issueDate)} ${escapeHtml(issueTime)}</span></div>
-          <div class="info-row"><span class="info-label">Steward / Captain:</span><span class="info-val">${escapeHtml(p.captainName || "Staff")}</span></div>
-          <div class="info-row"><span class="info-label">Bill Status:</span><span class="info-val" style="color:#0f766e; font-weight:800;">${escapeHtml(p.status || "SETTLED")}</span></div>
+          <div class="info-row"><span class="info-label">Date Of Arrival:</span><span class="info-val">${escapeHtml(issueDate)} ${escapeHtml(issueTime)}</span></div>
+          <div class="info-row"><span class="info-label">Date Of Departure:</span><span class="info-val">${escapeHtml(issueDate)} ${escapeHtml(issueTime)}</span></div>
+          <div class="info-row"><span class="info-label">Duration Of Stay:</span><span class="info-val">${escapeHtml(p.captainName || "1 Day")}</span></div>
+          <div class="info-row"><span class="info-label">Plan Type:</span><span class="info-val">${escapeHtml(p.orderType || "Dine-In")}</span></div>
         </td>
       </tr>
     </table>
@@ -578,11 +579,11 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
       <tbody>
         ${itemRowsHtml}
         <tr class="grand-total">
-          <td colspan="6" class="text-right">Grand Total:</td>
-          <td class="text-right">₹${formatINR(p.subtotal)}</td>
-          <td class="text-right">${p.discountAmount ? `-₹${formatINR(p.discountAmount)}` : "₹0.00"}</td>
-          <td class="text-right">₹${formatINR(p.sgst)}</td>
-          <td class="text-right">₹${formatINR(p.cgst)}</td>
+          <td colspan="6" class="text-right">Grand Total</td>
+          <td class="text-right">${formatINR(p.subtotal)}</td>
+          <td class="text-right">${p.discountAmount ? `-${formatINR(p.discountAmount)}` : "0.00"}</td>
+          <td class="text-right">${formatINR(p.sgst)}</td>
+          <td class="text-right">${formatINR(p.cgst)}</td>
         </tr>
       </tbody>
     </table>
@@ -595,70 +596,53 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
           <div class="paid-words">${escapeHtml(paidWords)}</div>
           <table class="mini-pay-table">
             <thead>
-              <tr style="background:#f1f5f9; font-weight:bold;">
+              <tr style="background:#f8fafc; font-weight:bold;">
                 <th>Date</th>
-                <th>Payment Mode</th>
-                <th style="text-align:right;">Amount (₹)</th>
+                <th>Walk-in / Online</th>
+                <th style="text-align:right;">Amount</th>
               </tr>
             </thead>
             <tbody>
               ${paymentsHtml}
               <tr class="total-row">
-                <td colspan="2">Total Paid</td>
-                <td class="text-right" style="color:#15803d; font-weight:bold;">₹${formatINR(p.paidAmount)}</td>
+                <td colspan="2">Total</td>
+                <td class="text-right" style="font-weight:bold;">Rs ${formatINR(p.paidAmount)}</td>
               </tr>
             </tbody>
           </table>
-          <div style="margin-top:10px; font-weight:bold; font-size:10px;">Remark / Special Instructions:</div>
-          <div style="font-size:10px; color:#475569; margin-top:2px;">${escapeHtml(p.specialNote || "Thank you for dining with us! Visit again soon.")}</div>
+          <div style="margin-top:10px; font-size:10px;">
+            <strong>Remark:</strong> ${escapeHtml(p.specialNote || "")}
+          </div>
         </td>
         <td class="middle-right">
           <table class="totals-table">
             <tr>
-              <td class="label">Net Base Amount:</td>
-              <td class="val-bold">₹${formatINR(p.subtotal)}</td>
-            </tr>
-            ${p.discountAmount && p.discountAmount > 0 ? `
-              <tr>
-                <td class="label" style="color:#15803d;">Discount Applied ${p.discountCode ? `(${escapeHtml(p.discountCode)})` : ""}:</td>
-                <td class="val-bold" style="color:#15803d;">-₹${formatINR(p.discountAmount)}</td>
-              </tr>
-            ` : ""}
-            <tr>
-              <td class="label">Taxable Value:</td>
-              <td class="val-bold">₹${formatINR(taxableVal)}</td>
+              <td class="label">Net Amount:</td>
+              <td class="val-bold">${formatINR(p.subtotal)}</td>
             </tr>
             <tr>
-              <td class="label">CGST (2.5%):</td>
-              <td class="val-bold">₹${formatINR(p.cgst)}</td>
+              <td class="label">CGST:</td>
+              <td class="val-bold">${formatINR(p.cgst)}</td>
             </tr>
             <tr>
-              <td class="label">SGST (2.5%):</td>
-              <td class="val-bold">₹${formatINR(p.sgst)}</td>
+              <td class="label">SGST:</td>
+              <td class="val-bold">${formatINR(p.sgst)}</td>
             </tr>
-            ${p.serviceCharge && p.serviceCharge > 0 ? `
-              <tr>
-                <td class="label">Service Charge:</td>
-                <td class="val-bold">₹${formatINR(p.serviceCharge)}</td>
-              </tr>
-            ` : ""}
-            ${p.roundOff && p.roundOff !== 0 ? `
-              <tr>
-                <td class="label">Round Off:</td>
-                <td class="val-bold">${p.roundOff > 0 ? "+" : ""}₹${formatINR(p.roundOff)}</td>
-              </tr>
-            ` : ""}
+            <tr>
+              <td class="label">Invoice Amount:</td>
+              <td class="val-bold">${formatINR(p.grandTotal)}</td>
+            </tr>
+            <tr>
+              <td class="label">Round Off:</td>
+              <td class="val-bold">${p.roundOff !== undefined ? (p.roundOff >= 0 ? `+${p.roundOff.toFixed(2)}` : p.roundOff.toFixed(2)) : "+0.00"}</td>
+            </tr>
             <tr class="net-row">
-              <td class="label" style="font-size:12px;">Net Invoice Amount:</td>
-              <td class="val-bold" style="font-size:13px; color:#0f766e;">₹${formatINR(p.grandTotal)}</td>
+              <td class="label" style="font-size:11px;">Net Invoice Amount:</td>
+              <td class="val-bold" style="font-size:11.5px;">${formatINR(p.grandTotal)}</td>
             </tr>
             <tr>
-              <td class="label">Total Paid:</td>
-              <td class="val-bold" style="color:#15803d;">₹${formatINR(p.paidAmount)}</td>
-            </tr>
-            <tr>
-              <td class="label">Balance Due:</td>
-              <td class="${p.balanceAmount > 0 ? 'val-red' : 'val-bold'}">₹${formatINR(p.balanceAmount)}</td>
+              <td class="label">Balance:</td>
+              <td class="${p.balanceAmount > 0 ? 'val-red' : 'val-bold'}">${formatINR(p.balanceAmount)}</td>
             </tr>
           </table>
         </td>
@@ -668,24 +652,21 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
     <!-- 6. Bottom Box: Words, Policies, Signatures -->
     <div class="bottom-box">
       <div class="words-row">
-        Invoice Amount In Words: Indian Rupees ${escapeHtml(amountWords)}
+        Invoice Amount In Words: ${escapeHtml(amountWords)}
       </div>
       <div class="policy-row">
-        <strong>Conditions &amp; Policies:</strong>
-        <ol>
+        <strong>Conditions &amp; Policies</strong>
+        <ol style="margin-top:3px; padding-left:14px;">
           <li>Goods once sold or services once rendered will not be refunded.</li>
           <li>All disputes are subject to local state jurisdiction only.</li>
-          <li>Interest @ 18% p.a. will be charged if the bill is not settled on presentation.</li>
-          <li>This is a computer generated tax invoice and requires no physical signature.</li>
         </ol>
       </div>
       <div class="signature-box">
         <div class="sig-line">
-          Guest Signature
+          GUEST SIGNATURE
         </div>
         <div class="sig-line">
-          Cashier / Authorized Signatory<br />
-          <span style="font-size:8.5px; font-weight:normal;">(For ${escapeHtml(outletName)})</span>
+          CASHIER/ FO. SIGNATURE
         </div>
       </div>
     </div>

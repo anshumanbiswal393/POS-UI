@@ -163,7 +163,7 @@ export function PosGlobalSearch({
         type: "customer",
         title: cust.name,
         subtitle: `${cust.phone || ""} ${cust.email ? `· ${cust.email}` : ""} · Tier: ${cust.tier}`,
-        badge: "Customer",
+        badge: "Guest",
         badgeClass: "bg-sky-100 text-sky-900 border-sky-300",
         extraInfo: `Visits: ${cust.visitCount || 1} · Points: ${cust.loyaltyPoints || 0}`,
         route: "/pos/orders",
@@ -435,3 +435,4 @@ export function PosGlobalSearch({
 }
 
 export default PosGlobalSearch;
+

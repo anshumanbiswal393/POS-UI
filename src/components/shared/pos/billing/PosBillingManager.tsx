@@ -1005,32 +1005,63 @@ export function PosBillingManager() {
 
   const activeReservationDeposit = useMemo(() => {
     if (orderType !== "dine_in") return 0;
+    const tableIdentifier = activeTable || runningOrderMeta?.tableNumber || "";
+    const cleanTbl = tableIdentifier.replace(/\D/g, "");
+
+    // 1. Direct reservation ID match
     if (activeTableReservationId) {
       const match = reservations.find((r) => r.id === activeTableReservationId);
-      if (match?.depositAmount && match.depositAmount > 0) return match.depositAmount;
+      const dep = Number(match?.depositAmount || 0);
+      if (dep > 0) return dep;
     }
-    if (billingTableId || activeTable) {
-      const cleanTbl = activeTable.replace(/\D/g, "");
+
+    // 2. Table ID or Table number match
+    if (billingTableId || cleanTbl) {
       const match = reservations.find((r) => {
-        if (!r.depositAmount || r.depositAmount <= 0) return false;
-        if (r.status !== "seated" && r.status !== "reserved") return false;
+        const dep = Number(r.depositAmount || 0);
+        if (dep <= 0) return false;
+        const st = String(r.status || "").toLowerCase();
+        if (st === "cancelled" || st === "completed") return false;
         if (billingTableId && r.tableId === billingTableId) return true;
         const rTbl = String(r.tableNumber || "").replace(/\D/g, "");
         return Boolean(cleanTbl && rTbl && cleanTbl === rTbl);
       });
-      if (match?.depositAmount && match.depositAmount > 0) return match.depositAmount;
+      if (match) return Number(match.depositAmount || 0);
     }
+
+    // 3. Customer / Guest phone match
     if (selectedCustomer?.phone) {
       const cleanPhone = selectedCustomer.phone.replace(/\D/g, "");
-      const match = reservations.find((r) => {
-        if (!r.depositAmount || r.depositAmount <= 0) return false;
-        if (r.status !== "seated" && r.status !== "reserved") return false;
-        return Boolean(r.customerPhone && r.customerPhone.replace(/\D/g, "") === cleanPhone);
-      });
-      if (match?.depositAmount && match.depositAmount > 0) return match.depositAmount;
+      if (cleanPhone) {
+        const match = reservations.find((r) => {
+          const dep = Number(r.depositAmount || 0);
+          if (dep <= 0) return false;
+          const st = String(r.status || "").toLowerCase();
+          if (st === "cancelled" || st === "completed") return false;
+          return Boolean(r.customerPhone && r.customerPhone.replace(/\D/g, "") === cleanPhone);
+        });
+        if (match) return Number(match.depositAmount || 0);
+      }
     }
+
+    // 4. Customer / Guest name match
+    if (selectedCustomer?.name) {
+      const cleanName = selectedCustomer.name.trim().toLowerCase();
+      if (cleanName && cleanName !== "walk-in guest" && cleanName !== "walk-in customer") {
+        const match = reservations.find((r) => {
+          const dep = Number(r.depositAmount || 0);
+          if (dep <= 0) return false;
+          const st = String(r.status || "").toLowerCase();
+          if (st === "cancelled" || st === "completed") return false;
+          const rName = String(r.customerName || (r as any).guestName || "").trim().toLowerCase();
+          return Boolean(rName && rName === cleanName);
+        });
+        if (match) return Number(match.depositAmount || 0);
+      }
+    }
+
     return 0;
-  }, [orderType, activeTableReservationId, billingTableId, activeTable, reservations, selectedCustomer]);
+  }, [orderType, activeTableReservationId, billingTableId, activeTable, runningOrderMeta?.tableNumber, reservations, selectedCustomer]);
 
   const invalidateOrderSurfaces = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
@@ -1672,6 +1703,35 @@ export function PosBillingManager() {
       setBillNumber(order.orderNumber);
       setLinkedOrderId(order.id);
       setLinkedOrderNumber(order.orderNumber);
+
+      // Hydrate table, guest, and reservation metadata so advance payments and table status are preserved
+      if (order.tableOrRoom) {
+        const tbl = order.tableOrRoom.startsWith("Table") ? order.tableOrRoom : `Table ${order.tableOrRoom}`;
+        setActiveTable(tbl);
+        setOrderType("dine_in");
+      }
+      if (order.tableId) {
+        setBillingTableId(order.tableId);
+      }
+      if (order.pax) {
+        setGuestCount(order.pax);
+      }
+      if (order.customerName) {
+        setSelectedCustomer({
+          id: (order as any).customerId || `guest-${order.id}`,
+          name: order.customerName,
+          phone: order.customerPhone && order.customerPhone !== "--" ? order.customerPhone : "",
+          tier: "Silver",
+          loyaltyPoints: 0,
+          visitCount: 1,
+          lastVisit: "Today",
+        });
+      }
+      const resId = (order as any).reservationId || (order as any).meta?.reservationId;
+      if (resId) {
+        setActiveTableReservationId(resId);
+      }
+
       setRunningOrderMeta(null);
       setIsPreviousOrdersOpen(false);
       setIsPayNowOpen(true);
@@ -2008,6 +2068,7 @@ export function PosBillingManager() {
             busyAction={busyAction}
             selectedCustomer={selectedCustomer}
             onSelectCustomer={handleSelectCustomer}
+            depositAmount={activeReservationDeposit}
             discountType={discountType}
             discountValue={discountValue}
             onDiscountChange={(type, val) => {

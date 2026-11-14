@@ -194,7 +194,7 @@ export function NewReservationModal({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!customerName.trim() || !customerPhone.trim()) {
-      toast.error("Customer name and phone are required.");
+      toast.error("Guest name and phone are required.");
       return;
     }
     if (!reservationDate) {
@@ -398,10 +398,10 @@ export function NewReservationModal({
             </div>
           </div>
 
-          {/* Customer */}
+          {/* Guest */}
           <div>
             <label className="block text-[12px] font-semibold text-text-primary mb-1">
-              Customer Name *
+              Guest Name *
             </label>
             <div className="relative">
               <User className="w-4 h-4 text-text-disabled absolute left-3 top-1/2 -translate-y-1/2" />

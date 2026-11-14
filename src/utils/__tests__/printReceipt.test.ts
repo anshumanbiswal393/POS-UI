@@ -96,8 +96,8 @@ describe("Unified POS Tax Invoice (PMS standard)", () => {
     expect(html).toContain("1,197.00");
     expect(html).toContain("One Thousand One Hundred Ninety Seven Only.");
     expect(html).toContain("Conditions &amp; Policies");
-    expect(html).toContain("Guest Signature");
-    expect(html).toContain("Cashier / Authorized Signatory");
+    expect(html).toContain("GUEST SIGNATURE");
+    expect(html).toContain("CASHIER/ FO. SIGNATURE");
   });
 
   it("converts BillSettlementRecord via adapter correctly", () => {

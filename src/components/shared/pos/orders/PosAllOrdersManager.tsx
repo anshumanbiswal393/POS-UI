@@ -29,6 +29,7 @@ import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { exportToExcel } from "@/utils/exportUtils";
 import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 import { toast } from "sonner";
+import { openPrintReportTable } from "@/utils/printReportTable";
 import { allOrderItemToInvoicePayload, printPosInvoice } from "@/utils/printReceipt";
 import { InvoiceTemplate } from "../billing/InvoiceTemplate";
 import { fuzzyMatch } from "@/utils/fuzzySearch";
@@ -307,7 +308,7 @@ export function PosAllOrdersManager() {
     const headers = [
       "Order No",
       "Order Type",
-      "Customer Name",
+      "Guest Name",
       "Assign To",
       "Items Summary",
       "Base Amount",
@@ -341,6 +342,64 @@ export function PosAllOrdersManager() {
     toast.success(`Exported ${rows.length} order records to Excel`);
   };
 
+  const handlePrintReport = () => {
+    if (filteredRecords.length === 0) {
+      toast.info("No orders to print");
+      return;
+    }
+
+    const reportCols = [
+      { header: "ORDER NO", align: "left" as const },
+      { header: "ORDER TYPE", align: "left" as const },
+      { header: "GUEST NAME", align: "left" as const },
+      { header: "ASSIGN TO", align: "left" as const },
+      { header: "ITEMS SUMMARY", align: "left" as const },
+      { header: "BASE (₹)", align: "right" as const },
+      { header: "TAX (₹)", align: "right" as const },
+      { header: "TOTAL (₹)", align: "right" as const },
+      { header: "PAYMENT MODE", align: "center" as const },
+      { header: "STATUS", align: "center" as const },
+      { header: "DATE & TIME", align: "center" as const },
+    ];
+
+    const reportRows = filteredRecords.map((r) => [
+      r.orderNo,
+      r.orderTypeDisplay || r.orderType,
+      r.customerName || "Walk-in Guest",
+      r.assignTo || "—",
+      r.itemsSummary || "—",
+      Number(r.myAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      Number(r.taxAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      Number(r.grandTotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      r.paymentMode || "CASH",
+      (r.status || "COMPLETED").toUpperCase(),
+      r.createdAt ? formatDateIndian(r.createdAt) : "—",
+    ]);
+
+    const totalGrand = filteredRecords.reduce((s, r) => s + Number(r.grandTotal || 0), 0);
+
+    openPrintReportTable({
+      title: "ORDER HISTORY MASTER REPORT",
+      subtitle: `Type: ${appliedFilters.orderType || "All"} • Status: ${appliedFilters.status || "All"} • Total Orders: ${filteredRecords.length}`,
+      dateRange: `${formatDateIndian(appliedFilters.startDate)} to ${formatDateIndian(appliedFilters.endDate)}`,
+      columns: reportCols,
+      rows: reportRows,
+      summaryTotals: [
+        "TOTAL",
+        `${filteredRecords.length} Orders`,
+        "",
+        "",
+        "",
+        "",
+        "",
+        totalGrand.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+        "",
+        "",
+        "",
+      ],
+    });
+  };
+
   type OrderRowType = AllOrderItem & { tableNo?: string; customerPhone?: string };
 
   const columns: PosDataGridColumn<OrderRowType>[] = useMemo(
@@ -371,7 +430,7 @@ export function PosAllOrdersManager() {
       },
       {
         id: "customerName",
-        header: "Customer Name",
+        header: "Guest Name",
         accessorKey: "customerName",
         enableSorting: true,
         enableFiltering: true,
@@ -650,6 +709,16 @@ export function PosAllOrdersManager() {
             </span>
           </div>
           <ExportToExcelButton onClick={handleExportExcel} />
+          <button
+            type="button"
+            onClick={handlePrintReport}
+            disabled={filteredRecords.length === 0}
+            className="flex items-center gap-1.5 h-8.5 px-3 rounded-lg border border-slate-300 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs disabled:opacity-50"
+            title="Print Orders Master Report"
+          >
+            <Printer className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+            <span>Print</span>
+          </button>
         </div>
       </div>
 
@@ -789,13 +858,13 @@ export function PosAllOrdersManager() {
 
               <div>
                 <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
-                  Customer Name
+                  Guest Name
                 </label>
                 <input
                   type="text"
                   value={customerNameInput}
                   onChange={(e) => setCustomerNameInput(e.target.value)}
-                  placeholder="Customer Name"
+                  placeholder="Guest Name"
                   className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-[12.5px] text-slate-800 placeholder:text-slate-400 shadow-2xs hover:border-slate-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition"
                 />
               </div>
@@ -805,7 +874,7 @@ export function PosAllOrdersManager() {
             <div className="flex flex-wrap items-end gap-3.5 pt-1">
               <div className="min-w-[140px] flex-1">
                 <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
-                  Customer Phone
+                  Guest Phone
                 </label>
                 <input
                   type="text"
@@ -930,7 +999,7 @@ export function PosAllOrdersManager() {
 
               <div className="mt-2.5 space-y-1 text-[12px]">
                 <div className="flex justify-between gap-2">
-                  <span className="text-slate-500">Customer</span>
+                  <span className="text-slate-500">Guest</span>
                   <span className="truncate font-medium text-slate-800">{order.customerName}</span>
                 </div>
                 <div className="flex justify-between gap-2">
@@ -1014,7 +1083,7 @@ export function PosAllOrdersManager() {
 
             <div className="space-y-3 text-[13px]">
               <div className="flex justify-between">
-                <span className="text-slate-500">Customer Name:</span>
+                <span className="text-slate-500">Guest Name:</span>
                 <span className="font-semibold text-slate-800">{viewingOrder.customerName}</span>
               </div>
               <div className="flex justify-between">

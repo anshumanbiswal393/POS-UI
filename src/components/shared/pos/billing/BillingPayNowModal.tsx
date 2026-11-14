@@ -224,10 +224,12 @@ export function BillingPayNowModal({
               </div>
               <button
                 type="button"
-                onClick={() => setAmount(String(grandTotal))}
+                onClick={() => setAmount(String(netPayable))}
                 className="text-[11.5px] font-bold text-primary hover:underline cursor-pointer"
               >
-                Use full due ₹{grandTotal.toLocaleString("en-IN")}
+                {depositAmount > 0
+                  ? `Use remaining due ₹${netPayable.toLocaleString("en-IN")}`
+                  : `Use full due ₹${grandTotal.toLocaleString("en-IN")}`}
               </button>
             </div>
 
@@ -241,7 +243,7 @@ export function BillingPayNowModal({
                 <CheckCircle2 className="h-4 w-4" />
                 {isPartial
                   ? `Proceed (Partial ₹${amt.toLocaleString("en-IN")} · Due ₹${remainingDue.toLocaleString("en-IN")})`
-                  : `Done (Full Payment · ₹${grandTotal.toLocaleString("en-IN")})`}
+                  : `Done (Full Payment · ₹${(depositAmount > 0 ? netPayable : grandTotal).toLocaleString("en-IN")})`}
               </button>
               <button
                 type="button"

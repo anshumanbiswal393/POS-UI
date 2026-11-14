@@ -263,7 +263,7 @@ export function DeliveryManagementView() {
             <label className="text-[11.5px] font-semibold text-slate-600">Search</label>
             <input
               type="text"
-              placeholder="Search Order #, Customer, Rider..."
+              placeholder="Search Order #, Guest, Rider..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);

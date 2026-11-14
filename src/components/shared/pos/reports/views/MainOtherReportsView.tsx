@@ -31,6 +31,8 @@ import {
 import { toast } from "sonner";
 import { DataTableHeader, DataTableFooter, type DataTableColumn } from "@/components/common";
 import { exportToExcel } from "@/utils/exportUtils";
+import { openPrintReportTable } from "@/utils/printReportTable";
+import { formatDateIndian } from "@/utils/dateUtils";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 import { useOutletContext } from "@/context/PosOutletContext";
@@ -117,7 +119,7 @@ const DATASETS: Record<string, { columns: DataTableColumn<any>[]; data: any[] }>
       { id: "outlet", label: "Outlet", sortable: true, getValue: (r) => r.outlet },
       { id: "orderType", label: "Order Type", sortable: true, filterable: true, getValue: (r) => r.orderType },
       { id: "tableToken", label: "Table / Token", sortable: true, getValue: (r) => r.tableToken },
-      { id: "customer", label: "Customer", sortable: true, getValue: (r) => r.customer },
+      { id: "customer", label: "Guest", sortable: true, getValue: (r) => r.customer },
       { id: "paymentMode", label: "Payment Mode", sortable: true, filterable: true, getValue: (r) => r.paymentMode },
       { id: "subTotal", label: "Subtotal (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.subTotal}` },
       { id: "tax", label: "Tax (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.tax}` },
@@ -234,9 +236,9 @@ const DATASETS: Record<string, { columns: DataTableColumn<any>[]; data: any[] }>
   "REP-09": {
     // Customer Repeat Order Matrix
     columns: [
-      { id: "customerName", label: "Customer Name", sortable: true, getValue: (r) => r.customerName },
+      { id: "customerName", label: "Guest Name", sortable: true, getValue: (r) => r.customerName },
       { id: "phone", label: "Mobile No", sortable: true, getValue: (r) => r.phone },
-      { id: "segment", label: "Customer Tier", sortable: true, filterable: true, getValue: (r) => r.segment },
+      { id: "segment", label: "Guest Tier", sortable: true, filterable: true, getValue: (r) => r.segment },
       { id: "totalVisits", label: "Total Visits", align: "right", sortable: true, getValue: (r) => String(r.totalVisits) },
       { id: "lastVisit", label: "Last Visit", sortable: true, getValue: (r) => r.lastVisit },
       { id: "lifetimeSpend", label: "Lifetime Spend (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.lifetimeSpend.toLocaleString()}` },
@@ -644,8 +646,30 @@ export function MainOtherReportsView() {
   };
 
   const handlePrint = () => {
-    window.print();
-    toast.success("Sent report to printer / preview");
+    if (!selectedReport || reportDataset.length === 0) {
+      toast.info("No report records to print");
+      return;
+    }
+
+    const columns = activeColumns.map((col) => ({
+      header: col.label.toUpperCase(),
+      align: (col.align as any) || "left",
+    }));
+
+    const rows = reportDataset.map((row) => {
+      return activeColumns.map((col) => {
+        const val = col.getValue ? col.getValue(row) : row[col.id];
+        return val === null || val === undefined ? "" : val;
+      });
+    });
+
+    openPrintReportTable({
+      title: (selectedReport.title || "POS REPORT").toUpperCase(),
+      subtitle: `Category: ${selectedReport.category || "Reports"} • Outlet: ${selectedOutlet === "ALL" ? "All Outlets" : selectedOutlet} • Total Records: ${reportDataset.length}`,
+      dateRange: `${formatDateIndian(fromDate)} to ${formatDateIndian(toDate)}`,
+      columns,
+      rows,
+    });
   };
 
   const toggleColumnVisibility = (colId: string) => {

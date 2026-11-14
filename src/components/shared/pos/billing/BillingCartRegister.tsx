@@ -74,6 +74,7 @@ type BillingCartRegisterProps = {
   taxType?: "percent" | "flat";
   taxValue?: number;
   onTaxChange?: (type: "percent" | "flat", val: number) => void;
+  depositAmount?: number;
 };
 
 export function BillingCartRegister({
@@ -106,6 +107,7 @@ export function BillingCartRegister({
   taxType: propTaxType,
   taxValue: propTaxValue,
   onTaxChange,
+  depositAmount = 0,
 }: BillingCartRegisterProps) {
   const { can, user } = useAuth();
   const isMaster =
@@ -273,6 +275,7 @@ export function BillingCartRegister({
   const rawTotal = taxableAmount + calculatedTax;
   const grandTotal = Math.round(rawTotal);
   const roundOff = Number((grandTotal - rawTotal).toFixed(2));
+  const netPayable = Math.max(0, grandTotal - (depositAmount || 0));
 
   const actionsDisabled = cartItems.length === 0 || Boolean(busyAction);
   const showRoomFolio = orderType === "room_service" && Boolean(onAddToRoomFolio);
@@ -282,7 +285,7 @@ export function BillingCartRegister({
       {/* 1. Register Header & Table Ticket Badge (Compact) */}
       <div className="px-3 py-2 bg-slate-900 text-white flex items-center justify-between gap-2 border-b border-slate-800 shrink-0">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-xs text-primary">
+          <span className="font-extrabold text-xs text-white">
             {orderType === "dine_in"
               ? tableNumber || "Select Table"
               : orderType === "room_service"
@@ -292,11 +295,11 @@ export function BillingCartRegister({
                   : "Takeaway"}
           </span>
           {orderType === "dine_in" && (
-            <span className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.2 rounded font-medium">
+            <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded font-bold border border-white/40">
               {guestCount} PAX
             </span>
           )}
-          <span className="text-[10.5px] text-slate-400 font-mono hidden sm:inline">
+          <span className="text-[10.5px] text-white/90 font-mono hidden sm:inline">
             · {billNumber}
           </span>
         </div>
@@ -345,7 +348,7 @@ export function BillingCartRegister({
                   </div>
                 ) : (
                   <span className="truncate text-slate-400 font-normal">
-                    Choose Customer (Walk-in)...
+                    Choose Guest (Walk-in)...
                   </span>
                 )}
               </div>
@@ -396,7 +399,7 @@ export function BillingCartRegister({
                       }}
                       className="w-full px-2.5 py-1.5 text-left text-xs rounded hover:bg-slate-100 flex items-center justify-between text-slate-700 transition cursor-pointer"
                     >
-                      <span className="font-medium">Walk-in Customer (Default)</span>
+                      <span className="font-medium">Walk-in Guest (Default)</span>
                       {!selectedCustomer && <Check className="h-3.5 w-3.5 text-primary" />}
                     </button>
 
@@ -442,7 +445,7 @@ export function BillingCartRegister({
 
                     {filteredCustomers.length === 0 && (
                       <div className="p-3 text-center text-xs text-slate-400">
-                        No customer found. Click + to add new.
+                        No guest found. Click + to add new.
                       </div>
                     )}
                   </div>
@@ -451,13 +454,13 @@ export function BillingCartRegister({
             )}
           </div>
 
-          {/* (+) Button for Add Customer with Right-Side Sidebar Drawer */}
+          {/* (+) Button for Add Guest with Right-Side Sidebar Drawer */}
           <button
             type="button"
             onClick={() => setIsAddCustomerOpen(true)}
-            title="Add Customer"
+            title="Add Guest"
             className="h-8 w-8 shrink-0 flex items-center justify-center rounded-md bg-primary text-white hover:bg-primary/90 transition cursor-pointer shadow-2xs"
-            aria-label="Add Customer"
+            aria-label="Add Guest"
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -781,13 +784,32 @@ export function BillingCartRegister({
           </div>
         )}
 
-        {/* Grand Total Display */}
-        <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-slate-900">
-          <span className="font-extrabold text-xs tracking-tight">Grand Total Payable</span>
-          <span className="font-black text-base text-primary font-mono tracking-tight">
-            ₹{grandTotal.toLocaleString()}
-          </span>
-        </div>
+        {/* Grand Total & Advance Reservation Deposit Breakdown */}
+        {depositAmount > 0 ? (
+          <div className="pt-2 border-t border-slate-200 space-y-1">
+            <div className="flex items-center justify-between text-slate-700 text-xs font-semibold">
+              <span>Total Bill</span>
+              <span className="font-mono">₹{grandTotal.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center justify-between text-emerald-800 text-xs font-semibold">
+              <span>Advance Reservation Paid</span>
+              <span className="font-mono">-₹{depositAmount.toLocaleString()}</span>
+            </div>
+            <div className="pt-1 border-t border-dashed border-slate-300 flex items-center justify-between text-slate-900">
+              <span className="font-extrabold text-xs tracking-tight">Net Remaining Payable</span>
+              <span className="font-black text-base text-primary font-mono tracking-tight">
+                ₹{netPayable.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-slate-900">
+            <span className="font-extrabold text-xs tracking-tight">Grand Total Payable</span>
+            <span className="font-black text-base text-primary font-mono tracking-tight">
+              ₹{grandTotal.toLocaleString()}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 5. Action Footer */}

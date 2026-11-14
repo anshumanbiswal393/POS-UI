@@ -467,3 +467,6 @@ export function exportTableData(options: ExportToExcelOptions): void {
 export function exportToCsv(data: Record<string, any>[], filename = "Export") {
   exportToExcel(data, filename);
 }
+
+export { openPrintReportTable, generateReportPrintHtml } from "./printReportTable";
+export type { PrintReportOptions, PrintReportColumn } from "./printReportTable";

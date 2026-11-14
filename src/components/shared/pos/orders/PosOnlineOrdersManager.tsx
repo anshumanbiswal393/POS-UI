@@ -19,7 +19,9 @@ import {
   XCircle,
   BellRing,
   FileText,
+  Printer,
 } from "lucide-react";
+import { openPrintReportTable } from "@/utils/printReportTable";
 import {
   useOnlineOrders,
   useAcceptOnlineOrderMutation,
@@ -214,7 +216,7 @@ export function PosOnlineOrdersManager() {
       "Outlet",
       "Order Type",
       "Rider Details",
-      "Customer Name",
+      "Guest Name",
       "Phone",
       "OTP",
       "Date & Time",
@@ -243,6 +245,61 @@ export function PosOnlineOrdersManager() {
       rows,
     });
     toast.success(`Exported ${rows.length} online aggregator orders to Excel`);
+  };
+
+  const handlePrintReport = () => {
+    if (filteredRecords.length === 0) {
+      toast.info("No online orders to print");
+      return;
+    }
+
+    const reportCols = [
+      { header: "ORDER NO", align: "left" as const },
+      { header: "PLATFORM", align: "center" as const },
+      { header: "OUTLET", align: "left" as const },
+      { header: "RIDER DETAILS", align: "left" as const },
+      { header: "GUEST NAME", align: "left" as const },
+      { header: "PHONE", align: "left" as const },
+      { header: "OTP", align: "center" as const },
+      { header: "DATE & TIME", align: "center" as const },
+      { header: "TOTAL (₹)", align: "right" as const },
+      { header: "STATUS", align: "center" as const },
+    ];
+
+    const reportRows = filteredRecords.map((r) => [
+      `#${r.orderNo}`,
+      (r.platform || "").toUpperCase(),
+      r.outletName,
+      r.riderDetails || "—",
+      r.customerName || "—",
+      r.customerPhone || "—",
+      r.otp || "—",
+      formatDateIndian(r.dateTime) || r.dateTime,
+      Number(r.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      (r.statusDisplay || r.status).toUpperCase(),
+    ]);
+
+    const totalAmount = filteredRecords.reduce((s, r) => s + Number(r.totalAmount || 0), 0);
+
+    openPrintReportTable({
+      title: "ONLINE AGGREGATOR ORDERS REPORT",
+      subtitle: `Platform: ${platformTab.toUpperCase()} • Range: ${selectedRange} • Total Orders: ${filteredRecords.length}`,
+      dateRange: selectedRange,
+      columns: reportCols,
+      rows: reportRows,
+      summaryTotals: [
+        "TOTAL",
+        `${filteredRecords.length} Orders`,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+        "",
+      ],
+    });
   };
 
   const dateRanges = ["Today", "Yesterday", "Last 5 Days Orders", "Last 7 Days", "Last 30 Days"];
@@ -283,7 +340,7 @@ export function PosOnlineOrdersManager() {
       },
       {
         id: "customerName",
-        header: "Customer & Rider",
+        header: "Guest & Rider",
         accessorKey: "customerName",
         enableSorting: true,
         enableFiltering: true,
@@ -514,6 +571,16 @@ export function PosOnlineOrdersManager() {
           </button>
 
           <ExportToExcelButton onClick={handleExportExcel} />
+          <button
+            type="button"
+            onClick={handlePrintReport}
+            disabled={filteredRecords.length === 0}
+            className="flex h-8 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-[11.5px] font-bold text-text-primary hover:bg-surface-2 shadow-2xs transition cursor-pointer disabled:opacity-50"
+            title="Print Online Orders Master Report"
+          >
+            <Printer className="h-3.5 w-3.5 text-text-secondary" />
+            <span>Print</span>
+          </button>
 
           <button
             type="button"
@@ -574,7 +641,7 @@ export function PosOnlineOrdersManager() {
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-disabled" />
             <input
               type="text"
-              placeholder="Search Order #, Customer, Phone, or OTP..."
+              placeholder="Search Order #, Guest, Phone, or OTP..."
               value={searchOrderNo}
               onChange={(e) => {
                 setSearchOrderNo(e.target.value);
@@ -733,7 +800,7 @@ export function PosOnlineOrdersManager() {
                 <div>
                   <span className="font-extrabold text-slate-900">👁️ Eye Icon (Details):</span>
                   <p className="text-[11px] text-slate-600 leading-snug mt-0.5">
-                    Opens complete customer info, rider phone, OTP verification, and item breakdown.
+                    Opens complete guest info, rider phone, OTP verification, and item breakdown.
                   </p>
                 </div>
               </div>
@@ -779,7 +846,7 @@ export function PosOnlineOrdersManager() {
 
             <div className="space-y-2 text-[12px]">
               <div className="flex justify-between py-0.5 border-b border-slate-100">
-                <span className="text-slate-500">Customer:</span>
+                <span className="text-slate-500">Guest:</span>
                 <span className="font-bold text-slate-900">
                   {viewingOrder.customerName} ({viewingOrder.customerPhone})
                 </span>

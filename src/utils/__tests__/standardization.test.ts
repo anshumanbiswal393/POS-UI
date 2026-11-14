@@ -151,3 +151,4 @@ describe("Fuzzy Search Utility", () => {
     expect(results[1].name).toContain("Chicken");
   });
 });
+

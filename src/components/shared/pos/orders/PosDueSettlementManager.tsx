@@ -14,6 +14,7 @@ import {
   Building2,
   Wallet,
   ArrowLeft,
+  Printer,
 } from "lucide-react";
 import { useDueBills, useSettleDueBillMutation } from "@/hooks/queries/usePosOrders";
 import { type DueBill } from "@/services/posOrdersService";
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/data-grid";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { exportToExcel } from "@/utils/exportUtils";
+import { openPrintReportTable } from "@/utils/printReportTable";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { fuzzyFilter } from "@/utils/fuzzySearch";
@@ -320,7 +322,7 @@ export function PosDueSettlementManager() {
       "Bill No",
       "Order Type",
       "Table / Room",
-      "Customer Name",
+      "Guest Name",
       "Total Amount",
       "Paid Amount",
       "Due Amount",
@@ -347,6 +349,57 @@ export function PosDueSettlementManager() {
       rows,
     });
     toast.success(`Exported ${rows.length} bills`);
+  };
+
+  const handlePrintReport = () => {
+    if (filteredRecords.length === 0) {
+      toast.info("No pending payments to print");
+      return;
+    }
+
+    const reportCols = [
+      { header: "BILL NO", align: "left" as const },
+      { header: "ORDER TYPE", align: "left" as const },
+      { header: "TABLE / ROOM", align: "left" as const },
+      { header: "GUEST NAME", align: "left" as const },
+      { header: "TOTAL (₹)", align: "right" as const },
+      { header: "PAID (₹)", align: "right" as const },
+      { header: "DUE (₹)", align: "right" as const },
+      { header: "DUE DATE", align: "center" as const },
+      { header: "STATUS", align: "center" as const },
+    ];
+
+    const reportRows = filteredRecords.map((r) => [
+      r.billNo,
+      r.orderType,
+      r.tableOrRoom,
+      r.customerName,
+      Number(r.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      Number(r.paidAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      Number(r.dueAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      formatDateIndian(r.dueDate),
+      (r.status || "DUE").toUpperCase(),
+    ]);
+
+    const totalDue = filteredRecords.reduce((s, r) => s + Number(r.dueAmount || 0), 0);
+
+    openPrintReportTable({
+      title: "PENDING PAYMENTS & DUE SETTLEMENT REPORT",
+      subtitle: `Total Outstanding Due: ₹${totalDue.toLocaleString("en-IN", { minimumFractionDigits: 2 })} • Bills: ${filteredRecords.length}`,
+      columns: reportCols,
+      rows: reportRows,
+      summaryTotals: [
+        "TOTAL",
+        `${filteredRecords.length} Bills`,
+        "",
+        "",
+        "",
+        "",
+        totalDue.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+        "",
+        "",
+      ],
+    });
   };
 
   // Full-screen payment UI with method sidebar
@@ -512,7 +565,19 @@ export function PosDueSettlementManager() {
           </div>
         </div>
 
-        <ExportToExcelButton onClick={handleExportExcel} />
+        <div className="flex items-center gap-2">
+          <ExportToExcelButton onClick={handleExportExcel} />
+          <button
+            type="button"
+            onClick={handlePrintReport}
+            disabled={filteredRecords.length === 0}
+            className="flex items-center gap-1.5 h-8.5 px-3 rounded-lg border border-slate-300 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs disabled:opacity-50"
+            title="Print Pending Payments Report"
+          >
+            <Printer className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+            <span>Print</span>
+          </button>
+        </div>
       </div>
 
       <div className="responsive-page-x py-4 sm:py-5 space-y-4">
@@ -548,7 +613,7 @@ export function PosDueSettlementManager() {
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search Bill #, Customer, Phone, or Table/Room..."
+              placeholder="Search Bill #, Guest, Phone, or Table/Room..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-8.5 w-full rounded-lg border border-slate-300 bg-white pl-8 pr-3 text-[12px] font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-hidden"

@@ -141,7 +141,7 @@ export function OnlineOrderAlertModal() {
 
             <div className="grid grid-cols-2 gap-2 text-[11.5px] pt-1 text-slate-600">
               <div>
-                <span className="text-slate-400 block font-semibold">Customer</span>
+                <span className="text-slate-400 block font-semibold">Guest</span>
                 <span className="font-bold text-slate-800">{activeAlertOrder.customerName}</span>
               </div>
               <div>

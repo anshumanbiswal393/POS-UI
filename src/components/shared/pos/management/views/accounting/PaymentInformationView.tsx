@@ -15,8 +15,11 @@ import {
   Hash,
   User,
   Calendar,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
+import { openPrintReportTable } from "@/utils/printReportTable";
+import { formatDateIndian } from "@/utils/dateUtils";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import {
   PosCreateCancelButton,
@@ -83,7 +86,7 @@ export function PaymentInformationView() {
     }
 
     if (!formData.customerName.trim()) {
-      errs.customerName = "Customer name is required.";
+      errs.customerName = "Guest name is required.";
     }
 
     if (!formData.txnRef.trim()) {
@@ -245,7 +248,7 @@ export function PaymentInformationView() {
     },
     {
       id: "customerName",
-      header: "Customer",
+      header: "Guest",
       accessorKey: "customerName",
       sortable: true,
       defaultWidth: 160,
@@ -356,6 +359,62 @@ export function PaymentInformationView() {
     },
   ];
 
+  const handlePrintReport = () => {
+    if (filteredRecords.length === 0) {
+      toast.info("No payment transactions to print");
+      return;
+    }
+
+    const reportCols = [
+      { header: "TXN REF", align: "left" as const },
+      { header: "ORDER & BILL NO", align: "left" as const },
+      { header: "GUEST NAME", align: "left" as const },
+      { header: "GATEWAY", align: "left" as const },
+      { header: "PAY MODE", align: "center" as const },
+      { header: "GROSS (₹)", align: "right" as const },
+      { header: "MDR FEE (₹)", align: "right" as const },
+      { header: "NET (₹)", align: "right" as const },
+      { header: "STATUS", align: "center" as const },
+      { header: "DATE & TIME", align: "center" as const },
+    ];
+
+    const reportRows = filteredRecords.map((r) => [
+      r.txnRef,
+      `${r.orderId} · ${r.billNo}`,
+      r.customerName,
+      r.provider,
+      r.mode,
+      Number(r.amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      Number(r.mdrFee || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      Number(r.netSettled || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      (r.status || "SETTLED").toUpperCase(),
+      formatDateIndian(r.date),
+    ]);
+
+    const totalGross = filteredRecords.reduce((s, r) => s + Number(r.amount || 0), 0);
+    const totalNet = filteredRecords.reduce((s, r) => s + Number(r.netSettled || 0), 0);
+
+    openPrintReportTable({
+      title: "DIGITAL PAYMENTS & RECONCILIATION REPORT",
+      subtitle: `Total Transactions: ${filteredRecords.length} • Total Volume: ₹${totalGross.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+      dateRange: `${formatDateIndian(fromDate)} to ${formatDateIndian(toDate)}`,
+      columns: reportCols,
+      rows: reportRows,
+      summaryTotals: [
+        "TOTAL",
+        `${filteredRecords.length} Txns`,
+        "",
+        "",
+        "",
+        totalGross.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+        "",
+        totalNet.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+        "",
+        "",
+      ],
+    });
+  };
+
   return (
     <div className="w-full space-y-4 pb-10">
       {/* 1. Header with Add Button */}
@@ -368,6 +427,16 @@ export function PaymentInformationView() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handlePrintReport}
+            disabled={filteredRecords.length === 0}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-xs disabled:opacity-50"
+            title="Print Payments Master Report"
+          >
+            <Printer className="h-4 w-4 text-slate-500" />
+            Print
+          </button>
           <button
             type="button"
             onClick={handleOpenAddModal}
@@ -494,7 +563,7 @@ export function PaymentInformationView() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search reference, order or customer..."
+                placeholder="Search reference, order or guest..."
                 value={orderId}
                 onChange={(e) => setOrderId(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 bg-white pl-8 pr-3 py-1.5 text-[12.5px] text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none"
@@ -618,7 +687,7 @@ export function PaymentInformationView() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[12.5px] font-semibold text-slate-800">
-                    Customer Name <span className="text-rose-500 font-bold ml-0.5">*</span>
+                    Guest Name <span className="text-rose-500 font-bold ml-0.5">*</span>
                   </label>
                   <input
                     type="text"

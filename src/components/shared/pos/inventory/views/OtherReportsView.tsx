@@ -29,6 +29,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { exportToExcel } from "@/utils/exportUtils";
+import { openPrintReportTable } from "@/utils/printReportTable";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import {
   DataTableHeader,
@@ -1049,8 +1050,27 @@ export function OtherReportsView() {
 
   // Print Report Handler
   const handlePrint = () => {
-    window.print();
-    toast.success("Printing report...");
+    if (!selectedReport) return;
+    const cfg = currentReportConfig;
+    const columns = cfg.columns.map((c) => ({
+      header: c.label.toUpperCase(),
+      align: (c.align as any) || "left",
+    }));
+
+    const rows = filteredDataset.map((row) =>
+      cfg.columns.map((col) => {
+        if (col.getValue) return col.getValue(row);
+        return (row as any)[col.id || ""] || "";
+      })
+    );
+
+    openPrintReportTable({
+      title: selectedReport.title.toUpperCase(),
+      subtitle: `Category: ${selectedReport.category.toUpperCase()} • Total Records: ${filteredDataset.length}`,
+      dateRange: `${formatToDmy(startDate)} to ${formatToDmy(endDate)}`,
+      columns,
+      rows,
+    });
   };
 
   // -------------------------------------------------------------------------

@@ -189,7 +189,7 @@ export function InvoiceTemplate({
 
       {/* 2. Subheader Bar */}
       <div className="flex justify-between items-center border-b-2 border-double border-black px-2 py-1 bg-slate-50 font-bold text-[10px]">
-        <div>Order Source: {p.source || p.orderType || "Dine-In"}</div>
+        <div>Booking Source : {p.source || p.orderType || "Direct"}</div>
         <div className="text-[12px] font-black tracking-wider text-black">TAX INVOICE</div>
         <div>ORIGINAL FOR RECIPIENT</div>
       </div>
@@ -202,7 +202,7 @@ export function InvoiceTemplate({
             <span className="font-semibold">{p.guestName || "Walk-in Guest"}</span>
           </div>
           <div className="flex justify-between">
-            <span className="font-bold text-slate-700">Mobile No:</span>
+            <span className="font-bold text-slate-700">Guest Mobile No:</span>
             <span>{p.guestPhone || "—"}</span>
           </div>
           <div className="flex justify-between">
@@ -213,24 +213,36 @@ export function InvoiceTemplate({
             <span className="font-bold text-slate-700">Company:</span>
             <span>{p.company || "—"}</span>
           </div>
+          <div className="flex justify-between">
+            <span className="font-bold text-slate-700">Company GST:</span>
+            <span>{p.companyGst || "—"}</span>
+          </div>
         </div>
 
         <div className="p-2 space-y-1">
           <div className="flex justify-between">
-            <span className="font-bold text-slate-700">Table / Room:</span>
-            <span className="font-bold text-teal-800">{p.tableOrRoom || "Counter"}</span>
+            <span className="font-bold text-slate-700">Room / Table No:</span>
+            <span className="font-bold text-black">{p.tableOrRoom || "—"}</span>
           </div>
           <div className="flex justify-between">
             <span className="font-bold text-slate-700">No Of Pax:</span>
             <span>{p.pax || 1}</span>
           </div>
           <div className="flex justify-between">
-            <span className="font-bold text-slate-700">Steward:</span>
-            <span>{p.captainName || "Captain"}</span>
+            <span className="font-bold text-slate-700">Date Of Arrival:</span>
+            <span>{issueDate} {issueTime}</span>
           </div>
           <div className="flex justify-between">
-            <span className="font-bold text-slate-700">Status:</span>
-            <span className="font-extrabold text-teal-700">{p.status || "SETTLED"}</span>
+            <span className="font-bold text-slate-700">Date Of Departure:</span>
+            <span>{issueDate} {issueTime}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-bold text-slate-700">Duration Of Stay:</span>
+            <span>{p.captainName || "1 Day"}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-bold text-slate-700">Plan Type:</span>
+            <span className="font-bold">{p.orderType || "Dine-In"}</span>
           </div>
         </div>
       </div>

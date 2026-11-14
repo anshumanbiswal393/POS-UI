@@ -582,7 +582,7 @@ export function BillingTablesOrdersSidebar({
               type="text"
               value={orderSearchQuery}
               onChange={(e) => setOrderSearchQuery(e.target.value)}
-              placeholder="Search by order number or customer..."
+              placeholder="Search by order number or guest..."
               className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white transition"
             />
           </div>

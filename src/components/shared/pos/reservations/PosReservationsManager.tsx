@@ -45,6 +45,8 @@ import {
 import type { ReservationItem, RestaurantTable } from "@/types/posTables";
 import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 import { usePosDate } from "@/hooks/usePosDate";
+import { openPrintReportTable } from "@/utils/printReportTable";
+import { formatDateIndian } from "@/utils/dateUtils";
 import { NewReservationModal } from "../tables/NewReservationModal";
 import { ReservationDetailSlide } from "../tables/ReservationDetailSlide";
 import { SwitchTableModal } from "../tables/SwitchTableModal";
@@ -257,7 +259,58 @@ export function PosReservationsManager() {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (filteredReservations.length === 0) {
+      toast.info("No reservations to print");
+      return;
+    }
+
+    const columns = [
+      { header: "RES ID", align: "left" as const },
+      { header: "GUEST NAME", align: "left" as const },
+      { header: "CONTACT", align: "left" as const },
+      { header: "TABLE / DETAILS", align: "left" as const },
+      { header: "DATE", align: "center" as const },
+      { header: "TIME / SLOT", align: "center" as const },
+      { header: "SOURCE", align: "left" as const },
+      { header: "STATUS", align: "center" as const },
+      { header: "PAX", align: "center" as const },
+      { header: "DEPOSIT (₹)", align: "right" as const },
+    ];
+
+    const rows = filteredReservations.map((r) => [
+      (r as any).reservationNumber || r.id,
+      r.customerName || "Walk-in Guest",
+      r.customerPhone || "—",
+      r.tableNumber ? `Table ${r.tableNumber}` : "Dine-In",
+      formatDateIndian(r.reservationDate),
+      r.reservationTime || "—",
+      (r as any).source || "Direct Walk-in",
+      (r.status || "CONFIRMED").toUpperCase(),
+      r.guests || 1,
+      Number(r.depositAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+    ]);
+
+    const totalDeposit = filteredReservations.reduce((sum, r) => sum + Number(r.depositAmount || 0), 0);
+
+    openPrintReportTable({
+      title: "RESERVATIONS MASTER LIST",
+      subtitle: `Stay / Reservation Window: ${fromDate} to ${toDate} • Total: ${filteredReservations.length} Bookings`,
+      dateRange: `${formatDateIndian(fromDate)} to ${formatDateIndian(toDate)}`,
+      columns,
+      rows,
+      summaryTotals: [
+        "TOTAL",
+        `${filteredReservations.length} Bookings`,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        totalDeposit.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      ],
+    });
   };
 
   // Columns definition for PosDataGrid
