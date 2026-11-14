@@ -16,17 +16,22 @@ describe("POS Billing UI Standardization", () => {
     expect(content).toContain("bg-white text-black hover:bg-slate-100");
   });
 
-  it("BillingCartRegister displays cart in Excel tabular format with centered columns and reduced-contrast borders", () => {
+  it("BillingCartRegister displays clean item rows without table box, high-contrast Clear button, and inline CGST/SGST tax", () => {
     const cartPath = path.resolve(__dirname, "../BillingCartRegister.tsx");
     const content = fs.readFileSync(cartPath, "utf-8");
 
-    // Excel table format
-    expect(content).toContain("border-collapse border border-slate-300");
-    expect(content).toContain("w-full text-center");
-    expect(content).toContain("Item");
-    expect(content).toContain("Qty");
-    expect(content).toContain("Rate");
-    expect(content).toContain("Amount");
+    // Clean item row layout without table container
+    expect(content).not.toContain("<table");
+    expect(content).toContain("cartItems.map");
+    expect(content).toContain("FoodTypeIcon");
+
+    // High contrast dark red Clear button
+    expect(content).toContain("bg-rose-600");
+    expect(content).toContain("Clear");
+
+    // Tax row displays CGST and SGST in the same row
+    expect(content).toContain("(CGST");
+    expect(content).toContain("SGST");
   });
 
   it("BillingMenuCatalog renders meal-time tabs at top of menu selection without 'Menu' suffix and Excel dishes table", () => {

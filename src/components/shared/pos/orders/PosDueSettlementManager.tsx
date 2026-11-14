@@ -244,9 +244,9 @@ export function PosDueSettlementManager() {
           <button
             type="button"
             onClick={() => handleOpenSettle(bill)}
-            className="flex h-8 items-center justify-center rounded-lg bg-teal-700 px-4 text-[12px] font-bold text-white hover:bg-teal-800 active:scale-98 transition cursor-pointer shadow-xs mx-auto"
+            className="flex h-8 items-center justify-center rounded-lg bg-teal-700 px-3.5 text-[12px] font-bold text-white hover:bg-teal-800 active:scale-98 transition cursor-pointer shadow-xs mx-auto"
           >
-            Settle
+            Pay Now
           </button>
         ),
       },
@@ -628,18 +628,17 @@ export function PosDueSettlementManager() {
       </div>
 
       <div className="responsive-page-x py-3 sm:py-4 space-y-3">
-        <div className="rounded-xl border border-border bg-white p-3 shadow-2xs">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative w-full sm:w-auto sm:min-w-[240px] flex-1">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search Bill #, Guest, Waiter, Location, or Status (Ongoing / Paid)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-8.5 w-full rounded-lg border border-border bg-white pl-8 pr-3 text-[12px] font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-hidden"
-              />
-            </div>
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="relative w-full sm:w-auto sm:min-w-[280px] flex-1">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search Bill #, Guest, Waiter, Location, or Status (Ongoing / Paid)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8.5 w-full rounded-lg border border-border bg-white pl-8 pr-3 text-[12px] font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-hidden shadow-2xs"
+            />
+          </div>
           <ChooseColumnsMenu
             columns={chooseColumnDefs}
             visibleColumns={columnVisibility}
@@ -647,7 +646,6 @@ export function PosDueSettlementManager() {
             className="h-8.5 whitespace-nowrap shrink-0"
           />
         </div>
-      </div>
 
       {isError ? (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12.5px] text-rose-800">

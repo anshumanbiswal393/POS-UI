@@ -311,7 +311,7 @@ export function BillingCartRegister({
               type="button"
               onClick={onClearCart}
               title="Clear all items"
-              className="text-[10.5px] font-semibold text-rose-300 hover:text-white hover:bg-rose-900/60 px-1.5 py-0.5 rounded transition cursor-pointer"
+              className="px-2.5 py-0.5 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold shadow-xs transition cursor-pointer"
             >
               Clear
             </button>
@@ -521,135 +521,114 @@ export function BillingCartRegister({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-slate-300 shadow-2xs">
-            <table className="w-full text-center border-collapse border border-slate-300 text-[11.5px]">
-              <thead>
-                <tr className="bg-primary text-primary-foreground border-b border-slate-300 font-extrabold text-[10.5px] uppercase tracking-wider">
-                  <th className="py-2 px-2 border-r border-b border-slate-300 text-left">
-                    Item
-                  </th>
-                  <th className="py-2 px-1 border-r border-b border-slate-300 text-center w-16">
-                    Qty
-                  </th>
-                  <th className="py-2 px-1 border-r border-b border-slate-300 text-center w-16">
-                    Rate
-                  </th>
-                  <th className="py-2 px-1 border-r border-b border-slate-300 text-center w-18">
-                    Amount
-                  </th>
-                  <th className="py-2 px-1 border-b border-slate-300 text-center w-12">
-                    Act
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {cartItems.map((cartItem) => {
-                  const basePrice = cartItem.selectedVariant
-                    ? cartItem.selectedVariant.price
-                    : cartItem.item.price;
-                  const modifiersPrice = cartItem.selectedModifiers.reduce((sum, m) => sum + m.price, 0);
-                  const unitPrice = basePrice + modifiersPrice;
-                  const lineTotal = cartItem.isComplimentary ? 0 : unitPrice * cartItem.quantity;
+          <div className="space-y-1.5">
+            {cartItems.map((cartItem) => {
+              const basePrice = cartItem.selectedVariant
+                ? cartItem.selectedVariant.price
+                : cartItem.item.price;
+              const modifiersPrice = cartItem.selectedModifiers.reduce((sum, m) => sum + m.price, 0);
+              const unitPrice = basePrice + modifiersPrice;
+              const lineTotal = cartItem.isComplimentary ? 0 : unitPrice * cartItem.quantity;
 
-                  return (
-                    <tr
-                      key={cartItem.cartId}
-                      className={`border-b border-slate-300 text-center transition ${
-                        cartItem.isComplimentary ? "bg-purple-50" : "hover:bg-slate-50 bg-white"
-                      }`}
-                    >
-                      {/* Item Name + Diet + Variant */}
-                      <td className="py-1.5 px-2 border-r border-b border-slate-300 text-left align-middle">
-                        <div className="flex items-center gap-1">
-                          <FoodTypeIcon type={cartItem.item.diet} size="sm" />
-                          <span className="font-bold text-[11.5px] text-black truncate max-w-[120px] sm:max-w-[150px]" title={cartItem.item.name}>
-                            {cartItem.item.name}
-                          </span>
-                        </div>
-                        {cartItem.selectedVariant && (
-                          <span className="text-[9px] bg-slate-100 text-black border border-slate-300 px-1 rounded font-bold inline-block mt-0.5">
-                            {cartItem.selectedVariant.name}
-                          </span>
-                        )}
-                        {(cartItem.selectedModifiers.length > 0 || cartItem.specialInstructions) && (
-                          <div className="text-[9.5px] text-slate-700 italic truncate max-w-[140px]">
-                            {cartItem.selectedModifiers.map((m) => m.optionName).join(", ")}
-                            {cartItem.specialInstructions ? ` · ${cartItem.specialInstructions}` : ""}
-                          </div>
-                        )}
-                      </td>
+              return (
+                <div
+                  key={cartItem.cartId}
+                  className={cn(
+                    "group rounded-lg border px-2.5 py-2 transition-all text-xs flex items-center justify-between gap-2 shadow-2xs",
+                    cartItem.isComplimentary
+                      ? "bg-purple-50/70 border-purple-200"
+                      : "bg-white border-border hover:border-slate-300"
+                  )}
+                >
+                  {/* Left: Food Type Icon + Item Name + Variant Tags */}
+                  <div className="flex-1 min-w-0 pr-1">
+                    <div className="flex items-center gap-1.5">
+                      <FoodTypeIcon type={cartItem.item.diet} size="sm" />
+                      <span className="font-bold text-[12px] text-slate-900 truncate">
+                        {cartItem.item.name}
+                      </span>
+                      {cartItem.selectedVariant && (
+                        <span className="text-[9.5px] bg-slate-100 text-slate-700 border border-border px-1.5 py-0.2 rounded font-medium shrink-0">
+                          {cartItem.selectedVariant.name}
+                        </span>
+                      )}
+                    </div>
 
-                      {/* Qty Stepper */}
-                      <td className="py-1.5 px-1 border-r border-b border-slate-300 text-center align-middle">
-                        <div className="inline-flex items-center gap-0.5 bg-white border border-slate-300 rounded p-0.5 shadow-2xs">
-                          <button
-                            type="button"
-                            onClick={() => onUpdateCartQty(cartItem.cartId, cartItem.quantity - 1)}
-                            className="h-4 w-4 rounded bg-slate-100 hover:bg-slate-200 text-black flex items-center justify-center font-bold text-[10px] cursor-pointer"
-                          >
-                            <Minus className="h-2 w-2" />
-                          </button>
-                          <span className="w-3.5 text-center font-extrabold text-[11px] text-black">
-                            {cartItem.quantity}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => onUpdateCartQty(cartItem.cartId, cartItem.quantity + 1)}
-                            className="h-4 w-4 rounded bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center font-bold text-[10px] cursor-pointer"
-                          >
-                            <Plus className="h-2 w-2" />
-                          </button>
-                        </div>
-                      </td>
+                    {/* Subline: Modifiers & special instructions */}
+                    {(cartItem.selectedModifiers.length > 0 || cartItem.specialInstructions) && (
+                      <div className="text-[10px] text-slate-500 truncate pl-4 mt-0.5">
+                        {cartItem.selectedModifiers.map((m) => m.optionName).join(", ")}
+                        {cartItem.specialInstructions ? ` · ★ ${cartItem.specialInstructions}` : ""}
+                      </div>
+                    )}
+                  </div>
 
-                      {/* Rate */}
-                      <td className="py-1.5 px-1 border-r border-b border-slate-300 text-center align-middle font-mono font-bold text-[11.5px] text-black">
-                        ₹{unitPrice}
-                      </td>
+                  {/* Right Controls: Stepper, Price, Complimentary, Delete */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* Stepper */}
+                    <div className="flex items-center gap-0.5 bg-white border border-border rounded-md p-0.5 shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => onUpdateCartQty(cartItem.cartId, cartItem.quantity - 1)}
+                        className="h-4.5 w-4.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px] cursor-pointer"
+                      >
+                        <Minus className="h-2.5 w-2.5" />
+                      </button>
+                      <span className="w-4 text-center font-bold text-[11px] text-slate-900">
+                        {cartItem.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateCartQty(cartItem.cartId, cartItem.quantity + 1)}
+                        className="h-4.5 w-4.5 rounded bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center font-bold text-[10px] cursor-pointer"
+                      >
+                        <Plus className="h-2.5 w-2.5" />
+                      </button>
+                    </div>
 
-                      {/* Amount */}
-                      <td className="py-1.5 px-1 border-r border-b border-slate-300 text-center align-middle font-mono font-extrabold text-[11.5px] text-black">
-                        {cartItem.isComplimentary ? (
-                          <span className="text-purple-700 font-extrabold text-[9.5px] bg-purple-100 px-1 py-0.5 rounded border border-purple-300">
-                            FREE
-                          </span>
-                        ) : (
-                          `₹${lineTotal.toLocaleString()}`
-                        )}
-                      </td>
+                    {/* Rate & Line Total */}
+                    <div className="text-right min-w-[50px]">
+                      {cartItem.isComplimentary ? (
+                        <span className="text-purple-700 font-extrabold text-[10px] bg-purple-100 px-1.5 py-0.5 rounded border border-purple-300">
+                          FREE
+                        </span>
+                      ) : (
+                        <span className="font-extrabold text-[12px] font-mono text-slate-900">
+                          ₹{lineTotal.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
 
-                      {/* Actions: Free & Delete */}
-                      <td className="py-1.5 px-1 border-b border-slate-300 text-center align-middle">
-                        <div className="flex items-center justify-center gap-1">
-                          {canDiscount && (
-                            <button
-                              type="button"
-                              onClick={() => onToggleComplimentary(cartItem.cartId)}
-                              title={cartItem.isComplimentary ? "Remove Free" : "Make Free"}
-                              className={`p-0.5 rounded cursor-pointer ${
-                                cartItem.isComplimentary
-                                  ? "text-purple-700 bg-purple-100"
-                                  : "text-slate-400 hover:text-purple-700"
-                              }`}
-                            >
-                              <Gift className="h-3 w-3" />
-                            </button>
+                    {/* Actions: Free & Delete */}
+                    <div className="flex items-center gap-1">
+                      {canDiscount && (
+                        <button
+                          type="button"
+                          onClick={() => onToggleComplimentary(cartItem.cartId)}
+                          title={cartItem.isComplimentary ? "Remove Free" : "Make Free"}
+                          className={cn(
+                            "p-1 rounded cursor-pointer transition",
+                            cartItem.isComplimentary
+                              ? "text-purple-700 bg-purple-100"
+                              : "text-slate-400 hover:text-purple-700 hover:bg-purple-50"
                           )}
-                          <button
-                            type="button"
-                            onClick={() => onRemoveCartItem(cartItem.cartId)}
-                            title="Delete item"
-                            className="text-slate-400 hover:text-rose-600 p-0.5 cursor-pointer"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        >
+                          <Gift className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => onRemoveCartItem(cartItem.cartId)}
+                        title="Delete item"
+                        className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-1 rounded transition cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -750,8 +729,15 @@ export function BillingCartRegister({
 
         {/* Tax Control Row: Dropdown (% / ₹) + Input + Display */}
         <div className="flex items-center justify-between gap-2 text-slate-700 py-0.5">
-          <span className="font-medium text-[11.5px]">Tax</span>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 min-w-0">
+            <span className="font-medium text-[11.5px]">Tax</span>
+            {taxType === "percent" && taxNumber > 0 && (
+              <span className="text-[10px] text-slate-500 font-mono">
+                (CGST {(taxNumber / 2).toFixed(1)}% + SGST {(taxNumber / 2).toFixed(1)}%)
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* Dropdown: % or ₹ */}
             <div className="relative">
               <select
@@ -782,14 +768,6 @@ export function BillingCartRegister({
             </span>
           </div>
         </div>
-
-        {/* Tax Breakdown Hint (if percentage tax active) */}
-        {taxType === "percent" && taxNumber > 0 && calculatedTax > 0 && (
-          <div className="flex items-center justify-between text-[10px] text-slate-400 pl-1 font-mono">
-            <span>CGST ({(taxNumber / 2).toFixed(1)}%) + SGST ({(taxNumber / 2).toFixed(1)}%)</span>
-            <span>₹{Math.round(calculatedTax / 2).toLocaleString()} + ₹{Math.round(calculatedTax / 2).toLocaleString()}</span>
-          </div>
-        )}
 
         {/* Round Off (if any) */}
         {roundOff !== 0 && (

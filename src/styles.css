@@ -163,11 +163,11 @@
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
 
-  /* Neutrals & Borders — Balanced medium contrast, not too dark/black and not too light */
-  --border: #64748b;
-  --border-subtle: #94a3b8;
-  --border-strong: #475569;
-  --input: #64748b;
+  /* Neutrals & Borders — Matched exactly to PMS reference (Screenshot 4) */
+  --border: #e2e8f0;
+  --border-subtle: #f1f5f9;
+  --border-strong: #cbd5e1;
+  --input: #e2e8f0;
   --ring: oklch(0.47 0.095 166);
 
   /* Semantic Feedback */
@@ -191,7 +191,7 @@
   --sidebar-foreground: #000000;
   --sidebar-hover: var(--surface-2);
   --sidebar-muted: #000000;
-  --sidebar-border: #cbd5e1;
+  --sidebar-border: #e2e8f0;
 
   /* Theme-adaptive teal color scale mapping */
   --teal-50: var(--primary-tint, color-mix(in srgb, var(--primary) 8%, white));

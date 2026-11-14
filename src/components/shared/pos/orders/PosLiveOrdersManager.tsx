@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Pencil,
 } from "lucide-react";
+import { ColorActionView } from "@/components/common/ColorActionIcons";
 import {
   useLiveOrders,
   useCurrentOrdersTimeline,
@@ -477,18 +478,18 @@ export function PosLiveOrdersManager() {
                         <button
                           type="button"
                           onClick={() => setSelectedTimelineOrder(ord)}
-                          className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                          className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[11px] font-bold text-slate-900 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
                         >
-                          <Eye className="h-3 w-3 text-slate-500" />
-                          View
+                          <ColorActionView className="h-3.5 w-3.5" />
+                          <span>View</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => openOrderInBilling(ord)}
-                          className="inline-flex h-7 items-center gap-1 rounded-lg border border-teal-300 bg-teal-50 px-2 text-[11px] font-semibold text-teal-800 hover:bg-teal-100 cursor-pointer"
+                          className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 text-[11px] font-bold text-emerald-800 hover:bg-emerald-100 transition cursor-pointer shadow-2xs"
                         >
-                          <Pencil className="h-3 w-3" />
-                          Edit
+                          <Pencil className="h-3.5 w-3.5 text-emerald-700" />
+                          <span>Edit</span>
                         </button>
                         {ord.currentStage === "placed" ? (
                           <button
@@ -830,9 +831,9 @@ export function PosLiveOrdersManager() {
                   openOrderInBilling(selectedTimelineOrder);
                   setSelectedTimelineOrder(null);
                 }}
-                className="flex items-center justify-center gap-1 rounded-lg border border-teal-300 bg-teal-50 py-2 text-[11.5px] font-bold text-teal-800 hover:bg-teal-100 cursor-pointer"
+                className="flex items-center justify-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 py-2 text-[11.5px] font-bold text-emerald-800 hover:bg-emerald-100 transition cursor-pointer shadow-2xs"
               >
-                <Pencil className="h-3.5 w-3.5" />
+                <Pencil className="h-3.5 w-3.5 text-emerald-700" />
                 <span>Edit</span>
               </button>
               <button

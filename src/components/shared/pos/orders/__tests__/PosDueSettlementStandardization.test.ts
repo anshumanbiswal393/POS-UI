@@ -47,12 +47,28 @@ describe("Pending Payments / Due Settlement & Global Standards", () => {
     expect(resContent).not.toContain('header: "Guests / Pax"');
   });
 
-  it("Styles CSS defines balanced medium-contrast borders in between black and light grey", () => {
+  it("Styles CSS defines border colors matching PMS reference Screenshot 4", () => {
     const cssPath = path.resolve(__dirname, "../../../../../styles.css");
     const cssContent = fs.readFileSync(cssPath, "utf-8");
 
-    expect(cssContent).toContain("--border: #64748b;");
-    expect(cssContent).toContain("--border-strong: #475569;");
+    expect(cssContent).toContain("--border: #e2e8f0;");
+    expect(cssContent).toContain("--border-strong: #cbd5e1;");
     expect(cssContent).toContain("border: 1.5px solid var(--border-strong) !important;");
+  });
+
+  it("Pending Payments has Pay Now button and removes duplicate search bar border", () => {
+    const duePath = path.resolve(__dirname, "../PosDueSettlementManager.tsx");
+    const dueContent = fs.readFileSync(duePath, "utf-8");
+
+    expect(dueContent).toContain("Pay Now");
+    expect(dueContent).not.toContain(">Settle<");
+  });
+
+  it("Reservations removes the guest initials circle avatar", () => {
+    const resPath = path.resolve(__dirname, "../../reservations/PosReservationsManager.tsx");
+    const resContent = fs.readFileSync(resPath, "utf-8");
+
+    // Guest contact cell renders clean name without initials icon
+    expect(resContent).not.toContain("{getInitials(res.customerName)}");
   });
 });
