@@ -371,6 +371,54 @@ export function saveStoredItemRawMaterials(
   }
 }
 
+const itemMealTimesStoreKey = (outletId?: string) =>
+  `retrod_pos_item_mealtimes:${outletId || "default"}`;
+
+export function getStoredItemMealTimes(outletId?: string): Record<string, string[]> {
+  if (typeof window === "undefined") return {};
+  try {
+    const primaryKey = itemMealTimesStoreKey(outletId);
+    const raw = localStorage.getItem(primaryKey);
+    const parsed: Record<string, string[]> = raw ? JSON.parse(raw) : {};
+    const merged: Record<string, string[]> = { ...parsed };
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("retrod_pos_item_mealtimes:") && key !== primaryKey) {
+        try {
+          const other = JSON.parse(localStorage.getItem(key) || "{}");
+          if (other && typeof other === "object") {
+            Object.entries(other).forEach(([k, v]) => {
+              if (merged[k] === undefined && Array.isArray(v)) {
+                merged[k] = v as string[];
+              }
+            });
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+    return merged;
+  } catch {
+    return {};
+  }
+}
+
+export function saveStoredItemMealTimes(
+  outletId: string | undefined,
+  itemId: string,
+  mealTimes: string[],
+) {
+  if (typeof window === "undefined") return;
+  try {
+    const stored = getStoredItemMealTimes(outletId);
+    stored[itemId] = mealTimes;
+    localStorage.setItem(itemMealTimesStoreKey(outletId), JSON.stringify(stored));
+  } catch {
+    // ignore
+  }
+}
+
 function toMenuItemWritePayload(item: Partial<MenuItem> & { outletId?: string }) {
   const itemType =
     item.itemType === "Non-Veg" ? "NON_VEG" : item.itemType === "Egg" ? "EGG" : "VEG";
@@ -409,6 +457,8 @@ function toMenuItemWritePayload(item: Partial<MenuItem> & { outletId?: string })
     commissionValue: item.commissionValue,
     plates: item.plates,
     rawMaterials: item.rawMaterials,
+    mealTimes: item.mealTimes || ["All Day"],
+    meal_times: item.mealTimes || ["All Day"],
   };
 }
 let commissionsStore: MenuItemCommission[] = [...initialCommissions];
@@ -436,6 +486,7 @@ export const posMenuService = {
         const items = unwrapList<MenuItem>(res.data);
         const platesMap = getStoredItemPlates(effectiveId);
         const rawMaterialsMap = getStoredItemRawMaterials(effectiveId);
+        const mealTimesMap = getStoredItemMealTimes(effectiveId);
         const mergedItems = items.map((i) => {
           const storedQty = platesMap[i.id];
           const plates =
@@ -444,9 +495,19 @@ export const posMenuService = {
               : i.plates !== undefined && i.plates !== null
                 ? Number(i.plates)
                 : undefined;
+          const rawItem = i as unknown as Record<string, unknown>;
+          const apiMealTimes =
+            (Array.isArray(rawItem.mealTimes) && rawItem.mealTimes.length > 0)
+              ? (rawItem.mealTimes as string[])
+              : (Array.isArray(rawItem.meal_times) && rawItem.meal_times.length > 0)
+                ? (rawItem.meal_times as string[])
+                : (mealTimesMap[i.id] && mealTimesMap[i.id].length > 0)
+                  ? mealTimesMap[i.id]
+                  : ["All Day"];
           return {
             ...i,
             plates,
+            mealTimes: apiMealTimes,
             rawMaterials:
               i.rawMaterials && i.rawMaterials.length > 0
                 ? i.rawMaterials
@@ -467,6 +528,7 @@ export const posMenuService = {
     if (!effectiveId) return [];
     const platesMap = getStoredItemPlates(effectiveId);
     const rawMaterialsMap = getStoredItemRawMaterials(effectiveId);
+    const mealTimesMap = getStoredItemMealTimes(effectiveId);
     return menuItemsStore
       .filter((item) => item.outletId === effectiveId)
       .map((i) => {
@@ -477,9 +539,19 @@ export const posMenuService = {
             : i.plates !== undefined && i.plates !== null
               ? Number(i.plates)
               : undefined;
+        const rawItem = i as unknown as Record<string, unknown>;
+        const apiMealTimes =
+          (Array.isArray(rawItem.mealTimes) && rawItem.mealTimes.length > 0)
+            ? (rawItem.mealTimes as string[])
+            : (Array.isArray(rawItem.meal_times) && rawItem.meal_times.length > 0)
+              ? (rawItem.meal_times as string[])
+              : (mealTimesMap[i.id] && mealTimesMap[i.id].length > 0)
+                ? mealTimesMap[i.id]
+                : ["All Day"];
         return {
           ...i,
           plates,
+          mealTimes: apiMealTimes,
           rawMaterials:
             i.rawMaterials && i.rawMaterials.length > 0
               ? i.rawMaterials
@@ -506,12 +578,16 @@ export const posMenuService = {
       updatedAt: "Just now",
       images: item.images || [],
       plates: item.plates ?? 0,
+      mealTimes: item.mealTimes || ["All Day"],
     };
     if (item.plates !== undefined) {
       updateItemPlates(newItem.outletId, newItem.id, item.plates, false);
     }
     if (item.rawMaterials && item.rawMaterials.length > 0) {
       saveStoredItemRawMaterials(newItem.outletId, newItem.id, item.rawMaterials);
+    }
+    if (item.mealTimes && item.mealTimes.length > 0) {
+      saveStoredItemMealTimes(newItem.outletId, newItem.id, item.mealTimes as string[]);
     }
     if (isBackendOutletId(newItem.outletId)) {
       const res = await httpClient.post<MenuItem>(
@@ -524,6 +600,9 @@ export const posMenuService = {
         }
         if (item.rawMaterials && item.rawMaterials.length > 0) {
           saveStoredItemRawMaterials(newItem.outletId, res.data.id, item.rawMaterials);
+        }
+        if (item.mealTimes && item.mealTimes.length > 0) {
+          saveStoredItemMealTimes(newItem.outletId, res.data.id, item.mealTimes as string[]);
         }
       }
       return res.data;
@@ -539,6 +618,9 @@ export const posMenuService = {
     }
     if (data.rawMaterials) {
       saveStoredItemRawMaterials(data.outletId, id, data.rawMaterials);
+    }
+    if (data.mealTimes && data.mealTimes.length > 0) {
+      saveStoredItemMealTimes(data.outletId, id, data.mealTimes as string[]);
     }
     if (isBackendOutletId(data.outletId) || /^[0-9a-f-]{36}$/i.test(id)) {
       const res = await httpClient.patch<MenuItem>(

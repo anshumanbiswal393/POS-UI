@@ -4,13 +4,13 @@ import { X, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const posCreateCancelClassName =
-  "rounded-lg border border-border bg-white px-4 py-2 text-[13px] font-medium text-foreground hover:bg-muted cursor-pointer transition-colors";
+  "rounded-lg border border-black bg-white px-5 py-2.5 text-[13px] font-bold text-foreground hover:bg-slate-100 cursor-pointer transition-colors shadow-2xs";
 
 export const posCreateSubmitClassName =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground shadow-xs hover:bg-primary/90 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-black bg-primary px-5 py-2.5 text-[13px] font-bold text-primary-foreground shadow-2xs hover:bg-primary/90 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 
 export const posCreateInputClassName =
-  "w-full rounded-lg border border-border bg-primary-tint/70 px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
+  "w-full rounded-lg border border-black bg-white px-3.5 py-2.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition";
 
 export function PosCreateCancelButton({
   children = "Cancel",
@@ -53,7 +53,7 @@ type PosCreatePanelProps = {
   children: ReactNode;
   footer?: ReactNode;
   onSubmit?: (event: FormEvent<HTMLFormElement>) => void;
-  size?: "md" | "lg";
+  size?: "md" | "lg" | "xl";
   className?: string;
 };
 
@@ -86,50 +86,53 @@ export function PosCreatePanel({
   if (!open || typeof document === "undefined") return null;
 
   const body = (
-    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">{children}</div>
+    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">{children}</div>
   );
 
   const footerBar = footer ? (
-    <div className="flex shrink-0 items-center justify-end gap-2 border-t border-primary/10 bg-primary-tint/70 px-5 py-3">
+    <div className="flex shrink-0 items-center justify-end gap-3 border-t border-black bg-primary-tint/30 px-6 py-3.5">
       {footer}
     </div>
   ) : null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <button
-        type="button"
-        aria-label="Close create panel"
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
         onClick={onClose}
+        aria-hidden="true"
       />
+
+      {/* Centered Modal Dialog */}
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="pos-create-panel-title"
         className={cn(
-          "relative z-10 flex h-full w-full flex-col border-l border-border bg-white shadow-2xl animate-in slide-in-from-right duration-300",
-          size === "lg" ? "max-w-xl" : "max-w-md",
+          "relative z-10 flex w-full max-h-[92vh] flex-col rounded-2xl border-2 border-black bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden my-auto",
+          size === "xl" ? "max-w-4xl" : size === "lg" ? "max-w-3xl" : "max-w-xl",
           className,
         )}
       >
-        <div className="shrink-0 border-b border-primary/15 bg-primary-tint px-5 py-4">
+        {/* Fixed Header */}
+        <div className="shrink-0 border-b border-black bg-primary-tint/60 px-6 py-4">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 items-start gap-3">
+            <div className="flex min-w-0 items-center gap-3">
               {Icon ? (
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                  <Icon className="h-4 w-4" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground border border-black shadow-2xs font-bold">
+                  <Icon className="h-4.5 w-4.5" />
                 </div>
               ) : null}
               <div className="min-w-0">
                 <h2
                   id="pos-create-panel-title"
-                  className="text-[16px] font-semibold leading-tight text-foreground"
+                  className="text-[17px] font-extrabold leading-tight text-slate-900"
                 >
                   {title}
                 </h2>
                 {description ? (
-                  <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{description}</p>
+                  <p className="mt-0.5 text-[12px] leading-snug text-slate-600 font-medium">{description}</p>
                 ) : null}
               </div>
             </div>
@@ -137,23 +140,23 @@ export function PosCreatePanel({
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
+              className="rounded-lg p-1.5 text-slate-700 transition-colors hover:bg-black/10 hover:text-black border border-black cursor-pointer shrink-0"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4.5 w-4.5" />
             </button>
           </div>
         </div>
 
         {onSubmit ? (
-          <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
+          <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {body}
             {footerBar}
           </form>
         ) : (
-          <>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {body}
             {footerBar}
-          </>
+          </div>
         )}
       </div>
     </div>,

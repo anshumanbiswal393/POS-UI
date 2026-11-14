@@ -80,6 +80,10 @@ export function MenuItemEditModal({
     Array<{ rawMaterialId: string; quantity: number | string }>
   >([]);
 
+  // Serving availability during meal times (Breakfast, Lunch, Dinner, All Day)
+  const MEAL_TIME_OPTIONS = ["Breakfast", "Lunch", "Dinner", "All Day"] as const;
+  const [mealTimes, setMealTimes] = useState<string[]>(["All Day"]);
+
   // Portion Pricing (Half & Full Plates)
   const [hasPortions, setHasPortions] = useState(false);
   const [fullPrice, setFullPrice] = useState<number | string>("");
@@ -87,6 +91,29 @@ export function MenuItemEditModal({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceIndexRef = useRef<number | null>(null);
+
+  const toggleMealTime = (option: string) => {
+    setMealTimes((prev) => {
+      if (option === "All Day") {
+        return ["All Day"];
+      }
+      const withoutAllDay = prev.filter((m) => m !== "All Day");
+      const exists = withoutAllDay.includes(option);
+      let next: string[];
+      if (exists) {
+        next = withoutAllDay.filter((m) => m !== option);
+      } else {
+        next = [...withoutAllDay, option];
+      }
+      if (["Breakfast", "Lunch", "Dinner"].every((m) => next.includes(m))) {
+        return ["All Day"];
+      }
+      if (next.length === 0) {
+        return [option];
+      }
+      return next;
+    });
+  };
 
   // Initialize or reset form on open / item change
   useEffect(() => {
@@ -103,6 +130,11 @@ export function MenuItemEditModal({
         setDescription(item.description || "");
         setImages(item.images || []);
         setPlates(item.plates !== undefined ? item.plates : "");
+        setMealTimes(
+          item.mealTimes && Array.isArray(item.mealTimes) && item.mealTimes.length > 0
+            ? item.mealTimes
+            : ["All Day"],
+        );
         setRecipeIngredients(
           item.rawMaterials && item.rawMaterials.length > 0
             ? item.rawMaterials.map((rm) => ({
@@ -138,6 +170,7 @@ export function MenuItemEditModal({
         setDescription("");
         setImages([]);
         setPlates("");
+        setMealTimes(["All Day"]);
         setRecipeIngredients([]);
         setHasPortions(false);
         setHalfPrice("");
@@ -368,6 +401,10 @@ export function MenuItemEditModal({
       toast.error("Please enter a valid base price");
       return;
     }
+    if (!mealTimes || mealTimes.length === 0) {
+      toast.error("Please select at least one Meal Time (Breakfast, Lunch, Dinner, or All Day)");
+      return;
+    }
 
     const matchedCategory = outletCategories.find(
       (c) => c.name.trim().toLowerCase() === category.trim().toLowerCase(),
@@ -426,6 +463,7 @@ export function MenuItemEditModal({
       plates: parsedPlates,
       rawMaterials: validIngredients,
       variants,
+      mealTimes,
     };
 
     const deductStockAfterSave = async () => {
@@ -528,7 +566,7 @@ export function MenuItemEditModal({
                   setName(e.target.value);
                   setOnlineDisplayName(e.target.value);
                 }}
-                className="w-full h-10 rounded-lg border border-slate-300 px-3 py-2 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-hidden"
+                className="w-full h-10 rounded-lg border border-black px-3 py-2 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-hidden"
                 required
               />
             </div>
@@ -543,7 +581,7 @@ export function MenuItemEditModal({
                 placeholder="e.g. FD-104"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                className="w-full h-10 rounded-lg border border-slate-300 px-3 py-2 text-[13px] text-slate-900 font-mono focus:border-teal-500 focus:outline-hidden uppercase"
+                className="w-full h-10 rounded-lg border border-black px-3 py-2 text-[13px] text-slate-900 font-mono focus:border-teal-500 focus:outline-hidden uppercase"
                 required
               />
             </div>
@@ -635,6 +673,56 @@ export function MenuItemEditModal({
                 </select>
               )}
             </div>
+          </div>
+
+          {/* Available During / Meal Time Selection */}
+          <div className="p-4 rounded-xl bg-white border border-black shadow-2xs space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-[13px] font-extrabold text-slate-900">
+                Available During / Meal Time <span className="text-red-500">*</span>
+              </label>
+              <span className="text-[11px] font-semibold text-slate-500">
+                Multiple selections allowed
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2.5 pt-0.5">
+              {MEAL_TIME_OPTIONS.map((opt) => {
+                const isAllDayActive = mealTimes.includes("All Day");
+                const isSelected =
+                  opt === "All Day"
+                    ? isAllDayActive
+                    : mealTimes.includes(opt) || isAllDayActive;
+                const isExact =
+                  opt === "All Day" ? isAllDayActive : mealTimes.includes(opt);
+
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => toggleMealTime(opt)}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer border shadow-2xs flex items-center gap-2",
+                      (opt === "All Day" ? isExact : isExact || isAllDayActive)
+                        ? "bg-primary text-primary-foreground border-black ring-1 ring-black/20"
+                        : "bg-white text-slate-800 border-black hover:bg-slate-50",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "h-2.5 w-2.5 rounded-full border border-black",
+                        (opt === "All Day" ? isExact : isExact || isAllDayActive)
+                          ? "bg-white"
+                          : "bg-slate-200",
+                      )}
+                    />
+                    <span>{opt}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11.5px] text-slate-600">
+              Select when this dish is served. Choosing <strong>All Day</strong> makes it available in Breakfast, Lunch, and Dinner.
+            </p>
           </div>
 
           {/* 2. Type, Price, Tax, Status */}

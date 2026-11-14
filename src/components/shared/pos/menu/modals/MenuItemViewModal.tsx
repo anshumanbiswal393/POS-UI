@@ -23,10 +23,10 @@ export function MenuItemViewModal({
   const canShowPrimary = Boolean(primaryImage?.url && !isStaleBlob && !primaryError);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-      <div className="w-full max-w-xl max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+      <div className="w-full max-w-xl max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl border-2 border-black overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50">
+        <div className="flex items-center justify-between border-b-2 border-black px-6 py-4 bg-slate-50">
           <div className="flex items-center gap-2.5">
             <span
               className={`flex h-6 w-6 items-center justify-center rounded-md border text-[11px] font-bold ${
@@ -152,6 +152,24 @@ export function MenuItemViewModal({
             </div>
           </div>
 
+          {/* Available During / Meal Times */}
+          <div className="rounded-xl border border-black p-4 space-y-2 bg-white">
+            <div className="text-[12.5px] font-bold text-black">Available During / Meal Times</div>
+            <div className="flex flex-wrap gap-2">
+              {(item.mealTimes && Array.isArray(item.mealTimes) && item.mealTimes.length > 0
+                ? item.mealTimes
+                : ["All Day"]
+              ).map((m) => (
+                <span
+                  key={m}
+                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border border-black bg-emerald-50 text-emerald-900 shadow-2xs"
+                >
+                  {m}
+                </span>
+              ))}
+            </div>
+          </div>
+
           {/* Description */}
           {item.description && (
             <div className="rounded-xl bg-slate-50 p-4 border border-slate-200/80">
@@ -183,11 +201,11 @@ export function MenuItemViewModal({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-slate-200 px-6 py-3.5 bg-slate-50 flex items-center justify-between">
+        <div className="border-t-2 border-black px-6 py-3.5 bg-slate-50 flex items-center justify-between">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-[12.5px] font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            className="rounded-lg border border-black bg-white px-4 py-2 text-[12.5px] font-bold text-black hover:bg-slate-100 transition cursor-pointer"
           >
             Close
           </button>
@@ -197,7 +215,7 @@ export function MenuItemViewModal({
               onClose();
               onEdit(item);
             }}
-            className="flex items-center gap-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 px-5 py-2 text-[12.5px] font-bold text-white shadow-2xs transition cursor-pointer"
+            className="flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground border border-black hover:opacity-90 px-5 py-2 text-[12.5px] font-bold shadow-2xs transition cursor-pointer"
           >
             <Edit2 className="h-3.5 w-3.5" />
             Edit Item

@@ -18,6 +18,8 @@ export type MenuItemImage = {
 
 export type MenuItemType = "Veg" | "Non-Veg" | "Egg";
 
+export type MealTime = "Breakfast" | "Lunch" | "Dinner" | "All Day";
+
 export type MenuItemIngredient = {
   rawMaterialId: string;
   rawMaterialName: string;
@@ -54,6 +56,8 @@ export type MenuItem = {
   // Plates & Raw Materials Recipe tracking
   plates?: number;
   rawMaterials?: MenuItemIngredient[];
+  // Serving availability during meal times (Breakfast, Lunch, Dinner, All Day)
+  mealTimes?: MealTime[] | string[];
 };
 
 export type SpecialNote = {

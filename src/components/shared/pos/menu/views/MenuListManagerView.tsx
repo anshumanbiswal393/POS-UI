@@ -101,9 +101,50 @@ export function MenuListManagerView() {
   // Search filter state for multi-field fuzzy search through menu name, code, category, subcategory, price, etc.
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Meal-Time Tabs State (All, Breakfast, Lunch, Dinner)
+  const MEAL_TIME_TABS = ["All", "Breakfast", "Lunch", "Dinner"] as const;
+  type MealTimeTab = (typeof MEAL_TIME_TABS)[number];
+  const [selectedMealTime, setSelectedMealTime] = useState<MealTimeTab>("All");
+
+  const isItemMatchingMealTime = (item: MenuItem, tab: MealTimeTab): boolean => {
+    if (tab === "All") return true;
+    if (!item.mealTimes || !Array.isArray(item.mealTimes) || item.mealTimes.length === 0) {
+      // Backward compatibility: existing items without meal-time assignments remain visible in all tabs!
+      return true;
+    }
+    const normalized = item.mealTimes.map((m) => String(m).trim().toLowerCase());
+    if (
+      normalized.includes("all day") ||
+      normalized.includes("allday") ||
+      normalized.includes("all")
+    ) {
+      return true;
+    }
+    return normalized.includes(tab.toLowerCase());
+  };
+
+  const mealTimeCounts = useMemo(() => {
+    const counts: Record<MealTimeTab, number> = {
+      All: menuItems.length,
+      Breakfast: 0,
+      Lunch: 0,
+      Dinner: 0,
+    };
+    menuItems.forEach((item) => {
+      if (isItemMatchingMealTime(item, "Breakfast")) counts.Breakfast++;
+      if (isItemMatchingMealTime(item, "Lunch")) counts.Lunch++;
+      if (isItemMatchingMealTime(item, "Dinner")) counts.Dinner++;
+    });
+    return counts;
+  }, [menuItems]);
+
   const filteredMenuItems = useMemo(() => {
-    if (!searchQuery.trim()) return menuItems;
-    return fuzzyFilter(menuItems, searchQuery, [
+    let list = menuItems;
+    if (selectedMealTime !== "All") {
+      list = list.filter((item) => isItemMatchingMealTime(item, selectedMealTime));
+    }
+    if (!searchQuery.trim()) return list;
+    return fuzzyFilter(list, searchQuery, [
       (item) => item.name,
       (item) => item.code,
       (item) => item.category,
@@ -111,8 +152,9 @@ export function MenuListManagerView() {
       (item) => item.description,
       (item) => String(item.price || ""),
       (item) => item.status,
+      (item) => (Array.isArray(item.mealTimes) ? item.mealTimes.join(" ") : ""),
     ]);
-  }, [menuItems, searchQuery]);
+  }, [menuItems, selectedMealTime, searchQuery]);
 
   useEffect(() => {
     if (!categoryMenuOpen) return;
@@ -292,6 +334,30 @@ export function MenuListManagerView() {
       cell: ({ row }) => <span className="font-semibold text-slate-700">{row.category}</span>,
     },
     {
+      id: "mealTimes",
+      header: "Meal Times",
+      align: "center",
+      minWidth: 140,
+      cell: ({ row }) => {
+        const times =
+          Array.isArray(row.mealTimes) && row.mealTimes.length > 0
+            ? row.mealTimes
+            : ["All Day"];
+        return (
+          <div className="inline-flex flex-wrap items-center justify-center gap-1">
+            {times.map((time) => (
+              <span
+                key={time}
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-bold border border-black bg-emerald-50 text-emerald-900 shadow-2xs"
+              >
+                {time}
+              </span>
+            ))}
+          </div>
+        );
+      },
+    },
+    {
       id: "itemType",
       header: "Type",
       accessorKey: "itemType",
@@ -398,27 +464,27 @@ export function MenuListManagerView() {
     {
       id: "actions",
       header: "Actions",
-      align: "right",
-      minWidth: 90,
-      width: 90,
+      align: "center",
+      minWidth: 100,
+      width: 100,
       cell: ({ row }) => (
-        <div className="flex items-center justify-end gap-1.5">
+        <div className="flex items-center justify-center gap-2">
           <button
             type="button"
             onClick={() => handleOpenEdit(row)}
-            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 shadow-2xs transition cursor-pointer"
+            className="flex items-center justify-center h-8 w-8 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
             title="Edit Item"
           >
-            <ColorActionEdit className="h-4 w-4" />
+            <ColorActionEdit className="h-4.5 w-4.5" />
           </button>
 
           <button
             type="button"
             onClick={() => handleDeleteItem(row.id, row.name)}
-            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
+            className="flex items-center justify-center h-8 w-8 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
             title="Delete Item"
           >
-            <ColorActionDelete className="h-4 w-4" />
+            <ColorActionDelete className="h-4.5 w-4.5" />
           </button>
         </div>
       ),
@@ -427,43 +493,35 @@ export function MenuListManagerView() {
 
   return (
     <div className="space-y-4">
-      {/* 1. Header Toolbar & Context Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+      {/* 1. Header Toolbar & Clean Compact Master Title */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border-2 border-black shadow-2xs">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 border border-teal-200 font-bold">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-800 border-2 border-black font-bold">
             <UtensilsCrossed className="h-5 w-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-[15px] sm:text-[16px] font-extrabold text-slate-900">
-                Menu Item Master Catalog
-              </h2>
-              <span className="rounded-full bg-teal-50 px-2.5 py-0.5 text-[11px] font-bold text-teal-800 border border-teal-200">
-                {activeOutlet.name}
-              </span>
-            </div>
-            <p className="text-[12px] text-slate-500 font-medium">
-              Inactive items stay in this list but are hidden from Billing and the printed hotel menu.
-            </p>
+            <h2 className="text-[17px] sm:text-[18px] font-extrabold text-black">
+              Menu Item Master Catalog
+            </h2>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           {/* Menu Name and Code Search Bar */}
           <div className="relative w-full sm:w-60 md:w-72">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by menu name or code..."
-              className="h-9 w-full rounded-xl border border-slate-300 bg-slate-50/70 pl-9 pr-8 text-[12.5px] text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:bg-white focus:outline-hidden transition"
+              className="h-10 w-full rounded-xl border border-black bg-white pl-9 pr-8 text-[13px] text-black placeholder:text-slate-500 focus:border-teal-600 focus:bg-white focus:outline-hidden transition"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-black hover:bg-slate-200 transition cursor-pointer"
                 title="Clear search"
               >
                 <X className="h-3.5 w-3.5" />
@@ -477,7 +535,7 @@ export function MenuListManagerView() {
               refetch();
               toast.success("Menu items refreshed");
             }}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12.5px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 rounded-xl border border-black bg-white px-3.5 py-2 text-[12.5px] font-bold text-black hover:bg-slate-50 transition cursor-pointer shadow-2xs"
             title="Refresh List"
           >
             <RefreshCw
@@ -490,14 +548,14 @@ export function MenuListManagerView() {
             <button
               type="button"
               onClick={() => setCategoryMenuOpen((v) => !v)}
-              className="flex items-center gap-1.5 rounded-xl border border-teal-300 bg-teal-50/80 hover:bg-teal-100 px-3.5 py-2 text-[12.5px] font-bold text-teal-800 shadow-2xs transition cursor-pointer"
+              className="flex items-center gap-1.5 rounded-xl border border-black bg-white hover:bg-slate-50 px-3.5 py-2 text-[12.5px] font-bold text-black shadow-2xs transition cursor-pointer"
             >
-              <Layers className="h-4 w-4" />
+              <Layers className="h-4 w-4 text-teal-700" />
               <span>Category</span>
               <ChevronDown className="h-3.5 w-3.5 opacity-70" />
             </button>
             {categoryMenuOpen && (
-              <div className="absolute right-0 z-20 mt-1.5 w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg animate-in fade-in zoom-in-95">
+              <div className="absolute right-0 z-20 mt-1.5 w-56 rounded-xl border-2 border-black bg-white p-1.5 shadow-lg animate-in fade-in zoom-in-95">
                 <button
                   type="button"
                   onClick={() => {
@@ -505,9 +563,9 @@ export function MenuListManagerView() {
                     setCategoryModalMode("view");
                     setCategoryModalOpen(true);
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[13px] font-semibold text-slate-800 hover:bg-slate-50 cursor-pointer"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[13px] font-bold text-black hover:bg-slate-100 cursor-pointer"
                 >
-                  <List className="h-4 w-4 text-slate-500" />
+                  <List className="h-4 w-4 text-black" />
                   View Category
                 </button>
                 <button
@@ -517,7 +575,7 @@ export function MenuListManagerView() {
                     setCategoryModalMode("add");
                     setCategoryModalOpen(true);
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[13px] font-semibold text-teal-800 hover:bg-teal-50 cursor-pointer"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[13px] font-bold text-black hover:bg-teal-50 cursor-pointer"
                 >
                   <Plus className="h-4 w-4 text-teal-600" />
                   Add New Category
@@ -528,7 +586,7 @@ export function MenuListManagerView() {
 
           <Link
             to="/pos/inventory/production"
-            className="flex items-center gap-1.5 rounded-xl border border-teal-300 bg-teal-50/80 hover:bg-teal-100 px-3.5 py-2 text-[12.5px] font-bold text-teal-800 shadow-2xs transition cursor-pointer"
+            className="flex items-center gap-1.5 rounded-xl border border-black bg-white hover:bg-slate-50 px-3.5 py-2 text-[12.5px] font-bold text-black shadow-2xs transition cursor-pointer"
             title="Log daily cooked dishes and plate counts"
           >
             <CookingPot className="h-4 w-4 text-teal-700" />
@@ -538,7 +596,7 @@ export function MenuListManagerView() {
           <button
             type="button"
             onClick={handleOpenAdd}
-            className="flex items-center gap-1.5 rounded-xl bg-teal-700 hover:bg-teal-800 px-4 py-2 text-[12.5px] font-bold text-white shadow-xs transition cursor-pointer"
+            className="flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground border border-black hover:opacity-90 px-4 py-2 text-[12.5px] font-bold shadow-xs transition cursor-pointer"
           >
             <Plus className="h-4 w-4" />
             <span>Add New Item</span>
@@ -546,7 +604,40 @@ export function MenuListManagerView() {
         </div>
       </div>
 
-      {/* 2. Menu Catalog PosDataGrid (Header Search & Filtering Built-in) */}
+      {/* 2. Meal-Time Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto p-1.5 bg-white rounded-xl border-2 border-black">
+        {MEAL_TIME_TABS.map((tab) => {
+          const isSelected = selectedMealTime === tab;
+          const count = mealTimeCounts[tab];
+          return (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setSelectedMealTime(tab)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-bold transition cursor-pointer border",
+                isSelected
+                  ? "bg-primary text-primary-foreground border-black shadow-xs ring-1 ring-black/20"
+                  : "bg-white text-black border-black hover:bg-slate-50",
+              )}
+            >
+              <span>{tab}</span>
+              <span
+                className={cn(
+                  "px-2 py-0.5 rounded-full text-[11px] font-extrabold border border-black",
+                  isSelected
+                    ? "bg-white text-primary"
+                    : "bg-slate-100 text-black",
+                )}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 3. Menu Catalog PosDataGrid (Header Search & Filtering Built-in) */}
       <PosDataGrid<MenuItem>
         data={filteredMenuItems}
         isLoading={isLoading}
@@ -554,7 +645,11 @@ export function MenuListManagerView() {
         enablePagination={true}
         pageSize={10}
         pageSizeOptions={[10, 25, 50, 100]}
-        emptyMessage={`No menu items found in "${activeOutlet.name}". Click "Add New Item" to create dishes.`}
+        emptyMessage={
+          selectedMealTime === "All"
+            ? `No menu items found. Click "Add New Item" to create dishes.`
+            : `No menu items found for ${selectedMealTime}. Click "Add New Item" to create dishes or update existing items.`
+        }
       />
 
       {/* Edit & Add Item Modal */}
