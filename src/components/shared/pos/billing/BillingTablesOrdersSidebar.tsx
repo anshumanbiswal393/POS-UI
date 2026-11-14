@@ -374,18 +374,18 @@ export function BillingTablesOrdersSidebar({
       className={`bg-white rounded-xl border border-slate-200/90 shadow-2xs flex flex-col h-full max-h-full overflow-hidden w-full select-none ${className}`}
     >
       {/* 1. Header Tabs: [ Tables ] & [ Orders ] & [ Reservations ] with Theme Colors */}
-      <div className="p-2 border-b border-slate-100 bg-slate-50/60 shrink-0">
+      <div className="p-2 border-b border-black bg-white shrink-0">
         <div className="flex items-center gap-2">
-          {/* Tabs Container */}
-          <div className="flex-1 grid grid-cols-3 gap-1 p-1 bg-slate-200/60 rounded-xl">
+          {/* Tabs Container — Clean White with crisp Black border */}
+          <div className="flex-1 grid grid-cols-3 gap-1 p-1 bg-white rounded-xl border border-black shadow-2xs">
             {/* Tables Tab */}
             <button
               type="button"
               onClick={() => setActiveTab("tables")}
               className={`py-2 px-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
                 activeTab === "tables"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                  ? "bg-primary text-primary-foreground shadow-xs border border-black"
+                  : "bg-white text-black hover:bg-slate-100 border border-transparent"
               }`}
             >
               <Armchair className="h-3.5 w-3.5" />
@@ -398,15 +398,15 @@ export function BillingTablesOrdersSidebar({
               onClick={() => setActiveTab("orders")}
               className={`py-2 px-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer relative ${
                 activeTab === "orders"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                  ? "bg-primary text-primary-foreground shadow-xs border border-black"
+                  : "bg-white text-black hover:bg-slate-100 border border-transparent"
               }`}
             >
               <ClipboardList className="h-3.5 w-3.5" />
               <span>Orders</span>
               {activeOrders.length > 0 && (
                 <span
-                  className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 ${
+                  className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 border border-black ${
                     activeTab === "orders" ? "bg-white text-primary" : "bg-primary text-white"
                   }`}
                 >
@@ -421,15 +421,15 @@ export function BillingTablesOrdersSidebar({
               onClick={() => setActiveTab("reservations")}
               className={`py-2 px-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer relative ${
                 activeTab === "reservations"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                  ? "bg-primary text-primary-foreground shadow-xs border border-black"
+                  : "bg-white text-black hover:bg-slate-100 border border-transparent"
               }`}
             >
               <CalendarCheck2 className="h-3.5 w-3.5" />
               <span>Bookings</span>
               {activeReservations.length > 0 && (
                 <span
-                  className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 ${
+                  className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 border border-black ${
                     activeTab === "reservations" ? "bg-white text-primary" : "bg-primary text-white"
                   }`}
                 >

@@ -30,6 +30,7 @@ export function BillingMenuCatalog({
   searchQuery,
   onSearchChange,
 }: BillingMenuCatalogProps) {
+  const [selectedMealTime, setSelectedMealTime] = useState<string>("All");
   const [selectedCategory, setSelectedCategory] = useState<string>("All Items");
   const [selectedDiet, setSelectedDiet] = useState<BillingDietType>("all");
   const [localSearch, setLocalSearch] = useState<string>("");
@@ -75,6 +76,21 @@ export function BillingMenuCatalog({
       return true;
     });
 
+    if (selectedMealTime !== "All") {
+      const targetMeal = selectedMealTime.toLowerCase();
+      result = result.filter((item) => {
+        const rawItem = item as any;
+        const mealTimes: string[] = rawItem.mealTimes || rawItem.meal_times;
+        if (!mealTimes || !Array.isArray(mealTimes) || mealTimes.length === 0) {
+          return true; // legacy items appear across all meal times
+        }
+        return mealTimes.some((m) => {
+          const lower = String(m).trim().toLowerCase();
+          return lower === targetMeal || lower === "all" || lower === "all day";
+        });
+      });
+    }
+
     if (effectiveQuery.trim()) {
       result = fuzzyFilter(result, effectiveQuery, [
         (item) => item.name || "",
@@ -87,7 +103,7 @@ export function BillingMenuCatalog({
     }
 
     return result;
-  }, [items, selectedCategory, selectedDiet, effectiveQuery]);
+  }, [items, selectedCategory, selectedDiet, selectedMealTime, effectiveQuery]);
 
   const getCartInfo = (item: BillingMenuItem, chosenVariant?: BillingItemVariant | null) => {
     const safeCart = Array.isArray(cartItems) ? cartItems : [];
@@ -194,6 +210,29 @@ export function BillingMenuCatalog({
           </div>
         </div>
 
+        {/* Meal-Time Tabs: All, Breakfast, Lunch, Dinner */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+          {(["All", "Breakfast", "Lunch", "Dinner"] as const).map((meal) => {
+            const active = selectedMealTime === meal;
+            return (
+              <button
+                key={meal}
+                type="button"
+                onClick={() => setSelectedMealTime(meal)}
+                className={cn(
+                  "shrink-0 rounded-lg px-3 py-1.5 text-[11.5px] font-bold whitespace-nowrap transition-all cursor-pointer border",
+                  active
+                    ? "border-black bg-primary text-primary-foreground shadow-xs"
+                    : "border-black bg-white text-black hover:bg-slate-100",
+                )}
+              >
+                {meal === "All" ? "All Menus" : `${meal} Menu`}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Categories: rounded-lg border border-black (no circular corners) */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
           {allCategories.map((cat) => {
             const active = selectedCategory === cat;
@@ -203,10 +242,10 @@ export function BillingMenuCatalog({
                 type="button"
                 onClick={() => setSelectedCategory(cat)}
                 className={cn(
-                  "shrink-0 rounded-full px-3.5 py-1.5 text-[11.5px] font-semibold whitespace-nowrap transition-all cursor-pointer border",
+                  "shrink-0 rounded-lg px-3 py-1.5 text-[11.5px] font-bold whitespace-nowrap transition-all cursor-pointer border",
                   active
-                    ? "border-primary bg-primary text-primary-foreground shadow-e1"
-                    : "border-border/80 bg-surface text-text-secondary hover:border-primary/40 hover:bg-primary-tint hover:text-primary",
+                    ? "border-black bg-primary text-primary-foreground shadow-xs"
+                    : "border-black bg-white text-black hover:bg-slate-100",
                 )}
               >
                 {cat}
@@ -283,17 +322,15 @@ export function BillingMenuCatalog({
                       {item.plates !== undefined ? (
                         <span
                           className={cn(
-                            "rounded-md px-1.5 py-0.2 text-[10px] font-bold tracking-tight inline-flex items-center",
+                            "rounded-md px-1.5 py-0.2 text-[10px] font-bold tracking-tight inline-flex items-center border",
                             item.plates <= 0
-                              ? "bg-rose-100 text-rose-700 border border-rose-200"
+                              ? "bg-rose-100 text-rose-800 border-rose-300"
                               : item.plates <= 3
-                                ? "bg-amber-100 text-amber-800 border border-amber-200"
-                                : "bg-emerald-100 text-emerald-800 border border-emerald-200",
+                                ? "bg-amber-100 text-amber-800 border-amber-300"
+                                : "bg-emerald-100 text-emerald-800 border-emerald-300",
                           )}
                         >
-                          {item.plates <= 0
-                            ? "0 Plates (Sold Out)"
-                            : `${item.plates} ${item.plates === 1 ? "plate" : "plates"} left`}
+                          {item.plates} {item.plates === 1 ? "Plate" : "Plates"}
                         </span>
                       ) : null}
                     </div>
@@ -382,20 +419,25 @@ export function BillingMenuCatalog({
                       </button>
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleAddClick(item)}
-                      disabled={item.plates !== undefined && item.plates <= 0}
-                      className={cn(
-                        "inline-flex h-8 items-center gap-1 rounded-lg px-3 text-[11.5px] font-bold shadow-xs transition",
-                        item.plates !== undefined && item.plates <= 0
-                          ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                          : "bg-primary text-primary-foreground hover:opacity-95 active:scale-[0.98] cursor-pointer",
-                      )}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      {item.plates !== undefined && item.plates <= 0 ? "Sold Out" : "Add"}
-                    </button>
+                    item.plates !== undefined && item.plates <= 0 ? (
+                      <button
+                        type="button"
+                        disabled
+                        style={{ color: "#be123c", backgroundColor: "#fff1f2", borderColor: "#e11d48" }}
+                        className="inline-flex h-8 items-center justify-center rounded-lg px-3 text-[11px] font-extrabold border-2 border-rose-600 bg-rose-50 text-rose-700 shadow-2xs cursor-not-allowed select-none"
+                      >
+                        Sold Out
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleAddClick(item)}
+                        className="inline-flex h-8 items-center gap-1 rounded-lg px-3 text-[11.5px] font-bold shadow-xs transition bg-primary text-primary-foreground hover:opacity-95 active:scale-[0.98] cursor-pointer border border-black"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Add
+                      </button>
+                    )
                   )}
                 </div>
                 </div>

@@ -34,3 +34,4 @@ describe("Typography Standardization - Inter as Single Global Font", () => {
     expect(content).toMatch(/import\s+.*?\{.*?\bcn\b.*?\}\s+from/);
   });
 });
+

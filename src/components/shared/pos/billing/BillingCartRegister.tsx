@@ -505,8 +505,8 @@ export function BillingCartRegister({
         </div>
       )}
 
-      {/* 3. Cart Line Items List (Compact, Tight, Stretchable without extra gaps) */}
-      <div className="flex-1 min-h-[75px] overflow-y-auto px-2 py-1.5 space-y-1">
+      {/* 3. Cart Line Items Table in Excel Format */}
+      <div className="flex-1 min-h-[75px] overflow-y-auto px-2 py-1.5">
         {cartItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 text-center text-slate-400">
             <FileText className="h-6 w-6 mb-1 stroke-1 text-slate-300" />
@@ -520,122 +520,136 @@ export function BillingCartRegister({
             </p>
           </div>
         ) : (
-          cartItems.map((cartItem) => {
-            const basePrice = cartItem.selectedVariant
-              ? cartItem.selectedVariant.price
-              : cartItem.item.price;
-            const modifiersPrice = cartItem.selectedModifiers.reduce((sum, m) => sum + m.price, 0);
-            const unitPrice = basePrice + modifiersPrice;
-            const lineTotal = cartItem.isComplimentary ? 0 : unitPrice * cartItem.quantity;
+          <div className="overflow-x-auto rounded-lg border border-black shadow-2xs">
+            <table className="w-full text-center border-collapse border border-black text-[11.5px]">
+              <thead>
+                <tr className="bg-primary text-primary-foreground border-b-2 border-black font-extrabold text-[10.5px] uppercase tracking-wider">
+                  <th className="py-2 px-2 border-r border-black border-b-2 border-black text-left">
+                    Item
+                  </th>
+                  <th className="py-2 px-1 border-r border-black border-b-2 border-black text-center w-16">
+                    Qty
+                  </th>
+                  <th className="py-2 px-1 border-r border-black border-b-2 border-black text-center w-16">
+                    Rate
+                  </th>
+                  <th className="py-2 px-1 border-r border-black border-b-2 border-black text-center w-18">
+                    Amount
+                  </th>
+                  <th className="py-2 px-1 border-b-2 border-black text-center w-12">
+                    Act
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {cartItems.map((cartItem) => {
+                  const basePrice = cartItem.selectedVariant
+                    ? cartItem.selectedVariant.price
+                    : cartItem.item.price;
+                  const modifiersPrice = cartItem.selectedModifiers.reduce((sum, m) => sum + m.price, 0);
+                  const unitPrice = basePrice + modifiersPrice;
+                  const lineTotal = cartItem.isComplimentary ? 0 : unitPrice * cartItem.quantity;
 
-            return (
-              <div
-                key={cartItem.cartId}
-                className={`group rounded-lg border px-2 py-1.5 transition-all text-xs flex items-center justify-between gap-2 ${
-                  cartItem.isComplimentary
-                    ? "bg-purple-50/70 border-purple-200"
-                    : "bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/70"
-                }`}
-              >
-                {/* Left: Diet Dot + Item Name + Variant Tags */}
-                <div className="flex-1 min-w-0 pr-1">
-                  <div className="flex items-center gap-1.5">
-                    {cartItem.item.diet === "veg" && (
-                      <span className="flex h-3 w-3 shrink-0 items-center justify-center border border-emerald-600 p-0.2 rounded-[2px] bg-white">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
-                      </span>
-                    )}
-                    {cartItem.item.diet === "non_veg" && (
-                      <span className="flex h-3 w-3 shrink-0 items-center justify-center border border-rose-600 p-0.2 rounded-[2px] bg-white">
-                        <span className="h-1.5 w-1.5 rounded-full bg-rose-600" />
-                      </span>
-                    )}
-                    {cartItem.item.diet === "egg" && (
-                      <span className="flex h-3 w-3 shrink-0 items-center justify-center border border-amber-600 p-0.2 rounded-[2px] bg-white">
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-600" />
-                      </span>
-                    )}
-
-                    <span className="font-bold text-[12px] text-slate-900 truncate">
-                      {cartItem.item.name}
-                    </span>
-
-                    {cartItem.selectedVariant && (
-                      <span className="text-[9.5px] bg-slate-200 text-slate-700 px-1 py-0.2 rounded font-medium shrink-0">
-                        {cartItem.selectedVariant.name}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Subline: Modifiers & instructions if any */}
-                  {(cartItem.selectedModifiers.length > 0 || cartItem.specialInstructions) && (
-                    <div className="text-[10px] text-slate-500 truncate pl-4.5 mt-0.5">
-                      {cartItem.selectedModifiers.map((m) => m.optionName).join(", ")}
-                      {cartItem.specialInstructions ? ` · ★ ${cartItem.specialInstructions}` : ""}
-                    </div>
-                  )}
-                </div>
-
-                {/* Right Controls: Stepper, Price, Complimentary, Delete */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Stepper */}
-                  <div className="flex items-center gap-0.5 bg-white border border-slate-300 rounded-md p-0.5 shadow-2xs">
-                    <button
-                      type="button"
-                      onClick={() => onUpdateCartQty(cartItem.cartId, cartItem.quantity - 1)}
-                      className="h-4.5 w-4.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px] cursor-pointer"
-                    >
-                      <Minus className="h-2 w-2" />
-                    </button>
-                    <span className="w-4 text-center font-bold text-[11px] text-slate-900">
-                      {cartItem.quantity}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => onUpdateCartQty(cartItem.cartId, cartItem.quantity + 1)}
-                      className="h-4.5 w-4.5 rounded bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center font-bold text-[10px] cursor-pointer"
-                    >
-                      <Plus className="h-2 w-2" />
-                    </button>
-                  </div>
-
-                  {/* Line Total */}
-                  <div className="font-bold text-slate-900 text-xs min-w-[50px] text-right font-mono">
-                    {cartItem.isComplimentary ? (
-                      <span className="text-purple-700 font-bold text-[10px]">FREE</span>
-                    ) : (
-                      `₹${lineTotal.toLocaleString()}`
-                    )}
-                  </div>
-
-                  {/* Quick Complimentary Toggle */}
-                  {canDiscount && (
-                    <button
-                      type="button"
-                      onClick={() => onToggleComplimentary(cartItem.cartId)}
-                      title={cartItem.isComplimentary ? "Remove Complimentary" : "Make Complimentary"}
-                      className={`p-1 rounded transition cursor-pointer ${
-                        cartItem.isComplimentary
-                          ? "text-purple-700 bg-purple-100"
-                          : "text-slate-300 hover:text-purple-600 hover:bg-purple-50"
+                  return (
+                    <tr
+                      key={cartItem.cartId}
+                      className={`border-b border-black text-center transition ${
+                        cartItem.isComplimentary ? "bg-purple-50" : "hover:bg-slate-50 bg-white"
                       }`}
                     >
-                      <Gift className="h-3 w-3" />
-                    </button>
-                  )}
+                      {/* Item Name + Diet + Variant */}
+                      <td className="py-1.5 px-2 border-r border-black border-b border-black text-left align-middle">
+                        <div className="flex items-center gap-1">
+                          <FoodTypeIcon type={cartItem.item.diet} size="sm" />
+                          <span className="font-bold text-[11.5px] text-black truncate max-w-[120px] sm:max-w-[150px]" title={cartItem.item.name}>
+                            {cartItem.item.name}
+                          </span>
+                        </div>
+                        {cartItem.selectedVariant && (
+                          <span className="text-[9px] bg-slate-100 text-black border border-black px-1 rounded font-bold inline-block mt-0.5">
+                            {cartItem.selectedVariant.name}
+                          </span>
+                        )}
+                        {(cartItem.selectedModifiers.length > 0 || cartItem.specialInstructions) && (
+                          <div className="text-[9.5px] text-slate-700 italic truncate max-w-[140px]">
+                            {cartItem.selectedModifiers.map((m) => m.optionName).join(", ")}
+                            {cartItem.specialInstructions ? ` · ${cartItem.specialInstructions}` : ""}
+                          </div>
+                        )}
+                      </td>
 
-                  {/* Delete Item */}
-                  <button
-                    type="button"
-                    onClick={() => onRemoveCartItem(cartItem.cartId)}
-                    className="text-slate-300 hover:text-rose-600 p-1 transition cursor-pointer"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-            );
-          })
+                      {/* Qty Stepper */}
+                      <td className="py-1.5 px-1 border-r border-black border-b border-black text-center align-middle">
+                        <div className="inline-flex items-center gap-0.5 bg-white border border-black rounded p-0.5 shadow-2xs">
+                          <button
+                            type="button"
+                            onClick={() => onUpdateCartQty(cartItem.cartId, cartItem.quantity - 1)}
+                            className="h-4 w-4 rounded bg-slate-100 hover:bg-slate-200 text-black flex items-center justify-center font-bold text-[10px] cursor-pointer"
+                          >
+                            <Minus className="h-2 w-2" />
+                          </button>
+                          <span className="w-3.5 text-center font-extrabold text-[11px] text-black">
+                            {cartItem.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => onUpdateCartQty(cartItem.cartId, cartItem.quantity + 1)}
+                            className="h-4 w-4 rounded bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center font-bold text-[10px] cursor-pointer"
+                          >
+                            <Plus className="h-2 w-2" />
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Rate */}
+                      <td className="py-1.5 px-1 border-r border-black border-b border-black text-center align-middle font-mono font-bold text-[11.5px] text-black">
+                        ₹{unitPrice}
+                      </td>
+
+                      {/* Amount */}
+                      <td className="py-1.5 px-1 border-r border-black border-b border-black text-center align-middle font-mono font-extrabold text-[11.5px] text-black">
+                        {cartItem.isComplimentary ? (
+                          <span className="text-purple-700 font-extrabold text-[9.5px] bg-purple-100 px-1 py-0.5 rounded border border-purple-300">
+                            FREE
+                          </span>
+                        ) : (
+                          `₹${lineTotal.toLocaleString()}`
+                        )}
+                      </td>
+
+                      {/* Actions: Free & Delete */}
+                      <td className="py-1.5 px-1 border-b border-black text-center align-middle">
+                        <div className="flex items-center justify-center gap-1">
+                          {canDiscount && (
+                            <button
+                              type="button"
+                              onClick={() => onToggleComplimentary(cartItem.cartId)}
+                              title={cartItem.isComplimentary ? "Remove Free" : "Make Free"}
+                              className={`p-0.5 rounded cursor-pointer ${
+                                cartItem.isComplimentary
+                                  ? "text-purple-700 bg-purple-100"
+                                  : "text-slate-400 hover:text-purple-700"
+                              }`}
+                            >
+                              <Gift className="h-3 w-3" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => onRemoveCartItem(cartItem.cartId)}
+                            title="Delete item"
+                            className="text-slate-400 hover:text-rose-600 p-0.5 cursor-pointer"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

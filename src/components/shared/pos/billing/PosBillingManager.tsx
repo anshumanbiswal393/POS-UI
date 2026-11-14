@@ -1983,7 +1983,7 @@ export function PosBillingManager() {
       </div>
 
       {/* 2. Main Workspace: Tables & Orders (Left) + Menu Catalog (Center) + Cart Register (Right) */}
-      <div className="flex flex-col lg:flex-row gap-2.5 flex-1 min-h-0 lg:overflow-hidden items-stretch px-2 sm:px-2.5 pt-2 lg:pt-0 pb-2.5">
+      <div className="flex flex-col lg:flex-row gap-2.5 flex-1 min-h-0 lg:overflow-hidden items-stretch px-2 sm:px-2.5 pt-2 lg:pt-2 pb-2.5">
         {/* Left: Tables & Orders Panel (Responsive & Auto-adjusts screen space) */}
         <div
           className={cn(

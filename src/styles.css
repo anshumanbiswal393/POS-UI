@@ -640,16 +640,16 @@
     opacity: 0.65 !important;
   }
 
-  :disabled,
-  [disabled],
-  [aria-disabled="true"] {
-    color: #000000 !important;
+  :disabled:not([class*="text-"]):not([class*="bg-rose"]):not([class*="text-rose"]):not([class*="text-white"]),
+  [disabled]:not([class*="text-"]):not([class*="bg-rose"]):not([class*="text-rose"]):not([class*="text-white"]),
+  [aria-disabled="true"]:not([class*="text-"]):not([class*="bg-rose"]):not([class*="text-rose"]):not([class*="text-white"]) {
+    color: #000000;
   }
 
-  .dark :disabled,
-  .dark [disabled],
-  .dark [aria-disabled="true"] {
-    color: #ffffff !important;
+  .dark :disabled:not([class*="text-"]):not([class*="bg-rose"]):not([class*="text-rose"]):not([class*="text-white"]),
+  .dark [disabled]:not([class*="text-"]):not([class*="bg-rose"]):not([class*="text-rose"]):not([class*="text-white"]),
+  .dark [aria-disabled="true"]:not([class*="text-"]):not([class*="bg-rose"]):not([class*="text-rose"]):not([class*="text-white"]) {
+    color: #ffffff;
   }
 }
 
