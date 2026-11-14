@@ -29,15 +29,25 @@ describe("POS Billing UI Standardization", () => {
     expect(content).toContain("Amount");
   });
 
-  it("BillingMenuCatalog has meal-time tabs, squared category borders, plate counts, and clearly visible sold-out button", () => {
+  it("BillingHeader renders meal-time tabs in top pill container styled like order types", () => {
+    const headerPath = path.resolve(__dirname, "../BillingHeader.tsx");
+    const content = fs.readFileSync(headerPath, "utf-8");
+
+    // Meal-time tabs in top pill bar
+    expect(content).toContain('["All", "Breakfast", "Lunch", "Dinner"]');
+    expect(content).toContain("${meal} Menu");
+    expect(content).toContain("bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 overflow-x-auto");
+  });
+
+  it("BillingMenuCatalog has meal filtering, squared category borders, plate counts, and clearly visible sold-out button", () => {
     const catalogPath = path.resolve(__dirname, "../BillingMenuCatalog.tsx");
     const content = fs.readFileSync(catalogPath, "utf-8");
 
-    // Meal-time tabs
-    expect(content).toContain('["All", "Breakfast", "Lunch", "Dinner"]');
-    expect(content).toContain("${meal} Menu");
+    // Meal-time filtering support
+    expect(content).toContain("selectedMealTime");
+    expect(content).toContain("targetMeal");
 
-    // Categories with rounded-lg border border-black (no circular corners)
+    // Categories with rounded-lg border border-slate-300 (no circular corners)
     expect(content).toContain("rounded-lg px-3 py-1.5 text-[11.5px] font-bold whitespace-nowrap transition-all cursor-pointer border");
 
     // Plate count format without long (Sold Out) string
@@ -48,10 +58,12 @@ describe("POS Billing UI Standardization", () => {
     expect(content).toContain("border-rose-600");
   });
 
-  it("PosBillingManager provides gap so top nav border does not overlap content cards", () => {
+  it("PosBillingManager wires selectedMealTime and provides gap so top nav border does not overlap content cards", () => {
     const managerPath = path.resolve(__dirname, "../PosBillingManager.tsx");
     const content = fs.readFileSync(managerPath, "utf-8");
 
+    expect(content).toContain("const [selectedMealTime, setSelectedMealTime] = useState");
+    expect(content).toContain("selectedMealTime={selectedMealTime}");
     expect(content).toContain("pt-2 lg:pt-2");
   });
 });

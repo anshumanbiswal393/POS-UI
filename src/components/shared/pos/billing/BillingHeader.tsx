@@ -29,6 +29,8 @@ type BillingHeaderProps = {
   roomNumber?: string;
   occupiedRooms?: OccupiedRoomOption[];
   onSelectRoom?: (roomNumber: string) => void;
+  selectedMealTime?: string;
+  onSelectMealTime?: (meal: string) => void;
 };
 
 export function BillingHeader({
@@ -44,6 +46,8 @@ export function BillingHeader({
   roomNumber,
   occupiedRooms = [],
   onSelectRoom,
+  selectedMealTime = "All",
+  onSelectMealTime,
 }: BillingHeaderProps) {
   const orderTypes: {
     id: BillingOrderType;
@@ -58,28 +62,52 @@ export function BillingHeader({
   return (
     <div className="bg-white border-b border-slate-200 px-2.5 sm:px-4 lg:px-6 py-2 shrink-0">
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2">
-        <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 overflow-x-auto">
-          {orderTypes.map((mode) => {
-            const Icon = mode.icon;
-            const isActive = orderType === mode.id;
-            return (
-              <button
-                key={mode.id}
-                type="button"
-                onClick={() => setOrderType(mode.id)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-white/80"
-                }`}
-              >
-                <Icon
-                  className={`h-3.5 w-3.5 ${isActive ? "text-primary-foreground/80" : "text-slate-500"}`}
-                />
-                <span>{mode.label}</span>
-              </button>
-            );
-          })}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 overflow-x-auto">
+            {orderTypes.map((mode) => {
+              const Icon = mode.icon;
+              const isActive = orderType === mode.id;
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => setOrderType(mode.id)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-white/80"
+                  }`}
+                >
+                  <Icon
+                    className={`h-3.5 w-3.5 ${isActive ? "text-primary-foreground/80" : "text-slate-500"}`}
+                  />
+                  <span>{mode.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Meal-Time Tabs: All Menus, Breakfast Menu, Lunch Menu, Dinner Menu */}
+          <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 overflow-x-auto">
+            {(["All", "Breakfast", "Lunch", "Dinner"] as const).map((meal) => {
+              const isActive = (selectedMealTime || "All") === meal;
+              const label = meal === "All" ? "All Menus" : `${meal} Menu`;
+              return (
+                <button
+                  key={meal}
+                  type="button"
+                  onClick={() => onSelectMealTime?.(meal)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-white/80"
+                  }`}
+                >
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 flex-1 lg:justify-end">

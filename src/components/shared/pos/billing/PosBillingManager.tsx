@@ -267,6 +267,7 @@ export function PosBillingManager() {
   const [guestCount, setGuestCount] = useState(0);
   const [billNumber, setBillNumber] = useState("NEW");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedMealTime, setSelectedMealTime] = useState<string>("All");
   const [mobilePane, setMobilePane] = useState<"menu" | "cart" | "tables">("menu");
   const [isTablesPanelCollapsed, setIsTablesPanelCollapsed] = useState(false);
   const [discountType, setDiscountType] = useState<"percent" | "flat">("percent");
@@ -1925,6 +1926,8 @@ export function PosBillingManager() {
           roomNumber={roomNumber}
           occupiedRooms={occupiedRooms}
           onSelectRoom={applyOccupiedRoom}
+          selectedMealTime={selectedMealTime}
+          onSelectMealTime={setSelectedMealTime}
         />
       </div>
 
@@ -2026,6 +2029,8 @@ export function PosBillingManager() {
             onUpdateCartQty={handleUpdateCartQty}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
+            selectedMealTime={selectedMealTime}
+            onSelectMealTime={setSelectedMealTime}
           />
         </div>
 

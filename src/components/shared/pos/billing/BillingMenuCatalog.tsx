@@ -19,6 +19,8 @@ type BillingMenuCatalogProps = {
   onUpdateCartQty: (cartId: string, newQty: number) => void;
   searchQuery: string;
   onSearchChange?: (query: string) => void;
+  selectedMealTime?: string;
+  onSelectMealTime?: (meal: string) => void;
 };
 
 export function BillingMenuCatalog({
@@ -29,8 +31,11 @@ export function BillingMenuCatalog({
   onUpdateCartQty,
   searchQuery,
   onSearchChange,
+  selectedMealTime: controlledMealTime,
+  onSelectMealTime: _onSelectMealTime,
 }: BillingMenuCatalogProps) {
-  const [selectedMealTime, setSelectedMealTime] = useState<string>("All");
+  const [internalMealTime] = useState<string>("All");
+  const selectedMealTime = controlledMealTime ?? internalMealTime;
   const [selectedCategory, setSelectedCategory] = useState<string>("All Items");
   const [selectedDiet, setSelectedDiet] = useState<BillingDietType>("all");
   const [localSearch, setLocalSearch] = useState<string>("");
@@ -208,28 +213,6 @@ export function BillingMenuCatalog({
               );
             })}
           </div>
-        </div>
-
-        {/* Meal-Time Tabs: All, Breakfast, Lunch, Dinner */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
-          {(["All", "Breakfast", "Lunch", "Dinner"] as const).map((meal) => {
-            const active = selectedMealTime === meal;
-            return (
-              <button
-                key={meal}
-                type="button"
-                onClick={() => setSelectedMealTime(meal)}
-                className={cn(
-                  "shrink-0 rounded-lg px-3 py-1.5 text-[11.5px] font-bold whitespace-nowrap transition-all cursor-pointer border",
-                  active
-                    ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                    : "border-slate-300 bg-white text-black hover:bg-slate-100",
-                )}
-              >
-                {meal === "All" ? "All Menus" : `${meal} Menu`}
-              </button>
-            );
-          })}
         </div>
 
         {/* Categories: rounded-lg border border-slate-300 (no circular corners) */}
