@@ -166,7 +166,7 @@ export function BillingTablesOrdersSidebar({
     const fromAreas = safeAreas.filter((a) => a && a !== "All Areas" && a !== "All Zones");
     const fromTables = Array.from(new Set(safeTables.map((t) => t?.area).filter(Boolean)));
     const merged = Array.from(new Set([...fromAreas, ...fromTables]));
-    return ["All Zones", ...(merged.length > 0 ? merged : ["Outdoor", "Indoor", "Terrace"])];
+    return ["All Zones", ...merged];
   }, [areasData, tables]);
 
   // Reset selectedZone if it is not in the active zones list
@@ -623,7 +623,7 @@ export function BillingTablesOrdersSidebar({
                         t.replace(/\D/g, "") === String(table.tableNumberRaw)
                       );
                     }));
-                const floorSubtitle = `${table.area || "Outdoor"} · Floor 1`;
+                const floorSubtitle = table.area ? `${table.area} · Floor 1` : "Floor 1";
 
                 return (
                   <button
