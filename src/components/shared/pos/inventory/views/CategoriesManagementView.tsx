@@ -165,12 +165,7 @@ export function CategoriesManagementView() {
       filterable: true,
       width: 220,
       render: (val: any) => (
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 border border-teal-200/80">
-            <FolderTree className="h-3.5 w-3.5" />
-          </div>
-          <span className="font-bold text-foreground text-xs">{val}</span>
-        </div>
+        <span className="font-bold text-foreground text-xs">{val}</span>
       ),
     },
     {

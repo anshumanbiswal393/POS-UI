@@ -9,7 +9,6 @@ import {
   Package,
   Plus,
   ShoppingCart,
-  Activity,
   X,
   Flame,
   ShieldCheck,
@@ -21,17 +20,6 @@ import { useStockItems, useStockOverview, useStockCategories } from "@/hooks/que
 import type { StockItem } from "@/types/posInventory";
 import { CreatePurchaseModal } from "@/components/shared/pos/inventory/modals/CreatePurchaseModal";
 import { useOutletContext } from "@/context/PosOutletContext";
-
-interface LiveStockMovement {
-  id: string;
-  type: "sale" | "purchase" | "wastage";
-  item: string;
-  qty: string;
-  location: string;
-  time: string;
-  amount?: string;
-  deltaType: "increase" | "decrease" | "neutral";
-}
 
 interface LowStockRadarItem {
   id: string;
@@ -107,24 +95,6 @@ export function InventoryDashboardView() {
     };
   });
 
-  const liveMovements: LiveStockMovement[] = (overview?.movements || []).map((mov) => {
-    const typeName = (mov.type || "").toUpperCase();
-    const type: LiveStockMovement["type"] = typeName.includes("WASTAGE")
-      ? "wastage"
-      : typeName.includes("IN") || typeName.includes("PURCHASE")
-        ? "purchase"
-        : "sale";
-    return {
-      id: mov.id,
-      type,
-      item: mov.name,
-      qty: `${mov.signedQty} ${mov.unit}`,
-      location: "Kitchen",
-      time: mov.createdAt ? new Date(mov.createdAt).toLocaleTimeString() : "",
-      deltaType: mov.signedQty >= 0 ? "increase" : "decrease",
-    };
-  });
-
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("September");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
@@ -149,7 +119,6 @@ export function InventoryDashboardView() {
 
   const lowStock = liveLowStock;
   const categories = EMPTY_CATEGORIES;
-  const movements = liveMovements;
   const formatInr = (n: number) =>
     `₹ ${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
@@ -437,10 +406,10 @@ export function InventoryDashboardView() {
         </div>
       </div>
 
-      {/* Main Lower 3-Column Grid */}
+      {/* Main Lower 2-Column Grid */}
       <div className="grid grid-cols-1 gap-2 lg:grid-cols-12 lg:flex-1 lg:min-h-0 items-stretch">
         {/* Col 1: Low Stock Radar */}
-        <div className="flex min-h-[300px] lg:min-h-0 flex-col rounded-xl border border-slate-300 bg-white shadow-2xs lg:col-span-5 lg:h-full overflow-hidden">
+        <div className="flex min-h-[300px] lg:min-h-0 flex-col rounded-xl border border-slate-300 bg-white shadow-2xs lg:col-span-6 lg:h-full overflow-hidden">
           <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-200 px-3 py-2">
             <div className="flex items-center gap-1.5">
               <Flame className="h-3.5 w-3.5 text-rose-500" />
@@ -533,7 +502,7 @@ export function InventoryDashboardView() {
         </div>
 
         {/* Col 2: Daily Closing + Valuation by Category */}
-        <div className="flex min-h-[300px] lg:min-h-0 flex-col gap-2 lg:col-span-4 lg:h-full">
+        <div className="flex min-h-[300px] lg:min-h-0 flex-col gap-2 lg:col-span-6 lg:h-full">
           {/* Daily Closing */}
           <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-slate-300 bg-white shadow-2xs overflow-hidden">
             <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-3 py-2">
@@ -627,75 +596,6 @@ export function InventoryDashboardView() {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* Col 3: Stock Movements */}
-        <div className="flex min-h-[300px] lg:min-h-0 flex-col rounded-xl border border-slate-300 bg-white shadow-2xs lg:col-span-3 lg:h-full overflow-hidden">
-          <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-3 py-2">
-            <div className="flex items-center gap-1.5">
-              <Activity className="h-3.5 w-3.5 text-teal-600" />
-              <h3 className="text-[13.5px] font-bold text-slate-900">Stock Movements</h3>
-            </div>
-            <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10.5px] font-bold text-teal-700">
-              Live Stream
-            </span>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto divide-y divide-slate-100">
-            {movements.length === 0 ? (
-              <div className="flex h-full min-h-[160px] flex-col items-center justify-center p-4 text-center">
-                <Activity className="mb-1.5 h-6 w-6 text-slate-300" />
-                <p className="text-[12.5px] font-bold text-slate-700">No movements yet</p>
-                <p className="mt-0.5 text-[11px] text-slate-400">
-                  Sales, purchases, and wastage will stream here once stock is active.
-                </p>
-              </div>
-            ) : (
-              movements.map((mov) => {
-                const badge =
-                  mov.type === "purchase"
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    : mov.type === "wastage"
-                      ? "bg-rose-50 text-rose-700 border-rose-200"
-                      : "bg-blue-50 text-blue-700 border-blue-200";
-                return (
-                  <div key={mov.id} className="px-3 py-2 hover:bg-slate-50/80 transition">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <span
-                          className={`inline-block rounded-md border px-1.5 py-0.2 text-[9px] font-extrabold uppercase ${badge}`}
-                        >
-                          {mov.type}
-                        </span>
-                        <div className="mt-0.5 truncate text-[12px] font-bold text-slate-900">
-                          {mov.item}
-                        </div>
-                        <div className="text-[10.5px] text-slate-500">{mov.location}</div>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <div
-                          className={`text-[12px] font-extrabold font-mono ${
-                            mov.deltaType === "increase"
-                              ? "text-emerald-600"
-                              : mov.deltaType === "decrease"
-                                ? "text-rose-600"
-                                : "text-slate-700"
-                          }`}
-                        >
-                          {mov.qty}
-                        </div>
-                        {mov.amount && (
-                          <div className="text-[10.5px] font-medium text-slate-400">
-                            {mov.amount}
-                          </div>
-                        )}
-                        <div className="text-[10px] text-slate-400">{mov.time}</div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
           </div>
         </div>
       </div>

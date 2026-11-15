@@ -3,7 +3,6 @@ import {
   X,
   Upload,
   Image as ImageIcon,
-  Star,
   Trash2,
   RefreshCw,
   Check,
@@ -587,7 +586,7 @@ export function ItemImageManagerModal({
                             onClick={() => handleSetPrimary(img.id)}
                             className="flex items-center gap-1 text-[11px] font-bold text-teal-700 hover:text-teal-900 transition cursor-pointer"
                           >
-                            <Star className="h-3 w-3" /> Set Cover
+                            Set Cover
                           </button>
                         ) : (
                           <span className="text-[11px] font-bold text-teal-700 flex items-center gap-1">
