@@ -13,6 +13,7 @@ import {
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { toast } from "sonner";
 import { ColorActionView, ColorActionDelete } from "@/components/common/ColorActionIcons";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 
 export function PurchaseReturnView() {
   const { data: purchaseReturns } = usePurchaseReturns();
@@ -24,6 +25,7 @@ export function PurchaseReturnView() {
   const [endDate, setEndDate] = useState("2026-09-02");
   const [vendorFilter, setVendorFilter] = useState("All");
   const [debitNoteFilter, setDebitNoteFilter] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; debitNoteNo: string } | null>(null);
 
   const returnColumns: DataTableColumn<any>[] = useMemo(
     () => [
@@ -302,10 +304,7 @@ export function PurchaseReturnView() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            deleteMutation.mutate(pr.id);
-                            toast.success(`Deleted Debit Note ${pr.debitNoteNo}`);
-                          }}
+                          onClick={() => setDeleteTarget({ id: pr.id, debitNoteNo: pr.debitNoteNo })}
                           className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
                           title="Delete"
                         >
@@ -322,6 +321,31 @@ export function PurchaseReturnView() {
       </div>
 
       <CreatePurchaseReturnModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+
+      {/* Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete Debit Note / Purchase Return"
+        itemName={deleteTarget?.debitNoteNo}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to delete debit note{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.debitNoteNo}"</span>?
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            deleteMutation.mutate(deleteTarget.id);
+            toast.success(`Deleted Debit Note ${deleteTarget.debitNoteNo}`);
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -263,16 +263,24 @@ export function PosDataGrid<T>({
     [keyField]
   );
 
+  // Uncontrolled selection state fallback when onSelectionChange/selectedRows are not passed
+  const [internalSelectedIds, setInternalSelectedIds] = useState<string[]>([]);
+  const isControlled = selectedRowIds !== undefined || selectedRows !== undefined;
+
+  const effectiveSelectedIds = useMemo(() => {
+    if (selectedRowIds !== undefined && Array.isArray(selectedRowIds)) {
+      return selectedRowIds;
+    }
+    if (selectedRows !== undefined && Array.isArray(selectedRows)) {
+      return selectedRows.map((r, idx) => getRowKey(r, idx));
+    }
+    return internalSelectedIds;
+  }, [selectedRowIds, selectedRows, internalSelectedIds, getRowKey]);
+
   // Selected row keys set for O(1) lookup
   const selectedKeySet = useMemo(() => {
-    const set = new Set<string>();
-    if (selectedRowIds && Array.isArray(selectedRowIds)) {
-      selectedRowIds.forEach((id) => set.add(id));
-    } else if (selectedRows && Array.isArray(selectedRows)) {
-      selectedRows.forEach((r, idx) => set.add(getRowKey(r, idx)));
-    }
-    return set;
-  }, [selectedRows, selectedRowIds, getRowKey]);
+    return new Set<string>(effectiveSelectedIds);
+  }, [effectiveSelectedIds]);
 
   // Helper to get raw cell value for a column
   const getRawCellValue = useCallback((row: T, colId: string) => {
@@ -416,60 +424,68 @@ export function PosDataGrid<T>({
     !isAllPaginatedSelected;
 
   const handleToggleSelectAll = () => {
-    if (!onSelectionChange) return;
     const usesIdArray = selectedRowIds !== undefined;
+    let nextIds: string[] = [];
+    let nextRows: T[] = [];
 
     if (isAllPaginatedSelected) {
       const paginatedKeys = new Set(paginatedData.map((r, idx) => getRowKey(r, idx)));
-      if (usesIdArray) {
-        onSelectionChange((selectedRowIds || []).filter((id) => !paginatedKeys.has(id)) as any);
-      } else {
-        onSelectionChange(selectedRows.filter((r, idx) => !paginatedKeys.has(getRowKey(r, idx))) as any);
-      }
+      nextIds = effectiveSelectedIds.filter((id) => !paginatedKeys.has(id));
+      nextRows = (selectedRows || sortedData).filter((r, idx) => !paginatedKeys.has(getRowKey(r, idx)));
     } else {
+      const existing = new Set(effectiveSelectedIds);
+      paginatedData.forEach((r, idx) => {
+        existing.add(getRowKey(r, idx));
+      });
+      nextIds = Array.from(existing);
+      const rowKeySet = new Set(nextIds);
+      nextRows = sortedData.filter((r, idx) => rowKeySet.has(getRowKey(r, idx)));
+    }
+
+    if (!isControlled) {
+      setInternalSelectedIds(nextIds);
+    }
+    if (onSelectionChange) {
       if (usesIdArray) {
-        const existing = [...(selectedRowIds || [])];
-        paginatedData.forEach((r, idx) => {
-          const k = getRowKey(r, idx);
-          if (!existing.includes(k)) existing.push(k);
-        });
-        onSelectionChange(existing as any);
+        onSelectionChange(nextIds as any);
       } else {
-        const existing = [...selectedRows];
-        paginatedData.forEach((r, idx) => {
-          const k = getRowKey(r, idx);
-          if (!selectedKeySet.has(k)) existing.push(r);
-        });
-        onSelectionChange(existing as any);
+        onSelectionChange(nextRows as any);
       }
     }
   };
 
   const handleToggleRow = (row: T, index: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!onSelectionChange) return;
     const k = getRowKey(row, index);
     const usesIdArray = selectedRowIds !== undefined;
 
-    if (usesIdArray) {
-      const current = selectedRowIds || [];
-      if (current.includes(k)) {
-        onSelectionChange(current.filter((id) => id !== k) as any);
-      } else {
-        onSelectionChange([...current, k] as any);
-      }
+    let nextIds: string[];
+    let nextRows: T[];
+    if (selectedKeySet.has(k)) {
+      nextIds = effectiveSelectedIds.filter((id) => id !== k);
+      nextRows = (selectedRows || sortedData).filter((r, idx) => getRowKey(r, idx) !== k);
     } else {
-      if (selectedKeySet.has(k)) {
-        onSelectionChange(selectedRows.filter((r, idx) => getRowKey(r, idx) !== k) as any);
+      nextIds = [...effectiveSelectedIds, k];
+      nextRows = [...(selectedRows || sortedData.filter((r, idx) => effectiveSelectedIds.includes(getRowKey(r, idx)))), row];
+    }
+
+    if (!isControlled) {
+      setInternalSelectedIds(nextIds);
+    }
+    if (onSelectionChange) {
+      if (usesIdArray) {
+        onSelectionChange(nextIds as any);
       } else {
-        onSelectionChange([...selectedRows, row] as any);
+        onSelectionChange(nextRows as any);
       }
     }
   };
 
   const handleClearSelection = () => {
-    if (!onSelectionChange) return;
-    onSelectionChange([] as any);
+    if (!isControlled) {
+      setInternalSelectedIds([]);
+    }
+    onSelectionChange?.([] as any);
   };
 
   const handleExport = () => {

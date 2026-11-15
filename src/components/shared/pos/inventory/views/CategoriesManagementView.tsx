@@ -25,6 +25,7 @@ import {
 } from "@/components/layout/pos/PosCreatePanel";
 import type { StockCategory, StockSubCategory } from "@/types/posInventory";
 import { extractCategoriesFromStock, getDeletedCategoryNames } from "@/services/posInventoryService";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 
 const STANDARD_UNITS = [
   "Kg",
@@ -67,6 +68,7 @@ export function CategoriesManagementView() {
 
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<StockCategory | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const [categoryName, setCategoryName] = useState("");
   const [subCategories, setSubCategories] = useState<SubCategoryDraft[]>([
@@ -172,6 +174,9 @@ export function CategoriesManagementView() {
       id: "subCategories",
       header: "Subcategories & Units",
       sortable: false,
+      filterable: true,
+      filterValueAccessor: (row) =>
+        row.subCategories?.map((s) => `${s.name} ${s.unit}`).join(" ") || "",
       width: 480,
       render: (_: any, row: StockCategory) => {
         const subs = row.subCategories || [];
@@ -230,7 +235,7 @@ export function CategoriesManagementView() {
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              handleDelete(row.id, row.name);
+              setDeleteTarget({ id: row.id, name: row.name });
             }}
             className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
             title="Delete Category"
@@ -295,9 +300,7 @@ export function CategoriesManagementView() {
         footer={
           <>
             <PosCreateCancelButton onClick={() => setIsPanelOpen(false)} />
-            <PosCreateSubmitButton>
-              {editingCategory ? "Save Changes" : "Save Category"}
-            </PosCreateSubmitButton>
+            <PosCreateSubmitButton>Save</PosCreateSubmitButton>
           </>
         }
       >
@@ -378,6 +381,31 @@ export function CategoriesManagementView() {
           </div>
         </div>
       </PosCreatePanel>
+
+      {/* 4. Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete Stock Category"
+        itemName={deleteTarget?.name}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to permanently delete category{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.name}"</span>?
+              All associated subcategory mappings will also be removed.
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            handleDelete(deleteTarget.id, deleteTarget.name);
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }

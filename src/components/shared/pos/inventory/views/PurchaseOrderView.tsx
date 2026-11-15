@@ -15,6 +15,7 @@ import {
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { toast } from "sonner";
 import { ColorActionView, ColorActionDelete } from "@/components/common/ColorActionIcons";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 
 export function PurchaseOrderView() {
   const { data: purchaseOrders } = usePurchaseOrders();
@@ -29,6 +30,7 @@ export function PurchaseOrderView() {
   const [poFilter, setPoFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; poNumber: string } | null>(null);
 
   const poColumns: DataTableColumn<any>[] = useMemo(
     () => [
@@ -317,10 +319,7 @@ export function PurchaseOrderView() {
                         )}
                         <button
                           type="button"
-                          onClick={() => {
-                            deleteMutation.mutate(po.id);
-                            toast.success(`Deleted PO ${po.poNumber}`);
-                          }}
+                          onClick={() => setDeleteTarget({ id: po.id, poNumber: po.poNumber })}
                           className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
                           title="Delete"
                         >
@@ -347,6 +346,31 @@ export function PurchaseOrderView() {
       </div>
 
       <CreatePurchaseOrderModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+
+      {/* Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete Purchase Order"
+        itemName={deleteTarget?.poNumber}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to delete purchase order{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.poNumber}"</span>?
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            deleteMutation.mutate(deleteTarget.id);
+            toast.success(`Deleted PO ${deleteTarget.poNumber}`);
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }

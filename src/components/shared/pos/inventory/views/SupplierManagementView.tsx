@@ -2,7 +2,9 @@ import { useState, useMemo } from "react";
 import {
   Plus,
   Building,
+  Sparkles,
 } from "lucide-react";
+import { ColorActionDelete } from "@/components/common/ColorActionIcons";
 import { toast } from "sonner";
 import { useVendors } from "@/hooks/queries/usePosInventory";
 import { PosDataGrid } from "@/components/ui/data-grid";
@@ -12,18 +14,39 @@ import {
   PosCreatePanel,
   PosCreateSubmitButton,
 } from "@/components/layout/pos/PosCreatePanel";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
+
+export const AVAILABLE_SUPPLIER_CATEGORIES = [
+  "Vegetables & Fruits",
+  "Dairy & Cheese",
+  "Beverages & Syrups",
+  "Meat & Poultry",
+  "Groceries & Spices",
+  "Bakery & Bread",
+  "Packaging Materials",
+];
+
+export function generateSamplePhoneNumber(): string {
+  const prefixes = ["98", "99", "97", "96", "94", "91", "88", "87", "70"];
+  const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+  const part1 = Math.floor(100 + Math.random() * 900);
+  const part2 = Math.floor(10000 + Math.random() * 90000);
+  return `+91 ${prefix}${part1} ${part2}`;
+}
 
 interface SupplierItem {
   id: string;
   name: string;
   company: string;
   phone: string;
-  category: string;
+  category: string | string[];
   gstin: string;
   balance: string;
 }
 
-const SUPPLIER_COLUMNS: DataGridColumn<SupplierItem>[] = [
+const SUPPLIER_COLUMNS = (
+  onDelete: (item: SupplierItem) => void,
+): DataGridColumn<SupplierItem>[] => [
   {
     id: "id",
     header: "Supplier ID",
@@ -55,15 +78,32 @@ const SUPPLIER_COLUMNS: DataGridColumn<SupplierItem>[] = [
   },
   {
     id: "category",
-    header: "Category",
+    header: "Categories",
     sortable: true,
     filterable: true,
-    width: 160,
-    render: (val: any) => (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 dark:bg-surface-2 text-foreground">
-        {val}
-      </span>
-    ),
+    width: 240,
+    filterValueAccessor: (row) =>
+      Array.isArray(row.category) ? row.category.join(" ") : (row.category || ""),
+    render: (_: any, row: SupplierItem) => {
+      const cats = Array.isArray(row.category)
+        ? row.category
+        : (row.category ? [row.category] : []);
+      if (cats.length === 0) {
+        return <span className="text-muted-foreground text-xs italic">General</span>;
+      }
+      return (
+        <div className="flex flex-wrap items-center gap-1 py-1">
+          {cats.map((cat, idx) => (
+            <span
+              key={idx}
+              className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50"
+            >
+              {cat}
+            </span>
+          ))}
+        </div>
+      );
+    },
   },
   {
     id: "phone",
@@ -82,7 +122,7 @@ const SUPPLIER_COLUMNS: DataGridColumn<SupplierItem>[] = [
   },
   {
     id: "balance",
-    header: "Outstanding Balance",
+    header: "To Be Paid",
     sortable: true,
     align: "right",
     width: 160,
@@ -90,17 +130,39 @@ const SUPPLIER_COLUMNS: DataGridColumn<SupplierItem>[] = [
       <span className="font-mono font-bold text-foreground">{val}</span>
     ),
   },
+  {
+    id: "actions",
+    header: "Actions",
+    align: "right",
+    width: 90,
+    render: (_: any, row: SupplierItem) => (
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(row);
+          }}
+          className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
+          title="Delete Supplier"
+        >
+          <ColorActionDelete className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    ),
+  },
 ];
 
 export function SupplierManagementView() {
   const { data: vendors } = useVendors();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<SupplierItem | null>(null);
 
   const [newVendor, setNewVendor] = useState({
     name: "",
     company: "",
     phone: "",
-    category: "Groceries & Spices",
+    categories: ["Groceries & Spices"] as string[],
     gstin: "",
   });
 
@@ -110,7 +172,7 @@ export function SupplierManagementView() {
       name: "Ramesh Sharma",
       company: "Metro Fresh Farm Supplies",
       phone: "+91 98201 11223",
-      category: "Vegetables & Fruits",
+      category: ["Vegetables & Fruits", "Groceries & Spices"],
       gstin: "27AABCM1234F1Z5",
       balance: "₹ 12,400",
     },
@@ -119,7 +181,7 @@ export function SupplierManagementView() {
       name: "Sunil Kapoor",
       company: "Amrit Dairy Foods Pvt Ltd",
       phone: "+91 98450 33445",
-      category: "Dairy & Cheese",
+      category: ["Dairy & Cheese"],
       gstin: "27AADCA5566G1Z2",
       balance: "₹ 0",
     },
@@ -128,7 +190,7 @@ export function SupplierManagementView() {
       name: "Pooja Malhotra",
       company: "Apex Beverage Distributors",
       phone: "+91 98110 77889",
-      category: "Beverages & Syrups",
+      category: ["Beverages & Syrups"],
       gstin: "27AABCA9988H1Z8",
       balance: "₹ 5,850",
     },
@@ -137,11 +199,40 @@ export function SupplierManagementView() {
       name: "Vikram Sethi",
       company: "Spice King Wholesale Hub",
       phone: "+91 98765 43210",
-      category: "Groceries & Spices",
+      category: ["Groceries & Spices", "Packaging Materials"],
       gstin: "27AABCS7744K1Z1",
       balance: "₹ 18,200",
     },
   ]);
+
+  const handleOpenCreate = () => {
+    setNewVendor({
+      name: "",
+      company: "",
+      phone: generateSamplePhoneNumber(),
+      categories: ["Groceries & Spices"],
+      gstin: "",
+    });
+    setIsCreateOpen(true);
+  };
+
+  const handleGeneratePhone = () => {
+    setNewVendor((prev) => ({
+      ...prev,
+      phone: generateSamplePhoneNumber(),
+    }));
+  };
+
+  const toggleCategorySelection = (cat: string) => {
+    setNewVendor((prev) => {
+      const exists = prev.categories.includes(cat);
+      if (exists) {
+        if (prev.categories.length === 1) return prev; // keep at least one
+        return { ...prev, categories: prev.categories.filter((c) => c !== cat) };
+      }
+      return { ...prev, categories: [...prev.categories, cat] };
+    });
+  };
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,17 +245,23 @@ export function SupplierManagementView() {
       id: `VEND-0${localVendors.length + 1}`,
       name: newVendor.name,
       company: newVendor.company,
-      phone: newVendor.phone || "+91 98000 00000",
-      category: newVendor.category,
+      phone: newVendor.phone || generateSamplePhoneNumber(),
+      category: newVendor.categories.length > 0 ? newVendor.categories : ["Groceries & Spices"],
       gstin: newVendor.gstin || "27AAAAA0000A1Z5",
       balance: "₹ 0",
     };
 
     setLocalVendors([created, ...localVendors]);
     setIsCreateOpen(false);
-    setNewVendor({ name: "", company: "", phone: "", category: "Groceries & Spices", gstin: "" });
     toast.success(`Supplier '${created.company}' added successfully.`);
   };
+
+  const handleDelete = (item: SupplierItem) => {
+    setLocalVendors((prev) => prev.filter((v) => v.id !== item.id));
+    toast.success(`Supplier '${item.company}' removed.`);
+  };
+
+  const columns = useMemo(() => SUPPLIER_COLUMNS((item) => setDeleteTarget(item)), []);
 
   return (
     <div className="space-y-4">
@@ -181,7 +278,7 @@ export function SupplierManagementView() {
 
         <button
           type="button"
-          onClick={() => setIsCreateOpen(true)}
+          onClick={handleOpenCreate}
           className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 shadow-xs transition cursor-pointer"
         >
           <Plus className="h-4 w-4" />
@@ -192,7 +289,7 @@ export function SupplierManagementView() {
       {/* 2. Interactive Data Grid */}
       <PosDataGrid
         data={localVendors}
-        columns={SUPPLIER_COLUMNS}
+        columns={columns}
         keyField="id"
         title="Approved Suppliers"
         subtitle="Search by company, contact person, category or GSTIN"
@@ -207,7 +304,7 @@ export function SupplierManagementView() {
         open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         title="Add Supplier / Third Party"
-        description="Register a vendor for stock purchases and returns."
+        description="Register a vendor for stock purchases and returns with multiple categories."
         icon={Building}
         onSubmit={handleCreate}
         footer={
@@ -217,68 +314,129 @@ export function SupplierManagementView() {
           </>
         }
       >
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-foreground">Company Name *</label>
-          <input
-            type="text"
-            required
-            placeholder="e.g. Metro Fresh Farm Supplies"
-            value={newVendor.company}
-            onChange={(e) => setNewVendor({ ...newVendor, company: e.target.value })}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-foreground">Contact Person Name *</label>
-          <input
-            type="text"
-            required
-            placeholder="e.g. Ramesh Sharma"
-            value={newVendor.name}
-            onChange={(e) => setNewVendor({ ...newVendor, name: e.target.value })}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3.5">
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-foreground">Phone</label>
+            <label className="text-xs font-semibold text-foreground">Company Name *</label>
             <input
               type="text"
-              placeholder="+91 98..."
-              value={newVendor.phone}
-              onChange={(e) => setNewVendor({ ...newVendor, phone: e.target.value })}
+              required
+              placeholder="e.g. Metro Fresh Farm Supplies"
+              value={newVendor.company}
+              onChange={(e) => setNewVendor({ ...newVendor, company: e.target.value })}
               className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
+
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-foreground">Category</label>
-            <select
-              value={newVendor.category}
-              onChange={(e) => setNewVendor({ ...newVendor, category: e.target.value })}
-              className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-            >
-              <option value="Vegetables & Fruits">Vegetables & Fruits</option>
-              <option value="Dairy & Cheese">Dairy & Cheese</option>
-              <option value="Beverages & Syrups">Beverages & Syrups</option>
-              <option value="Meat & Poultry">Meat & Poultry</option>
-              <option value="Groceries & Spices">Groceries & Spices</option>
-            </select>
+            <label className="text-xs font-semibold text-foreground">Contact Person Name *</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Ramesh Sharma"
+              value={newVendor.name}
+              onChange={(e) => setNewVendor({ ...newVendor, name: e.target.value })}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-foreground">Phone Number</label>
+              <button
+                type="button"
+                onClick={handleGeneratePhone}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+              >
+                <Sparkles className="h-3 w-3" />
+                <span>Generate Sample Number</span>
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="+91 98..."
+                value={newVendor.phone}
+                onChange={(e) => setNewVendor({ ...newVendor, phone: e.target.value })}
+                className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <button
+                type="button"
+                onClick={handleGeneratePhone}
+                className="shrink-0 px-2.5 py-1.5 rounded-lg border border-border bg-surface-2 hover:bg-surface text-xs font-semibold text-foreground transition cursor-pointer"
+                title="Generate another sample number"
+              >
+                Sample
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-foreground">
+                Supply Categories (Multiple Select) *
+              </label>
+              <span className="text-[11px] text-muted-foreground">
+                {newVendor.categories.length} selected
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 p-2 rounded-lg border border-border bg-surface-2/40">
+              {AVAILABLE_SUPPLIER_CATEGORIES.map((cat) => {
+                const isSelected = newVendor.categories.includes(cat);
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => toggleCategorySelection(cat)}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition cursor-pointer ${
+                      isSelected
+                        ? "bg-primary text-primary-foreground shadow-2xs"
+                        : "bg-surface border border-border text-muted-foreground hover:text-foreground hover:bg-surface-2"
+                    }`}
+                  >
+                    <span>{isSelected ? "✓" : "+"}</span>
+                    <span>{cat}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground">GSTIN Number</label>
+            <input
+              type="text"
+              placeholder="e.g. 27AABCM1234F1Z5"
+              value={newVendor.gstin}
+              onChange={(e) => setNewVendor({ ...newVendor, gstin: e.target.value })}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
           </div>
         </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-foreground">GSTIN Number</label>
-          <input
-            type="text"
-            placeholder="e.g. 27AABCM1234F1Z5"
-            value={newVendor.gstin}
-            onChange={(e) => setNewVendor({ ...newVendor, gstin: e.target.value })}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
       </PosCreatePanel>
+
+      {/* Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete Supplier Profile"
+        itemName={deleteTarget?.company}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to remove supplier profile{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.company}"</span> ({deleteTarget.name})?
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            handleDelete(deleteTarget);
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }
