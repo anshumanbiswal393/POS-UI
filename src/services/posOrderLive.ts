@@ -299,6 +299,7 @@ export async function liveGetHistory(outletId?: string, filters?: Record<string,
     isOnlineOrder: Boolean(r.isOnlineOrder),
     isAdvanceOrder: Boolean(r.isAdvanceOrder),
     isSplitBill: Boolean(r.isSplitBill),
+    pax: Number(r.pax ?? (r.meta as any)?.pax ?? r.guestCount ?? 1) || 1,
     tableNo:
       (r.meta as any)?.tableLabel ||
       (r.meta as any)?.fullTableNumber ||

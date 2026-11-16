@@ -186,6 +186,47 @@ describe("Unified POS Tax Invoice (PMS standard)", () => {
     expect(payload.items[0].quantity).toBe(2);
   });
 
+  it("converts AllOrderItem with trailing counts and exact item lines correctly", () => {
+    const orderWithExactItems: any = {
+      id: "ord-2",
+      orderNo: "10036",
+      orderTypeDisplay: "Dine-In",
+      tableNo: "1",
+      customerName: "Walk-in Guest",
+      customerPhone: "--",
+      assignTo: "Samprita Patra",
+      pax: 4,
+      itemsSummary: "chicken biryani × 2, hariyali panner × 1, masala coldrinks × 4, mushroom dum biryani × 3, mushroom pakoda × 1",
+      items: [
+        { name: "chicken biryani", quantity: 2, price: 280, lineTotal: 560 },
+        { name: "hariyali panner", quantity: 1, price: 235, lineTotal: 235 },
+        { name: "masala coldrinks", quantity: 4, price: 49, lineTotal: 196 },
+        { name: "mushroom dum biryani", quantity: 3, price: 270, lineTotal: 810 },
+        { name: "mushroom pakoda", quantity: 1, price: 234, lineTotal: 234 },
+      ],
+      myAmountFormatted: "₹2,035.00",
+      taxAmountFormatted: "₹100.00",
+      discountAmountFormatted: "₹0.00",
+      grandTotalFormatted: "₹2,135.00",
+      paymentMode: "Card",
+      status: "Settled",
+      createdAt: "2026-11-16T09:17:53.565355+00:00",
+      settledAt: "2026-11-16T09:19:55.084223+00:00",
+    };
+
+    const payload = allOrderItemToInvoicePayload(orderWithExactItems);
+
+    expect(payload.invoiceNo).toBe("INV-10036");
+    expect(payload.pax).toBe(4);
+    expect(payload.items).toHaveLength(5);
+    expect(payload.items[0].name).toBe("chicken biryani");
+    expect(payload.items[0].unitPrice).toBe(280);
+    expect(payload.items[0].quantity).toBe(2);
+    expect(payload.items[0].amount).toBe(560);
+    expect(payload.durationOfStay).toBe("Same Day");
+    expect(payload.payments?.[0].date).toBe("2026-11-16T09:19:55.084223+00:00");
+  });
+
   it("converts RoomServiceOrder via adapter correctly", () => {
     const rsOrder: RoomServiceOrder = {
       id: "rs-101",

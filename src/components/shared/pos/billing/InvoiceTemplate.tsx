@@ -1,6 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { formatDateIndian } from "@/utils/dateUtils";
+import { formatDateIndian, formatDateTimeIndian } from "@/utils/dateUtils";
 import {
   type PosInvoicePrintPayload,
   formatINR,
@@ -230,15 +230,15 @@ export function InvoiceTemplate({
           </div>
           <div className="flex justify-between">
             <span className="font-bold text-slate-700">Date Of Arrival:</span>
-            <span>{issueDate} {issueTime}</span>
+            <span>{p.arrivalDate || `${issueDate} ${issueTime}`}</span>
           </div>
           <div className="flex justify-between">
             <span className="font-bold text-slate-700">Date Of Departure:</span>
-            <span>{issueDate} {issueTime}</span>
+            <span>{p.departureDate || `${issueDate} ${issueTime}`}</span>
           </div>
           <div className="flex justify-between">
             <span className="font-bold text-slate-700">Duration Of Stay:</span>
-            <span>{p.captainName || "1 Day"}</span>
+            <span>{p.durationOfStay || "Same Day"}</span>
           </div>
           <div className="flex justify-between">
             <span className="font-bold text-slate-700">Plan Type:</span>
@@ -329,7 +329,7 @@ export function InvoiceTemplate({
               {p.payments && p.payments.length > 0 ? (
                 p.payments.map((pmt, idx) => (
                   <tr key={idx} className="border-b border-slate-200">
-                    <td className="p-1">{pmt.date || issueDate}</td>
+                    <td className="p-1">{formatDateTimeIndian(pmt.date) || issueDate}</td>
                     <td className="p-1">
                       {pmt.method} {pmt.reference ? `(${pmt.reference})` : ""}
                     </td>
@@ -338,7 +338,7 @@ export function InvoiceTemplate({
                 ))
               ) : (
                 <tr className="border-b border-slate-200">
-                  <td className="p-1">{issueDate}</td>
+                  <td className="p-1">{p.arrivalDate || `${issueDate} ${issueTime}`}</td>
                   <td className="p-1">{p.paymentMethod || "Settled"}</td>
                   <td className="p-1 text-right font-mono">{formatINR(p.paidAmount)}</td>
                 </tr>

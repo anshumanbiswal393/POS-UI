@@ -41,6 +41,27 @@ export interface AllOrderItem {
   customerPhone?: string;
   assignTo: string;
   itemsSummary: string;
+  items?: Array<{
+    id?: string;
+    name?: string;
+    item_name?: string;
+    quantity?: number;
+    price?: number;
+    unit_price?: number;
+    unitPrice?: number;
+    line_total?: number;
+    lineTotal?: number;
+    selectedVariantName?: string;
+    variant_name?: string;
+    variantName?: string;
+    notes?: string;
+    code?: string;
+  }>;
+  pax?: number;
+  guestCount?: number;
+  placedAt?: string;
+  preparedAt?: string;
+  settledAt?: string;
   myAmountFormatted: string;
   taxAmountFormatted: string;
   discountAmountFormatted: string;

@@ -1,7 +1,7 @@
 // Unified POS Tax Invoice Print Generator
 // Matches the official PMS Folio/Invoice standard from PMS FolioView.tsx and print-templates.ts
 
-import { formatDateIndian } from "./dateUtils";
+import { formatDateIndian, formatDateTimeIndian } from "./dateUtils";
 import type { BillSettlementRecord } from "@/types/posBilling";
 import type { AllOrderItem } from "@/types/posOrders";
 import type { RoomServiceOrder } from "@/types/posRoomService";
@@ -53,6 +53,9 @@ export interface PosInvoicePrintPayload {
   pax?: number | string;
   captainName?: string;
   status?: string;
+  arrivalDate?: string;
+  departureDate?: string;
+  durationOfStay?: string;
   items: PosInvoiceItem[];
   subtotal: number;
   discountAmount?: number;
@@ -922,7 +925,7 @@ export function settlementRecordToInvoicePayload(
 }
 
 /**
- * Helper to parse summary string into items array (e.g. "2x Butter Chicken, 4x Garlic Naan")
+ * Helper to parse summary string into items array (e.g. "2x Butter Chicken, 4x Garlic Naan" or "chicken biryani x 2")
  */
 function parseItemsSummary(summary: string, totalSubtotal: number): PosInvoiceItem[] {
   if (!summary || !summary.trim()) {
@@ -952,11 +955,19 @@ function parseItemsSummary(summary: string, totalSubtotal: number): PosInvoiceIt
     ];
   }
 
-  const parsed = parts.map((part, idx) => {
-    const match = part.match(/^(\d+)\s*[xX*]\s*(.+)$/);
-    if (match) {
-      const qty = parseInt(match[1], 10) || 1;
-      const name = match[2].trim();
+  const parsed = parts.map((part) => {
+    // 1) Leading count: "2x Butter Chicken" or "2 × Butter Chicken" or "2 * Butter Chicken"
+    const leadMatch = part.match(/^(\d+(?:\.\d+)?)\s*[xX*×]\s*(.+)$/);
+    if (leadMatch) {
+      const qty = parseFloat(leadMatch[1]) || 1;
+      const name = leadMatch[2].trim();
+      return { qty, name };
+    }
+    // 2) Trailing count: "chicken biryani x 2" or "chicken biryani × 2" or "hariyali panner * 1"
+    const trailMatch = part.match(/^(.+?)\s*[xX*×]\s*(\d+(?:\.\d+)?)$/);
+    if (trailMatch) {
+      const name = trailMatch[1].trim();
+      const qty = parseFloat(trailMatch[2]) || 1;
       return { qty, name };
     }
     return { qty: 1, name: part };
@@ -1001,20 +1012,65 @@ export function allOrderItemToInvoicePayload(
   const cgst = tax / 2;
   const sgst = tax / 2;
 
-  const items = parseItemsSummary(order.itemsSummary, subtotal);
+  let items: PosInvoiceItem[] = [];
+  if (Array.isArray(order.items) && order.items.length > 0) {
+    items = order.items.map((it: any, idx) => {
+      const unitPrice = Number(it.unitPrice ?? it.unit_price ?? it.price ?? 0);
+      const quantity = Number(it.quantity ?? 1);
+      const lineTotal = Number(it.lineTotal ?? it.line_total ?? it.amount ?? (unitPrice * quantity));
+      return {
+        sr: idx + 1,
+        name: it.name || it.item_name || "Item",
+        variant: it.selectedVariantName || it.variant_name || it.variantName,
+        sac: "996331",
+        quantity,
+        unitPrice,
+        amount: lineTotal,
+        notes: it.notes,
+        sgst: Number((lineTotal * 0.025).toFixed(2)),
+        cgst: Number((lineTotal * 0.025).toFixed(2)),
+      };
+    });
+  } else {
+    items = parseItemsSummary(order.itemsSummary, subtotal);
+  }
 
-  const [datePart, timePart] = (order.createdAt || "").split(" ");
+  const arrivalTimestamp = order.placedAt || order.createdAt;
+  const departureTimestamp = order.settledAt || order.preparedAt || order.createdAt;
+  const arrivalFormatted = arrivalTimestamp ? formatDateTimeIndian(arrivalTimestamp) : "";
+  const departureFormatted = departureTimestamp ? formatDateTimeIndian(departureTimestamp) : "";
+
+  // Parse issue date & time from arrivalTimestamp or createdAt
+  let issueDateStr = "";
+  let issueTimeStr = "";
+  if (arrivalTimestamp) {
+    const d = new Date(arrivalTimestamp);
+    if (!isNaN(d.getTime())) {
+      issueDateStr = formatDateIndian(d);
+      issueTimeStr = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+    }
+  }
+  if (!issueDateStr) {
+    const [datePart, timePart] = (order.createdAt || "").split(" ");
+    issueDateStr = datePart ? formatDateIndian(datePart) : formatDateIndian(new Date());
+    issueTimeStr = timePart || new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+  }
+
   const isSettled = order.status === "Settled" || order.status === "Completed";
   const paidAmount = isSettled ? grandTotal : 0;
   const balanceAmount = isSettled ? 0 : grandTotal;
+  const realPax = Number(order.pax ?? (order as any).guestCount ?? (order as any).guest_count ?? 1) || 1;
 
   return {
     invoiceNo: order.orderNo.startsWith("INV-") ? order.orderNo : `INV-${order.orderNo}`,
     orderNo: order.orderNo,
     orderType: order.orderTypeDisplay || "Dine-In",
     source: order.isOnlineOrder ? "Online Order" : order.orderTypeDisplay || "POS",
-    issueDate: datePart ? formatDateIndian(datePart) : formatDateIndian(new Date()),
-    issueTime: timePart || new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }),
+    issueDate: issueDateStr,
+    issueTime: issueTimeStr,
+    arrivalDate: arrivalFormatted || `${issueDateStr} ${issueTimeStr}`,
+    departureDate: departureFormatted || `${issueDateStr} ${issueTimeStr}`,
+    durationOfStay: "Same Day",
     outletName: outlet?.name || prop.name,
     outletAddress: outlet?.address || prop.address,
     outletPhone: outlet?.contact || prop.phone,
@@ -1025,8 +1081,8 @@ export function allOrderItemToInvoicePayload(
     guestName: order.customerName || "Customer",
     guestPhone: order.customerPhone || "—",
     guestAddress: order.customerAddress || "—",
-    tableOrRoom: order.tableNo ? `Table ${order.tableNo}` : (order.orderTypeDisplay || "Counter"),
-    pax: 1,
+    tableOrRoom: order.tableNo ? (order.tableNo.toLowerCase().startsWith("table") ? order.tableNo : `Table ${order.tableNo}`) : (order.orderTypeDisplay || "Counter"),
+    pax: realPax,
     captainName: order.assignTo || "Server",
     status: order.status.toUpperCase(),
     items,
@@ -1041,7 +1097,7 @@ export function allOrderItemToInvoicePayload(
     paymentMethod: order.paymentMode || "CASH / UPI",
     payments: isSettled ? [
       {
-        date: order.createdAt,
+        date: order.settledAt || order.createdAt,
         method: order.paymentMode || "SETTLED",
         amount: grandTotal,
       },

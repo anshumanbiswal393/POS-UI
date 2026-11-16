@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { openPrintReportTable } from "@/utils/printReportTable";
 import { allOrderItemToInvoicePayload, printPosInvoice } from "@/utils/printReceipt";
 import { InvoiceTemplate } from "../billing/InvoiceTemplate";
+import { OrderHistoryEditModal } from "./OrderHistoryEditModal";
 import { fuzzyMatch } from "@/utils/fuzzySearch";
 import { formatDateIndian } from "@/utils/dateUtils";
 
@@ -152,6 +153,7 @@ export function PosAllOrdersManager() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [viewingOrder, setViewingOrder] = useState<AllOrderItem | null>(null);
   const [printingOrder, setPrintingOrder] = useState<AllOrderItem | null>(null);
+  const [editingOrder, setEditingOrder] = useState<AllOrderItem | null>(null);
 
   const queryFilters = useMemo(
     () => ({
@@ -563,7 +565,7 @@ export function PosAllOrdersManager() {
             </button>
             <button
               type="button"
-              onClick={() => alert(`Edit Order #${r.orderNo}`)}
+              onClick={() => setEditingOrder(r)}
               title="Edit Order"
               className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
             >
@@ -996,7 +998,7 @@ export function PosAllOrdersManager() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => alert(`Edit Order #${order.orderNo}`)}
+                  onClick={() => setEditingOrder(order)}
                   title="Edit Order"
                   className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
                 >
@@ -1144,6 +1146,18 @@ export function PosAllOrdersManager() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* EDIT ORDER MODAL (Add Extra / Remove Items with Confirmation) */}
+      {editingOrder && (
+        <OrderHistoryEditModal
+          isOpen={Boolean(editingOrder)}
+          onClose={() => setEditingOrder(null)}
+          order={editingOrder}
+          onOrderUpdated={() => {
+            refetch();
+          }}
+        />
       )}
     </div>
   );
