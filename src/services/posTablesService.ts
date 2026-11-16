@@ -1497,6 +1497,31 @@ export const posTablesService = {
     const orderToMove = sourceTable.activeOrder;
     const resToMove = sourceTable.activeReservation;
 
+    // Call backend table transfer endpoint if both tables have valid UUID IDs
+    if (isBackendOutletId(sourceTable.id) && isBackendOutletId(targetTable.id)) {
+      try {
+        await httpClient.post("/api/pos/tables/transfer/", {
+          source_table_id: sourceTable.id,
+          destination_table_id: targetTable.id,
+          reason: `Switched table from ${sourceTable.tableNumber} to ${targetTable.tableNumber}`,
+        });
+      } catch (err) {
+        console.warn("Table transfer API call fallback:", err);
+      }
+    }
+
+    // If order exists, also patch the order table and table number directly
+    if (orderToMove?.orderId && isBackendOutletId(orderToMove.orderId)) {
+      try {
+        await livePatchOrder(orderToMove.orderId, {
+          tableId: targetTable.id,
+          tableNumber: targetTable.tableNumber,
+        } as any);
+      } catch (err) {
+        console.warn("Could not patch order table ID on switch:", err);
+      }
+    }
+
     // Patch backend table statuses if live backend is connected
     if (isBackendOutletId(sourceTable.id)) {
       await patchTableStatus(sourceTable.id, "VACANT", {
@@ -1557,6 +1582,12 @@ export const posTablesService = {
       if (t.id === toTableId) return updatedTarget;
       return t;
     });
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("pos:table-updated"));
+      window.dispatchEvent(new CustomEvent("retrod_pos_tables_changed"));
+      window.dispatchEvent(new CustomEvent("pos:reservation-updated"));
+    }
 
     return { sourceTable: updatedSource, targetTable: updatedTarget };
   },

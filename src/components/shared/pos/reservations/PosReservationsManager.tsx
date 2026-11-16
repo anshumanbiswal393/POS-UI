@@ -342,19 +342,10 @@ export function PosReservationsManager() {
         accessorKey: "tableNumber",
         sortable: true,
         filterable: true,
-        minWidth: 150,
-        render: (_, res) => {
-          const table = tables.find(
-            (t) => t.id === res.tableId || t.tableNumber === res.tableNumber,
-          );
-          const areaName = table?.area || "Dining Area";
-          return (
-            <div>
-              <div className="font-bold text-foreground text-xs">{res.tableNumber}</div>
-              <div className="text-[11px] text-foreground/70">{areaName}</div>
-            </div>
-          );
-        },
+        minWidth: 120,
+        render: (_, res) => (
+          <div className="font-bold text-foreground text-xs">{res.tableNumber}</div>
+        ),
       },
       {
         id: "reservationDate",
@@ -398,15 +389,15 @@ export function PosReservationsManager() {
         render: (_, res) => {
           if (res.status === "seated") {
             return (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-800 border border-rose-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700 border border-red-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
                 Dine-in
               </span>
             );
           }
           if (res.status === "completed") {
             return (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
                 Completed
               </span>
@@ -421,8 +412,8 @@ export function PosReservationsManager() {
             );
           }
           return (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-900 border border-amber-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700 border border-orange-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
               Reserved
             </span>
           );
