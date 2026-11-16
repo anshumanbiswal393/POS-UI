@@ -1444,6 +1444,10 @@ export function PosBillingManager() {
         setBusyAction("kot");
         try {
           if (linkedOrderId) {
+            const isEditOrderParam =
+              typeof window !== "undefined"
+                ? Boolean(new URLSearchParams(window.location.search).get("editOrder"))
+                : false;
             const isExtraAppend = Boolean(runningOrderMeta?.id === linkedOrderId || !isEditOrderParam);
             const patchPayload = {
               ...payload,
