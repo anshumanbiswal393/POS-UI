@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useOutletContext } from "@/context/PosOutletContext";
+import posManagementService, { type POSKycDocumentDto } from "@/services/posManagementService";
 import {
   ShieldCheck,
   Building2,
@@ -56,8 +58,52 @@ export interface KycDocument {
 const INITIAL_DOCUMENTS: KycDocument[] = [];
 
 export function KycDetailsView() {
+  const { activeOutlet } = useOutletContext();
+  const outletDisplayName = activeOutlet?.name || "Restaurant Outlet";
   const [documents, setDocuments] = useState<KycDocument[]>(INITIAL_DOCUMENTS);
+  const [isLoading, setIsLoading] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const fetchDocuments = useCallback(async () => {
+    if (!activeOutlet?.id) return;
+    setIsLoading(true);
+    try {
+      const data = await posManagementService.getKycDocuments(activeOutlet.id);
+      const mapped: KycDocument[] = data.map((d: POSKycDocumentDto) => {
+        let cat: "Food Safety" | "Excise & Bar" | "Tax & Corporate" | "Municipal & Fire" | "Identity Proof" = "Tax & Corporate";
+        if (d.doc_type === "FSSAI") cat = "Food Safety";
+        else if (d.doc_type === "LIQUOR_LICENSE") cat = "Excise & Bar";
+        else if (d.doc_type === "FIRE_NOC" || d.doc_type === "TRADE_LICENSE") cat = "Municipal & Fire";
+        else if (d.doc_type === "AADHAAR") cat = "Identity Proof";
+
+        let st: "Verified" | "Expiring Soon" | "Pending Review" = "Verified";
+        if (d.status === "PENDING") st = "Pending Review";
+        else if (d.status === "EXPIRED") st = "Expiring Soon";
+
+        return {
+          id: d.id,
+          name: d.document_name || d.doc_type,
+          category: cat,
+          docNumber: d.document_number,
+          issuingAuthority: d.remarks || "Statutory Authority",
+          issuedOn: d.valid_from || "Active",
+          validTill: d.valid_to || "Permanent / No Expiry",
+          status: st,
+          fileName: d.file_url ? d.file_url.split("/").pop() || "doc.pdf" : `${d.doc_type.toLowerCase()}.pdf`,
+          fileSize: "1.2 MB",
+        };
+      });
+      setDocuments(mapped);
+    } catch (err) {
+      console.error("Failed to fetch KYC docs:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeOutlet?.id]);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [fetchDocuments]);
 
   // Table Filter & Pagination States
   const [searchQuery, setSearchQuery] = useState("");
@@ -333,6 +379,29 @@ export function KycDetailsView() {
       fileSize: selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB` : "1.2 MB",
     };
 
+    if (activeOutlet?.id) {
+      try {
+        let backendDocType = "OTHER";
+        if (docType.includes("FSSAI")) backendDocType = "FSSAI";
+        else if (docType.includes("GST")) backendDocType = "GST";
+        else if (docType.includes("PAN")) backendDocType = "PAN";
+        else if (docType.includes("Liquor") || docType.includes("Bar")) backendDocType = "LIQUOR_LICENSE";
+        else if (docType.includes("Fire")) backendDocType = "FIRE_NOC";
+        else if (docType.includes("Trade")) backendDocType = "TRADE_LICENSE";
+
+        posManagementService.createKycDocument(activeOutlet.id, {
+          doc_type: backendDocType,
+          document_name: docType,
+          document_number: docNumber.trim().toUpperCase(),
+          valid_to: validTill.trim() || undefined,
+          remarks: issuingAuthority.trim(),
+          status: "VERIFIED",
+        }).then(() => fetchDocuments()).catch((e) => console.error(e));
+      } catch (err) {
+        console.error("Failed to save KYC doc to backend:", err);
+      }
+    }
+
     setDocuments((prev) => [newDoc, ...prev]);
     toast.success(`${docType} uploaded and registered under KYC compliance`);
     setIsUploadOpen(false);
@@ -395,7 +464,7 @@ export function KycDetailsView() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[15px] font-bold text-slate-900">
-                  HIGHWAY INN BAR & RESTAURANT PVT. LTD.
+                  {outletDisplayName}
                 </span>
                 <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
                   KYC Verified & Compliant
@@ -821,7 +890,7 @@ export function KycDetailsView() {
                   </div>
                   <div className="col-span-2 pt-1 border-t border-slate-100">
                     <span className="text-slate-400 block text-[10.5px]">Beneficiary Name</span>
-                    <span className="font-semibold text-slate-800">HIGHWAY INN BAR & RESTAURANT</span>
+                    <span className="font-semibold text-slate-800">{outletDisplayName}</span>
                   </div>
                 </div>
 

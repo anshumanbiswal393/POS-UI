@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useOutletContext } from "@/context/PosOutletContext";
 import {
   BookOpen,
   Store,
@@ -13,6 +14,7 @@ import { AddVirtualOutletModal } from "../modals/AddVirtualOutletModal";
 import { useVirtualOutlets } from "@/hooks/queries/usePosMenu";
 
 export function MenuDiscountsView() {
+  const { activeOutlet } = useOutletContext();
   const [isManageMenuOpen, setIsManageMenuOpen] = useState(false);
   const [isAddOutletOpen, setIsAddOutletOpen] = useState(false);
   const { data: virtualOutlets } = useVirtualOutlets();
@@ -102,12 +104,12 @@ export function MenuDiscountsView() {
           <div className="flex flex-wrap items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/50 p-4 transition hover:bg-slate-50">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-800 font-bold text-[14px] border border-slate-200">
-                HI
+                {(activeOutlet?.name || "MO").slice(0, 2).toUpperCase()}
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-[13.5px] font-bold text-slate-900">
-                    HIGHWAY INN BAR & RESTAURANT
+                    {activeOutlet?.name || "Main Outlet"}
                   </span>
                   <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[10.5px] font-semibold text-teal-800 border border-teal-200">
                     Primary Outlet

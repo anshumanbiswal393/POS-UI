@@ -133,7 +133,9 @@ export function PrintLogoConfigView() {
               <div className="text-[12px] text-slate-400">No logo</div>
             )}
             {form.printOutletName === "Yes" ? (
-              <div className="mt-2 text-[12px] font-bold text-slate-800">HIGHWAY INN</div>
+              <div className="mt-2 text-[12px] font-bold text-slate-800">
+                {config.details.outletName || "RESTAURANT"}
+              </div>
             ) : null}
             <div className="text-[10px] text-slate-500">TAX INVOICE</div>
             {form.headerText ? (

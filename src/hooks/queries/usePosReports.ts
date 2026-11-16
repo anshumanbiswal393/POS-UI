@@ -22,8 +22,7 @@ export function usePosSalesReport(opts: {
   enabled?: boolean;
 }) {
   const outletId = useActiveOutletId();
-  const live = isBackendOutletId(outletId);
-  const enabled = Boolean(live && opts.kind && (opts.enabled ?? true));
+  const enabled = Boolean(opts.kind && (opts.enabled ?? true));
 
   return useQuery({
     queryKey: [...POS_REPORTS_QUERY_KEY, "sales", outletId, opts.kind, opts.fromDate, opts.toDate],

@@ -46,6 +46,15 @@ import {
   Calendar as PmsCalendar,
   type DateRange,
 } from "@/components/ui/calendar";
+import { useOutletContext } from "@/context/PosOutletContext";
+import {
+  useStockItems,
+  useStockPurchases,
+  usePurchaseOrders,
+  useWastageEntries,
+  useDishRecipes,
+  useVendors,
+} from "@/hooks/queries/usePosInventory";
 
 // ---------------------------------------------------------------------------
 // Date Utilities (PMS dd-MM-yyyy Display Standard)
@@ -335,18 +344,7 @@ export const REPORT_DATASETS: Record<
       { id: "avgRate", label: "Avg Rate (₹)", align: "right", sortable: true, defaultWidth: 120, getValue: (r) => `₹ ${r.avgRate.toFixed(2)}` },
       { id: "totalCost", label: "Total Cost (₹)", align: "right", sortable: true, defaultWidth: 140, getValue: (r) => `₹ ${r.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
     ],
-    data: [
-      { id: "1", code: "RAW-101", name: "Basmati Biryani Rice (Grade A)", category: "Grains & Rice", unit: "kg", openingQty: 180, purchaseQty: 300, transfersQty: -40, wastageQty: 5, consumedQty: 295, avgRate: 92.5, totalCost: 27287.5 },
-      { id: "2", code: "RAW-102", name: "Refined Sunflower Oil (15L Tin)", category: "Oils & Ghee", unit: "Tins", openingQty: 12, purchaseQty: 20, transfersQty: -4, wastageQty: 0, consumedQty: 18, avgRate: 1850.0, totalCost: 33300.0 },
-      { id: "3", code: "RAW-103", name: "Fresh Malai Paneer", category: "Dairy", unit: "kg", openingQty: 35, purchaseQty: 120, transfersQty: 0, wastageQty: 3, consumedQty: 112, avgRate: 340.0, totalCost: 38080.0 },
-      { id: "4", code: "RAW-104", name: "Farm Fresh Chicken Breast", category: "Poultry & Meat", unit: "kg", openingQty: 45, purchaseQty: 240, transfersQty: -20, wastageQty: 6, consumedQty: 215, avgRate: 260.0, totalCost: 55900.0 },
-      { id: "5", code: "RAW-105", name: "Amul Pasteurised Butter 500g", category: "Dairy", unit: "Blocks", openingQty: 40, purchaseQty: 90, transfersQty: -10, wastageQty: 1, consumedQty: 84, avgRate: 245.0, totalCost: 20580.0 },
-      { id: "6", code: "RAW-106", name: "Red Onions Premium", category: "Vegetables", unit: "kg", openingQty: 150, purchaseQty: 400, transfersQty: 0, wastageQty: 18, consumedQty: 385, avgRate: 38.0, totalCost: 14630.0 },
-      { id: "7", code: "RAW-107", name: "Ripe Farm Tomatoes", category: "Vegetables", unit: "kg", openingQty: 80, purchaseQty: 250, transfersQty: 0, wastageQty: 12, consumedQty: 238, avgRate: 42.0, totalCost: 9996.0 },
-      { id: "8", code: "RAW-108", name: "Whole Garam Masala Blend", category: "Spices", unit: "kg", openingQty: 15, purchaseQty: 25, transfersQty: -2, wastageQty: 0, consumedQty: 22, avgRate: 640.0, totalCost: 14080.0 },
-      { id: "9", code: "RAW-109", name: "Refined Wheat Flour (Maida)", category: "Bakery", unit: "kg", openingQty: 90, purchaseQty: 150, transfersQty: 0, wastageQty: 4, consumedQty: 160, avgRate: 44.0, totalCost: 7040.0 },
-      { id: "10", code: "RAW-110", name: "Full Cream Buffalo Milk", category: "Dairy", unit: "Litre", openingQty: 60, purchaseQty: 450, transfersQty: -30, wastageQty: 8, consumedQty: 420, avgRate: 68.0, totalCost: 28560.0 },
-    ],
+    data: [],
   },
 
   // 2. Opening - Closing Report
@@ -364,18 +362,7 @@ export const REPORT_DATASETS: Record<
       { id: "closingValue", label: "Total Value (₹)", align: "right", sortable: true, defaultWidth: 140, getValue: (r) => `₹ ${r.closingValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
       { id: "healthStatus", label: "Stock Health", align: "center", filterable: true, defaultWidth: 130, getValue: (r) => r.healthStatus },
     ],
-    data: [
-      { id: "1", code: "RAW-101", name: "Basmati Biryani Rice (Grade A)", category: "Grains & Rice", unit: "kg", openingQty: 180, inwardQty: 300, outwardQty: 340, closingQty: 140, unitRate: 92.5, closingValue: 12950.0, healthStatus: "Optimal" },
-      { id: "2", code: "RAW-102", name: "Refined Sunflower Oil (15L Tin)", category: "Oils & Ghee", unit: "Tins", openingQty: 12, inwardQty: 20, outwardQty: 22, closingQty: 10, unitRate: 1850.0, closingValue: 18500.0, healthStatus: "Optimal" },
-      { id: "3", code: "RAW-103", name: "Fresh Malai Paneer", category: "Dairy", unit: "kg", openingQty: 35, inwardQty: 120, outwardQty: 115, closingQty: 40, unitRate: 340.0, closingValue: 13600.0, healthStatus: "Optimal" },
-      { id: "4", code: "RAW-104", name: "Farm Fresh Chicken Breast", category: "Poultry & Meat", unit: "kg", openingQty: 45, inwardQty: 240, outwardQty: 241, closingQty: 44, unitRate: 260.0, closingValue: 11440.0, healthStatus: "Optimal" },
-      { id: "5", code: "RAW-105", name: "Amul Pasteurised Butter 500g", category: "Dairy", unit: "Blocks", openingQty: 40, inwardQty: 90, outwardQty: 94, closingQty: 36, unitRate: 245.0, closingValue: 8820.0, healthStatus: "Optimal" },
-      { id: "6", code: "RAW-106", name: "Red Onions Premium", category: "Vegetables", unit: "kg", openingQty: 150, inwardQty: 400, outwardQty: 403, closingQty: 147, unitRate: 38.0, closingValue: 5586.0, healthStatus: "Optimal" },
-      { id: "7", code: "RAW-107", name: "Ripe Farm Tomatoes", category: "Vegetables", unit: "kg", openingQty: 80, inwardQty: 250, outwardQty: 250, closingQty: 80, unitRate: 42.0, closingValue: 3360.0, healthStatus: "Optimal" },
-      { id: "8", code: "RAW-108", name: "Cashew Nuts Whole W320", category: "Dry Fruits", unit: "kg", openingQty: 25, inwardQty: 40, outwardQty: 53, closingQty: 12, unitRate: 820.0, closingValue: 9840.0, healthStatus: "Reorder Needed" },
-      { id: "9", code: "RAW-109", name: "Refined Wheat Flour (Maida)", category: "Bakery", unit: "kg", openingQty: 90, inwardQty: 150, outwardQty: 164, closingQty: 76, unitRate: 44.0, closingValue: 3344.0, healthStatus: "Optimal" },
-      { id: "10", code: "RAW-110", name: "Arabica Coffee Beans", category: "Beverages", unit: "kg", openingQty: 8, inwardQty: 15, outwardQty: 18, closingQty: 5, unitRate: 1150.0, closingValue: 5750.0, healthStatus: "Reorder Needed" },
-    ],
+    data: [],
   },
 
   // 3. Food Costing Report
@@ -392,16 +379,7 @@ export const REPORT_DATASETS: Record<
       { id: "marginPercent", label: "Profit Margin %", align: "right", sortable: true, defaultWidth: 130, getValue: (r) => `${r.marginPercent.toFixed(1)}%` },
       { id: "varianceStatus", label: "Variance Status", align: "center", filterable: true, defaultWidth: 140, getValue: (r) => r.varianceStatus },
     ],
-    data: [
-      { id: "1", menuCode: "MNU-501", dishName: "Murgh Dum Biryani (Handi)", section: "Main Course", salesPrice: 480.0, costPrice: 134.4, grossMargin: 345.6, costPercent: 28.0, targetPercent: 30.0, marginPercent: 72.0, varianceStatus: "Within Target" },
-      { id: "2", menuCode: "MNU-502", dishName: "Paneer Butter Masala", section: "Main Course", salesPrice: 360.0, costPrice: 97.2, grossMargin: 262.8, costPercent: 27.0, targetPercent: 28.0, marginPercent: 73.0, varianceStatus: "Within Target" },
-      { id: "3", menuCode: "MNU-503", dishName: "Tandoori Pomfret Fish", section: "Starters & Tandoor", salesPrice: 650.0, costPrice: 227.5, grossMargin: 422.5, costPercent: 35.0, targetPercent: 32.0, marginPercent: 65.0, varianceStatus: "Cost Alert (+3%)" },
-      { id: "4", menuCode: "MNU-504", dishName: "Dal Makhani Slow Cooked", section: "Main Course", salesPrice: 290.0, costPrice: 63.8, grossMargin: 226.2, costPercent: 22.0, targetPercent: 25.0, marginPercent: 78.0, varianceStatus: "Within Target" },
-      { id: "5", menuCode: "MNU-505", dishName: "Butter Garlic Naan", section: "Tandoori Breads", salesPrice: 75.0, costPrice: 14.25, grossMargin: 60.75, costPercent: 19.0, targetPercent: 22.0, marginPercent: 81.0, varianceStatus: "Within Target" },
-      { id: "6", menuCode: "MNU-506", dishName: "Mutton Rogan Josh Kashmiri", section: "Main Course", salesPrice: 580.0, costPrice: 208.8, grossMargin: 371.2, costPercent: 36.0, targetPercent: 34.0, marginPercent: 64.0, varianceStatus: "Cost Alert (+2%)" },
-      { id: "7", menuCode: "MNU-507", dishName: "Woodfired Margherita Pizza", section: "Pizzas & Pastas", salesPrice: 420.0, costPrice: 96.6, grossMargin: 323.4, costPercent: 23.0, targetPercent: 26.0, marginPercent: 77.0, varianceStatus: "Within Target" },
-      { id: "8", menuCode: "MNU-508", dishName: "Classic Cold Brew Latte", section: "Beverages", salesPrice: 220.0, costPrice: 39.6, grossMargin: 180.4, costPercent: 18.0, targetPercent: 20.0, marginPercent: 82.0, varianceStatus: "Within Target" },
-    ],
+    data: [],
   },
 
   // 4. Recipe Costing
@@ -417,14 +395,7 @@ export const REPORT_DATASETS: Record<
       { id: "suggestedPrice", label: "Recommended Menu Price (₹)", align: "right", sortable: true, defaultWidth: 180, getValue: (r) => `₹ ${r.suggestedPrice.toFixed(2)}` },
       { id: "lastUpdated", label: "Costing Revised", defaultWidth: 130, getValue: (r) => r.lastUpdated },
     ],
-    data: [
-      { id: "1", formulaCode: "REC-001", recipeName: "Makhani Gravy Master Base", prepCategory: "Base Sauces", batchYield: "15.0 Litres", ingredientCount: 9, batchCost: 2625.0, portionCost: 35.0, suggestedPrice: 350.0, lastUpdated: "12 Oct 2026" },
-      { id: "2", formulaCode: "REC-002", recipeName: "Dum Biryani Yakhni & Masala Base", prepCategory: "Biryani Bases", batchYield: "20.0 kg", ingredientCount: 14, batchCost: 4800.0, portionCost: 60.0, suggestedPrice: 480.0, lastUpdated: "14 Oct 2026" },
-      { id: "3", formulaCode: "REC-003", recipeName: "White Korma Cashew Paste", prepCategory: "Gravy Pastes", batchYield: "8.0 kg", ingredientCount: 6, batchCost: 2240.0, portionCost: 56.0, suggestedPrice: 390.0, lastUpdated: "10 Oct 2026" },
-      { id: "4", formulaCode: "REC-004", recipeName: "Garlic Infused Herb Butter", prepCategory: "Dairy Prep", batchYield: "5.0 kg", ingredientCount: 4, batchCost: 1450.0, portionCost: 14.5, suggestedPrice: 75.0, lastUpdated: "15 Oct 2026" },
-      { id: "5", formulaCode: "REC-005", recipeName: "Artisan Pizza Dough Ferment Batch", prepCategory: "Bakery", batchYield: "40 Portions", ingredientCount: 5, batchCost: 480.0, portionCost: 12.0, suggestedPrice: 420.0, lastUpdated: "16 Oct 2026" },
-      { id: "6", formulaCode: "REC-006", recipeName: "Tandoori Master Marinade Red", prepCategory: "Marinades", batchYield: "12.0 kg", ingredientCount: 11, batchCost: 1980.0, portionCost: 33.0, suggestedPrice: 460.0, lastUpdated: "13 Oct 2026" },
-    ],
+    data: [],
   },
 
   // 5. Goods Received Note (GRN) Summary
@@ -440,14 +411,7 @@ export const REPORT_DATASETS: Record<
       { id: "paymentStatus", label: "Bill Status", align: "center", filterable: true, defaultWidth: 130, getValue: (r) => r.paymentStatus },
       { id: "inspectionStatus", label: "Quality Audit", align: "center", filterable: true, defaultWidth: 140, getValue: (r) => r.inspectionStatus },
     ],
-    data: [
-      { id: "1", grnNo: "GRN-2026-104", poRef: "PO-9820", vendorName: "Metro Cash & Carry", invoiceDate: "17-10-2026", itemCount: 6, receivedBy: "Ramesh Sharma", totalAmount: 34500.0, paymentStatus: "Done", inspectionStatus: "100% Passed" },
-      { id: "2", grnNo: "GRN-2026-103", poRef: "PO-9817", vendorName: "Royal Dairy Suppliers", invoiceDate: "17-10-2026", itemCount: 3, receivedBy: "Ramesh Sharma", totalAmount: 18200.0, paymentStatus: "Pending", inspectionStatus: "100% Passed" },
-      { id: "3", grnNo: "GRN-2026-102", poRef: "PO-9811", vendorName: "Greenfield Fresh Produce", invoiceDate: "16-10-2026", itemCount: 12, receivedBy: "Sunil Verma", totalAmount: 14850.0, paymentStatus: "Done", inspectionStatus: "Passed (1 Reject)" },
-      { id: "4", grnNo: "GRN-2026-101", poRef: "PO-9804", vendorName: "Apex Poultry & Meat", invoiceDate: "15-10-2026", itemCount: 4, receivedBy: "Ramesh Sharma", totalAmount: 26800.0, paymentStatus: "Partial", inspectionStatus: "100% Passed" },
-      { id: "5", grnNo: "GRN-2026-100", poRef: "PO-9799", vendorName: "Spice Haven Importers", invoiceDate: "14-10-2026", itemCount: 8, receivedBy: "Sunil Verma", totalAmount: 21400.0, paymentStatus: "Done", inspectionStatus: "100% Passed" },
-      { id: "6", grnNo: "GRN-2026-099", poRef: "PO-9790", vendorName: "OceanCatch Marine Wholesale", invoiceDate: "13-10-2026", itemCount: 5, receivedBy: "Ramesh Sharma", totalAmount: 38900.0, paymentStatus: "Done", inspectionStatus: "100% Passed" },
-    ],
+    data: [],
   },
 
   // 6. Inter-Outlet / Section Transfer Ledger
@@ -463,13 +427,7 @@ export const REPORT_DATASETS: Record<
       { id: "totalValue", label: "Transfer Value (₹)", align: "right", sortable: true, defaultWidth: 150, getValue: (r) => `₹ ${r.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
       { id: "authorizedBy", label: "Authorized By", defaultWidth: 140, getValue: (r) => r.authorizedBy },
     ],
-    data: [
-      { id: "1", voucherNo: "TR-2026-088", date: "17-10-2026", fromSection: "Central Warehouse", toSection: "Main Kitchen", itemName: "Basmati Biryani Rice (50kg)", qty: 2, unit: "Bags", unitRate: 4500.0, totalValue: 9000.0, authorizedBy: "Head Chef Roy" },
-      { id: "2", voucherNo: "TR-2026-087", date: "17-10-2026", fromSection: "Central Warehouse", toSection: "Highway Inn Banquet", itemName: "Sunflower Oil (15L)", qty: 3, unit: "Tins", unitRate: 1850.0, totalValue: 5550.0, authorizedBy: "Banquet Manager" },
-      { id: "3", voucherNo: "TR-2026-086", date: "16-10-2026", fromSection: "Main Kitchen", toSection: "Rooftop Lounge Bar", itemName: "Fresh Mint & Lemons Pack", qty: 8, unit: "kg", unitRate: 110.0, totalValue: 880.0, authorizedBy: "Bar Captain" },
-      { id: "4", voucherNo: "TR-2026-085", date: "15-10-2026", fromSection: "Central Warehouse", toSection: "Bakery & Desserts", itemName: "Amul Butter Blocks 500g", qty: 15, unit: "Blocks", unitRate: 245.0, totalValue: 3675.0, authorizedBy: "Pastry Chef Alok" },
-      { id: "5", voucherNo: "TR-2026-084", date: "14-10-2026", fromSection: "Central Warehouse", toSection: "Main Kitchen", itemName: "Whole Spices Assorted", qty: 5, unit: "kg", unitRate: 640.0, totalValue: 3200.0, authorizedBy: "Head Chef Roy" },
-    ],
+    data: [],
   },
 
   // 7. Supplier Purchase Summary
@@ -485,14 +443,7 @@ export const REPORT_DATASETS: Record<
       { id: "paidAmount", label: "Paid (₹)", align: "right", sortable: true, defaultWidth: 130, getValue: (r) => `₹ ${r.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
       { id: "balanceDue", label: "Outstanding (₹)", align: "right", sortable: true, defaultWidth: 140, getValue: (r) => `₹ ${r.balanceDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
     ],
-    data: [
-      { id: "1", supplierName: "Metro Cash & Carry", tradeCategory: "Groceries & Dry Goods", phone: "+91 98200 12345", invoiceCount: 14, grossSpend: 148500.0, returnsValue: 1200.0, netSpend: 147300.0, paidAmount: 135000.0, balanceDue: 12300.0 },
-      { id: "2", supplierName: "Royal Dairy Suppliers", tradeCategory: "Dairy Products", phone: "+91 98211 44556", invoiceCount: 22, grossSpend: 92400.0, returnsValue: 680.0, netSpend: 91720.0, paidAmount: 83520.0, balanceDue: 8200.0 },
-      { id: "3", supplierName: "Apex Poultry & Meat", tradeCategory: "Poultry & Meats", phone: "+91 98333 77889", invoiceCount: 18, grossSpend: 124800.0, returnsValue: 2400.0, netSpend: 122400.0, paidAmount: 110000.0, balanceDue: 12400.0 },
-      { id: "4", supplierName: "Greenfield Fresh Produce", tradeCategory: "Fruits & Vegetables", phone: "+91 98199 66332", invoiceCount: 28, grossSpend: 68200.0, returnsValue: 1850.0, netSpend: 66350.0, paidAmount: 66350.0, balanceDue: 0.0 },
-      { id: "5", supplierName: "OceanCatch Marine Wholesale", tradeCategory: "Seafood & Fish", phone: "+91 98205 99112", invoiceCount: 12, grossSpend: 98600.0, returnsValue: 3100.0, netSpend: 95500.0, paidAmount: 85000.0, balanceDue: 10500.0 },
-      { id: "6", supplierName: "Spice Haven Importers", tradeCategory: "Spices & Seasonings", phone: "+91 98222 33110", invoiceCount: 8, grossSpend: 46200.0, returnsValue: 0.0, netSpend: 46200.0, paidAmount: 46200.0, balanceDue: 0.0 },
-    ],
+    data: [],
   },
 
   // 8. Vendor Return Ledger
@@ -508,12 +459,7 @@ export const REPORT_DATASETS: Record<
       { id: "reason", label: "Discrepancy Cause", defaultWidth: 220, getValue: (r) => r.reason },
       { id: "settlement", label: "Credit Settlement", align: "center", filterable: true, defaultWidth: 140, getValue: (r) => r.settlement },
     ],
-    data: [
-      { id: "1", returnNo: "RET-2026-019", date: "16-10-2026", vendorName: "Greenfield Fresh Produce", invoiceRef: "INV-89110", itemReturned: "English Cucumbers Crates", qty: 15, unit: "kg", creditValue: 750.0, reason: "Overripe / soft consignments rejected at gate", settlement: "Credit Adjusted" },
-      { id: "2", returnNo: "RET-2026-018", date: "14-10-2026", vendorName: "Apex Poultry & Meat", invoiceRef: "INV-89024", itemReturned: "Chicken Boneless Cubes", qty: 8, unit: "kg", creditValue: 2400.0, reason: "Sub-par trimming; fat ratio exceeding 15%", settlement: "Credit Adjusted" },
-      { id: "3", returnNo: "RET-2026-017", date: "11-10-2026", vendorName: "OceanCatch Marine Wholesale", invoiceRef: "INV-88940", itemReturned: "Tiger Prawns 20/30", qty: 5, unit: "kg", creditValue: 3100.0, reason: "Temperature abuse during transit (7°C reading)", settlement: "Refund Issued" },
-      { id: "4", returnNo: "RET-2026-016", date: "08-10-2026", vendorName: "Metro Cash & Carry", invoiceRef: "INV-88712", itemReturned: "Soy Sauce Dark 5L", qty: 2, unit: "Jugs", creditValue: 1200.0, reason: "Seal compromised / cap leakage in carton", settlement: "Credit Adjusted" },
-    ],
+    data: [],
   },
 
   // 9. Daily Closing Variance Log
@@ -529,13 +475,7 @@ export const REPORT_DATASETS: Record<
       { id: "lossValue", label: "Financial Loss (₹)", align: "right", sortable: true, defaultWidth: 150, getValue: (r) => `₹ ${r.lossValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
       { id: "cause", label: "Explanation Note", defaultWidth: 220, getValue: (r) => r.cause },
     ],
-    data: [
-      { id: "1", auditDate: "17-10-2026", itemName: "Basmati Biryani Rice", category: "Grains", theoQty: 144, physQty: 140, diffQty: -4, unit: "kg", diffPercent: -2.8, lossValue: 370.0, cause: "Minor moisture loss & preparation spillage" },
-      { id: "2", auditDate: "17-10-2026", itemName: "Fresh Malai Paneer", category: "Dairy", theoQty: 42, physQty: 40, diffQty: -2, unit: "kg", diffPercent: -4.8, lossValue: 680.0, cause: "Trimming waste during cube portioning" },
-      { id: "3", auditDate: "17-10-2026", itemName: "Chicken Breast Boneless", category: "Poultry", theoQty: 47, physQty: 44, diffQty: -3, unit: "kg", diffPercent: -6.4, lossValue: 780.0, cause: "Thawing drip loss & line over-portioning" },
-      { id: "4", auditDate: "16-10-2026", itemName: "Amul Butter Blocks", category: "Dairy", theoQty: 38, physQty: 36, diffQty: -2, unit: "Blocks", diffPercent: -5.3, lossValue: 490.0, cause: "Unrecorded finishing butter for gravies" },
-      { id: "5", auditDate: "16-10-2026", itemName: "Arabica Coffee Beans", category: "Beverages", theoQty: 5.5, physQty: 5.0, diffQty: -0.5, unit: "kg", diffPercent: -9.1, lossValue: 575.0, cause: "Grinder purge waste during dial-in calibration" },
-    ],
+    data: [],
   },
 
   // 10. Closing Stock Submission Audit
@@ -551,13 +491,7 @@ export const REPORT_DATASETS: Record<
       { id: "lockState", label: "Lock State", align: "center", filterable: true, defaultWidth: 120, getValue: (r) => r.lockState },
       { id: "approval", label: "Supervisor Review", align: "center", filterable: true, defaultWidth: 140, getValue: (r) => r.approval },
     ],
-    data: [
-      { id: "1", date: "17-10-2026", section: "Main Kitchen Store", staffName: "Chef Alok Sharma", role: "Sous Chef", timestamp: "23:45", itemsCounted: 64, varianceCount: 3, lockState: "Locked", approval: "Approved" },
-      { id: "2", date: "17-10-2026", section: "Highway Inn Bar", staffName: "Gaurav Sen", role: "Head Bartender", timestamp: "00:15", itemsCounted: 42, varianceCount: 1, lockState: "Locked", approval: "Approved" },
-      { id: "3", date: "17-10-2026", section: "Central Dry Storeroom", staffName: "Ramesh Storekeeper", role: "Store Incharge", timestamp: "19:30", itemsCounted: 110, varianceCount: 2, lockState: "Locked", approval: "Approved" },
-      { id: "4", date: "17-10-2026", section: "Bakery / Dessert Station", staffName: "Priya Nair", role: "Pastry Lead", timestamp: "23:10", itemsCounted: 28, varianceCount: 0, lockState: "Locked", approval: "Approved" },
-      { id: "5", date: "16-10-2026", section: "Main Kitchen Store", staffName: "Chef Alok Sharma", role: "Sous Chef", timestamp: "23:50", itemsCounted: 64, varianceCount: 4, lockState: "Locked", approval: "Approved" },
-    ],
+    data: [],
   },
 
   // 11. Wastage & Damage Loss Register
@@ -573,12 +507,7 @@ export const REPORT_DATASETS: Record<
       { id: "reason", label: "Wastage Cause", defaultWidth: 200, getValue: (r) => r.reason },
       { id: "reportedBy", label: "Reported By", defaultWidth: 140, getValue: (r) => r.reportedBy },
     ],
-    data: [
-      { id: "1", wasteId: "WST-2026-081", date: "17-10-2026 (Dinner)", itemName: "Cooked Biryani Rice Batch", category: "Cooked Food", qty: 4, unit: "kg", unitRate: 92.5, lossValue: 370.0, reason: "Burned during slow dum bottom layer", reportedBy: "Chef Devendra" },
-      { id: "2", wasteId: "WST-2026-080", date: "17-10-2026 (Lunch)", itemName: "Fresh Malai Paneer", category: "Dairy", qty: 2.5, unit: "kg", unitRate: 340.0, lossValue: 850.0, reason: "Sour smell / cold chain drop overnight", reportedBy: "Chef Roy" },
-      { id: "3", wasteId: "WST-2026-079", date: "16-10-2026 (Dinner)", itemName: "Tandoori Chicken Skewers", category: "Poultry", qty: 3, unit: "Portions", unitRate: 140.0, lossValue: 420.0, reason: "Customer table cancellation after plating", reportedBy: "Captain Rajiv" },
-      { id: "4", wasteId: "WST-2026-078", date: "15-10-2026 (Lunch)", itemName: "Ripe Farm Tomatoes", category: "Vegetables", qty: 8, unit: "kg", unitRate: 42.0, lossValue: 336.0, reason: "Crushed in storage bottom crate", reportedBy: "Store Sunil" },
-    ],
+    data: [],
   },
 
   // 12. Physical vs Theoretical Stock
@@ -593,13 +522,7 @@ export const REPORT_DATASETS: Record<
       { id: "varValue", label: "Discrepancy (₹)", align: "right", sortable: true, defaultWidth: 140, getValue: (r) => `₹ ${r.varValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
       { id: "accuracy", label: "Accuracy %", align: "right", sortable: true, defaultWidth: 120, getValue: (r) => `${r.accuracy.toFixed(1)}%` },
     ],
-    data: [
-      { id: "1", code: "RAW-101", itemName: "Basmati Biryani Rice Grade A", location: "Central Store", theoretical: 144, physical: 140, variance: -4, unit: "kg", varValue: 370.0, accuracy: 97.2 },
-      { id: "2", code: "RAW-102", itemName: "Refined Sunflower Oil 15L", location: "Central Store", theoretical: 10, physical: 10, variance: 0, unit: "Tins", varValue: 0.0, accuracy: 100.0 },
-      { id: "3", code: "RAW-103", itemName: "Fresh Malai Paneer", location: "Kitchen Chiller", theoretical: 42, physical: 40, variance: -2, unit: "kg", varValue: 680.0, accuracy: 95.2 },
-      { id: "4", code: "RAW-104", itemName: "Chicken Breast Boneless", location: "Deep Freezer", theoretical: 47, physical: 44, variance: -3, unit: "kg", varValue: 780.0, accuracy: 93.6 },
-      { id: "5", code: "RAW-105", itemName: "Amul Butter 500g", location: "Dairy Chiller", theoretical: 38, physical: 36, variance: -2, unit: "Blocks", varValue: 490.0, accuracy: 94.7 },
-    ],
+    data: [],
   },
 
   // 13. Pending Purchase Orders Tracking
@@ -615,12 +538,7 @@ export const REPORT_DATASETS: Record<
       { id: "priority", label: "Priority", align: "center", filterable: true, defaultWidth: 110, getValue: (r) => r.priority },
       { id: "status", label: "PO Status", align: "center", filterable: true, defaultWidth: 140, getValue: (r) => r.status },
     ],
-    data: [
-      { id: "1", poNumber: "PO-2026-9824", poDate: "16-10-2026", vendorName: "Metro Cash & Carry", expectedDelivery: "18-10-2026", itemCount: 8, totalAmount: 42500.0, pendingDays: 1, priority: "Normal", status: "Acknowledged" },
-      { id: "2", poNumber: "PO-2026-9821", poDate: "15-10-2026", vendorName: "Royal Dairy Suppliers", expectedDelivery: "17-10-2026", itemCount: 4, totalAmount: 16800.0, pendingDays: 2, priority: "High", status: "Partially Delivered" },
-      { id: "3", poNumber: "PO-2026-9818", poDate: "14-10-2026", vendorName: "OceanCatch Marine Wholesale", expectedDelivery: "16-10-2026", itemCount: 5, totalAmount: 32000.0, pendingDays: 3, priority: "High", status: "Awaiting Dispatch" },
-      { id: "4", poNumber: "PO-2026-9815", poDate: "12-10-2026", vendorName: "Spice Haven Importers", expectedDelivery: "15-10-2026", itemCount: 6, totalAmount: 18400.0, pendingDays: 5, priority: "Normal", status: "Overdue" },
-    ],
+    data: [],
   },
 
   // 14. PO Fulfillment & Delay Analysis
@@ -636,12 +554,7 @@ export const REPORT_DATASETS: Record<
       { id: "fillPercent", label: "Fill Rate %", align: "right", sortable: true, defaultWidth: 110, getValue: (r) => `${r.fillPercent}%` },
       { id: "grade", label: "Performance", align: "center", filterable: true, defaultWidth: 130, getValue: (r) => r.grade },
     ],
-    data: [
-      { id: "1", poNumber: "PO-2026-9804", vendorName: "Apex Poultry & Meat", orderedDate: "14-10-2026", promisedDate: "15-10-2026", actualDate: "15-10-2026", leadDays: 1, delayDays: 0, fillPercent: 100, grade: "On-Time" },
-      { id: "2", poNumber: "PO-2026-9799", vendorName: "Spice Haven Importers", orderedDate: "12-10-2026", promisedDate: "14-10-2026", actualDate: "14-10-2026", leadDays: 2, delayDays: 0, fillPercent: 100, grade: "On-Time" },
-      { id: "3", poNumber: "PO-2026-9790", vendorName: "OceanCatch Marine Wholesale", orderedDate: "10-10-2026", promisedDate: "12-10-2026", actualDate: "13-10-2026", leadDays: 3, delayDays: 1, fillPercent: 92, grade: "Minor Delay" },
-      { id: "4", poNumber: "PO-2026-9781", vendorName: "Metro Cash & Carry", orderedDate: "08-10-2026", promisedDate: "10-10-2026", actualDate: "10-10-2026", leadDays: 2, delayDays: 0, fillPercent: 98, grade: "On-Time" },
-    ],
+    data: [],
   },
 
   // 15. Vendor Lead Time & Fill Rate
@@ -655,13 +568,7 @@ export const REPORT_DATASETS: Record<
       { id: "qualityPass", label: "Quality Pass Rate %", align: "right", sortable: true, defaultWidth: 160, getValue: (r) => `${r.qualityPass.toFixed(1)}%` },
       { id: "rating", label: "Supplier Rating", align: "center", filterable: true, defaultWidth: 140, getValue: (r) => r.rating },
     ],
-    data: [
-      { id: "1", vendorName: "Metro Cash & Carry", ordersCount: 24, avgLeadDays: 1.8, onTimeRate: 95.8, fillRate: 98.2, qualityPass: 99.4, rating: "⭐ 4.9 (Tier 1)" },
-      { id: "2", vendorName: "Royal Dairy Suppliers", ordersCount: 30, avgLeadDays: 1.0, onTimeRate: 96.6, fillRate: 97.5, qualityPass: 99.0, rating: "⭐ 4.8 (Tier 1)" },
-      { id: "3", vendorName: "Apex Poultry & Meat", ordersCount: 20, avgLeadDays: 1.2, onTimeRate: 92.0, fillRate: 94.8, qualityPass: 96.5, rating: "⭐ 4.6 (Tier 2)" },
-      { id: "4", vendorName: "OceanCatch Marine Wholesale", ordersCount: 15, avgLeadDays: 2.4, onTimeRate: 86.6, fillRate: 90.0, qualityPass: 94.0, rating: "⭐ 4.3 (Tier 2)" },
-      { id: "5", vendorName: "Greenfield Fresh Produce", ordersCount: 32, avgLeadDays: 1.0, onTimeRate: 93.8, fillRate: 96.0, qualityPass: 97.2, rating: "⭐ 4.7 (Tier 1)" },
-    ],
+    data: [],
   },
 
   // 16. Gross Margin & Food Cost Matrix
@@ -677,13 +584,7 @@ export const REPORT_DATASETS: Record<
       { id: "totalProfit", label: "Total Gross Profit (₹)", align: "right", sortable: true, defaultWidth: 160, getValue: (r) => `₹ ${r.totalProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
       { id: "matrixClass", label: "Menu Matrix Class", align: "center", filterable: true, defaultWidth: 150, getValue: (r) => r.matrixClass },
     ],
-    data: [
-      { id: "1", dishName: "Murgh Dum Biryani (Handi)", category: "Main Course", salesPrice: 480.0, ingredientCost: 134.4, grossMargin: 345.6, costPercent: 28.0, unitsSold: 420, totalProfit: 145152.0, matrixClass: "Top Performer" },
-      { id: "2", dishName: "Paneer Butter Masala", category: "Main Course", salesPrice: 360.0, ingredientCost: 97.2, grossMargin: 262.8, costPercent: 27.0, unitsSold: 310, totalProfit: 81468.0, matrixClass: "Top Performer" },
-      { id: "3", dishName: "Tandoori Pomfret Fish", category: "Starters", salesPrice: 650.0, ingredientCost: 227.5, grossMargin: 422.5, costPercent: 35.0, unitsSold: 110, totalProfit: 46475.0, matrixClass: "Puzzle Item" },
-      { id: "4", dishName: "Butter Garlic Naan", category: "Breads", salesPrice: 75.0, ingredientCost: 14.25, grossMargin: 60.75, costPercent: 19.0, unitsSold: 980, totalProfit: 59535.0, matrixClass: "Workhorse" },
-      { id: "5", dishName: "Dal Makhani Slow Cooked", category: "Main Course", salesPrice: 290.0, ingredientCost: 63.8, grossMargin: 226.2, costPercent: 22.0, unitsSold: 340, totalProfit: 76908.0, matrixClass: "Workhorse" },
-    ],
+    data: [],
   },
 
   // 17. Ingredient Price Fluctuation Trend
@@ -698,13 +599,7 @@ export const REPORT_DATASETS: Record<
       { id: "trend", label: "Market Trend", align: "center", filterable: true, defaultWidth: 130, getValue: (r) => r.trend },
       { id: "impact", label: "Dishes Impacted", defaultWidth: 200, getValue: (r) => r.impact },
     ],
-    data: [
-      { id: "1", materialName: "Red Onions Premium", unit: "kg", baseRate: 28.0, currentRate: 38.0, delta: 10.0, inflationPercent: 35.7, trend: "Surging 📈", impact: "All Gravies & Biryanis" },
-      { id: "2", materialName: "Farm Fresh Tomatoes", unit: "kg", baseRate: 36.0, currentRate: 42.0, delta: 6.0, inflationPercent: 16.7, trend: "Moderate 📈", impact: "Makhani & Pasta Sauces" },
-      { id: "3", materialName: "Fresh Malai Paneer", unit: "kg", baseRate: 320.0, currentRate: 340.0, delta: 20.0, inflationPercent: 6.2, trend: "Stable ⚖️", impact: "Paneer Dishes" },
-      { id: "4", materialName: "Chicken Breast Boneless", unit: "kg", baseRate: 270.0, currentRate: 260.0, delta: -10.0, inflationPercent: -3.7, trend: "Easing 📉", impact: "Poultry Starters & Curries" },
-      { id: "5", materialName: "Refined Sunflower Oil 15L", unit: "Tins", baseRate: 1750.0, currentRate: 1850.0, delta: 100.0, inflationPercent: 5.7, trend: "Moderate 📈", impact: "Deep Fry & Sautéing" },
-    ],
+    data: [],
   },
 
   // 18. Menu Item Contribution Margin
@@ -718,13 +613,7 @@ export const REPORT_DATASETS: Record<
       { id: "contributionMargin", label: "Net Contribution (₹)", align: "right", sortable: true, defaultWidth: 160, getValue: (r) => `₹ ${r.contributionMargin.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
       { id: "sharePercent", label: "% Share of Profit", align: "right", sortable: true, defaultWidth: 140, getValue: (r) => `${r.sharePercent.toFixed(1)}%` },
     ],
-    data: [
-      { id: "1", dishName: "Murgh Dum Biryani (Handi)", section: "Main Course", unitsSold: 420, grossSales: 201600.0, foodCostTotal: 56448.0, contributionMargin: 145152.0, sharePercent: 24.5 },
-      { id: "2", dishName: "Paneer Butter Masala", section: "Main Course", unitsSold: 310, grossSales: 111600.0, foodCostTotal: 30132.0, contributionMargin: 81468.0, sharePercent: 13.8 },
-      { id: "3", dishName: "Dal Makhani Slow Cooked", section: "Main Course", unitsSold: 340, grossSales: 98600.0, foodCostTotal: 21692.0, contributionMargin: 76908.0, sharePercent: 13.0 },
-      { id: "4", dishName: "Butter Garlic Naan", section: "Breads", unitsSold: 980, grossSales: 73500.0, foodCostTotal: 13965.0, contributionMargin: 59535.0, sharePercent: 10.1 },
-      { id: "5", dishName: "Tandoori Pomfret Fish", section: "Starters", unitsSold: 110, grossSales: 71500.0, foodCostTotal: 25025.0, contributionMargin: 46475.0, sharePercent: 7.9 },
-    ],
+    data: [],
   },
 
   // 19. Stock Expiry & Aging Analysis
@@ -740,12 +629,7 @@ export const REPORT_DATASETS: Record<
       { id: "stockValue", label: "At-Risk Value (₹)", align: "right", sortable: true, defaultWidth: 150, getValue: (r) => `₹ ${r.stockValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
       { id: "riskStatus", label: "Action Status", align: "center", filterable: true, defaultWidth: 140, getValue: (r) => r.riskStatus },
     ],
-    data: [
-      { id: "1", batchNo: "LOT-2026-D44", itemName: "Fresh Malai Paneer", location: "Dairy Chiller #1", rcvDate: "15-10-2026", expDate: "19-10-2026", daysLeft: 2, stockQty: 18, unit: "kg", stockValue: 6120.0, riskStatus: "Critical (< 3 Days)" },
-      { id: "2", batchNo: "LOT-2026-M89", itemName: "Buffalo Full Cream Milk", location: "Chiller Walk-in", rcvDate: "16-10-2026", expDate: "18-10-2026", daysLeft: 1, stockQty: 40, unit: "Litre", stockValue: 2720.0, riskStatus: "Expiring Tomorrow" },
-      { id: "3", batchNo: "LOT-2026-B12", itemName: "Amul Pasteurised Butter", location: "Dairy Chiller #2", rcvDate: "05-10-2026", expDate: "28-10-2026", daysLeft: 11, stockQty: 24, unit: "Blocks", stockValue: 5880.0, riskStatus: "Normal Range" },
-      { id: "4", batchNo: "LOT-2026-P09", itemName: "Farm Fresh Chicken Breast", location: "Freezer Deep -18°C", rcvDate: "14-10-2026", expDate: "21-10-2026", daysLeft: 4, stockQty: 25, unit: "kg", stockValue: 6500.0, riskStatus: "Warning (< 5 Days)" },
-    ],
+    data: [],
   },
 
   // 20. Reorder Level Breach Alert Log
@@ -761,12 +645,7 @@ export const REPORT_DATASETS: Record<
       { id: "suggestedPOQty", label: "Suggested Reorder", align: "right", defaultWidth: 150, getValue: (r) => `${r.suggestedPOQty} ${r.unit}` },
       { id: "urgency", label: "Urgency Level", align: "center", filterable: true, defaultWidth: 140, getValue: (r) => r.urgency },
     ],
-    data: [
-      { id: "1", code: "RAW-108", itemName: "Cashew Nuts Whole W320", category: "Dry Fruits", currentStock: 4, reorderLevel: 15, deficit: 11, unit: "kg", preferredVendor: "Spice Haven Importers", suggestedPOQty: 25, urgency: "Critical Shortage" },
-      { id: "2", code: "RAW-110", itemName: "Arabica Coffee Beans", category: "Beverages", currentStock: 3, reorderLevel: 10, deficit: 7, unit: "kg", preferredVendor: "Metro Cash & Carry", suggestedPOQty: 15, urgency: "Critical Shortage" },
-      { id: "3", code: "RAW-118", itemName: "Saffron Spanish Kesar", category: "Spices", currentStock: 10, reorderLevel: 25, deficit: 15, unit: "grams", preferredVendor: "Spice Haven Importers", suggestedPOQty: 50, urgency: "Below Minimum" },
-      { id: "4", code: "RAW-122", itemName: "Extra Virgin Olive Oil 5L", category: "Oils & Ghee", currentStock: 2, reorderLevel: 6, deficit: 4, unit: "Cans", preferredVendor: "Metro Cash & Carry", suggestedPOQty: 8, urgency: "Below Minimum" },
-    ],
+    data: [],
   },
 
   // 21. Batch & Lot Tracking Register
@@ -782,12 +661,7 @@ export const REPORT_DATASETS: Record<
       { id: "remainingQty", label: "Remaining", align: "right", sortable: true, defaultWidth: 110, getValue: (r) => `${r.remainingQty} ${r.unit}` },
       { id: "compliance", label: "FSSAI Compliance", align: "center", filterable: true, defaultWidth: 140, getValue: (r) => r.compliance },
     ],
-    data: [
-      { id: "1", lotNo: "LOT-2026-D44", itemName: "Fresh Malai Paneer", vendorName: "Royal Dairy Suppliers", grnRef: "GRN-2026-103", mfgDate: "15-10-2026", expDate: "19-10-2026", initialQty: 60, remainingQty: 18, unit: "kg", compliance: "Verified ✅" },
-      { id: "2", lotNo: "LOT-2026-R90", itemName: "Basmati Biryani Rice Grade A", vendorName: "Metro Cash & Carry", grnRef: "GRN-2026-104", mfgDate: "01-09-2026", expDate: "01-09-2027", initialQty: 300, remainingQty: 140, unit: "kg", compliance: "Verified ✅" },
-      { id: "3", lotNo: "LOT-2026-O33", itemName: "Sunflower Oil 15L Tin", vendorName: "Metro Cash & Carry", grnRef: "GRN-2026-104", mfgDate: "10-09-2026", expDate: "10-09-2027", initialQty: 20, remainingQty: 10, unit: "Tins", compliance: "Verified ✅" },
-      { id: "4", lotNo: "LOT-2026-M89", itemName: "Full Cream Buffalo Milk", vendorName: "Royal Dairy Suppliers", grnRef: "GRN-2026-103", mfgDate: "16-10-2026", expDate: "18-10-2026", initialQty: 120, remainingQty: 40, unit: "Litre", compliance: "Verified ✅" },
-    ],
+    data: [],
   },
 };
 
@@ -795,6 +669,7 @@ export const REPORT_DATASETS: Record<
 // Main OtherReportsView Component
 // ---------------------------------------------------------------------------
 export function OtherReportsView() {
+  const { activeOutlet } = useOutletContext();
   const [activeTab, setActiveTab] = useState<
     | "bookmarked"
     | "movements"
@@ -900,6 +775,118 @@ export function OtherReportsView() {
   const [sortConfig, setSortConfig] = useState<{ colId: string; direction: "asc" | "desc" } | null>(null);
   const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
 
+  const { data: stockItems = [] } = useStockItems();
+  const { data: purchases = [] } = useStockPurchases();
+  const { data: purchaseOrders = [] } = usePurchaseOrders();
+  const { data: wastageList = [] } = useWastageEntries();
+  const { data: recipes = [] } = useDishRecipes();
+  const { data: vendors = [] } = useVendors();
+
+  const getReportRows = (reportId: string) => {
+    switch (reportId) {
+      case "REP-CONS-01":
+      case "REP-OPCL-02":
+      case "REP-VAL-04":
+      case "REP-STOCKAGE-10":
+      case "REP-OPEN-CLOS-TRACK-01":
+      case "REP-CLOS-ACC-02":
+      case "REP-DISCREP-03":
+      case "REP-DAYEND-04":
+      case "REP-FIFO-01":
+        return stockItems.map((item, idx) => ({
+          id: item.id || String(idx + 1),
+          code: item.code || item.itemCode || `SKU-${(item.id || String(idx + 1)).slice(0, 6)}`,
+          name: item.name || "Item",
+          category: item.category || "General",
+          unit: item.unit || "unit",
+          openingQty: item.openingStock ?? item.currentStock ?? 0,
+          purchaseQty: 0,
+          transfersQty: 0,
+          wastageQty: 0,
+          consumedQty: 0,
+          closingQty: item.currentStock ?? 0,
+          inwardQty: 0,
+          outwardQty: 0,
+          unitRate: Number(item.unitPrice || item.purchasePrice || 0),
+          closingValue: (item.currentStock ?? 0) * Number(item.unitPrice || item.purchasePrice || 0),
+          avgRate: Number(item.unitPrice || item.purchasePrice || 0),
+          totalCost: (item.currentStock ?? 0) * Number(item.unitPrice || item.purchasePrice || 0),
+          healthStatus: (item.currentStock ?? 0) <= (item.minStock ?? 5) ? "Reorder Needed" : "Optimal",
+          currentStock: item.currentStock ?? 0,
+          reorderLevel: item.minStock ?? 0,
+          valuation: (item.currentStock ?? 0) * Number(item.unitPrice || item.purchasePrice || 0),
+        }));
+      case "REP-FOODCOST-03":
+      case "REP-RECIPE-09":
+        return recipes.map((r, idx) => ({
+          id: r.id || String(idx + 1),
+          menuCode: `REC-${(r.id || String(idx + 1)).slice(0, 6)}`,
+          dishName: r.dishName || r.name || "Recipe",
+          section: r.category || "Main",
+          salesPrice: Number(r.sellingPrice || 0),
+          costPrice: Number(r.costPrice || r.totalCost || 0),
+          grossMargin: Number(r.sellingPrice || 0) - Number(r.costPrice || r.totalCost || 0),
+          costPercent: r.sellingPrice ? ((Number(r.costPrice || 0) / Number(r.sellingPrice)) * 100) : 0,
+          targetPercent: 30,
+          marginPercent: r.sellingPrice ? (((Number(r.sellingPrice) - Number(r.costPrice || 0)) / Number(r.sellingPrice)) * 100) : 0,
+          varianceStatus: "Active",
+          recipeName: r.dishName || r.name || "Recipe",
+          ingredientsCount: r.ingredients?.length || 0,
+          portionSize: "1 Portion",
+          totalBatchCost: Number(r.costPrice || r.totalCost || 0),
+          costPerPortion: Number(r.costPrice || r.totalCost || 0),
+        }));
+      case "REP-PO-05":
+      case "REP-PO-STATUS-01":
+      case "REP-PO-VAL-03":
+      case "REP-PO-PARTIAL-04":
+      case "REP-VENDOR-DELAY-02":
+        return purchaseOrders.map((po, idx) => ({
+          id: po.id || String(idx + 1),
+          poNumber: po.poNumber || po.orderNumber || `PO-${idx + 1}`,
+          vendor: po.vendorName || po.vendor || "Vendor",
+          vendorName: po.vendorName || po.vendor || "Vendor",
+          orderDate: po.date || po.orderDate || "-",
+          deliveryDate: po.expectedDeliveryDate || "-",
+          itemsCount: po.items?.length || 1,
+          totalAmount: Number(po.totalAmount || po.grandTotal || 0),
+          status: po.status || "Pending",
+        }));
+      case "REP-WASTE-06":
+        return wastageList.map((w: any, idx) => ({
+          id: w.id || String(idx + 1),
+          date: w.date || "-",
+          itemCode: w.itemCode || "-",
+          itemName: w.itemName || w.name || "Item",
+          quantity: w.quantity || 0,
+          unit: w.unit || "unit",
+          costLoss: Number(w.costLoss || w.totalCost || 0),
+          reason: w.reason || "Waste",
+          recordedBy: w.approvedBy || w.recordedBy || "-",
+        }));
+      case "REP-VEND-08":
+        return vendors.map((v, idx) => ({
+          id: v.id || String(idx + 1),
+          vendorName: v.name,
+          contactPerson: v.contactPerson || "-",
+          phone: v.phone || "-",
+          totalOrders: purchases.filter((p) => p.vendorId === v.id || p.vendorName === v.name).length,
+          totalPurchased: purchases
+            .filter((p) => p.vendorId === v.id || p.vendorName === v.name)
+            .reduce((sum, p) => sum + Number(p.totalAmount || p.grandTotal || 0), 0),
+          outstandingDue: Number(v.outstandingBalance || 0),
+          rating: "Active",
+        }));
+      default:
+        return [];
+    }
+  };
+
+  const reportData = useMemo(() => {
+    if (!selectedReport) return [];
+    return getReportRows(selectedReport.id);
+  }, [selectedReport, stockItems, recipes, purchaseOrders, wastageList, vendors, purchases]);
+
   // When a report is clicked to open
   const handleOpenReport = (report: ReportDefinition) => {
     setSelectedReport(report);
@@ -918,8 +905,12 @@ export function OtherReportsView() {
   // Get columns and data configuration for current report
   const currentDatasetConfig = useMemo(() => {
     if (!selectedReport) return null;
-    return REPORT_DATASETS[selectedReport.id] || REPORT_DATASETS["REP-CONS-01"];
-  }, [selectedReport]);
+    const base = REPORT_DATASETS[selectedReport.id] || REPORT_DATASETS["REP-CONS-01"];
+    return {
+      columns: base?.columns || [],
+      data: reportData,
+    };
+  }, [selectedReport, reportData]);
 
   const allColumns = useMemo(() => {
     return currentDatasetConfig?.columns || [];
@@ -1031,7 +1022,8 @@ export function OtherReportsView() {
     e?.stopPropagation();
     const cfg = REPORT_DATASETS[report.id] || REPORT_DATASETS["REP-CONS-01"];
     const headers = cfg.columns.map((c) => c.label);
-    const rows = cfg.data.map((row) =>
+    const cardRows = getReportRows(report.id);
+    const rows = cardRows.map((row) =>
       cfg.columns.map((col) => {
         if (col.getValue) return col.getValue(row);
         return (row as any)[col.id || ""] || "";
@@ -1041,7 +1033,7 @@ export function OtherReportsView() {
     exportToExcel({
       filename: `${report.title.replace(/\s+/g, "_")}_${startDate}_to_${endDate}`,
       title: report.title,
-      subtitle: `Period: ${formatToDmy(startDate)} to ${formatToDmy(endDate)} | Total Records: ${cfg.data.length}`,
+      subtitle: `Period: ${formatToDmy(startDate)} to ${formatToDmy(endDate)} | Total Records: ${cardRows.length}`,
       columns: headers,
       rows,
     });
@@ -1066,7 +1058,7 @@ export function OtherReportsView() {
 
     openPrintReportTable({
       title: selectedReport.title.toUpperCase(),
-      hotelName: "Anshu Suite Restaurant",
+      hotelName: activeOutlet?.name || "Restaurant Outlet",
       subtitle: `Category: ${selectedReport.category.toUpperCase()} • Total Records: ${filteredDataset.length}`,
       dateRange: `${formatToDmy(startDate)} to ${formatToDmy(endDate)}`,
       columns,
