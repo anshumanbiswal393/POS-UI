@@ -64,6 +64,7 @@ export interface PosInvoicePrintPayload {
   roundOff?: number;
   grandTotal: number;
   paidAmount: number;
+  depositAmount?: number;
   balanceAmount: number;
   paymentMethod?: string;
   payments?: PosInvoicePayment[];
@@ -690,9 +691,23 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
               <td class="label" style="font-size:11px;">Net Invoice Amount:</td>
               <td class="val-bold" style="font-size:11.5px;">${formatINR(p.grandTotal)}</td>
             </tr>
+            ${(p.depositAmount && p.depositAmount > 0) ? `
             <tr>
-              <td class="label">Balance:</td>
-              <td class="${p.balanceAmount > 0 ? 'val-red' : 'val-bold'}">${formatINR(p.balanceAmount)}</td>
+              <td class="label" style="color:#047857;font-weight:bold;">Advance Paid:</td>
+              <td class="val-bold" style="color:#047857;">-₹${formatINR(p.depositAmount)}</td>
+            </tr>
+            <tr>
+              <td class="label">Net Payable:</td>
+              <td class="val-bold">₹${formatINR(Math.max(0, p.grandTotal - (p.depositAmount || 0)))}</td>
+            </tr>
+            ` : ''}
+            <tr>
+              <td class="label">Total Paid:</td>
+              <td class="val-bold">₹${formatINR((p.paidAmount || 0) + (p.depositAmount || 0))}</td>
+            </tr>
+            <tr>
+              <td class="label">Balance Due:</td>
+              <td class="${(Math.max(0, p.grandTotal - ((p.paidAmount || 0) + (p.depositAmount || 0))) > 0) ? 'val-red' : 'val-bold'}">${formatINR(Math.max(0, p.grandTotal - ((p.paidAmount || 0) + (p.depositAmount || 0))))}</td>
             </tr>
           </table>
         </td>
@@ -914,6 +929,7 @@ export function settlementRecordToInvoicePayload(
     roundOff: record.roundOff,
     grandTotal: record.grandTotal,
     paidAmount,
+    depositAmount: deposit,
     balanceAmount,
     paymentMethod: String(record.paymentMethod || "CASH").toUpperCase(),
     payments,

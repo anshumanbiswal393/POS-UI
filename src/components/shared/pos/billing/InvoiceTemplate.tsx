@@ -404,19 +404,32 @@ export function InvoiceTemplate({
             </span>
           </div>
 
+          {p.depositAmount && p.depositAmount > 0 ? (
+            <>
+              <div className="flex justify-between font-bold text-emerald-800">
+                <span>Advance Reservation Paid:</span>
+                <span className="font-mono">-₹{formatINR(p.depositAmount)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-slate-800">
+                <span>Net Remaining Payable:</span>
+                <span className="font-mono">₹{formatINR(Math.max(0, p.grandTotal - p.depositAmount))}</span>
+              </div>
+            </>
+          ) : null}
+
           <div className="flex justify-between font-bold text-emerald-800">
             <span>Total Paid:</span>
-            <span className="font-mono">₹{formatINR(p.paidAmount)}</span>
+            <span className="font-mono">₹{formatINR((p.paidAmount || 0) + (p.depositAmount || 0))}</span>
           </div>
           <div className="flex justify-between font-bold">
             <span>Balance Due:</span>
             <span
               className={cn(
                 "font-mono",
-                p.balanceAmount > 0 ? "text-red-600" : "text-black",
+                Math.max(0, p.grandTotal - ((p.paidAmount || 0) + (p.depositAmount || 0))) > 0 ? "text-red-600" : "text-black",
               )}
             >
-              ₹{formatINR(p.balanceAmount)}
+              ₹{formatINR(Math.max(0, p.grandTotal - ((p.paidAmount || 0) + (p.depositAmount || 0))))}
             </span>
           </div>
         </div>
