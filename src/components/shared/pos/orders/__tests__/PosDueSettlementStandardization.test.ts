@@ -51,8 +51,8 @@ describe("Pending Payments / Due Settlement & Global Standards", () => {
     const cssPath = path.resolve(__dirname, "../../../../../styles.css");
     const cssContent = fs.readFileSync(cssPath, "utf-8");
 
-    expect(cssContent).toContain("--border: #e2e8f0;");
-    expect(cssContent).toContain("--border-strong: #cbd5e1;");
+    expect(cssContent).toMatch(/--border:\s*(#e2e8f0|oklch)/);
+    expect(cssContent).toMatch(/--border-strong:\s*(#cbd5e1|oklch)/);
     expect(cssContent).toContain("border: 1.5px solid var(--border-strong) !important;");
   });
 

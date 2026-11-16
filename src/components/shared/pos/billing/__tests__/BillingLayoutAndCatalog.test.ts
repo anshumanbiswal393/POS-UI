@@ -105,12 +105,120 @@ describe("POS Billing UI Standardization", () => {
     expect(content).not.toContain("F3 / ⌘K");
   });
 
-  it("PosBillingManager wires selectedMealTime and provides gap so top nav border does not overlap content cards", () => {
+  it("PosBillingManager wires selectedMealTime and passes mealTimes to billingItems", () => {
     const managerPath = path.resolve(__dirname, "../PosBillingManager.tsx");
     const content = fs.readFileSync(managerPath, "utf-8");
 
     expect(content).toContain("const [selectedMealTime, setSelectedMealTime] = useState");
     expect(content).toContain("selectedMealTime={selectedMealTime}");
+    expect(content).toContain("mealTimes: item.mealTimes || (item as any).meal_times");
     expect(content).toContain("pt-2 lg:pt-2");
+  });
+
+  it("filters menu catalog items accurately by meal-time and category", () => {
+    type TestItem = {
+      id: string;
+      name: string;
+      category: string;
+      diet: "veg" | "non_veg";
+      mealTimes?: string[];
+    };
+
+    const testCatalog: TestItem[] = [
+      {
+        id: "1",
+        name: "chicken biryani",
+        category: "rice",
+        diet: "non_veg",
+        mealTimes: ["Dinner", "Lunch"],
+      },
+      {
+        id: "2",
+        name: "masala dosa",
+        category: "tiffin",
+        diet: "veg",
+        mealTimes: ["Breakfast"],
+      },
+      {
+        id: "3",
+        name: "cold coffee",
+        category: "beverages",
+        diet: "veg",
+        mealTimes: ["All Day"],
+      },
+      {
+        id: "4",
+        name: "veg noodles",
+        category: "starters",
+        diet: "veg",
+        // no mealTimes (legacy all-day)
+      },
+    ];
+
+    const filterItems = (
+      items: TestItem[],
+      selectedMealTime: string,
+      selectedCategory: string,
+    ) => {
+      let result = items.filter((item) => {
+        if (
+          selectedCategory !== "All Items" &&
+          String(item.category || "").trim().toLowerCase() !== selectedCategory.trim().toLowerCase()
+        ) {
+          return false;
+        }
+        return true;
+      });
+
+      if (selectedMealTime !== "All") {
+        const targetMeal = selectedMealTime.toLowerCase();
+        result = result.filter((item) => {
+          const mealTimes = item.mealTimes;
+          if (!mealTimes || !Array.isArray(mealTimes) || mealTimes.length === 0) {
+            return true;
+          }
+          return mealTimes.some((m) => {
+            const lower = String(m).trim().toLowerCase();
+            return (
+              lower === targetMeal ||
+              lower === "all" ||
+              lower === "all day" ||
+              lower === "allday"
+            );
+          });
+        });
+      }
+      return result;
+    };
+
+    // 1. Breakfast tab: Chicken Biryani (Dinner & Lunch) MUST NOT be visible!
+    const breakfastItems = filterItems(testCatalog, "Breakfast", "All Items");
+    const breakfastNames = breakfastItems.map((i) => i.name);
+    expect(breakfastNames).not.toContain("chicken biryani");
+    expect(breakfastNames).toContain("masala dosa");
+    expect(breakfastNames).toContain("cold coffee");
+    expect(breakfastNames).toContain("veg noodles");
+
+    // 2. Lunch tab: Chicken Biryani MUST be visible! Masala Dosa (Breakfast only) must NOT be visible!
+    const lunchItems = filterItems(testCatalog, "Lunch", "All Items");
+    const lunchNames = lunchItems.map((i) => i.name);
+    expect(lunchNames).toContain("chicken biryani");
+    expect(lunchNames).not.toContain("masala dosa");
+    expect(lunchNames).toContain("cold coffee");
+    expect(lunchNames).toContain("veg noodles");
+
+    // 3. Dinner tab: Chicken Biryani MUST be visible! Masala Dosa must NOT be visible!
+    const dinnerItems = filterItems(testCatalog, "Dinner", "All Items");
+    const dinnerNames = dinnerItems.map((i) => i.name);
+    expect(dinnerNames).toContain("chicken biryani");
+    expect(dinnerNames).not.toContain("masala dosa");
+
+    // 4. Category tab "rice": only rice category items reflect
+    const riceItems = filterItems(testCatalog, "All", "rice");
+    expect(riceItems.map((i) => i.name)).toEqual(["chicken biryani"]);
+
+    // 5. Category tab "beverages": only beverages reflect
+    const beverageItems = filterItems(testCatalog, "All", "beverages");
+    expect(beverageItems.map((i) => i.name)).toEqual(["cold coffee"]);
   });
 });

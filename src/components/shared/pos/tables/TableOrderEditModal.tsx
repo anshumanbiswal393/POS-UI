@@ -84,6 +84,7 @@ export function TableOrderEditModal({
         price: item.price,
         isVeg: item.itemType === "Veg",
         description: item.description || "",
+        mealTimes: item.mealTimes || (item as any).meal_times,
         hasVariants: Boolean(item.variants && item.variants.length > 0),
         variants: item.variants?.map((v) => ({ name: v.name, price: v.price })),
       }));

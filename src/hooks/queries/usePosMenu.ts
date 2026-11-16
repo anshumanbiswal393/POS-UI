@@ -102,6 +102,7 @@ export function useAddMenuItem() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pos", "menu", "items"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "menu", "stock-items"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "billing", "menu"] });
     },
   });
 }
@@ -114,6 +115,7 @@ export function useUpdateMenuItem() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pos", "menu", "items"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "menu", "stock-items"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "billing", "menu"] });
     },
   });
 }
@@ -125,6 +127,7 @@ export function useDeleteMenuItem() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pos", "menu", "items"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "menu", "stock-items"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "billing", "menu"] });
     },
   });
 }
