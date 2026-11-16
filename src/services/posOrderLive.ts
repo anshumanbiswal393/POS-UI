@@ -537,43 +537,12 @@ export async function liveGetDueBills(outletId?: string) {
     const totalAmount = Number(b.totalAmount || 0);
     let dueAmount = Number(b.dueAmount ?? Math.max(0, totalAmount - paidAmount));
 
-    const match =
-      localReservations.length > 0
-        ? localReservations.find((r: any) => {
-            if (!r.depositAmount || Number(r.depositAmount) <= 0) return false;
-            if (
-              b.customerPhone &&
-              r.customerPhone &&
-              b.customerPhone.replace(/\D/g, "") === r.customerPhone.replace(/\D/g, "")
-            ) {
-              return true;
-            }
-            if (b.tableOrRoom && r.tableNumber) {
-              const bTable = String(b.tableOrRoom).replace(/\D/g, "");
-              const rTable = String(r.tableNumber).replace(/\D/g, "");
-              if (bTable && rTable && bTable === rTable) return true;
-            }
-            return false;
-          })
-        : null;
+    const deposit = Number(b.depositAmount || 0);
 
-    const deposit =
-      match && Number(match.depositAmount) > 0
-        ? Number(match.depositAmount)
-        : Number(b.depositAmount || 0);
-
+    // If backend already deducted deposit into paidAmount and dueAmount, do NOT re-deduct
     if (deposit > 0) {
-      if (paidAmount === 0) {
-        // Initial state before customer payment: advance deposit reduces due
-        paidAmount = Math.min(totalAmount, deposit);
-        dueAmount = Math.max(0, totalAmount - paidAmount);
-      } else if (paidAmount + deposit >= totalAmount || totalAmount - paidAmount <= deposit) {
-        // Customer paid the remaining balance! Together with advance deposit, total bill is fully settled!
-        paidAmount = totalAmount;
-        dueAmount = 0;
-      } else {
-        dueAmount = Math.max(0, totalAmount - (paidAmount + deposit));
-      }
+      // Due amount should be totalAmount - paidAmount
+      dueAmount = Math.max(0, totalAmount - paidAmount);
     }
 
     const isSettled = dueAmount === 0 || String(b.status || "").toLowerCase() === "settled";

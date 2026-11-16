@@ -239,11 +239,10 @@ export function TableCardItem({
                     e.stopPropagation();
                     onSwitchOccupiedTable(table);
                   }}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-amber-300 text-amber-950 text-[10px] font-bold hover:bg-amber-100 transition shadow-2xs cursor-pointer ml-1"
+                  className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-white border border-amber-300 text-amber-900 hover:bg-amber-100 transition shadow-2xs cursor-pointer ml-1"
                   title={`Switch table for ${table.tableNumber}`}
                 >
-                  <ArrowLeftRight className="w-2.5 h-2.5 text-amber-700" />
-                  <span>Switch</span>
+                  <ArrowLeftRight className="w-3 h-3 text-amber-700" />
                 </button>
               )}
             </div>

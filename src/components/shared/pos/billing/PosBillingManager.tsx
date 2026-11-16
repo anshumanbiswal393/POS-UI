@@ -1006,6 +1006,10 @@ export function PosBillingManager() {
 
   const activeReservationDeposit = useMemo(() => {
     if (orderType !== "dine_in") return 0;
+    // If this is an extra/subsequent order for an existing open order, the advance was already applied once to the check!
+    if (linkedOrderId || runningOrderMeta?.id || search.extraOrder === "1") {
+      return 0;
+    }
     const tableIdentifier = activeTable || runningOrderMeta?.tableNumber || "";
     const cleanTbl = tableIdentifier.replace(/\D/g, "");
 
