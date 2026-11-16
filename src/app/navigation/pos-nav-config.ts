@@ -129,16 +129,7 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
     permission: "pos.inventory.view",
     children: [
       { id: "inv-dashboard", label: "Stock Overview", to: "/pos/inventory", icon: LayoutGrid, permission: "pos.inventory.view" },
-      {
-        id: "purchase-group",
-        label: "Purchases",
-        icon: ShoppingCart,
-        permission: "pos.inventory.manage",
-        children: [
-          { id: "stock-purchase", label: "Purchases", to: "/pos/inventory/purchase", icon: ShoppingCart, permission: "pos.inventory.manage" },
-          { id: "purchase-return", label: "Purchase Returns", to: "/pos/inventory/return", icon: ArrowLeftRight, permission: "pos.inventory.manage" },
-        ],
-      },
+      { id: "stock-purchase", label: "Purchases", to: "/pos/inventory/purchase", icon: ShoppingCart, permission: "pos.inventory.manage" },
       {
         id: "manage-stock-group",
         label: "Manage Stock",
@@ -146,7 +137,6 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
         permission: "pos.inventory.view",
         children: [
           { id: "available-stock", label: "Available Stock", to: "/pos/inventory/available-stock", icon: Boxes, permission: "pos.inventory.view" },
-          { id: "closing-stock", label: "Daily Stock Count", to: "/pos/inventory/closing-stock", icon: ClipboardList, permission: "pos.inventory.manage" },
           { id: "inv-daily-prep", label: "Daily Preparation", to: "/pos/inventory/production", icon: CookingPot, permission: "pos.inventory.view" },
           { id: "inv-wastage", label: "Stock Wastage", to: "/pos/inventory/wastage", icon: Trash2, permission: "pos.inventory.wastage" },
         ],
