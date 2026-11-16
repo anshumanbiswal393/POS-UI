@@ -130,7 +130,7 @@ export interface KotItem {
   items?: Array<{ name: string; quantity: number; notes?: string }>;
   notes?: string;
   orderNote?: string;
-  status: "Not Prepared" | "In Kitchen" | "Prepared" | "Served";
+  status: "Not Prepared" | "In Kitchen" | "Prepared" | "Served" | "Ready" | "Cancelled";
   billPrintDate: string;
   completeDuration: string;
   createdAt: string;

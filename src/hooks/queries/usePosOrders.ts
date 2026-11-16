@@ -131,10 +131,10 @@ export function useMarkKotPreparedMutation() {
     },
     onSuccess: () => {
       queryClient.setQueriesData({ queryKey: ["pos", "orders", "kot"] }, (old: { records?: Array<{ id: string; status?: string }> } | undefined) => {
-        if (!old?.records) return old;
+        if (!old?.records || !Array.isArray(old.records)) return old;
         return {
           ...old,
-          records: old.records.filter((r) => r.status !== "Prepared" && r.status !== "Served"),
+          records: old.records.filter((r) => r && r.status !== "Prepared" && r.status !== "Served" && r.status !== "Ready"),
         };
       });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });

@@ -46,7 +46,9 @@ export function KotHistoryModal({ isOpen, onClose, outletName }: KotHistoryModal
   const queryFilters = useMemo(() => {
     const f: Record<string, any> = {};
     if (statusFilter !== "ALL") {
-      f.status = statusFilter;
+      f.status = statusFilter === "READY" ? "READY,SERVED" : statusFilter;
+    } else {
+      f.status = "ALL";
     }
     if (dateRange.from) {
       f.date_from = dateRange.from;
@@ -202,9 +204,11 @@ export function KotHistoryModal({ isOpen, onClose, outletName }: KotHistoryModal
         width: 120,
         sortable: true,
         render: (row) => {
-          const isReady = row.status === "Ready" || row.status === "Prepared";
-          const isServed = row.status === "Served";
-          const isCancelled = (row.status as string) === "Cancelled";
+          if (!row) return "--";
+          const rowStatus = String(row?.status || "");
+          const isReady = rowStatus === "Ready" || rowStatus === "Prepared";
+          const isServed = rowStatus === "Served";
+          const isCancelled = rowStatus === "Cancelled";
 
           if (isServed) {
             return (
@@ -254,7 +258,8 @@ export function KotHistoryModal({ isOpen, onClose, outletName }: KotHistoryModal
         width: 150,
         sortable: false,
         render: (row) => {
-          const isCancelled = (row.status as string) === "Cancelled";
+          if (!row) return null;
+          const isCancelled = String(row?.status || "") === "Cancelled";
           return (
             <div className="flex items-center gap-1.5 justify-center">
               {!isCancelled && (

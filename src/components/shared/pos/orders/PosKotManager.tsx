@@ -94,27 +94,29 @@ export function PosKotManager() {
     return (kotData?.records || [])
       .filter(
         (k) =>
+          k &&
           !dismissedIds.has(k.id) &&
           k.status !== "Served" &&
           k.status !== "Prepared" &&
+          (k as any).status !== "Ready" &&
           (k as any).status !== "Cancelled",
       )
       .map((k) => ({
-        id: k.id,
-        kotId: k.kotId,
-        orderId: k.orderId,
-        orderNumber: k.orderNumber,
-        status: k.status,
-        orderType: k.orderType,
-        customerName: k.customerName,
-        itemsText: k.itemsText,
-        items: k.items,
-        itemCount: k.itemCount,
-        notes: (k as any).notes || (k as any).orderNote || undefined,
-        orderNote: (k as any).orderNote || undefined,
-        createdAt: k.createdAt,
-        createdTimestamp: kotStartMs(k.createdTimestamp, k.createdAt),
-        isModified: k.isModified,
+        id: k?.id || "",
+        kotId: k?.kotId || 0,
+        orderId: k?.orderId,
+        orderNumber: k?.orderNumber,
+        status: k?.status || "In Kitchen",
+        orderType: k?.orderType || "",
+        customerName: k?.customerName || "--",
+        itemsText: k?.itemsText || "",
+        items: k?.items,
+        itemCount: k?.itemCount || 0,
+        notes: (k as any)?.notes || (k as any)?.orderNote || undefined,
+        orderNote: (k as any)?.orderNote || undefined,
+        createdAt: k?.createdAt || "",
+        createdTimestamp: kotStartMs(k?.createdTimestamp, k?.createdAt),
+        isModified: k?.isModified,
       }))
       .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
   }, [kotData, dismissedIds]);

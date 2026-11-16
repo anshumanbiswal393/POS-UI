@@ -76,45 +76,61 @@ export type LiveOrderPayload = {
 
 function kotStatusUi(raw?: string): KotItem["status"] {
   const key = (raw || "").toUpperCase();
-  if (key === "READY" || raw === "Prepared") return "Prepared";
+  if (key === "CANCELLED" || raw === "Cancelled") return "Cancelled";
+  if (key === "READY" || raw === "Ready" || raw === "Prepared") return "Prepared";
   if (key === "SERVED" || raw === "Served") return "Served";
   if (key === "PREPARING" || raw === "In Kitchen") return "In Kitchen";
   if (key === "PENDING" || raw === "Not Prepared") return "Not Prepared";
-  if (raw === "In Kitchen" || raw === "Prepared" || raw === "Served" || raw === "Not Prepared") {
-    return raw;
+  if (raw === "In Kitchen" || raw === "Prepared" || raw === "Served" || raw === "Not Prepared" || raw === "Ready" || raw === "Cancelled") {
+    return raw as KotItem["status"];
   }
   return "In Kitchen";
 }
 
-export function mapLiveKotRecord(r: KotRecordApiDto & Record<string, any>): KotItem {
-  const status = kotStatusUi(r.statusLabel || r.status);
+export function mapLiveKotRecord(r?: (KotRecordApiDto & Record<string, any>) | null): KotItem {
+  if (!r) {
+    return {
+      id: "",
+      kotId: 0,
+      orderType: "",
+      customerName: "--",
+      customerPhone: "--",
+      itemCount: 0,
+      itemsText: "",
+      status: "In Kitchen",
+      billPrintDate: "",
+      completeDuration: "",
+      createdAt: "",
+    };
+  }
+  const status = kotStatusUi(r?.statusLabel || r?.status);
   return {
-    id: String(r.id),
-    kotId: Number(r.kotId || 0),
-    kotNumber: r.kotNumber || r.kot_number || undefined,
-    orderId: r.orderId,
-    orderNumber: r.orderNumber,
-    orderType: r.orderType,
-    tableOrRoom: r.tableOrRoom || r.tableNumber || r.roomNumber || undefined,
-    waiterName: r.waiterName || r.waiter_name || undefined,
-    customerName: r.customerName || "--",
-    customerPhone: r.customerPhone || "--",
-    itemCount: Number(r.itemCount || r.items?.length || 0),
-    itemsText: r.itemsText || "",
-    items: (r.items || []).map((i: any) => ({
-      name: i.name,
-      quantity: Number(i.quantity || 1),
-      notes: i.notes || undefined,
+    id: String(r?.id || ""),
+    kotId: Number(r?.kotId || 0),
+    kotNumber: r?.kotNumber || r?.kot_number || undefined,
+    orderId: r?.orderId,
+    orderNumber: r?.orderNumber,
+    orderType: r?.orderType || "",
+    tableOrRoom: r?.tableOrRoom || r?.tableNumber || r?.roomNumber || undefined,
+    waiterName: r?.waiterName || r?.waiter_name || undefined,
+    customerName: r?.customerName || "--",
+    customerPhone: r?.customerPhone || "--",
+    itemCount: Number(r?.itemCount || r?.items?.length || 0),
+    itemsText: r?.itemsText || "",
+    items: (r?.items || []).map((i: any) => ({
+      name: i?.name || "Item",
+      quantity: Number(i?.quantity || 1),
+      notes: i?.notes || undefined,
     })),
     status,
-    notes: r.notes || r.orderNote || r.order_note || undefined,
-    orderNote: r.orderNote || r.order_note || undefined,
-    billPrintDate: r.billPrintDate || "",
-    completeDuration: r.completeDuration || "",
-    createdAt: r.createdAt || "",
-    createdTimestamp: r.createdTimestamp || Date.now(),
-    readyTimestamp: r.readyTimestamp,
-    isModified: Boolean(r.isModified),
+    notes: r?.notes || r?.orderNote || r?.order_note || undefined,
+    orderNote: r?.orderNote || r?.order_note || undefined,
+    billPrintDate: r?.billPrintDate || "",
+    completeDuration: r?.completeDuration || "",
+    createdAt: r?.createdAt || "",
+    createdTimestamp: r?.createdTimestamp || Date.now(),
+    readyTimestamp: r?.readyTimestamp,
+    isModified: Boolean(r?.isModified),
   };
 }
 
