@@ -167,30 +167,6 @@ export function BillingMenuCatalog({
     <div className="flex flex-col h-full overflow-hidden rounded-2xl border border-border/80 bg-surface shadow-e1">
       {/* Toolbar */}
       <div className="shrink-0 space-y-2.5 border-b border-border/70 bg-linear-to-b from-surface-2/80 to-surface px-3 py-3">
-        {/* Meal-Time Tabs: All, Breakfast, Lunch, Dinner - Aligned in middle with distinct background */}
-        <div className="flex justify-center w-full">
-          <div className="inline-flex items-center gap-1 bg-emerald-50/70 p-1 rounded-xl border border-emerald-200/80 shadow-2xs">
-            {(["All", "Breakfast", "Lunch", "Dinner"] as const).map((meal) => {
-              const active = selectedMealTime === meal;
-              return (
-                <button
-                  key={meal}
-                  type="button"
-                  onClick={() => (onSelectMealTime ? onSelectMealTime(meal) : setInternalMealTime(meal))}
-                  className={cn(
-                    "flex items-center gap-1 px-3.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer",
-                    active
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-slate-700 hover:text-slate-900 hover:bg-white/90",
-                  )}
-                >
-                  <span>{meal}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="relative min-w-[200px] flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary/70" />

@@ -80,11 +80,11 @@
   --color-teal-950: var(--teal-950);
 
   /* Global Palette Standardization — matches PMS Reference */
-  --color-slate-50: #f3f9f6;
-  --color-slate-100: #e2e8f0;
-  --color-slate-200: #cbd5e1;
-  --color-slate-300: #94a3b8;
-  --color-slate-400: #64748b;
+  --color-slate-50: var(--background);
+  --color-slate-100: var(--surface-2);
+  --color-slate-200: var(--border);
+  --color-slate-300: var(--border);
+  --color-slate-400: var(--border-strong);
   --color-slate-500: #000000;
   --color-slate-600: #000000;
   --color-slate-700: #000000;
@@ -92,11 +92,11 @@
   --color-slate-900: #000000;
   --color-slate-950: #000000;
 
-  --color-gray-50: #f3f9f6;
-  --color-gray-100: #e2e8f0;
-  --color-gray-200: #cbd5e1;
-  --color-gray-300: #94a3b8;
-  --color-gray-400: #64748b;
+  --color-gray-50: var(--background);
+  --color-gray-100: var(--surface-2);
+  --color-gray-200: var(--border);
+  --color-gray-300: var(--border);
+  --color-gray-400: var(--border-strong);
   --color-gray-500: #000000;
   --color-gray-600: #000000;
   --color-gray-700: #000000;
@@ -104,11 +104,11 @@
   --color-gray-900: #000000;
   --color-gray-950: #000000;
 
-  --color-zinc-50: #f3f9f6;
-  --color-zinc-100: #e2e8f0;
-  --color-zinc-200: #cbd5e1;
-  --color-zinc-300: #94a3b8;
-  --color-zinc-400: #64748b;
+  --color-zinc-50: var(--background);
+  --color-zinc-100: var(--surface-2);
+  --color-zinc-200: var(--border);
+  --color-zinc-300: var(--border);
+  --color-zinc-400: var(--border-strong);
   --color-zinc-500: #000000;
   --color-zinc-600: #000000;
   --color-zinc-700: #000000;
@@ -116,11 +116,11 @@
   --color-zinc-900: #000000;
   --color-zinc-950: #000000;
 
-  --color-neutral-50: #f3f9f6;
-  --color-neutral-100: #e2e8f0;
-  --color-neutral-200: #cbd5e1;
-  --color-neutral-300: #94a3b8;
-  --color-neutral-400: #64748b;
+  --color-neutral-50: var(--background);
+  --color-neutral-100: var(--surface-2);
+  --color-neutral-200: var(--border);
+  --color-neutral-300: var(--border);
+  --color-neutral-400: var(--border-strong);
   --color-neutral-500: #000000;
   --color-neutral-600: #000000;
   --color-neutral-700: #000000;
@@ -136,10 +136,10 @@
 :root {
   --radius: 8px;
 
-  /* Backgrounds & Canvas — matches PMS reference with soft minty green tint */
-  --background: #f3f9f6;
+  /* Backgrounds & Canvas — exact PMS forest-slate-executive tokens */
+  --background: oklch(0.977 0.008 165);
   --surface: #FFFFFF;
-  --surface-2: #eaf3ee;
+  --surface-2: oklch(0.963 0.01 170);
   --foreground: #000000;
 
   --card: #FFFFFF;
@@ -163,11 +163,11 @@
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
 
-  /* Neutrals & Borders — Matched exactly to PMS reference crisp border contrast */
-  --border: #cbd5e1;
-  --border-subtle: #e2e8f0;
-  --border-strong: #94a3b8;
-  --input: #cbd5e1;
+  /* Neutrals & Borders — exact PMS forest-slate-executive border tokens */
+  --border: oklch(0.74 0.015 170);
+  --border-subtle: oklch(0.81 0.01 170);
+  --border-strong: oklch(0.63 0.02 170);
+  --input: oklch(0.74 0.015 170);
   --ring: oklch(0.47 0.095 166);
 
   /* Semantic Feedback */
@@ -191,7 +191,7 @@
   --sidebar-foreground: #000000;
   --sidebar-hover: var(--surface-2);
   --sidebar-muted: #000000;
-  --sidebar-border: #cbd5e1;
+  --sidebar-border: oklch(0.78 0.012 170);
 
   /* Theme-adaptive teal color scale mapping */
   --teal-50: var(--primary-tint, color-mix(in srgb, var(--primary) 8%, white));
