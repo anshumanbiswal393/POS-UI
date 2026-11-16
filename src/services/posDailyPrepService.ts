@@ -115,12 +115,25 @@ export const posDailyPrepService = {
 
     // 1. Increment available plates in POS billing catalog
     if (newRecord.plates > 0) {
-      updateItemPlates(
-        effectiveOutletId,
-        newRecord.menuItemId,
-        newRecord.plates,
-        true, // isDelta = true (adds to today's available stock)
-      );
+      try {
+        if (typeof updateItemPlates === "function") {
+          updateItemPlates(
+            effectiveOutletId,
+            newRecord.menuItemId,
+            newRecord.plates,
+            true, // isDelta = true (adds to today's available stock)
+          );
+        } else if (typeof posMenuService?.updateItemPlates === "function") {
+          posMenuService.updateItemPlates(
+            effectiveOutletId,
+            newRecord.menuItemId,
+            newRecord.plates,
+            true,
+          );
+        }
+      } catch (plateErr) {
+        console.warn("Could not sync item plates:", plateErr);
+      }
     }
 
     // 2. Deduct consumed raw materials from inventory stock
@@ -160,12 +173,25 @@ export const posDailyPrepService = {
     if (rollbackStock) {
       // 1. Rollback plates
       if (target.plates > 0) {
-        updateItemPlates(
-          outletId || target.outletId,
-          target.menuItemId,
-          -target.plates,
-          true,
-        );
+        try {
+          if (typeof updateItemPlates === "function") {
+            updateItemPlates(
+              outletId || target.outletId,
+              target.menuItemId,
+              -target.plates,
+              true,
+            );
+          } else if (typeof posMenuService?.updateItemPlates === "function") {
+            posMenuService.updateItemPlates(
+              outletId || target.outletId,
+              target.menuItemId,
+              -target.plates,
+              true,
+            );
+          }
+        } catch (plateErr) {
+          console.warn("Could not rollback item plates:", plateErr);
+        }
       }
 
       // 2. Rollback raw materials

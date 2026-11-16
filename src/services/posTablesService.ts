@@ -366,58 +366,45 @@ let scopedOutletId: string | undefined;
 let scopedHighwayDemo = false;
 
 export function cleanOutletId(id?: string | null): string | undefined {
-
   if (!id) return undefined;
-
   const clean = id.replace(/^outlet-/, "");
-
   if (isBackendOutletId(clean)) return clean;
-
   if (isBackendOutletId(id)) return id;
-
   return undefined;
+}
 
+export function resolveEffectiveOutlet(outletIdOverride?: string): string | undefined {
+  const raw =
+    outletIdOverride ||
+    scopedOutletId ||
+    (typeof window !== "undefined"
+      ? localStorage.getItem("retrod_pos_active_outlet_id")
+      : null);
+  return cleanOutletId(raw);
 }
 
 /** Scope table/reservation mutations to the active outlet (empty for new UUID outlets). */
-
 export function setTablesOutletScope(outletId?: string | null, highwayDemo?: boolean) {
-
   scopedOutletId = outletId || undefined;
-
   if (typeof highwayDemo === "boolean") scopedHighwayDemo = highwayDemo;
-
 }
 
-function isLiveFloor() {
-
-  const effectiveId = scopedOutletId || (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null);
-    const cid = cleanOutletId(effectiveId);
-
+function isLiveFloor(outletIdOverride?: string) {
+  const cid = resolveEffectiveOutlet(outletIdOverride);
   return Boolean(cid && isBackendOutletId(cid));
-
 }
 
 function store(): TableBucket {
-
   if (isLiveFloor()) {
-
-    let b = outletBuckets.get(scopedOutletId as string);
-
+    const key = resolveEffectiveOutlet() || (scopedOutletId as string) || "live";
+    let b = outletBuckets.get(key);
     if (!b) {
-
       b = { areas: [], tables: [], reservations: [] };
-
-      outletBuckets.set(scopedOutletId as string, b);
-
+      outletBuckets.set(key, b);
     }
-
     return b;
-
   }
-
   return legacyBucket;
-
 }
 
 async function patchTableStatus(
@@ -480,9 +467,8 @@ export function saveStoredTables(outletId: string | undefined, tables: Restauran
 
 export const posTablesService = {
 
-  getAreas: async (): Promise<string[]> => {
-    const effectiveId = scopedOutletId || (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null);
-    const cid = cleanOutletId(effectiveId);
+  getAreas: async (outletIdOverride?: string): Promise<string[]> => {
+    const cid = resolveEffectiveOutlet(outletIdOverride);
 
     let names: string[] = [];
 
@@ -494,6 +480,12 @@ export const posTablesService = {
         names = unwrapRows<any>(res.data)
           .map((s) => String(s.name || "").trim())
           .filter(Boolean);
+        names = Array.from(new Set(names));
+
+        // When connected to backend DB, the database sections are authoritative
+        saveStoredAreas(cid, names);
+        store().areas = names;
+        return names;
       } catch (err) {
         console.warn("Failed to fetch areas from DB, using local sync", err);
       }
@@ -509,47 +501,62 @@ export const posTablesService = {
     return combined;
   },
 
-  addArea: async (areaName: string): Promise<string[]> => {
+  addArea: async (areaName: string, outletIdOverride?: string): Promise<string[]> => {
     const trimmed = areaName.trim();
-    if (!trimmed) return posTablesService.getAreas();
+    if (!trimmed) return posTablesService.getAreas(outletIdOverride);
 
-    const effectiveId = scopedOutletId || (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null);
-    const cid = cleanOutletId(effectiveId);
-
-    // Save locally first to ensure immediate persistence
-    const currentLocal = getStoredAreas(cid);
-    if (!currentLocal.some((a) => a.toLowerCase() === trimmed.toLowerCase())) {
-      const nextAreas = [...currentLocal, trimmed];
-      saveStoredAreas(cid, nextAreas);
-      store().areas = nextAreas;
-    }
+    const cid = resolveEffectiveOutlet(outletIdOverride);
 
     if (cid) {
       try {
         await httpClient.post(API_ENDPOINTS.TABLES.AREAS, {
           outlet: cid,
-          outlet_id: cid,
           name: trimmed,
           is_active: true,
         });
       } catch (err) {
         console.warn("Section creation on backend returned error or already exists", err);
       }
+    } else {
+      const currentLocal = getStoredAreas(cid);
+      if (!currentLocal.some((a) => a.toLowerCase() === trimmed.toLowerCase())) {
+        const nextAreas = [...currentLocal, trimmed];
+        saveStoredAreas(cid, nextAreas);
+        store().areas = nextAreas;
+      }
     }
 
-    return posTablesService.getAreas();
+    return posTablesService.getAreas(outletIdOverride);
   },
 
-  updateArea: async (oldName: string, newName: string): Promise<string[]> => {
+  updateArea: async (oldName: string, newName: string, outletIdOverride?: string): Promise<string[]> => {
     const trimmed = newName.trim();
     if (!trimmed || oldName.trim().toLowerCase() === trimmed.toLowerCase()) {
-      return posTablesService.getAreas();
+      return posTablesService.getAreas(outletIdOverride);
     }
 
-    const effectiveId = scopedOutletId || (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null);
-    const cid = cleanOutletId(effectiveId);
+    const cid = resolveEffectiveOutlet(outletIdOverride);
 
-    // Update locally
+    if (cid) {
+      try {
+        const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
+          params: { outlet_id: cid, outletId: cid, page_size: 200 },
+        });
+        const sections = unwrapRows<any>(res.data);
+        const section = sections.find(
+          (s) => String(s.name).trim().toLowerCase() === oldName.trim().toLowerCase(),
+        );
+        if (section?.id) {
+          await httpClient.patch(`${API_ENDPOINTS.TABLES.AREAS}${section.id}/`, {
+            name: trimmed,
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to update area on backend:", err);
+      }
+    }
+
+    // Update local cache
     const currentLocal = getStoredAreas(cid);
     const updatedLocal = currentLocal.map((a) =>
       a.toLowerCase() === oldName.toLowerCase() ? trimmed : a,
@@ -571,46 +578,12 @@ export const posTablesService = {
       ),
     );
 
-    if (cid) {
-      try {
-        const res = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
-          params: { outlet_id: cid, outletId: cid, page_size: 200 },
-        });
-        const sections = unwrapRows<any>(res.data);
-        const section = sections.find(
-          (s) => String(s.name).trim().toLowerCase() === oldName.trim().toLowerCase(),
-        );
-        if (section?.id) {
-          await httpClient.patch(`${API_ENDPOINTS.TABLES.AREAS}${section.id}/`, {
-            name: trimmed,
-          });
-        }
-      } catch (err) {
-        console.warn("Failed to update area on backend:", err);
-      }
-    }
-
-    return posTablesService.getAreas();
+    return posTablesService.getAreas(outletIdOverride);
   },
 
-  deleteArea: async (areaName: string): Promise<string[]> => {
+  deleteArea: async (areaName: string, outletIdOverride?: string): Promise<string[]> => {
     const trimmed = areaName.trim();
-    const effectiveId = scopedOutletId || (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null);
-    const cid = cleanOutletId(effectiveId);
-
-    // Remove locally
-    const currentLocal = getStoredAreas(cid);
-    const filteredLocal = currentLocal.filter((a) => a.toLowerCase() !== trimmed.toLowerCase());
-    saveStoredAreas(cid, filteredLocal);
-    store().areas = filteredLocal;
-
-    // Remove tables belonging to this area locally
-    store().tables = store().tables.filter((t) => (t.area || "").toLowerCase() !== trimmed.toLowerCase());
-    const currentStoredTables = getStoredTables(cid);
-    saveStoredTables(
-      cid,
-      currentStoredTables.filter((t) => (t.area || "").toLowerCase() !== trimmed.toLowerCase()),
-    );
+    const cid = resolveEffectiveOutlet(outletIdOverride);
 
     if (cid) {
       try {
@@ -629,76 +602,61 @@ export const posTablesService = {
       }
     }
 
-    return posTablesService.getAreas();
+    // Remove locally
+    const currentLocal = getStoredAreas(cid);
+    const filteredLocal = currentLocal.filter((a) => a.toLowerCase() !== trimmed.toLowerCase());
+    saveStoredAreas(cid, filteredLocal);
+    store().areas = filteredLocal;
+
+    // Remove tables belonging to this area locally
+    store().tables = store().tables.filter((t) => (t.area || "").toLowerCase() !== trimmed.toLowerCase());
+    const currentStoredTables = getStoredTables(cid);
+    saveStoredTables(
+      cid,
+      currentStoredTables.filter((t) => (t.area || "").toLowerCase() !== trimmed.toLowerCase()),
+    );
+
+    return posTablesService.getAreas(outletIdOverride);
   },
 
-  addTable: async (input: {
-
-    tableNumber: string;
-
-    capacity: number;
-
-    area: string;
-
-    shape?: "rectangle" | "square" | "circle";
-
-  }): Promise<RestaurantTable> => {
-
-    const effectiveId = scopedOutletId || (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null);
-    const cid = cleanOutletId(effectiveId);
+  addTable: async (
+    input: {
+      tableNumber: string;
+      capacity: number;
+      area: string;
+      shape?: "rectangle" | "square" | "circle";
+    },
+    outletIdOverride?: string,
+  ): Promise<RestaurantTable> => {
+    const cid = resolveEffectiveOutlet(outletIdOverride);
 
     if (cid) {
-
       const sectionsRes = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
-
         params: { outlet_id: cid, outletId: cid, page_size: 200 },
-
       });
-
       const sections = unwrapRows<any>(sectionsRes.data);
-
       let section = sections.find(
-
         (s) => String(s.name).trim().toLowerCase() === (input.area || "").trim().toLowerCase(),
-
       );
 
       if (!section) {
-
         try {
-
           const created = await httpClient.post(API_ENDPOINTS.TABLES.AREAS, {
-
             outlet: cid,
-
-            name: input.area || "Dining Area",
-
+            name: input.area?.trim() || "Dining Area",
             is_active: true,
-
           });
-
           section = created.data;
-
         } catch {
-
           const retryRes = await httpClient.get(API_ENDPOINTS.TABLES.AREAS, {
-
             params: { outlet_id: cid, outletId: cid, page_size: 200 },
-
           });
-
           const rows = unwrapRows<any>(retryRes.data);
-
           section =
-
             rows.find(
-
               (s) => String(s.name).trim().toLowerCase() === (input.area || "").trim().toLowerCase(),
-
             ) || rows[0];
-
         }
-
       }
 
       if (section?.id) {
@@ -707,22 +665,21 @@ export const posTablesService = {
         const cleanNum = input.tableNumber.replace(/^Table\s*#?/i, "").trim() || input.tableNumber;
         try {
           const res = await httpClient.post(API_ENDPOINTS.TABLES.LIST, {
-            outlet: cid,
-            outlet_id: cid,
             section: section.id,
             table_number: cleanNum,
-            capacity: input.capacity,
+            capacity: Number(input.capacity) || 4,
             shape: shapeApi,
             status: "VACANT",
             is_active: true,
           });
-          const apiMapped = mapApiTable(res.data, input.area);
+          const apiMapped = mapApiTable(res.data, input.area || section.name);
           const currentStored = getStoredTables(cid);
           saveStoredTables(cid, [...currentStored.filter((t) => t.id !== apiMapped.id), apiMapped]);
           store().tables = [...store().tables.filter((t) => t.id !== apiMapped.id), apiMapped];
           return apiMapped;
         } catch (apiErr) {
-          console.warn("Backend table creation returned error, falling back to local sync", apiErr);
+          console.error("Backend table creation returned error:", apiErr);
+          throw apiErr;
         }
       }
     }
@@ -766,13 +723,9 @@ export const posTablesService = {
   updateTable: async (
     tableId: string,
     data: Partial<RestaurantTable>,
+    outletIdOverride?: string,
   ): Promise<RestaurantTable | null> => {
-    const effectiveId =
-      scopedOutletId ||
-      (typeof window !== "undefined"
-        ? localStorage.getItem("retrod_pos_active_outlet_id")
-        : null);
-    const cid = cleanOutletId(effectiveId);
+    const cid = resolveEffectiveOutlet(outletIdOverride);
 
     if (cid && isBackendOutletId(tableId)) {
       try {
@@ -794,7 +747,7 @@ export const posTablesService = {
           payload.table_number =
             data.tableNumber.replace(/^Table\s*#?/i, "").trim() || data.tableNumber;
         }
-        if (data.capacity) payload.capacity = data.capacity;
+        if (data.capacity) payload.capacity = Number(data.capacity);
         if (data.shape) {
           payload.shape =
             data.shape === "circle"
@@ -814,7 +767,8 @@ export const posTablesService = {
         store().tables = store().tables.map((t) => (t.id === tableId ? { ...t, ...updated } : t));
         return updated;
       } catch (err) {
-        console.warn("Backend updateTable failed, updating locally:", err);
+        console.error("Backend updateTable failed:", err);
+        throw err;
       }
     }
 
@@ -826,15 +780,19 @@ export const posTablesService = {
     return store().tables.find((t) => t.id === tableId) || null;
   },
 
-  deleteTable: async (tableId: string): Promise<boolean> => {
-    const effectiveId =
-      scopedOutletId ||
-      (typeof window !== "undefined"
-        ? localStorage.getItem("retrod_pos_active_outlet_id")
-        : null);
-    const cid = cleanOutletId(effectiveId);
+  deleteTable: async (tableId: string, outletIdOverride?: string): Promise<boolean> => {
+    const cid = resolveEffectiveOutlet(outletIdOverride);
 
-    // Update locally first
+    if (cid && isBackendOutletId(tableId)) {
+      try {
+        await httpClient.delete(`${API_ENDPOINTS.TABLES.LIST}${tableId}/`);
+      } catch (err) {
+        console.error("Backend deleteTable error:", err);
+        throw err;
+      }
+    }
+
+    // Update locally
     store().tables = store().tables.filter((t) => t.id !== tableId);
     const stored = getStoredTables(cid);
     saveStoredTables(
@@ -842,25 +800,25 @@ export const posTablesService = {
       stored.filter((t) => t.id !== tableId),
     );
 
-    if (cid && isBackendOutletId(tableId)) {
-      try {
-        await httpClient.delete(`${API_ENDPOINTS.TABLES.LIST}${tableId}/`);
-      } catch (err) {
-        console.warn("Backend deleteTable error:", err);
-      }
-    }
-
     return true;
   },
 
-  getTables: async (area?: DiningArea, outletIdOverride?: string): Promise<RestaurantTable[]> => {
-    const effectiveId =
-      outletIdOverride ||
-      scopedOutletId ||
-      (typeof window !== "undefined"
-        ? localStorage.getItem("retrod_pos_active_outlet_id")
-        : null);
-    const cid = cleanOutletId(effectiveId);
+  getTables: async (
+    areaOrOutletId?: DiningArea | string,
+    outletIdOverride?: string,
+  ): Promise<RestaurantTable[]> => {
+    let area: DiningArea | undefined;
+    let effectiveOutletOverride = outletIdOverride;
+
+    if (areaOrOutletId) {
+      if (isBackendOutletId(areaOrOutletId) || areaOrOutletId.startsWith("outlet-")) {
+        effectiveOutletOverride = effectiveOutletOverride || areaOrOutletId;
+      } else {
+        area = areaOrOutletId as DiningArea;
+      }
+    }
+
+    const cid = resolveEffectiveOutlet(effectiveOutletOverride);
     if (cid) {
       let mapped: RestaurantTable[] = [];
       try {
@@ -870,7 +828,7 @@ export const posTablesService = {
         mapped = unwrapRows<any>(res.data).map((row) => mapApiTable(row, area));
       } catch (err) {
         console.error("Failed to fetch tables from DB", err);
-        mapped = [];
+        mapped = getStoredTables(cid);
       }
       // Guarantee each table has an area label
       mapped = mapped.map((t) => ({
@@ -878,14 +836,7 @@ export const posTablesService = {
         area: t.area && t.area.trim() ? t.area : "Dining Area",
       }));
 
-      // Merge with stored local tables to guarantee zero data loss
-      const stored = getStoredTables(cid);
-      const dbIds = new Set(mapped.map((t) => t.id));
-      const dbNums = new Set(mapped.map((t) => t.tableNumber.toLowerCase()));
-      const extraLocal = stored.filter(
-        (t) => !dbIds.has(t.id) && !dbNums.has(t.tableNumber.toLowerCase()),
-      );
-      mapped = [...mapped, ...extraLocal];
+      // Cache authoritative DB tables
       saveStoredTables(cid, mapped);
       store().tables = mapped;
 
@@ -1030,18 +981,15 @@ export const posTablesService = {
     return store().tables;
   },
 
-  getReservations: async (): Promise<ReservationItem[]> => {
-    const effectiveOutlet =
-      scopedOutletId ||
-      (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null) ||
-      undefined;
+  getReservations: async (outletIdOverride?: string): Promise<ReservationItem[]> => {
+    const effectiveOutlet = resolveEffectiveOutlet(outletIdOverride);
     const localStored = getStoredReservations(effectiveOutlet);
 
     let backendRows: ReservationItem[] = [];
-    if (isLiveFloor()) {
+    if (isLiveFloor(outletIdOverride)) {
       try {
         const res = await httpClient.get(API_ENDPOINTS.TABLES.RESERVATIONS, {
-          params: { outlet_id: scopedOutletId, page_size: 200 },
+          params: { outlet_id: effectiveOutlet, page_size: 200 },
         });
         const rows = unwrapRows<any>(res.data);
         if (rows.length > 0) {
@@ -1095,16 +1043,11 @@ export const posTablesService = {
     return result;
   },
 
-  getStats: async (area?: DiningArea): Promise<TableManagementStats> => {
-
-    const list = isLiveFloor()
-
-      ? await posTablesService.getTables(area)
-
+  getStats: async (area?: DiningArea, outletIdOverride?: string): Promise<TableManagementStats> => {
+    const list = isLiveFloor(outletIdOverride)
+      ? await posTablesService.getTables(area, outletIdOverride)
       : area
-
         ? store().tables.filter((t) => t.area === area)
-
         : store().tables;
 
     const totalTables = list.length;
