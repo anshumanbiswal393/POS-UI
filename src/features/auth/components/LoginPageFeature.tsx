@@ -294,7 +294,7 @@ export function LoginPageFeature() {
             --green-dark: #2a3d34;
             --gold-gradient: linear-gradient(90deg, #b08d55, #d4af37);
             --gold-btn: linear-gradient(135deg, #c5a059, #a67c33);
-            font-family: 'Inter', sans-serif;
+            font-family: 'DM Sans', sans-serif;
             color: var(--text-dark);
             height: 100vh;
             height: 100dvh;
