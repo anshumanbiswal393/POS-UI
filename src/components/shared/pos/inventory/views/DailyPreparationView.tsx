@@ -247,9 +247,6 @@ export function DailyPreparationView() {
                 Plate & Raw Material Sync
               </span>
             </h1>
-            <p className="text-[12px] text-slate-500">
-              Record daily dishes prepared with plate yield. Deducts raw materials from inventory and updates waiter POS stock.
-            </p>
           </div>
         </div>
 

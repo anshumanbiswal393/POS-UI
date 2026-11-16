@@ -143,9 +143,6 @@ export function TableFloorPlan({
                 </span>
               )}
             </h1>
-            <p className="text-[11.5px] text-slate-500 mt-0.5">
-              Live restaurant seating layout, floor occupancy, and reservation schedule.
-            </p>
           </div>
 
           {/* Area Switcher & Actions */}

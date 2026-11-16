@@ -271,9 +271,6 @@ export function SupplierManagementView() {
           <h2 className="text-lg font-bold text-foreground tracking-tight">
             Supplier / Vendor Management
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Manage approved vendor profiles, supply categories, GSTIN details, and outstanding balances.
-          </p>
         </div>
 
         <button
@@ -291,8 +288,6 @@ export function SupplierManagementView() {
         data={localVendors}
         columns={columns}
         keyField="id"
-        title="Approved Suppliers"
-        subtitle="Search by company, contact person, category or GSTIN"
         showToolbar
         selectable
         storageKey="pos-supplier-management"

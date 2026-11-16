@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { Building2, ChefHat, Plus, Store } from "lucide-react";
+import { ColorActionEdit } from "@/components/common/ColorActionIcons";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { deduplicateOutlets, isHighwayInnName } from "@/utils/outletId";
 import { locationRoleLabel } from "@/utils/outletKind";
@@ -116,9 +117,10 @@ export function OutletListView() {
                         <div className="flex items-center gap-1.5">
                           <Link
                             to={`/pos/management/configuration/outlet/details?outletId=${encodeURIComponent(row.id)}`}
-                            className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                            className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 transition cursor-pointer shadow-2xs"
+                            title="Edit Details"
                           >
-                            Edit Details
+                            <ColorActionEdit className="h-4 w-4" />
                           </Link>
                           <Link
                             to={`/pos/management/configuration/outlet?outletId=${encodeURIComponent(row.id)}`}

@@ -493,42 +493,30 @@ export function MenuListManagerView() {
 
   return (
     <div className="space-y-4">
-      {/* 1. Header Toolbar & Clean Compact Master Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-300 shadow-2xs">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-800 border border-teal-200 font-bold">
-            <UtensilsCrossed className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-[17px] sm:text-[18px] font-extrabold text-black">
-              Menu Item Master Catalog
-            </h2>
-          </div>
+      {/* 1. Search Toolbar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-300 shadow-2xs">
+        <div className="relative w-full sm:w-72 md:w-80">
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by menu name or code..."
+            className="h-10 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-8 text-[13px] text-black placeholder:text-slate-500 focus:border-teal-600 focus:bg-white focus:outline-hidden transition"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-black hover:bg-slate-200 transition cursor-pointer"
+              title="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {/* Menu Name and Code Search Bar */}
-          <div className="relative w-full sm:w-60 md:w-72">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by menu name or code..."
-              className="h-10 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-8 text-[13px] text-black placeholder:text-slate-500 focus:border-teal-600 focus:bg-white focus:outline-hidden transition"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-black hover:bg-slate-200 transition cursor-pointer"
-                title="Clear search"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-
           <button
             type="button"
             onClick={() => {

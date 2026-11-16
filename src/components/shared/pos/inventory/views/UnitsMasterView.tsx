@@ -182,9 +182,6 @@ export function UnitsMasterView() {
           <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
             Units of Measurement
           </h2>
-          <p className="text-[12.5px] text-slate-500 mt-0.5">
-            Standardize inventory purchase and consumption conversion ratios across raw materials.
-          </p>
         </div>
 
         <button

@@ -451,9 +451,6 @@ export function RawMaterialsManagementView() {
           <h2 className="text-lg font-bold text-foreground tracking-tight">
             Raw Materials & Ingredients Catalog
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Configure stock items, categorize ingredients, set alert thresholds, and manage shelf-life.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

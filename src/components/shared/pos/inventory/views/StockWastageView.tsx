@@ -297,10 +297,6 @@ export function StockWastageView() {
             <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
               Stock Wastage & Leakage
             </h2>
-            <p className="text-[12.5px] text-slate-500 mt-0.5 max-w-xl">
-              Record, monitor, and investigate damaged goods, kitchen prep shrinkage, and expired
-              items.
-            </p>
           </div>
         </div>
 

@@ -223,9 +223,6 @@ export function InvoiceTemplatesView() {
             <Receipt className="h-5 w-5 text-teal-600" />
             Stock & Inventory Invoice Format Studio
           </h2>
-          <p className="text-[12px] text-slate-500 mt-0.5">
-            Configure, preview, and customize printable invoice formats for Purchase, Orders, Sales, and Stock Transfers.
-          </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">

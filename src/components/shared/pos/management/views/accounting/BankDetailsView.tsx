@@ -5,7 +5,6 @@ import {
   Building2,
   Plus,
   CheckCircle2,
-  Edit2,
   Trash2,
   Copy,
   Check,
@@ -16,6 +15,7 @@ import {
   AlertCircle,
   Lock,
 } from "lucide-react";
+import { ColorActionEdit } from "@/components/common/ColorActionIcons";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -460,10 +460,10 @@ export function BankDetailsView() {
                       <button
                         type="button"
                         onClick={() => openEditModal(acc)}
-                        className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-teal-600 transition cursor-pointer shadow-2xs"
+                        className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-teal-600 transition cursor-pointer shadow-2xs"
                         title="Edit account information"
                       >
-                        <Edit2 className="h-3.5 w-3.5" /> Edit
+                        <ColorActionEdit className="h-4 w-4" /> Edit
                       </button>
 
                       <button

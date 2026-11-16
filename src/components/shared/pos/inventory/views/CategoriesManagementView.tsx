@@ -255,9 +255,6 @@ export function CategoriesManagementView() {
           <h2 className="text-lg font-bold text-foreground tracking-tight">
             Stock Categories & Subcategories
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Maintain raw material categories, define subcategories, and assign measurement units.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -277,8 +274,6 @@ export function CategoriesManagementView() {
         data={categories}
         columns={columns}
         keyField="id"
-        title="Stock Category Catalog"
-        subtitle="Hierarchy of raw material groups and associated units"
         showToolbar
         storageKey="pos-stock-categories-management"
         themeVariant="primary"
