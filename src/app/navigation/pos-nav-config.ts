@@ -284,20 +284,6 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
           { id: "acc-gst", label: "GST Information", to: "/pos/management/accounting/gst", icon: FileText, permission: "pos.reports.view" },
           { id: "acc-bank", label: "Bank Details", to: "/pos/management/accounting/bank-details", icon: Landmark, permission: "pos.settings.manage" },
           { id: "acc-kyc", label: "KYC Details", to: "/pos/management/accounting/kyc", icon: Users, permission: "pos.settings.manage" },
-          {
-            id: "acc-expenses",
-            label: "Expense & Withdrawal",
-            to: "/pos/management/accounting/expenses",
-            icon: Wallet,
-            permission: "pos.shift.manage",
-          },
-          {
-            id: "acc-service",
-            label: "Service Payment History",
-            to: "/pos/management/accounting/service-payments",
-            icon: History,
-            permission: "pos.reports.view",
-          },
         ],
       },
       {
