@@ -270,6 +270,12 @@ export function useSwitchTableMutation() {
       queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: POS_RESERVATIONS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: POS_TABLE_STATS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "current-orders"] });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("pos:table-updated"));
+        window.dispatchEvent(new CustomEvent("retrod_pos_tables_changed"));
+      }
       toast.success(`Reservation switched to ${updated.tableNumber}`);
     },
     onError: (err: unknown) => {

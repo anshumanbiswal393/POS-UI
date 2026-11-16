@@ -675,12 +675,8 @@ export function generatePosInvoiceHtml(p: PosInvoicePrintPayload): string {
               <td class="val-bold">${formatINR(p.subtotal)}</td>
             </tr>
             <tr>
-              <td class="label">CGST:</td>
-              <td class="val-bold">${formatINR(p.cgst)}</td>
-            </tr>
-            <tr>
-              <td class="label">SGST:</td>
-              <td class="val-bold">${formatINR(p.sgst)}</td>
+              <td class="label">Tax (CGST + SGST):</td>
+              <td class="val-bold">${formatINR((p.cgst || 0) + (p.sgst || 0))}</td>
             </tr>
             <tr>
               <td class="label">Invoice Amount:</td>

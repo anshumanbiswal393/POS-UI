@@ -1388,6 +1388,12 @@ export const posTablesService = {
     if (!targetTable) throw new Error("Target table not found");
 
     const oldTableId = res.tableId;
+    const sourceTable = tables.find(
+      (t) => t.id === oldTableId || (res.tableNumber && t.tableNumber === res.tableNumber),
+    );
+
+    const isSeated =
+      res.status === "seated" || (sourceTable && sourceTable.status === "occupied");
     const isTimeActive = isReservationActiveNow(res);
 
     const updatedRes: ReservationItem = {
@@ -1410,12 +1416,78 @@ export const posTablesService = {
       }
     }
 
-    // If reservation is currently active, switch table statuses
-    if (isTimeActive) {
-      if (isBackendOutletId(oldTableId)) {
-        await patchTableStatus(oldTableId, "VACANT").catch(() => {});
+    let updatedSource: RestaurantTable | undefined;
+    let updatedTarget: RestaurantTable | undefined;
+
+    if (isSeated) {
+      // 1. Moving a seated reservation (and any active dine-in order) from old table to new table
+      const orderToMove = sourceTable?.activeOrder;
+
+      if (sourceTable) {
+        updatedSource = {
+          ...sourceTable,
+          status: "vacant",
+          activeOrder: undefined,
+          activeReservation: undefined,
+          currentGuests: 0,
+        };
+        if (isLiveFloor() && isBackendOutletId(sourceTable.id)) {
+          await patchTableStatus(sourceTable.id, "VACANT", {
+            active_order_id: null,
+            active_waiter_name: "",
+            notes: "",
+          }).catch(() => {});
+        }
       }
-      if (isBackendOutletId(targetTable.id)) {
+
+      updatedTarget = {
+        ...targetTable,
+        status: "occupied",
+        activeReservation: updatedRes,
+        activeOrder: orderToMove
+          ? {
+              ...orderToMove,
+              tableNumber: targetTable.tableNumber,
+            }
+          : undefined,
+        currentGuests: res.guests || sourceTable?.currentGuests || targetTable.capacity || 2,
+      };
+
+      if (isLiveFloor() && isBackendOutletId(targetTable.id)) {
+        await patchTableStatus(targetTable.id, "OCCUPIED", {
+          active_order_id:
+            orderToMove?.orderId && isBackendOutletId(orderToMove.orderId)
+              ? orderToMove.orderId
+              : undefined,
+          active_waiter_name:
+            updatedRes.customerName || orderToMove?.serverName || "Captain",
+          notes: updatedRes.notes || `Seated: ${updatedRes.customerName}`,
+        }).catch(() => {});
+      }
+    } else if (isTimeActive || sourceTable?.status === "reserved") {
+      // 2. Moving an active upcoming reservation holding the table
+      if (sourceTable) {
+        updatedSource = {
+          ...sourceTable,
+          status: "vacant",
+          activeReservation: undefined,
+          currentGuests: 0,
+        };
+        if (isLiveFloor() && isBackendOutletId(sourceTable.id)) {
+          await patchTableStatus(sourceTable.id, "VACANT", {
+            active_waiter_name: "",
+            notes: "",
+          }).catch(() => {});
+        }
+      }
+
+      updatedTarget = {
+        ...targetTable,
+        status: "reserved",
+        activeReservation: updatedRes,
+      };
+
+      if (isLiveFloor() && isBackendOutletId(targetTable.id)) {
         await patchTableStatus(targetTable.id, "RESERVED", {
           notes: updatedRes.notes || `Reserved for ${updatedRes.customerName}`,
           active_waiter_name: updatedRes.customerName,
@@ -1423,11 +1495,34 @@ export const posTablesService = {
       }
     }
 
+    // Persist table updates to local storage and in-memory store
+    if (updatedSource || updatedTarget) {
+      const storedTables = getStoredTables(effectiveOutlet);
+      const updatedStoredTables = storedTables.map((t) => {
+        if (updatedSource && t.id === updatedSource.id) return updatedSource;
+        if (updatedTarget && t.id === updatedTarget.id) return updatedTarget;
+        return t;
+      });
+      saveStoredTables(effectiveOutlet, updatedStoredTables);
+
+      store().tables = store().tables.map((t) => {
+        if (updatedSource && t.id === updatedSource.id) return updatedSource;
+        if (updatedTarget && t.id === updatedTarget.id) return updatedTarget;
+        return t;
+      });
+    }
+
     // Update localStorage & store
     const stored = getStoredReservations(effectiveOutlet);
     const updatedStored = stored.map((r) => (r.id === reservationId ? updatedRes : r));
     saveStoredReservations(effectiveOutlet, updatedStored);
     store().reservations = store().reservations.map((r) => (r.id === reservationId ? updatedRes : r));
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("pos:table-updated"));
+      window.dispatchEvent(new CustomEvent("retrod_pos_tables_changed"));
+      window.dispatchEvent(new CustomEvent("pos:reservation-updated"));
+    }
 
     return updatedRes;
   },

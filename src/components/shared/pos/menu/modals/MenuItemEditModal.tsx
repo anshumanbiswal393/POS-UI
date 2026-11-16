@@ -411,7 +411,7 @@ export function MenuItemEditModal({
     );
 
     const parsedPlates =
-      plates !== "" && !isNaN(Number(plates)) ? Math.max(0, Number(plates)) : undefined;
+      plates !== "" && !isNaN(Number(plates)) && Number(plates) > 0 ? Number(plates) : undefined;
 
     const validIngredients: MenuItemIngredient[] = [];
     for (const ing of recipeIngredients) {

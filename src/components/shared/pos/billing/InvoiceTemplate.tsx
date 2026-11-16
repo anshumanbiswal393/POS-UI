@@ -379,12 +379,8 @@ export function InvoiceTemplate({
             <span className="font-mono font-bold">₹{formatINR(taxableVal)}</span>
           </div>
           <div className="flex justify-between text-slate-700">
-            <span>CGST (2.5%):</span>
-            <span className="font-mono">₹{formatINR(p.cgst)}</span>
-          </div>
-          <div className="flex justify-between text-slate-700">
-            <span>SGST (2.5%):</span>
-            <span className="font-mono">₹{formatINR(p.sgst)}</span>
+            <span>Tax (CGST {(p.taxRate ? p.taxRate / 2 : 2.5).toFixed(1)}% + SGST {(p.taxRate ? p.taxRate / 2 : 2.5).toFixed(1)}%):</span>
+            <span className="font-mono">₹{formatINR((p.cgst || 0) + (p.sgst || 0))}</span>
           </div>
           {p.serviceCharge && p.serviceCharge > 0 ? (
             <div className="flex justify-between text-slate-700">
