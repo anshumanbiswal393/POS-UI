@@ -29,7 +29,7 @@ function ManagementLayoutRoute() {
       ) : isUsersSelfContained ? (
         <Outlet />
       ) : (
-        <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50">
+        <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-background">
           <div className="responsive-page-x py-4 sm:py-5 space-y-4 flex-1">
             <Outlet />
           </div>

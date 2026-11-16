@@ -7,7 +7,7 @@ export const Route = createFileRoute("/pos/settings")({
 
 function PosSettingsRoute() {
   return (
-    <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50">
+    <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-background">
       <div className="flex items-center justify-between px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
         <div>
           <h1 className="text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">

@@ -1910,7 +1910,7 @@ export function PosBillingManager() {
   );
 
   return (
-    <div className="flex flex-col flex-1 min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100dvh-3.5rem)] lg:max-h-[calc(100dvh-3.5rem)] lg:overflow-hidden bg-slate-50/50">
+    <div className="flex flex-col flex-1 min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100dvh-3.5rem)] lg:max-h-[calc(100dvh-3.5rem)] lg:overflow-hidden bg-background">
       {/* 1. Top Order Mode & Action Header */}
       <div className="shrink-0">
         <BillingHeader
