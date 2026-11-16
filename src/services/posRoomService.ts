@@ -39,7 +39,30 @@ const INITIAL_ROOMS: HotelRoom[] = [];
 let ordersStore: RoomServiceOrder[] = [];
 let roomsStore: HotelRoom[] = [...INITIAL_ROOMS];
 
-function isCurrentlyOccupied(occ: Record<string, any>): boolean {
+function getEffectivePosOperationalDate(dateOverride?: string): Date {
+  if (dateOverride && /^\d{4}-\d{2}-\d{2}$/.test(dateOverride)) {
+    const [y, m, d] = dateOverride.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  if (typeof window !== "undefined") {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlDate = urlParams.get("date");
+    if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) {
+      const [y, m, d] = urlDate.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+    const stored = localStorage.getItem("retrod:selected-pos-date");
+    if (stored && /^\d{4}-\d{2}-\d{2}$/.test(stored)) {
+      const [y, m, d] = stored.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function isCurrentlyOccupied(occ: Record<string, any>, referenceDate?: Date): boolean {
   if (!occ) return false;
 
   // 1. Check reservation or folio status
@@ -57,9 +80,8 @@ function isCurrentlyOccupied(occ: Record<string, any>): boolean {
     return false;
   }
 
-  // 2. Validate stay dates (arrival and departure) against current local calendar day
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // 2. Validate stay dates (arrival and departure) against active POS operational day
+  const effectiveDay = referenceDate || getEffectivePosOperationalDate();
 
   const depStr =
     occ.departure_date || occ.departure || occ.checkOutDate || occ.check_out_date;
@@ -72,8 +94,8 @@ function isCurrentlyOccupied(occ: Record<string, any>): boolean {
           depDate.getMonth(),
           depDate.getDate(),
         );
-        // If departure date is strictly in the past (before today), the guest is checked out
-        if (depDateOnly < today) {
+        // If departure date is strictly in the past (before effective operational date), the guest is checked out
+        if (depDateOnly < effectiveDay) {
           return false;
         }
       }
@@ -91,8 +113,8 @@ function isCurrentlyOccupied(occ: Record<string, any>): boolean {
           arrDate.getMonth(),
           arrDate.getDate(),
         );
-        // If arrival date is in the future (after today), the guest has not arrived yet
-        if (arrDateOnly > today) {
+        // If arrival date is in the future (after effective operational date), the guest has not arrived yet
+        if (arrDateOnly > effectiveDay) {
           return false;
         }
       }
@@ -178,7 +200,16 @@ export const posRoomService = {
     return [...ordersStore];
   },
 
-  getRooms: async (floor?: RoomFloor): Promise<HotelRoom[]> => {
+  getRooms: async (floor?: RoomFloor, dateOverride?: string): Promise<HotelRoom[]> => {
+    const effectiveOpDate = getEffectivePosOperationalDate(dateOverride);
+    const opDateStr =
+      dateOverride ||
+      (typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("date") ||
+          localStorage.getItem("retrod:selected-pos-date")
+        : null) ||
+      undefined;
+
     // 1. Resolve active property and tenant
     let resolvedPropId = scopedPropertyId;
     if (!resolvedPropId && typeof window !== "undefined") {
@@ -207,6 +238,7 @@ export const posRoomService = {
           params: {
             ...(resolvedPropId ? { property_id: resolvedPropId } : {}),
             ...(resolvedTenant ? { tenant_id: resolvedTenant } : {}),
+            ...(opDateStr ? { date: opDateStr } : {}),
           },
         });
         occupiedList = (res.data?.rooms || []) as Array<Record<string, any>>;
@@ -266,7 +298,7 @@ export const posRoomService = {
     const occByRoomNum = new Map<string, Record<string, any>>();
     const occByUnitId = new Map<string, Record<string, any>>();
     for (const occ of occupiedList) {
-      if (!isCurrentlyOccupied(occ)) continue;
+      if (!isCurrentlyOccupied(occ, effectiveOpDate)) continue;
       if (occ.room_number) occByRoomNum.set(String(occ.room_number).trim().toLowerCase(), occ);
       if (occ.unit_id) occByUnitId.set(String(occ.unit_id), occ);
     }
@@ -286,7 +318,7 @@ export const posRoomService = {
           unit.unit_type_name ||
           "Standard Room";
 
-        if (occ && isCurrentlyOccupied(occ)) {
+        if (occ && isCurrentlyOccupied(occ, effectiveOpDate)) {
           return {
             id: String(occ.unit_id || occ.reservation_id || unit.id),
             roomNumber: String(occ.room_number || unit.name),
@@ -335,7 +367,7 @@ export const posRoomService = {
       });
 
       for (const occ of occupiedList) {
-        if (!isCurrentlyOccupied(occ)) continue;
+        if (!isCurrentlyOccupied(occ, effectiveOpDate)) continue;
         if (
           !seenUnitIds.has(String(occ.unit_id)) &&
           !mapped.some((m) => m.roomNumber === String(occ.room_number))
@@ -375,7 +407,7 @@ export const posRoomService = {
         }
       }
     } else if (occupiedList.length > 0) {
-      mapped = occupiedList.filter(isCurrentlyOccupied).map((occ) => ({
+      mapped = occupiedList.filter((occ) => isCurrentlyOccupied(occ, effectiveOpDate)).map((occ) => ({
         id: String(occ.unit_id || occ.reservation_id || occ.room_number),
         roomNumber: String(occ.room_number),
         floor: (occ.floor || "Floor 1") as RoomFloor,
