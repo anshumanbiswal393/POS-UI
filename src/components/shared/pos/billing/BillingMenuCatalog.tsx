@@ -254,7 +254,7 @@ export function BillingMenuCatalog({
           </colgroup>
           <thead>
             <tr className="bg-primary text-primary-foreground text-[11px] font-bold uppercase tracking-wider">
-              <th className="py-2.5 px-3 border-r border-b border-primary-tint/30 text-left">Dish</th>
+              <th className="dish-col py-2.5 px-3 border-r border-b border-primary-tint/30 text-left">Dish</th>
               <th className="py-2.5 px-3 border-r border-b border-primary-tint/30 text-center w-32">Portion</th>
               <th className="py-2.5 px-3 border-r border-b border-primary-tint/30 text-center w-24">Price</th>
               <th className="py-2.5 px-3 border-b border-primary-tint/30 text-center w-28">Action</th>
@@ -290,8 +290,8 @@ export function BillingMenuCatalog({
                     )}
                   >
                     {/* Dish Name, Image, Diet & Code */}
-                    <td className="py-2 px-3 border-r border-b border-border text-left">
-                      <div className="flex items-center gap-2.5">
+                    <td className="dish-col py-2 px-3 border-r border-b border-border text-left">
+                      <div className="flex items-center justify-start text-left gap-2.5">
                         <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-border bg-surface-2 shadow-2xs">
                           {hasImage ? (
                             <img

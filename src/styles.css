@@ -982,13 +982,26 @@ table.excel-format th {
   font-weight: 700 !important;
 }
 
-/* Ensure flex/inline elements inside table cells and headers remain centered */
-.pos-excel-grid th > div,
-.pos-excel-grid td > div,
-.pos-data-table table th > div,
-.pos-data-table table td > div,
-table.excel-format th > div,
-table.excel-format td > div {
+/* Ensure flex/inline elements inside table cells and headers remain centered (except dish name column) */
+.pos-excel-grid th:not(.dish-col) > div,
+.pos-excel-grid td:not(.dish-col) > div,
+.pos-data-table table th:not(.dish-col) > div,
+.pos-data-table table td:not(.dish-col) > div,
+table.excel-format th:not(.dish-col) > div,
+table.excel-format td:not(.dish-col) > div {
   justify-content: center !important;
   text-align: center !important;
+}
+
+/* Explicit left alignment for dishes column in menu catalog */
+.pos-excel-grid .dish-col,
+.pos-excel-grid td.dish-col,
+.pos-excel-grid th.dish-col,
+table.excel-format .dish-col,
+table.excel-format td.dish-col,
+table.excel-format th.dish-col,
+table.excel-format td.dish-col > div,
+table.excel-format th.dish-col > div {
+  text-align: left !important;
+  justify-content: flex-start !important;
 }
