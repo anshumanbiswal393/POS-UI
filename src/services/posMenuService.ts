@@ -490,9 +490,9 @@ export const posMenuService = {
         const mergedItems = items.map((i) => {
           const storedQty = platesMap[i.id];
           const plates =
-            storedQty !== undefined
+            storedQty !== undefined && storedQty > 0
               ? storedQty
-              : i.plates !== undefined && i.plates !== null
+              : i.plates !== undefined && i.plates !== null && Number(i.plates) > 0
                 ? Number(i.plates)
                 : undefined;
           const rawItem = i as unknown as Record<string, unknown>;
@@ -534,9 +534,9 @@ export const posMenuService = {
       .map((i) => {
         const storedQty = platesMap[i.id];
         const plates =
-          storedQty !== undefined
+          storedQty !== undefined && storedQty > 0
             ? storedQty
-            : i.plates !== undefined && i.plates !== null
+            : i.plates !== undefined && i.plates !== null && Number(i.plates) > 0
               ? Number(i.plates)
               : undefined;
         const rawItem = i as unknown as Record<string, unknown>;
@@ -577,7 +577,10 @@ export const posMenuService = {
       id: `itm-${Date.now()}`,
       updatedAt: "Just now",
       images: item.images || [],
-      plates: item.plates ?? 0,
+      plates:
+        item.plates !== undefined && item.plates !== null && item.plates !== "" && Number(item.plates) > 0
+          ? Number(item.plates)
+          : undefined,
       mealTimes: item.mealTimes || ["All Day"],
     };
     if (item.plates !== undefined) {

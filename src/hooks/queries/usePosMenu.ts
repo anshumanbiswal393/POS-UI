@@ -56,9 +56,9 @@ export function useBillingMenuItems(outletId?: string) {
               );
         const storedQty = platesMap[item.id];
         const plates =
-          storedQty !== undefined
+          storedQty !== undefined && storedQty > 0
             ? storedQty
-            : item.plates !== undefined && item.plates !== null
+            : item.plates !== undefined && item.plates !== null && Number(item.plates) > 0
               ? Number(item.plates)
               : undefined;
         return {

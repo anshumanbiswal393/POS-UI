@@ -732,7 +732,7 @@ export function BillingCartRegister({
           <div className="flex items-center gap-1 min-w-0">
             <span className="font-medium text-[11.5px]">Tax</span>
             {taxType === "percent" && taxNumber > 0 && (
-              <span className="text-[10px] text-slate-500 font-mono">
+              <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap">
                 (CGST {(taxNumber / 2).toFixed(1)}% + SGST {(taxNumber / 2).toFixed(1)}%)
               </span>
             )}

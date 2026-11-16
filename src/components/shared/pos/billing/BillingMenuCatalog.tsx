@@ -138,8 +138,12 @@ export function BillingMenuCatalog({
   };
 
   const handleAddClick = (item: BillingMenuItem) => {
+    if (item.status === "Inactive" || (item as any).isAvailable === false) {
+      toast.error(`"${item.name}" is currently unavailable.`);
+      return;
+    }
     if (item.plates !== undefined && item.plates <= 0) {
-      toast.error(`"${item.name}" is sold out (0 plates left).`);
+      toast.error(`"${item.name}" is sold out.`);
       return;
     }
     const hasVariants = item.variants && item.variants.length > 0;
@@ -264,12 +268,18 @@ export function BillingMenuCatalog({
 
       {/* Excel Table Format for Dishes with Theme-Colored Header and Left-Aligned Dishes */}
       <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto p-2 sm:p-2.5">
-        <table className="w-full min-w-[520px] excel-format border-collapse border border-border">
+        <table className="w-full min-w-[520px] table-fixed excel-format border-collapse border border-border">
+          <colgroup>
+            <col className="w-auto" />
+            <col className="w-32" />
+            <col className="w-24" />
+            <col className="w-28" />
+          </colgroup>
           <thead>
             <tr className="bg-primary text-primary-foreground text-[11px] font-bold uppercase tracking-wider">
               <th className="py-2.5 px-3 border-r border-b border-primary-tint/30 text-left">Dish</th>
-              <th className="py-2.5 px-3 border-r border-b border-primary-tint/30 text-center w-36">Portion</th>
-              <th className="py-2.5 px-3 border-r border-b border-primary-tint/30 text-center w-28">Price</th>
+              <th className="py-2.5 px-3 border-r border-b border-primary-tint/30 text-center w-32">Portion</th>
+              <th className="py-2.5 px-3 border-r border-b border-primary-tint/30 text-center w-24">Price</th>
               <th className="py-2.5 px-3 border-b border-primary-tint/30 text-center w-28">Action</th>
             </tr>
           </thead>
@@ -327,15 +337,13 @@ export function BillingMenuCatalog({
                             <span className="truncate text-[12.5px] font-bold text-slate-900">
                               {item.name}
                             </span>
-                            {item.plates !== undefined ? (
+                            {item.plates !== undefined && item.plates > 0 ? (
                               <span
                                 className={cn(
                                   "rounded px-1.5 py-0.2 text-[10px] font-bold border",
-                                  item.plates <= 0
-                                    ? "bg-rose-100 text-rose-800 border-rose-300"
-                                    : item.plates <= 3
-                                      ? "bg-amber-100 text-amber-800 border-amber-300"
-                                      : "bg-emerald-100 text-emerald-800 border-emerald-300",
+                                  item.plates <= 3
+                                    ? "bg-amber-100 text-amber-800 border-amber-300"
+                                    : "bg-emerald-100 text-emerald-800 border-emerald-300",
                                 )}
                               >
                                 {item.plates} {item.plates === 1 ? "Plate" : "Plates"}
@@ -424,6 +432,14 @@ export function BillingMenuCatalog({
                               <Plus className="h-3 w-3" />
                             </button>
                           </div>
+                        ) : item.status === "Inactive" || (item as any).isAvailable === false ? (
+                          <button
+                            type="button"
+                            disabled
+                            className="inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-[11px] font-bold border border-slate-300 bg-slate-100 text-slate-400 cursor-not-allowed select-none"
+                          >
+                            Unavailable
+                          </button>
                         ) : item.plates !== undefined && item.plates <= 0 ? (
                           <button
                             type="button"
