@@ -89,7 +89,7 @@ export function PosGlobalSearch({
         posTablesService.getReservations(activeOutlet?.id),
         posMenuService.getMenuItems(activeOutlet?.id),
         posUsersRbacService.getUsers(),
-        posTablesService.getTables(activeOutlet?.id),
+        posTablesService.getTables(undefined, activeOutlet?.id),
         posInventoryService.getStockItems(activeOutlet?.id),
       ]);
 
