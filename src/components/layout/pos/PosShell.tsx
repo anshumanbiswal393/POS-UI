@@ -15,18 +15,20 @@ export function PosShell({ children }: { children: React.ReactNode }) {
   const isCompactNav = useIsCompactViewport();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isBillingPage = pathname === "/pos/billing" || pathname.startsWith("/pos/billing");
+  const isKotPage = pathname === "/pos/kot" || pathname.startsWith("/pos/kot");
+  const isFullWorkspacePage = isBillingPage || isKotPage;
 
-  // On POS Billing, default to collapsed so full workspace is visible; on other routes keep open
-  const [desktopCollapsed, setDesktopCollapsed] = useState(() => isBillingPage);
+  // On POS Billing & KOT, default to collapsed so full workspace is visible; on other routes keep open
+  const [desktopCollapsed, setDesktopCollapsed] = useState(() => isFullWorkspacePage);
 
   useEffect(() => {
-    if (isBillingPage) {
+    if (isFullWorkspacePage) {
       setDesktopCollapsed(true);
     } else {
       setDesktopCollapsed(false);
     }
     setMobileOpen(false);
-  }, [pathname, isBillingPage]);
+  }, [pathname, isFullWorkspacePage]);
 
   // Centralized title-casing for all user text inputs across the entire POS application
   useEffect(() => {
@@ -73,8 +75,8 @@ export function PosShell({ children }: { children: React.ReactNode }) {
   const isSidebarCollapsed = isCompactNav ? false : desktopCollapsed;
   const showMobileSidebar = isCompactNav && mobileOpen;
 
-  // On billing page, when user opens/expands the sidebar, it floats above the content on the left
-  const isFloatingSidebar = !isCompactNav && isBillingPage && !desktopCollapsed;
+  // On billing page & KOT page, when user opens/expands the sidebar, it floats above the content on the left
+  const isFloatingSidebar = !isCompactNav && isFullWorkspacePage && !desktopCollapsed;
 
   return (
     <div
@@ -93,7 +95,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      {/* Desktop floating backdrop on POS billing page */}
+      {/* Desktop floating backdrop on POS billing & KOT pages */}
       {isFloatingSidebar && (
         <button
           type="button"
@@ -106,14 +108,14 @@ export function PosShell({ children }: { children: React.ReactNode }) {
       {/* Sidebar container:
           - Normal routes: standard flex column on left
           - Mobile & Tablet (<1024px): fixed off-canvas drawer
-          - POS Billing (desktop): fixed floating overlay on left side when opened, hidden when collapsed
+          - POS Billing & KOT (desktop): fixed floating overlay on left side when opened, hidden when collapsed
       */}
       <div
         className={cn(
           "print:hidden",
           isCompactNav
             ? "fixed left-0 top-0 h-dvh z-50 transition-transform duration-200"
-            : isBillingPage
+            : isFullWorkspacePage
               ? isFloatingSidebar
                 ? "fixed left-0 top-0 h-dvh z-50 shadow-2xl animate-in slide-in-from-left duration-200"
                 : "hidden"
@@ -125,7 +127,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
           collapsed={isSidebarCollapsed}
           onNavigate={() => {
             if (isCompactNav) setMobileOpen(false);
-            if (isBillingPage) setDesktopCollapsed(true);
+            if (isFullWorkspacePage) setDesktopCollapsed(true);
           }}
           onToggle={() =>
             isCompactNav ? setMobileOpen(false) : setDesktopCollapsed((c) => !c)
@@ -139,7 +141,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         <PosTopBar
           onOpenMobileNav={isCompactNav ? () => setMobileOpen(true) : undefined}
           onToggleSidebar={
-            !isCompactNav && isBillingPage
+            !isCompactNav && isFullWorkspacePage
               ? () => setDesktopCollapsed((c) => !c)
               : undefined
           }

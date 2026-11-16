@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
-import { ChefHat, Clock, CheckCircle2, Flame, Printer, History } from "lucide-react";
+import { ChefHat, Clock, CheckCircle2, Flame, Printer, History, UtensilsCrossed } from "lucide-react";
 import { useKotOrders, useMarkKotPreparedMutation } from "@/hooks/queries/usePosOrders";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { printKotTicket } from "@/utils/printKotTicket";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { kotStartMs, pushKotReadyNotice } from "@/lib/posReadyNotifications";
-import { KotHistoryModal } from "./KotHistoryModal";
+import { KotHistoryTableView } from "./KotHistoryTableView";
 
 type KdsTicket = {
   id: string;
@@ -73,9 +73,9 @@ function timerTone(elapsedMs: number) {
 
 export function PosKotManager() {
   const { activeOutlet } = useOutletContext();
+  const [activeTab, setActiveTab] = useState<"orders" | "history">("orders");
   const [now, setNow] = useState(() => Date.now());
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
@@ -205,52 +205,70 @@ export function PosKotManager() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => setIsHistoryOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-[12px] font-bold text-foreground hover:bg-surface-2 transition cursor-pointer shadow-2xs"
-          >
-            <History className="h-3.5 w-3.5 text-primary" />
-            <span>KOT History</span>
-          </button>
-
-          <div className="rounded-lg border border-border bg-white px-3 py-1.5 text-[12px] font-bold text-foreground shadow-2xs">
-            Open orders{" "}
-            <span className="ml-1 inline-flex min-w-[1.4rem] justify-center rounded-md bg-primary px-1.5 py-0.5 text-white tabular-nums">
-              {tickets.length}
-            </span>
+          {/* Tab Switcher: Kitchen Orders vs Kitchen History */}
+          <div className="flex items-center rounded-lg border border-slate-300 bg-slate-100 p-0.5 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setActiveTab("orders")}
+              className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-[12px] font-bold transition cursor-pointer ${
+                activeTab === "orders"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-slate-700 hover:text-slate-900 hover:bg-slate-200/60"
+              }`}
+            >
+              <UtensilsCrossed className="h-3.5 w-3.5" />
+              <span>Kitchen Orders</span>
+              <span
+                className={`ml-1 inline-flex min-w-[1.25rem] justify-center rounded-md px-1.5 py-0.2 text-[10.5px] tabular-nums ${
+                  activeTab === "orders" ? "bg-white text-primary" : "bg-primary text-white"
+                }`}
+              >
+                {tickets.length}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("history")}
+              className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-[12px] font-bold transition cursor-pointer ${
+                activeTab === "history"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-slate-700 hover:text-slate-900 hover:bg-slate-200/60"
+              }`}
+            >
+              <History className="h-3.5 w-3.5" />
+              <span>Kitchen History</span>
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto responsive-page-x py-4 sm:py-5">
-        {tickets.length === 0 ? (
-          <div className="flex h-[min(50vh,22rem)] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-surface-2/50 text-center">
-            <ChefHat className="h-8 w-8 text-text-secondary/50" />
-            <p className="text-[14px] font-semibold text-text-secondary">No open kitchen tickets</p>
-            <p className="text-[12px] text-text-secondary/80">Send KOT from Billing to appear here</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 content-start">
-            {tickets.map((kot) => (
-              <KdsOrderCard
-                key={kot.id}
-                kot={kot}
-                now={now}
-                onReady={() => handleMarkReady(kot)}
-                onPrint={() => handlePrintKot(kot)}
-                isBusy={markPreparedMutation.isPending}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <KotHistoryModal
-        isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
-        outletName={activeOutlet?.name}
-      />
+      {/* Main Tab Content */}
+      {activeTab === "orders" ? (
+        <div className="flex-1 min-h-0 overflow-y-auto responsive-page-x py-4 sm:py-5">
+          {tickets.length === 0 ? (
+            <div className="flex h-[min(50vh,22rem)] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-surface-2/50 text-center">
+              <ChefHat className="h-8 w-8 text-text-secondary/50" />
+              <p className="text-[14px] font-semibold text-text-secondary">No open kitchen tickets</p>
+              <p className="text-[12px] text-text-secondary/80">Send KOT from Billing to appear here</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 content-start">
+              {tickets.map((kot) => (
+                <KdsOrderCard
+                  key={kot.id}
+                  kot={kot}
+                  now={now}
+                  onReady={() => handleMarkReady(kot)}
+                  onPrint={() => handlePrintKot(kot)}
+                  isBusy={markPreparedMutation.isPending}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <KotHistoryTableView outletName={activeOutlet?.name} />
+      )}
     </div>
   );
 }
