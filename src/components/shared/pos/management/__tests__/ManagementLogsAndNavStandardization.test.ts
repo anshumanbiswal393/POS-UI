@@ -47,5 +47,11 @@ describe("POS Navigation, Billing Runtime, and Management Logs Standardization",
     expect(content).toContain("LOGIN");
     expect(content).toContain("SETTINGS_CHANGE");
     expect(content).toContain("SHIFT_OPEN");
+    expect(content).toContain("formatAuditUserName");
+    expect(content).toContain("formatAuditRole");
+    expect(content).toContain("Frontdesk Agent");
+    expect(content).toContain("POS Admin");
+    expect(content).toContain("Store Manager");
+    expect(content).toContain("Floor Captain");
   });
 });
