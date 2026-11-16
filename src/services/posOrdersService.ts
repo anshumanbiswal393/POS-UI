@@ -393,7 +393,7 @@ export function getInitialKotData(): KotData {
 
 export async function getKotOrders(filters?: Record<string, any>, outletId?: string): Promise<KotData> {
   if (isBackendOutletId(outletId)) {
-    return liveGetKot(outletId);
+    return liveGetKot(outletId, filters);
   }
   if (typeof window === "undefined") return getInitialKotData();
   try {

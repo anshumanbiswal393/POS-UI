@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
-import { ChefHat, Clock, CheckCircle2, Flame, Printer } from "lucide-react";
+import { ChefHat, Clock, CheckCircle2, Flame, Printer, History } from "lucide-react";
 import { useKotOrders, useMarkKotPreparedMutation } from "@/hooks/queries/usePosOrders";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { printKotTicket } from "@/utils/printKotTicket";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { kotStartMs, pushKotReadyNotice } from "@/lib/posReadyNotifications";
+import { KotHistoryModal } from "./KotHistoryModal";
 
 type KdsTicket = {
   id: string;
@@ -74,6 +75,7 @@ export function PosKotManager() {
   const { activeOutlet } = useOutletContext();
   const [now, setNow] = useState(() => Date.now());
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
@@ -177,9 +179,9 @@ export function PosKotManager() {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 w-full lg:overflow-hidden bg-slate-50/50">
+    <div className="flex flex-col flex-1 min-h-0 w-full lg:overflow-hidden bg-background">
       {/* 1. Top Header Row - Flush with TopBar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-border shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8.5 w-8.5 items-center justify-center rounded-lg bg-teal-50 border border-teal-300 text-teal-700">
             <ChefHat className="h-4.5 w-4.5" />
@@ -199,11 +201,23 @@ export function PosKotManager() {
             </p>
           </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-bold text-slate-800 shadow-2xs">
-          Open orders{" "}
-          <span className="ml-1 inline-flex min-w-[1.4rem] justify-center rounded-md bg-primary px-1.5 py-0.5 text-white tabular-nums">
-            {tickets.length}
-          </span>
+
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setIsHistoryOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-[12px] font-bold text-foreground hover:bg-surface-2 transition cursor-pointer shadow-2xs"
+          >
+            <History className="h-3.5 w-3.5 text-primary" />
+            <span>KOT History</span>
+          </button>
+
+          <div className="rounded-lg border border-border bg-white px-3 py-1.5 text-[12px] font-bold text-foreground shadow-2xs">
+            Open orders{" "}
+            <span className="ml-1 inline-flex min-w-[1.4rem] justify-center rounded-md bg-primary px-1.5 py-0.5 text-white tabular-nums">
+              {tickets.length}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -229,6 +243,12 @@ export function PosKotManager() {
           </div>
         )}
       </div>
+
+      <KotHistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        outletName={activeOutlet?.name}
+      />
     </div>
   );
 }

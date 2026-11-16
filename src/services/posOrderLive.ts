@@ -324,9 +324,10 @@ export async function liveGetHistory(outletId?: string, filters?: Record<string,
   };
 }
 
-export async function liveGetKot(outletId?: string): Promise<KotData> {
-  const params = orderScope(outletId);
-  if (!params) return { records: [], totalCount: 0 };
+export async function liveGetKot(outletId?: string, filters?: Record<string, any>): Promise<KotData> {
+  const scope = orderScope(outletId);
+  if (!scope) return { records: [], totalCount: 0 };
+  const params = { ...scope, ...(filters || {}) };
   const res = await httpClient.get<KotApiResponse & { kots?: KotRecordApiDto[] }>(API_ENDPOINTS.ORDERS.KOT, {
     params,
   });

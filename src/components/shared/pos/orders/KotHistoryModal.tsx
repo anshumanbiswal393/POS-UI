@@ -1,0 +1,274 @@
+import React, { useState, useMemo } from "react";
+import { History, X, Search, Printer, CheckCircle2, Clock, Calendar, ChefHat } from "lucide-react";
+import { useKotOrders } from "@/hooks/queries/usePosOrders";
+import { printKotTicket } from "@/utils/printKotTicket";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+interface KotHistoryModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  outletName?: string;
+}
+
+export function KotHistoryModal({ isOpen, onClose, outletName }: KotHistoryModalProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+
+  // Fetch all KOTs from database/API
+  const { data: allKotData, isLoading, refetch } = useKotOrders(
+    useMemo(() => ({ status: statusFilter === "ALL" ? undefined : statusFilter }), [statusFilter]),
+  );
+
+  const records = useMemo(() => {
+    const list = allKotData?.records || [];
+    return list.filter((kot) => {
+      // Exclude purely open pending/preparing tickets if viewing history, or keep all with status badges
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesNum = String(kot.kotId || "").includes(q) || String(kot.kotNumber || "").toLowerCase().includes(q);
+        const matchesOrder = String(kot.orderNumber || "").toLowerCase().includes(q);
+        const matchesCustomer = String(kot.customerName || "").toLowerCase().includes(q);
+        const matchesTable = String(kot.tableOrRoom || "").toLowerCase().includes(q);
+        const matchesItems = String(kot.itemsText || "").toLowerCase().includes(q);
+        return matchesNum || matchesOrder || matchesCustomer || matchesTable || matchesItems;
+      }
+      return true;
+    });
+  }, [allKotData, searchQuery]);
+
+  if (!isOpen) return null;
+
+  const handlePrint = (kot: any) => {
+    try {
+      const parsedItems =
+        kot.items && kot.items.length > 0
+          ? kot.items
+          : (kot.itemsText || "")
+              .split(",")
+              .map((p: string) => p.trim())
+              .filter(Boolean)
+              .map((line: string) => {
+                const qtyMatch = line.match(/[×x*]\s*(\d+)\s*$/i);
+                if (qtyMatch) {
+                  return {
+                    name: line.replace(/[×x*]\s*\d+\s*$/i, "").trim(),
+                    quantity: Number(qtyMatch[1]) || 1,
+                  };
+                }
+                return { name: line, quantity: 1 };
+              });
+
+      printKotTicket({
+        kotId: kot.kotId,
+        kotNumber: kot.kotNumber,
+        orderNumber: kot.orderNumber,
+        orderType: kot.orderType,
+        tableOrRoom: kot.tableOrRoom,
+        waiterName: kot.waiterName,
+        customerName: kot.customerName,
+        createdTimestamp: kot.createdTimestamp || Date.now(),
+        createdAt: kot.createdAt,
+        items: parsedItems,
+        isModified: kot.isModified,
+        specialNote: kot.notes || kot.orderNote,
+        outletName,
+      });
+      toast.success(`Printing KOT #${kot.kotId || kot.kotNumber}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to print KOT ticket");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-foreground/40 backdrop-blur-xs animate-in fade-in-50">
+      <div className="relative flex flex-col w-full max-w-4xl max-h-[90vh] bg-surface rounded-2xl border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 font-sans">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-surface-2/60 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary">
+              <History className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-foreground">KOT History & Completed Tickets</h2>
+                <span className="text-xs px-2 py-0.5 rounded-md font-bold bg-primary text-primary-foreground">
+                  {records.length} Tickets
+                </span>
+              </div>
+              <p className="text-xs text-text-secondary">
+                View previous completed, ready, and past kitchen tickets with reprint options
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-text-secondary hover:bg-surface-2 hover:text-foreground transition cursor-pointer"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Filters Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-border bg-surface shrink-0">
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-secondary" />
+            <input
+              type="text"
+              placeholder="Search by KOT #, order #, table, customer or item..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-9 w-full rounded-xl border border-border bg-surface pl-9 pr-3 text-xs text-foreground placeholder:text-text-secondary/60 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-9 px-3 text-xs font-semibold rounded-xl border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="READY">Ready / Completed</option>
+              <option value="SERVED">Served</option>
+              <option value="PREPARING">Preparing</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="h-9 px-3 text-xs font-semibold rounded-xl border border-border bg-surface hover:bg-surface-2 text-foreground transition cursor-pointer"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Ticket List */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-3 bg-background">
+          {isLoading ? (
+            <div className="flex h-48 flex-col items-center justify-center gap-2">
+              <div className="h-7 w-7 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <p className="text-xs text-text-secondary">Loading KOT history...</p>
+            </div>
+          ) : records.length === 0 ? (
+            <div className="flex h-48 flex-col items-center justify-center gap-2 text-center rounded-xl border border-dashed border-border bg-surface p-6">
+              <ChefHat className="h-8 w-8 text-text-secondary/40" />
+              <p className="text-sm font-semibold text-foreground">No KOT history found</p>
+              <p className="text-xs text-text-secondary">
+                {searchQuery ? "Try a different search keyword" : "Completed kitchen orders will show here"}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {records.map((kot) => {
+                const isReady = kot.status === "Ready" || kot.status === "Prepared";
+                const isServed = kot.status === "Served";
+                const isCancelled = (kot.status as string) === "Cancelled";
+
+                return (
+                  <div
+                    key={kot.id}
+                    className="flex flex-col justify-between rounded-xl border border-border bg-surface p-4 shadow-2xs hover:shadow-sm transition"
+                  >
+                    <div>
+                      {/* Card Header */}
+                      <div className="flex items-start justify-between gap-2 border-b border-border/60 pb-2.5">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-base font-bold text-foreground">
+                              KOT #{kot.kotId || kot.kotNumber}
+                            </span>
+                            {kot.isModified && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                MODIFIED
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11.5px] font-medium text-text-secondary mt-0.5">
+                            {kot.orderNumber ? `Order: ${kot.orderNumber} · ` : ""}
+                            {kot.orderType}
+                            {kot.tableOrRoom ? ` (${kot.tableOrRoom})` : ""}
+                          </div>
+                        </div>
+
+                        {/* Status Badge */}
+                        <div>
+                          {isServed ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Served
+                            </span>
+                          ) : isReady ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Ready
+                            </span>
+                          ) : isCancelled ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              Cancelled
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              <Clock className="h-3 w-3" />
+                              Preparing
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Items List */}
+                      <div className="py-2.5 space-y-1">
+                        <div className="text-[12px] font-medium text-foreground leading-relaxed">
+                          {kot.itemsText || "No items recorded"}
+                        </div>
+                        {(kot.notes || kot.orderNote) && (
+                          <div className="text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-1 rounded border border-amber-200/80">
+                            Note: {kot.notes || kot.orderNote}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Card Footer */}
+                    <div className="flex items-center justify-between pt-2.5 border-t border-border/60 text-[11px] text-text-secondary">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5 text-text-secondary/70" />
+                        <span>{kot.createdAt || "Recently"}</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handlePrint(kot)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface border border-border text-foreground hover:bg-surface-2 transition cursor-pointer shadow-2xs"
+                      >
+                        <Printer className="h-3.5 w-3.5 text-text-secondary" />
+                        <span>Print</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface shrink-0">
+          <p className="text-xs text-text-secondary">
+            KOTs are permanently saved in the database when created from Billing or Table orders.
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-bold text-foreground bg-surface-2 hover:bg-surface-3 border border-border rounded-xl transition cursor-pointer"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
