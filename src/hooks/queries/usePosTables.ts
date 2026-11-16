@@ -29,7 +29,8 @@ export function useDiningAreas() {
       setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.getAreas(outletId);
     },
-    staleTime: 1000 * 60,
+    staleTime: 3000,
+    refetchInterval: 5000,
     enabled: Boolean(outletId),
   });
 }
@@ -201,7 +202,8 @@ export function usePosTables(area?: DiningArea) {
       setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.getTables(area, outletId);
     },
-    staleTime: 1000 * 10,
+    staleTime: 3000,
+    refetchInterval: 5000,
     enabled: Boolean(outletId),
   });
 }
@@ -214,7 +216,8 @@ export function usePosReservations() {
       setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.getReservations(outletId);
     },
-    staleTime: 1000 * 10,
+    staleTime: 3000,
+    refetchInterval: 5000,
     enabled: Boolean(outletId),
   });
 }
@@ -227,7 +230,8 @@ export function usePosTableStats(area?: DiningArea) {
       setTablesOutletScope(outletId, highwayDemo);
       return posTablesService.getStats(area, outletId);
     },
-    staleTime: 1000 * 10,
+    staleTime: 3000,
+    refetchInterval: 5000,
     enabled: Boolean(outletId),
   });
 }

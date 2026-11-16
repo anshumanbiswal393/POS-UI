@@ -181,17 +181,10 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
     try {
       const { propId, propName } = getActivePropertyInfo();
 
-      // 1. Fetch outlets for the tenant without restricting to a potentially empty property
-      let remote = await posOutletsService.listOutlets({
-        tenantId: user?.tenant_subdomain || undefined,
-      });
+      // 1. Fetch outlets for the tenant in a single direct call
+      let remote = await posOutletsService.listOutlets();
 
-      // 2. If nothing returned, query all accessible outlets
-      if (remote.length === 0) {
-        remote = await posOutletsService.listOutlets();
-      }
-
-      // 3. If still nothing and propId is provided, try property-scoped query
+      // 2. If nothing returned and propId is provided, try property-scoped query
       if (remote.length === 0 && propId) {
         remote = await posOutletsService.listOutlets({
           propertyId: propId,
