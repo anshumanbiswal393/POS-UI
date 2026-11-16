@@ -1465,6 +1465,8 @@ export const posTablesService = {
       window.dispatchEvent(new CustomEvent("pos:table-updated"));
       window.dispatchEvent(new CustomEvent("retrod_pos_tables_changed"));
       window.dispatchEvent(new CustomEvent("pos:reservation-updated"));
+      window.dispatchEvent(new CustomEvent("pos:order-updated"));
+      window.dispatchEvent(new CustomEvent("pos:kot-updated"));
     }
 
     return updatedRes;
@@ -1516,6 +1518,11 @@ export const posTablesService = {
         await livePatchOrder(orderToMove.orderId, {
           tableId: targetTable.id,
           tableNumber: targetTable.tableNumber,
+          meta: {
+            table_label: targetTable.tableNumber,
+            tableLabel: targetTable.tableNumber,
+            full_table_number: targetTable.tableNumber,
+          },
         } as any);
       } catch (err) {
         console.warn("Could not patch order table ID on switch:", err);
@@ -1587,6 +1594,8 @@ export const posTablesService = {
       window.dispatchEvent(new CustomEvent("pos:table-updated"));
       window.dispatchEvent(new CustomEvent("retrod_pos_tables_changed"));
       window.dispatchEvent(new CustomEvent("pos:reservation-updated"));
+      window.dispatchEvent(new CustomEvent("pos:order-updated"));
+      window.dispatchEvent(new CustomEvent("pos:kot-updated"));
     }
 
     return { sourceTable: updatedSource, targetTable: updatedTarget };
