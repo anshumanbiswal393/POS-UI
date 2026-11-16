@@ -262,6 +262,8 @@ export function PosBillingManager() {
 
   // 1. Order & Header State — blank until user picks table/pax for a new outlet
   const [orderType, setOrderType] = useState<BillingOrderType>("dine_in");
+  const [isExtraOrderParam, setIsExtraOrderParam] = useState(false);
+  const [isEditOrderParam, setIsEditOrderParam] = useState(false);
   const [activeTable, setActiveTable] = useState("");
   const [roomNumber, setRoomNumber] = useState("");
   const [guestCount, setGuestCount] = useState(0);
@@ -488,6 +490,8 @@ export function PosBillingManager() {
     const qOrderId = params.get("orderId");
     const qEditOrder = params.get("editOrder");
     const qExtraOrder = params.get("extraOrder") === "1" || params.get("extraOrder") === "true";
+    if (qExtraOrder) setIsExtraOrderParam(true);
+    if (qEditOrder) setIsEditOrderParam(true);
     const qWaiter = params.get("waiterName");
     const qTableId = params.get("tableId");
     const qRoomUnitId = params.get("roomUnitId");
@@ -1009,7 +1013,7 @@ export function PosBillingManager() {
   const activeReservationDeposit = useMemo(() => {
     if (orderType !== "dine_in") return 0;
     // If this is an extra/subsequent order for an existing open order, the advance was already applied once to the check!
-    if (linkedOrderId || runningOrderMeta?.id || search.extraOrder === "1") {
+    if (linkedOrderId || runningOrderMeta?.id || isExtraOrderParam) {
       return 0;
     }
     const tableIdentifier = activeTable || runningOrderMeta?.tableNumber || "";
@@ -1440,7 +1444,7 @@ export function PosBillingManager() {
         setBusyAction("kot");
         try {
           if (linkedOrderId) {
-            const isExtraAppend = Boolean(runningOrderMeta?.id === linkedOrderId || !search.editOrder);
+            const isExtraAppend = Boolean(runningOrderMeta?.id === linkedOrderId || !isEditOrderParam);
             const patchPayload = {
               ...payload,
               append: isExtraAppend,

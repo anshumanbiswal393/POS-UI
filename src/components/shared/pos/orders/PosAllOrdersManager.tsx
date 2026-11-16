@@ -260,8 +260,14 @@ export function PosAllOrdersManager() {
       }
 
       // Status
-      if (appliedFilters.status !== "All" && r.status !== appliedFilters.status) {
-        return false;
+      if (appliedFilters.status !== "All") {
+        const normFilter = appliedFilters.status.toLowerCase();
+        const normStatus = (r.status || "").toLowerCase();
+        if (normFilter === "completed" || normFilter === "settled") {
+          if (normStatus !== "completed" && normStatus !== "settled") return false;
+        } else if (normStatus !== normFilter) {
+          return false;
+        }
       }
 
       return true;
@@ -522,13 +528,17 @@ export function PosAllOrdersManager() {
         enableFiltering: true,
         minWidth: 120,
         defaultWidth: 130,
-        cell: ({ row }: { row: OrderRowType }) => (
-          <span
-            className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${orderStatusClass(row.status)}`}
-          >
-            {row.status}
-          </span>
-        ),
+        cell: ({ row }: { row: OrderRowType }) => {
+          const rawStatus = row.status || "Completed";
+          const displayStatus = rawStatus.toLowerCase() === "settled" ? "Completed" : rawStatus;
+          return (
+            <span
+              className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${orderStatusClass(displayStatus)}`}
+            >
+              {displayStatus}
+            </span>
+          );
+        },
       },
       {
         id: "createdAt",
@@ -869,7 +879,6 @@ export function PosAllOrdersManager() {
                   >
                     <option value="All">All</option>
                     <option value="Printed">Printed</option>
-                    <option value="Settled">Settled</option>
                     <option value="Completed">Completed</option>
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
