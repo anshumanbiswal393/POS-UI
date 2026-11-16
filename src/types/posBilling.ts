@@ -51,6 +51,8 @@ export type BillingMenuItem = {
   modifierGroups?: BillingModifierGroup[];
   imageUrl?: string;
   description?: string;
+  mealTimes?: string[];
+  meal_times?: string[];
 };
 
 export type BillingSelectedModifier = {

@@ -467,6 +467,8 @@ export function PosBillingManager() {
           description: item.description,
           variants: effectiveVariants && effectiveVariants.length > 0 ? (effectiveVariants as any) : undefined,
           modifierGroups: item.modifierGroups,
+          mealTimes: item.mealTimes || (item as any).meal_times,
+          meal_times: (item as any).meal_times || item.mealTimes,
         };
       });
   }, [menuList]);

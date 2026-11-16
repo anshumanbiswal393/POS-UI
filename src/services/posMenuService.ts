@@ -508,6 +508,7 @@ export const posMenuService = {
             ...i,
             plates,
             mealTimes: apiMealTimes,
+            meal_times: apiMealTimes,
             rawMaterials:
               i.rawMaterials && i.rawMaterials.length > 0
                 ? i.rawMaterials
@@ -552,6 +553,7 @@ export const posMenuService = {
           ...i,
           plates,
           mealTimes: apiMealTimes,
+          meal_times: apiMealTimes,
           rawMaterials:
             i.rawMaterials && i.rawMaterials.length > 0
               ? i.rawMaterials

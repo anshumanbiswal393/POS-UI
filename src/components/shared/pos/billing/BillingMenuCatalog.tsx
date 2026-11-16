@@ -60,14 +60,26 @@ export function BillingMenuCatalog({
   // Categories come only from this outlet's menu items (no hardcoded mock chips).
   const allCategories = useMemo(() => {
     const safeItems = Array.isArray(items) ? items : [];
-    const fromItems = Array.from(
-      new Set(safeItems.map((i) => i?.category).filter((c): c is string => Boolean(c?.trim()))),
-    ).sort((a, b) => a.localeCompare(b));
+    const seen = new Set<string>();
+    const fromItems: string[] = [];
+    for (const item of safeItems) {
+      const cat = String(item?.category || "").trim();
+      if (!cat) continue;
+      const lower = cat.toLowerCase();
+      if (!seen.has(lower)) {
+        seen.add(lower);
+        fromItems.push(cat);
+      }
+    }
+    fromItems.sort((a, b) => a.localeCompare(b));
     return ["All Items", ...fromItems];
   }, [items]);
 
   useEffect(() => {
-    if (!allCategories.includes(selectedCategory)) {
+    if (
+      selectedCategory !== "All Items" &&
+      !allCategories.some((c) => c.toLowerCase() === selectedCategory.toLowerCase())
+    ) {
       setSelectedCategory("All Items");
     }
   }, [allCategories, selectedCategory]);
@@ -76,7 +88,12 @@ export function BillingMenuCatalog({
     const safeItems = Array.isArray(items) ? items : [];
     let result = safeItems.filter((item) => {
       if (!item) return false;
-      if (selectedCategory !== "All Items" && item.category !== selectedCategory) return false;
+      if (
+        selectedCategory !== "All Items" &&
+        String(item.category || "").trim().toLowerCase() !== selectedCategory.trim().toLowerCase()
+      ) {
+        return false;
+      }
       if (selectedDiet !== "all" && item.diet !== selectedDiet) return false;
       return true;
     });
@@ -92,7 +109,12 @@ export function BillingMenuCatalog({
         }
         return mealTimes.some((m) => {
           const lower = String(m).trim().toLowerCase();
-          return lower === targetMeal || lower === "all" || lower === "all day";
+          return (
+            lower === targetMeal ||
+            lower === "all" ||
+            lower === "all day" ||
+            lower === "allday"
+          );
         });
       });
     }
