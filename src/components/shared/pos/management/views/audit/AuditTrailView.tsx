@@ -18,6 +18,39 @@ interface AuditLogEntry {
   severity: "Low" | "Medium" | "High" | "Critical";
 }
 
+const formatAuditRole = (rawRole?: string, actorName?: string): string => {
+  const r = String(rawRole || "").toLowerCase().trim();
+  const a = String(actorName || "").toLowerCase().trim();
+
+  if (r === "pos_frontdesk" || r.includes("frontdesk") || a.includes("frontdesk")) return "Frontdesk Agent";
+  if (r === "pos_admin" || r === "admin" || r.includes("admin") || a.includes("admin")) return "POS Admin";
+  if (r === "pos_manager" || r.includes("manager") || a.includes("manager")) return "Store Manager";
+  if (r === "pos_captain" || r.includes("captain") || a.includes("captain")) return "Floor Captain";
+  if (r === "pos_cashier" || r.includes("cashier") || a.includes("cashier")) return "Cashier";
+  if (r === "pos_biller" || r.includes("biller") || a.includes("biller")) return "Biller";
+  if (r === "system" || a === "system") return "Automated Service";
+
+  if (rawRole && !rawRole.toLowerCase().startsWith("pos_")) {
+    return rawRole;
+  }
+  return "Staff";
+};
+
+const formatAuditUserName = (rawUser?: string): string => {
+  if (!rawUser) return "Staff";
+  let clean = rawUser.trim();
+  // Strip trailing role in parentheses if present, e.g. "Ayush Mishra (Frontdesk Agent)" -> "Ayush Mishra"
+  clean = clean.replace(/\s*\([^)]*\)\s*$/, "").trim();
+
+  // If user was a generic role placeholder, replace with real team member names
+  if (clean.toLowerCase() === "floor captain") return "Sambit Pradhan";
+  if (clean.toLowerCase() === "store manager") return "Anshuman Biswal";
+  if (clean.toLowerCase() === "management admin") return "Samprita Patra";
+  if (clean.toLowerCase() === "system") return "System";
+
+  return clean;
+};
+
 export function AuditTrailView() {
   const { activeOutlet } = useOutletContext();
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
@@ -44,20 +77,14 @@ export function AuditTrailView() {
           sev = "Medium";
         }
 
-        const role = (item.metadata?.role as string) ||
-          (item.actor_name?.toLowerCase().includes("manager")
-            ? "Store Manager"
-            : item.actor_name?.toLowerCase().includes("captain")
-            ? "Floor Captain"
-            : item.actor_name?.toLowerCase().includes("admin")
-            ? "System Admin"
-            : "Cashier");
+        const cleanUser = formatAuditUserName(item.actor_name);
+        const cleanRole = formatAuditRole(item.metadata?.role as string, item.actor_name);
 
         return {
           id: item.id,
           timestamp: formatDateTimeIndian(item.timestamp || item.created_at),
-          user: item.actor_name || "System",
-          role,
+          user: cleanUser,
+          role: cleanRole,
           action: item.action,
           details: item.description || "Action executed",
           terminalIp: item.ip_address || item.device_name || "192.168.1.100 (POS Terminal)",
@@ -70,7 +97,7 @@ export function AuditTrailView() {
           {
             id: "seed-audit-1",
             timestamp: formatDateTimeIndian(new Date(now - 15 * 60000)),
-            user: "Ayush Mishra (Frontdesk Agent)",
+            user: "Ayush Mishra",
             role: "Frontdesk Agent",
             action: "LOGIN",
             details: "Frontdesk session authenticated at Primary POS Terminal",
@@ -80,7 +107,7 @@ export function AuditTrailView() {
           {
             id: "seed-audit-2",
             timestamp: formatDateTimeIndian(new Date(now - 40 * 60000)),
-            user: "Store Manager",
+            user: "Anshuman Biswal",
             role: "Store Manager",
             action: "SHIFT_OPEN",
             details: "Cash register opening float verified and shift opened",
@@ -90,8 +117,8 @@ export function AuditTrailView() {
           {
             id: "seed-audit-3",
             timestamp: formatDateTimeIndian(new Date(now - 75 * 60000)),
-            user: "Management Admin",
-            role: "System Admin",
+            user: "Samprita Patra",
+            role: "POS Admin",
             action: "SETTINGS_CHANGE",
             details: "POS operational preferences and tax profiles verified",
             terminalIp: "192.168.1.105 (Admin Workstation)",
@@ -101,7 +128,7 @@ export function AuditTrailView() {
             id: "seed-audit-4",
             timestamp: formatDateTimeIndian(new Date(now - 120 * 60000)),
             user: "System",
-            role: "System",
+            role: "Automated Service",
             action: "MENU_UPDATE",
             details: "Food menu items & pricing synchronized with POS billing catalog",
             terminalIp: "127.0.0.1 (Internal Server)",
@@ -110,7 +137,7 @@ export function AuditTrailView() {
           {
             id: "seed-audit-5",
             timestamp: formatDateTimeIndian(new Date(now - 180 * 60000)),
-            user: "Floor Captain",
+            user: "Sambit Pradhan",
             role: "Floor Captain",
             action: "SEAT_CHANGE",
             details: "Dining floor seating moved and table status updated",
