@@ -428,9 +428,22 @@ export function PosTakeOrderManager() {
             onSwitchTable={(res) => setSwitchModalReservation(res)}
             onSwitchOccupiedTable={(tbl) => setSwitchModalTable(tbl)}
             onSeatReservation={(tableId, resId) => {
+              const matchedRes = reservations.find((r) => r.id === resId) || reservations.find((r) => r.tableId === tableId);
+              const matchedTable = tables.find((t) => t.id === tableId) || (matchedRes ? tables.find((t) => t.tableNumber === matchedRes.tableNumber) : undefined);
               seatGuestsMutation.mutate({ tableId, reservationId: resId });
-              setWizardTableId(tableId);
-              setIsTakeOrderWizardOpen(true);
+              navigate({
+                to: "/pos/billing",
+                search: {
+                  orderType: "dine_in",
+                  table: matchedTable?.tableNumber || matchedRes?.tableNumber || undefined,
+                  tableId: matchedTable?.id || tableId,
+                  reservationId: resId,
+                  guests: matchedRes?.guests || matchedTable?.capacity || 2,
+                  pax: matchedRes?.guests || matchedTable?.capacity || 2,
+                  guestName: matchedRes?.customerName || undefined,
+                  guestPhone: matchedRes?.customerPhone || undefined,
+                },
+              });
             }}
             stats={stats}
             onRefresh={() => {
@@ -538,13 +551,27 @@ export function PosTakeOrderManager() {
         selectedReservation={selectedReservation}
         tables={allTables}
         onSeatGuests={(tableId, resId) => {
+          const effectiveResId = resId || selectedReservation?.id;
+          const matchedRes = (effectiveResId ? reservations.find((r) => r.id === effectiveResId) : undefined) || selectedReservation || reservations.find((r) => r.tableId === tableId);
+          const matchedTable = tables.find((t) => t.id === tableId) || selectedTable || (matchedRes ? tables.find((t) => t.tableNumber === matchedRes.tableNumber) : undefined);
           seatGuestsMutation.mutate({
             tableId,
-            reservationId: resId || selectedReservation?.id,
+            reservationId: effectiveResId,
           });
           setIsDetailSlideOpen(false);
-          setWizardTableId(tableId);
-          setIsTakeOrderWizardOpen(true);
+          navigate({
+            to: "/pos/billing",
+            search: {
+              orderType: "dine_in",
+              table: matchedTable?.tableNumber || matchedRes?.tableNumber || undefined,
+              tableId: matchedTable?.id || tableId,
+              reservationId: effectiveResId,
+              guests: matchedRes?.guests || matchedTable?.capacity || 2,
+              pax: matchedRes?.guests || matchedTable?.capacity || 2,
+              guestName: matchedRes?.customerName || undefined,
+              guestPhone: matchedRes?.customerPhone || undefined,
+            },
+          });
         }}
         onSwitchTable={(rId, nId) =>
           switchTableMutation.mutate({ reservationId: rId, newTableId: nId })

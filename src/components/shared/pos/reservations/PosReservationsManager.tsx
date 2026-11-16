@@ -13,6 +13,7 @@ function toStandardIsoDate(rawDate?: string, fallbackIso?: string): string {
 }
 
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   Table as TableIcon,
   LayoutGrid,
@@ -72,6 +73,7 @@ function getTodayIso() {
 const VISIBLE_COLUMNS_KEY = "retrod:pos-reservations:visible-columns";
 
 export function PosReservationsManager() {
+  const navigate = useNavigate();
   // Query data
   const { data: reservations = [], isLoading: isLoadingReservations } = usePosReservations();
   const { data: tables = [] } = usePosTables();
@@ -179,12 +181,34 @@ export function PosReservationsManager() {
   };
 
   const handleSeatGuests = (tableId: string, reservationId?: string) => {
+    const matchedRes =
+      (reservationId ? reservations.find((r) => r.id === reservationId) : undefined) ||
+      selectedReservation ||
+      reservations.find((r) => r.tableId === tableId);
+    const matchedTable =
+      tables.find((t) => t.id === tableId) ||
+      selectedTable ||
+      (matchedRes ? tables.find((t) => t.tableNumber === matchedRes.tableNumber) : undefined);
+
     seatGuestsMutation.mutate(
-      { tableId, reservationId },
+      { tableId, reservationId: reservationId || matchedRes?.id },
       {
         onSuccess: () => {
           toast.success("Guests seated successfully");
           setIsDetailSlideOpen(false);
+          navigate({
+            to: "/pos/billing",
+            search: {
+              orderType: "dine_in",
+              table: matchedTable?.tableNumber || matchedRes?.tableNumber || undefined,
+              tableId: matchedTable?.id || tableId,
+              reservationId: reservationId || matchedRes?.id,
+              guests: matchedRes?.guests || matchedTable?.capacity || 2,
+              pax: matchedRes?.guests || matchedTable?.capacity || 2,
+              guestName: matchedRes?.customerName || undefined,
+              guestPhone: matchedRes?.customerPhone || undefined,
+            },
+          });
         },
       },
     );
