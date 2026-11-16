@@ -62,33 +62,33 @@ export function BillingHeader({
   return (
     <div className="bg-white border-b border-border px-2.5 sm:px-4 lg:px-6 py-2 shrink-0">
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2">
-        <div className="flex items-center gap-2 overflow-x-auto">
-          {/* Order Mode Switcher */}
-          <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border">
-            {orderTypes.map((mode) => {
-              const Icon = mode.icon;
-              const isActive = orderType === mode.id;
-              return (
-                <button
-                  key={mode.id}
-                  type="button"
-                  onClick={() => setOrderType(mode.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-text-secondary hover:text-text-primary hover:bg-white/80"
-                  }`}
-                >
-                  <Icon
-                    className={`h-3.5 w-3.5 ${isActive ? "text-primary-foreground/80" : "text-text-secondary"}`}
-                  />
-                  <span>{mode.label}</span>
-                </button>
-              );
-            })}
-          </div>
+        {/* Left: Order Mode Switcher */}
+        <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border shrink-0">
+          {orderTypes.map((mode) => {
+            const Icon = mode.icon;
+            const isActive = orderType === mode.id;
+            return (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => setOrderType(mode.id)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-white/80"
+                }`}
+              >
+                <Icon
+                  className={`h-3.5 w-3.5 ${isActive ? "text-primary-foreground/80" : "text-text-secondary"}`}
+                />
+                <span>{mode.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-          {/* Meal-Time Tabs: All, Breakfast, Lunch, Dinner moved to top header bar */}
+        {/* Center: Meal-Time Tabs (All, Breakfast, Lunch, Dinner) in the middle of the same row */}
+        <div className="flex items-center justify-center flex-1 overflow-x-auto">
           <div className="inline-flex items-center gap-1 bg-emerald-50/70 p-1 rounded-xl border border-emerald-200/80 shadow-2xs">
             {(["All", "Breakfast", "Lunch", "Dinner"] as const).map((meal) => {
               const active = selectedMealTime === meal;
@@ -97,7 +97,7 @@ export function BillingHeader({
                   key={meal}
                   type="button"
                   onClick={() => onSelectMealTime?.(meal)}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                  className={`flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                     active
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-text-secondary hover:text-text-primary hover:bg-white/90"
@@ -110,7 +110,8 @@ export function BillingHeader({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 flex-1 lg:justify-end">
+        {/* Right: Table/Room and Status Controls */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0 lg:justify-end">
           {orderType === "dine_in" && (
             <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1 text-xs">
               <span className="text-primary font-medium">Table:</span>

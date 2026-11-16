@@ -1,9 +1,31 @@
 import React, { useState, useMemo } from "react";
-import { History, X, Search, Printer, CheckCircle2, Clock, Calendar, ChefHat } from "lucide-react";
-import { useKotOrders } from "@/hooks/queries/usePosOrders";
+import {
+  History,
+  X,
+  Search,
+  Printer,
+  CheckCircle2,
+  Clock,
+  Calendar,
+  ChefHat,
+  Ban,
+  AlertTriangle,
+} from "lucide-react";
+import { useKotOrders, useCancelKotMutation } from "@/hooks/queries/usePosOrders";
 import { printKotTicket } from "@/utils/printKotTicket";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface KotHistoryModalProps {
   isOpen: boolean;
@@ -14,16 +36,33 @@ interface KotHistoryModalProps {
 export function KotHistoryModal({ isOpen, onClose, outletName }: KotHistoryModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [dateRange, setDateRange] = useState<{ from?: string; to?: string }>({});
+  const [ticketToCancel, setTicketToCancel] = useState<any | null>(null);
 
-  // Fetch all KOTs from database/API
-  const { data: allKotData, isLoading, refetch } = useKotOrders(
-    useMemo(() => ({ status: statusFilter === "ALL" ? undefined : statusFilter }), [statusFilter]),
-  );
+  const cancelMutation = useCancelKotMutation();
+
+  // Fetch KOTs from database/API with 3 main statuses (READY, PREPARING, CANCELLED) or ALL, plus date filtering
+  const queryFilters = useMemo(() => {
+    const f: Record<string, any> = {};
+    if (statusFilter !== "ALL") {
+      f.status = statusFilter;
+    }
+    if (dateRange.from) {
+      f.date_from = dateRange.from;
+      f.startDate = dateRange.from;
+    }
+    if (dateRange.to) {
+      f.date_to = dateRange.to;
+      f.endDate = dateRange.to;
+    }
+    return f;
+  }, [statusFilter, dateRange]);
+
+  const { data: allKotData, isLoading, refetch } = useKotOrders(queryFilters);
 
   const records = useMemo(() => {
     const list = allKotData?.records || [];
     return list.filter((kot) => {
-      // Exclude purely open pending/preparing tickets if viewing history, or keep all with status badges
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesNum = String(kot.kotId || "").includes(q) || String(kot.kotNumber || "").toLowerCase().includes(q);
@@ -80,6 +119,29 @@ export function KotHistoryModal({ isOpen, onClose, outletName }: KotHistoryModal
     }
   };
 
+  const handleConfirmCancel = () => {
+    if (!ticketToCancel) return;
+    const ticket = ticketToCancel;
+    cancelMutation.mutate(
+      {
+        ticketId: ticket.id,
+        kotId: ticket.kotId,
+        note: "Cancelled from KOT history",
+      },
+      {
+        onSuccess: () => {
+          toast.success(`KOT #${ticket.kotId || ticket.kotNumber} cancelled successfully`);
+          setTicketToCancel(null);
+          refetch();
+        },
+        onError: (err: any) => {
+          const msg = err?.data?.detail || err?.data?.ticket || err?.message || "Failed to cancel KOT";
+          toast.error(typeof msg === "string" ? msg : "Failed to cancel KOT");
+        },
+      },
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-foreground/40 backdrop-blur-xs animate-in fade-in-50">
       <div className="relative flex flex-col w-full max-w-4xl max-h-[90vh] bg-surface rounded-2xl border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 font-sans">
@@ -97,7 +159,7 @@ export function KotHistoryModal({ isOpen, onClose, outletName }: KotHistoryModal
                 </span>
               </div>
               <p className="text-xs text-text-secondary">
-                View previous completed, ready, and past kitchen tickets with reprint options
+                View previous completed, ready, and past kitchen tickets with reprint and cancel options
               </p>
             </div>
           </div>
@@ -110,9 +172,9 @@ export function KotHistoryModal({ isOpen, onClose, outletName }: KotHistoryModal
           </button>
         </div>
 
-        {/* Filters Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-border bg-surface shrink-0">
-          <div className="relative flex-1 min-w-[220px]">
+        {/* Filters Bar: Search, Calendar Date Picker, 3 Statuses (Ready, Preparing, Cancelled) */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 px-5 py-3 border-b border-border bg-surface shrink-0">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-secondary" />
             <input
               type="text"
@@ -123,15 +185,29 @@ export function KotHistoryModal({ isOpen, onClose, outletName }: KotHistoryModal
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Calendar Option: Past & Today dates only (future dates strictly disabled) */}
+            <div className="w-[200px] sm:w-[220px]">
+              <PosDateRangePicker
+                from={dateRange.from}
+                to={dateRange.to}
+                onSelect={(range) => setDateRange(range)}
+                placeholder="Filter by Date"
+                allowFutureDates={false}
+                showClear={Boolean(dateRange.from || dateRange.to)}
+                showPresets={true}
+                size="sm"
+              />
+            </div>
+
+            {/* Exactly 3 statuses: Ready, Preparing, Cancelled (plus All Statuses) */}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="h-9 px-3 text-xs font-semibold rounded-xl border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
             >
               <option value="ALL">All Statuses</option>
-              <option value="READY">Ready / Completed</option>
-              <option value="SERVED">Served</option>
+              <option value="READY">Ready</option>
               <option value="PREPARING">Preparing</option>
               <option value="CANCELLED">Cancelled</option>
             </select>
@@ -158,7 +234,9 @@ export function KotHistoryModal({ isOpen, onClose, outletName }: KotHistoryModal
               <ChefHat className="h-8 w-8 text-text-secondary/40" />
               <p className="text-sm font-semibold text-foreground">No KOT history found</p>
               <p className="text-xs text-text-secondary">
-                {searchQuery ? "Try a different search keyword" : "Completed kitchen orders will show here"}
+                {searchQuery || dateRange.from
+                  ? "Try changing your search filter or date range"
+                  : "Completed kitchen orders will show here"}
               </p>
             </div>
           ) : (
@@ -194,14 +272,9 @@ export function KotHistoryModal({ isOpen, onClose, outletName }: KotHistoryModal
                           </div>
                         </div>
 
-                        {/* Status Badge */}
+                        {/* Status Badge: Ready, Preparing, Cancelled */}
                         <div>
-                          {isServed ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                              <CheckCircle2 className="h-3 w-3" />
-                              Served
-                            </span>
-                          ) : isReady ? (
+                          {isReady || isServed ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                               <CheckCircle2 className="h-3 w-3" />
                               Ready
@@ -233,20 +306,35 @@ export function KotHistoryModal({ isOpen, onClose, outletName }: KotHistoryModal
                     </div>
 
                     {/* Card Footer */}
-                    <div className="flex items-center justify-between pt-2.5 border-t border-border/60 text-[11px] text-text-secondary">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5 text-text-secondary/70" />
-                        <span>{kot.createdAt || "Recently"}</span>
+                    <div className="flex items-center justify-between pt-2.5 border-t border-border/60 text-[11px] text-text-secondary gap-2">
+                      <div className="flex items-center gap-1 truncate">
+                        <Calendar className="h-3.5 w-3.5 text-text-secondary/70 shrink-0" />
+                        <span className="truncate">{kot.createdAt || "Recently"}</span>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handlePrint(kot)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface border border-border text-foreground hover:bg-surface-2 transition cursor-pointer shadow-2xs"
-                      >
-                        <Printer className="h-3.5 w-3.5 text-text-secondary" />
-                        <span>Print</span>
-                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {/* Cancel option next to Print button if not already cancelled */}
+                        {!isCancelled && (
+                          <button
+                            type="button"
+                            onClick={() => setTicketToCancel(kot)}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50/80 hover:bg-rose-100 border border-rose-200 transition cursor-pointer shadow-2xs"
+                            title="Cancel this KOT ticket"
+                          >
+                            <Ban className="h-3.5 w-3.5 text-rose-600" />
+                            <span>Cancel</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => handlePrint(kot)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface border border-border text-foreground hover:bg-surface-2 transition cursor-pointer shadow-2xs"
+                        >
+                          <Printer className="h-3.5 w-3.5 text-text-secondary" />
+                          <span>Print</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -269,6 +357,41 @@ export function KotHistoryModal({ isOpen, onClose, outletName }: KotHistoryModal
           </button>
         </div>
       </div>
+
+      {/* Confirmation Dialog for Cancelling KOT */}
+      <AlertDialog open={Boolean(ticketToCancel)} onOpenChange={(open) => !open && setTicketToCancel(null)}>
+        <AlertDialogContent className="rounded-2xl max-w-md bg-surface border border-border p-6 shadow-xl font-sans">
+          <AlertDialogHeader className="space-y-2 text-left">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 border border-rose-200 text-rose-600">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <AlertDialogTitle className="text-base font-bold text-foreground">
+                Cancel KOT #{ticketToCancel?.kotId || ticketToCancel?.kotNumber}?
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-xs text-text-secondary leading-relaxed pt-1">
+              Are you sure you want to cancel this kitchen order ticket? This will mark the ticket as
+              Cancelled in the kitchen history and database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-5 flex items-center justify-end gap-2">
+            <AlertDialogCancel
+              disabled={cancelMutation.isPending}
+              className="rounded-xl border border-border bg-surface px-4 py-2 text-xs font-semibold text-foreground hover:bg-surface-2 cursor-pointer"
+            >
+              Keep Ticket
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmCancel}
+              disabled={cancelMutation.isPending}
+              className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-700 cursor-pointer shadow-xs"
+            >
+              {cancelMutation.isPending ? "Cancelling..." : "Yes, Cancel KOT"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

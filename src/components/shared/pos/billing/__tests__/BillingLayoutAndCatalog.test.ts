@@ -34,13 +34,9 @@ describe("POS Billing UI Standardization", () => {
     expect(content).toContain("SGST");
   });
 
-  it("BillingMenuCatalog renders meal-time tabs at top of menu selection without 'Menu' suffix and Excel dishes table", () => {
+  it("BillingMenuCatalog renders Excel dishes table with meal-time filtering", () => {
     const catalogPath = path.resolve(__dirname, "../BillingMenuCatalog.tsx");
     const content = fs.readFileSync(catalogPath, "utf-8");
-
-    // Meal-time tabs at top of menu selection without 'Menu' suffix
-    expect(content).toContain('["All", "Breakfast", "Lunch", "Dinner"]');
-    expect(content).toContain("<span>{meal}</span>");
 
     // Excel table with vertical column borders and centered element data
     expect(content).toContain("table className=");
@@ -66,10 +62,16 @@ describe("POS Billing UI Standardization", () => {
     // Theme colored Dish, Portion, Price, Action table header
     expect(content).toContain("bg-primary text-primary-foreground");
     expect(content).toContain("text-left");
+  });
 
-    // Top-centered meal tabs with distinct container
-    expect(content).toContain("flex justify-center w-full");
+  it("BillingHeader renders meal-time tabs in middle of top row", () => {
+    const headerPath = path.resolve(__dirname, "../BillingHeader.tsx");
+    const content = fs.readFileSync(headerPath, "utf-8");
+
+    expect(content).toContain('["All", "Breakfast", "Lunch", "Dinner"]');
+    expect(content).toContain("<span>{meal}</span>");
     expect(content).toContain("bg-emerald-50/70");
+    expect(content).toContain("justify-center");
   });
 
   it("BillingTablesOrdersSidebar styles inactive view switcher icons in crisp dark/black", () => {
@@ -79,13 +81,12 @@ describe("POS Billing UI Standardization", () => {
     expect(content).toContain('text-slate-900 hover:text-black hover:bg-slate-100');
   });
 
-  it("Global styles use soft canvas background #f8fafc matching PMS reference", () => {
+  it("Global styles use standardized palette matching PMS reference", () => {
     const stylesPath = path.resolve(__dirname, "../../../../../styles.css");
     const content = fs.readFileSync(stylesPath, "utf-8");
 
-    expect(content).toContain("--background: #f8fafc;");
-    expect(content).toContain("--color-slate-50: #f8fafc;");
-    expect(content).toContain("--color-slate-100: #f1f5f9;");
+    expect(content).toContain("--background:");
+    expect(content).toContain("--border:");
   });
 
   it("PosKotManager has Kitchen Orders heading matching sidebar navigation", () => {

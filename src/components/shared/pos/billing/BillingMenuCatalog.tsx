@@ -87,7 +87,8 @@ export function BillingMenuCatalog({
         const rawItem = item as any;
         const mealTimes: string[] = rawItem.mealTimes || rawItem.meal_times;
         if (!mealTimes || !Array.isArray(mealTimes) || mealTimes.length === 0) {
-          return true; // legacy items appear across all meal times
+          // If no specific meal time is assigned, treat as available all day
+          return true;
         }
         return mealTimes.some((m) => {
           const lower = String(m).trim().toLowerCase();

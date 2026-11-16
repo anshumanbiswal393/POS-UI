@@ -480,6 +480,11 @@ export async function liveKotReady(ticketId: string) {
   return res.data;
 }
 
+export async function liveKotCancel(ticketId: string, note = "Cancelled from KOT") {
+  const res = await httpClient.post(API_ENDPOINTS.ORDERS.KOT_CANCEL(ticketId), { note });
+  return res.data;
+}
+
 export async function liveKotServed(ticketId: string) {
   const res = await httpClient.post(API_ENDPOINTS.ORDERS.KOT_SERVED(ticketId), {});
   return res.data;

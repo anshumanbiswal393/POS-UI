@@ -13,6 +13,8 @@ import {
   advanceCurrentOrderById,
   markKotPrepared,
   markKotReadyLive,
+  cancelKotLive,
+  cancelKotLocal,
   markKotServedLive,
   settleDueBill,
   settleDueBillLive,
@@ -135,6 +137,23 @@ export function useMarkKotPreparedMutation() {
           records: old.records.filter((r) => r.status !== "Prepared" && r.status !== "Served"),
         };
       });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "current-timeline"] });
+    },
+  });
+}
+
+export function useCancelKotMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { ticketId?: string; kotId?: number; note?: string }) => {
+      if (input.ticketId && /^[0-9a-f-]{36}$/i.test(input.ticketId)) {
+        return cancelKotLive(input.ticketId, input.note);
+      }
+      return cancelKotLocal(Number(input.kotId), input.note);
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "current-timeline"] });

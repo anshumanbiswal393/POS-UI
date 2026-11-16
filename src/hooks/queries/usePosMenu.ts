@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { posMenuService, getStoredItemPlates } from "@/services/posMenuService";
+import { posMenuService, getStoredItemPlates, getStoredItemMealTimes } from "@/services/posMenuService";
 import { liveGetBillingMenu } from "@/services/posOrderLive";
 import { isBackendOutletId } from "@/utils/outletId";
 import type { MenuItem, MenuItemImage } from "@/types/posMenu";
@@ -44,7 +44,17 @@ export function useBillingMenuItems(outletId?: string) {
         raw = await posMenuService.getMenuItems(effectiveOutletId);
       }
       const platesMap = getStoredItemPlates(effectiveOutletId);
+      const mealTimesMap = getStoredItemMealTimes(effectiveOutletId);
       return (raw || []).map((item) => {
+        const rawItem = item as any;
+        const apiMealTimes =
+          Array.isArray(rawItem.mealTimes) && rawItem.mealTimes.length > 0
+            ? (rawItem.mealTimes as string[])
+            : Array.isArray(rawItem.meal_times) && rawItem.meal_times.length > 0
+              ? (rawItem.meal_times as string[])
+              : mealTimesMap[item.id] && mealTimesMap[item.id].length > 0
+                ? mealTimesMap[item.id]
+                : ["All Day"];
         const basePrice = (item as any).originalPrice ?? item.price;
         const effectivePrice =
           (item as any).originalPrice !== undefined
@@ -63,6 +73,7 @@ export function useBillingMenuItems(outletId?: string) {
               : undefined;
         return {
           ...item,
+          mealTimes: apiMealTimes,
           plates,
           originalPrice: basePrice,
           price: effectivePrice,

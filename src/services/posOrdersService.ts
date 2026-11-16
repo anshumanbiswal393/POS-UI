@@ -9,6 +9,7 @@ import {
   liveGetDueBills,
   liveAdvanceOrder,
   liveKotReady,
+  liveKotCancel,
   liveKotServed,
   liveSettleDue,
   liveSettleOrder,
@@ -716,8 +717,31 @@ export async function markKotReadyLive(ticketId: string) {
   return liveKotReady(ticketId);
 }
 
+export async function cancelKotLive(ticketId: string, note?: string) {
+  return liveKotCancel(ticketId, note);
+}
+
 export async function markKotServedLive(ticketId: string) {
   return liveKotServed(ticketId);
+}
+
+export function cancelKotLocal(kotId: number, note = "Cancelled"): any {
+  let targetKot: any = null;
+  kotOrdersStore = {
+    ...kotOrdersStore,
+    records: kotOrdersStore.records.map((r) => {
+      if (r.kotId === kotId) {
+        targetKot = {
+          ...r,
+          status: "Cancelled" as const,
+          notes: note,
+        };
+        return targetKot;
+      }
+      return r;
+    }),
+  };
+  return targetKot;
 }
 
 export function markKotPrepared(kotId: number): { kot: any; bill: DueBill | null } {
