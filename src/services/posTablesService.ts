@@ -899,9 +899,9 @@ export const posTablesService = {
             (r.status === "seated" || r.status === "reserved" || (tbl.status === "occupied" && r.status === "completed"))
         );
 
-        // Occupied tables with active dining orders always stay occupied
+        // Only maintain active reservation/order info if the reservation is still currently seated or reserved (not completed)
         if (tbl.status === "occupied" || tbl.activeOrder?.orderId) {
-          if (matchedRes) {
+          if (matchedRes && matchedRes.status !== "completed" && matchedRes.status !== "cancelled") {
             const guestName = tbl.activeOrder?.guestName || matchedRes.customerName;
             const guestPhone = tbl.activeOrder?.guestPhone || matchedRes.customerPhone;
             return {
@@ -1705,7 +1705,7 @@ export const posTablesService = {
       return found;
     }
 
-    let updatedTable!: RestaurantTable;
+    let updatedTable: RestaurantTable | undefined;
 
     store().tables = store().tables.map((tbl) => {
 
@@ -1732,6 +1732,32 @@ export const posTablesService = {
       return tbl;
 
     });
+
+    if (!updatedTable) {
+      const stored = getStoredTables(effectiveOutlet);
+      const found = stored.find((t) => t.id === tableId);
+      if (found) {
+        updatedTable = {
+          ...found,
+          status: "vacant",
+          currentGuests: 0,
+          activeReservation: undefined,
+          activeOrder: undefined,
+        };
+        const newStored = stored.map((t) => (t.id === tableId ? updatedTable! : t));
+        saveStoredTables(effectiveOutlet, newStored);
+      } else {
+        updatedTable = {
+          id: tableId,
+          tableNumber: `Table #${tableId}`,
+          capacity: 4,
+          currentGuests: 0,
+          shape: "square",
+          area: "Dining Area",
+          status: "vacant",
+        };
+      }
+    }
 
     // Mark any active reservation for this table as completed
 

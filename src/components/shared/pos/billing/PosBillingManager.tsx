@@ -1612,10 +1612,14 @@ export function PosBillingManager() {
               deductPlatesForItems(cartItems);
             }
             if (!isPartial && orderType === "dine_in") {
+              const targetTblId = billingTableId || resolveTableMatch(activeTable)?.id;
+              if (targetTblId) {
+                posTablesService.vacateTable(targetTblId).catch(() => {});
+              }
               try {
                 await posTablesService.completeReservation({
                   reservationId: activeTableReservationId || undefined,
-                  tableId: billingTableId || resolveTableMatch(activeTable)?.id,
+                  tableId: targetTblId,
                   tableNumber: tableLabel,
                 });
               } catch {
