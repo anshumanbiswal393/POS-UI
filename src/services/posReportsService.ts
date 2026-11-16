@@ -65,20 +65,19 @@ export async function fetchSalesReport(params: {
   toDate?: string;
   limit?: number;
 }): Promise<PosSalesReportResponse> {
-  const scope = reportScope(params.outletId);
-  if (!scope) {
-    return { success: true, count: 0, records: [] };
+  const queryParams: Record<string, any> = {
+    kind: params.kind,
+    startDate: params.fromDate,
+    endDate: params.toDate,
+    fromDate: params.fromDate,
+    toDate: params.toDate,
+    limit: params.limit ?? 200,
+  };
+  if (params.outletId && isBackendOutletId(params.outletId)) {
+    queryParams.outlet_id = params.outletId;
   }
   const res = await httpClient.get<PosSalesReportResponse>(API_ENDPOINTS.REPORTS.SALES, {
-    params: {
-      ...scope,
-      kind: params.kind,
-      startDate: params.fromDate,
-      endDate: params.toDate,
-      fromDate: params.fromDate,
-      toDate: params.toDate,
-      limit: params.limit ?? 200,
-    },
+    params: queryParams,
   });
   const data = res.data || { success: true, count: 0, records: [] };
   const records = data.records?.length ? data.records : data.items || [];
@@ -90,26 +89,26 @@ export async function fetchDayEndRange(params: {
   startDate?: string;
   endDate?: string;
 }): Promise<DayEndRangeResponse> {
-  const scope = reportScope(params.outletId);
-  if (!scope) {
-    return { success: true, startDate: "", endDate: "", count: 0, records: [] };
+  const queryParams: Record<string, any> = {
+    startDate: params.startDate,
+    endDate: params.endDate,
+    start_date: params.startDate,
+    end_date: params.endDate,
+  };
+  if (params.outletId && isBackendOutletId(params.outletId)) {
+    queryParams.outlet_id = params.outletId;
   }
   const res = await httpClient.get<DayEndRangeResponse>(API_ENDPOINTS.REPORTS.DAY_END, {
-    params: {
-      ...scope,
-      startDate: params.startDate,
-      endDate: params.endDate,
-      start_date: params.startDate,
-      end_date: params.endDate,
-    },
+    params: queryParams,
   });
-  const records: DayEndRecord[] = (res.data.records || []).map((r) => ({
+  const data = res.data || { success: true, startDate: "", endDate: "", count: 0, records: [] };
+  const records: DayEndRecord[] = (data.records || []).map((r) => ({
     ...r,
     id: r.id || r.businessDate || r.date,
     orderCount: Number(r.orderCount || 0),
     totalAmount: Number(r.totalAmount || 0),
   }));
-  return { ...res.data, records, count: records.length };
+  return { ...data, records, count: records.length };
 }
 
 export async function fetchDayEndDetail(params: {

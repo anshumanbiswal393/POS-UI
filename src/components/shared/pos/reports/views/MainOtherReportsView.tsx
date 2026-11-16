@@ -63,248 +63,133 @@ export interface ReportCard {
 // DATASETS TAILORED FOR EACH POS REPORT TYPE
 // ---------------------------------------------------------
 
-const DATASETS: Record<string, { columns: DataTableColumn<any>[]; data: any[] }> = {
-  "REP-01": {
+const REPORT_COLUMNS: Record<string, DataTableColumn<any>[]> = {
+  "REP-01": [
     // All Restaurant Sales Report
-    columns: [
-      { id: "date", label: "Date", sortable: true, getValue: (r) => r.date },
-      { id: "outlet", label: "Outlet Name", sortable: true, filterable: true, getValue: (r) => r.outlet },
-      { id: "totalBills", label: "Total Bills", align: "right", sortable: true, getValue: (r) => String(r.totalBills) },
-      { id: "dineInSales", label: "Dine-In (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.dineInSales.toLocaleString()}` },
-      { id: "takeawaySales", label: "Takeaway (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.takeawaySales.toLocaleString()}` },
-      { id: "deliverySales", label: "Delivery (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.deliverySales.toLocaleString()}` },
-      { id: "grossSales", label: "Gross Sales (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.grossSales.toLocaleString()}` },
-      { id: "discounts", label: "Discounts (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.discounts.toLocaleString()}` },
-      { id: "taxes", label: "Taxes (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.taxes.toLocaleString()}` },
-      { id: "netSales", label: "Net Sales (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.netSales.toLocaleString()}` },
-    ],
-    data: [
-      { id: "1", date: "2026-09-02", outlet: "HIGHWAY INN BAR & RESTAURANT", totalBills: 84, dineInSales: 48200, takeawaySales: 12400, deliverySales: 18900, grossSales: 79500, discounts: 3200, taxes: 3815, netSales: 80115 },
-      { id: "2", date: "2026-09-02", outlet: "HIGHWAY INN BANQUET", totalBills: 6, dineInSales: 115000, takeawaySales: 0, deliverySales: 0, grossSales: 115000, discounts: 5000, taxes: 5500, netSales: 115500 },
-      { id: "3", date: "2026-09-01", outlet: "HIGHWAY INN BAR & RESTAURANT", totalBills: 92, dineInSales: 54100, takeawaySales: 14200, deliverySales: 21500, grossSales: 89800, discounts: 4100, taxes: 4285, netSales: 89985 },
-      { id: "4", date: "2026-09-01", outlet: "HIGHWAY INN BANQUET", totalBills: 4, dineInSales: 85000, takeawaySales: 0, deliverySales: 0, grossSales: 85000, discounts: 3000, taxes: 4100, netSales: 86100 },
-      { id: "5", date: "2026-08-31", outlet: "HIGHWAY INN BAR & RESTAURANT", totalBills: 78, dineInSales: 42000, takeawaySales: 10800, deliverySales: 16400, grossSales: 69200, discounts: 2800, taxes: 3320, netSales: 69720 },
-      { id: "6", date: "2026-08-30", outlet: "HIGHWAY INN BAR & RESTAURANT", totalBills: 110, dineInSales: 68500, takeawaySales: 18900, deliverySales: 28400, grossSales: 115800, discounts: 5600, taxes: 5510, netSales: 115710 },
-      { id: "7", date: "2026-08-29", outlet: "HIGHWAY INN BAR & RESTAURANT", totalBills: 105, dineInSales: 64200, takeawaySales: 17100, deliverySales: 26000, grossSales: 107300, discounts: 4900, taxes: 5120, netSales: 107520 },
-    ],
-  },
-  "REP-02": {
+    { id: "date", label: "Date", sortable: true, getValue: (r) => r.date },
+    { id: "outlet", label: "Outlet Name", sortable: true, filterable: true, getValue: (r) => r.outlet },
+    { id: "totalBills", label: "Total Bills", align: "right", sortable: true, getValue: (r) => String(r.totalBills ?? 0) },
+    { id: "dineInSales", label: "Dine-In (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.dineInSales ?? 0).toLocaleString()}` },
+    { id: "takeawaySales", label: "Takeaway (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.takeawaySales ?? 0).toLocaleString()}` },
+    { id: "deliverySales", label: "Delivery (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.deliverySales ?? 0).toLocaleString()}` },
+    { id: "grossSales", label: "Gross Sales (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.grossSales ?? 0).toLocaleString()}` },
+    { id: "discounts", label: "Discounts (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.discounts ?? 0).toLocaleString()}` },
+    { id: "taxes", label: "Taxes (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.taxes ?? 0).toLocaleString()}` },
+    { id: "netSales", label: "Net Sales (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.netSales ?? 0).toLocaleString()}` },
+  ],
+  "REP-02": [
     // Outlet-Item Wise Report (Row)
-    columns: [
-      { id: "itemCode", label: "Item Code", sortable: true, getValue: (r) => r.itemCode },
-      { id: "itemName", label: "Item Name", sortable: true, getValue: (r) => r.itemName },
-      { id: "category", label: "Category", sortable: true, filterable: true, getValue: (r) => r.category },
-      { id: "outlet", label: "Outlet", sortable: true, getValue: (r) => r.outlet },
-      { id: "unitPrice", label: "Unit Rate (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.unitPrice}` },
-      { id: "qtySold", label: "Quantity Sold", align: "right", sortable: true, getValue: (r) => String(r.qtySold) },
-      { id: "grossRevenue", label: "Gross (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.grossRevenue.toLocaleString()}` },
-      { id: "discountAmount", label: "Discount (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.discountAmount.toLocaleString()}` },
-      { id: "netRevenue", label: "Net Revenue (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.netRevenue.toLocaleString()}` },
-    ],
-    data: [
-      { id: "1", itemCode: "ITM-101", itemName: "Murgh Dum Biryani (Handi)", category: "Main Course", outlet: "HIGHWAY INN BAR & RESTAURANT", unitPrice: 480, qtySold: 142, grossRevenue: 68160, discountAmount: 3400, netRevenue: 64760 },
-      { id: "2", itemCode: "ITM-102", itemName: "Paneer Butter Masala", category: "Main Course", outlet: "HIGHWAY INN BAR & RESTAURANT", unitPrice: 360, qtySold: 118, grossRevenue: 42480, discountAmount: 2100, netRevenue: 40380 },
-      { id: "3", itemCode: "ITM-103", itemName: "Tandoori Pomfret", category: "Starters & Tandoor", outlet: "HIGHWAY INN BAR & RESTAURANT", unitPrice: 650, qtySold: 64, grossRevenue: 41600, discountAmount: 1800, netRevenue: 39800 },
-      { id: "4", itemCode: "ITM-104", itemName: "Butter Garlic Naan", category: "Breads", outlet: "HIGHWAY INN BAR & RESTAURANT", unitPrice: 75, qtySold: 410, grossRevenue: 30750, discountAmount: 900, netRevenue: 29850 },
-      { id: "5", itemCode: "ITM-105", itemName: "Classic Mojito", category: "Bar & Cocktails", outlet: "HIGHWAY INN BAR & RESTAURANT", unitPrice: 280, qtySold: 96, grossRevenue: 26880, discountAmount: 1200, netRevenue: 25680 },
-      { id: "6", itemCode: "ITM-106", itemName: "Dal Makhani Royal", category: "Main Course", outlet: "HIGHWAY INN BAR & RESTAURANT", unitPrice: 310, qtySold: 88, grossRevenue: 27280, discountAmount: 1100, netRevenue: 26180 },
-      { id: "7", itemCode: "ITM-107", itemName: "Banquet Buffet Spread A", category: "Banquet Catering", outlet: "HIGHWAY INN BANQUET", unitPrice: 1250, qtySold: 160, grossRevenue: 200000, discountAmount: 10000, netRevenue: 190000 },
-    ],
-  },
-  "REP-03": {
+    { id: "itemCode", label: "Item Code", sortable: true, getValue: (r) => r.itemCode },
+    { id: "itemName", label: "Item Name", sortable: true, getValue: (r) => r.itemName },
+    { id: "category", label: "Category", sortable: true, filterable: true, getValue: (r) => r.category },
+    { id: "outlet", label: "Outlet", sortable: true, getValue: (r) => r.outlet },
+    { id: "unitPrice", label: "Unit Rate (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.unitPrice ?? 0}` },
+    { id: "qtySold", label: "Quantity Sold", align: "right", sortable: true, getValue: (r) => String(r.qtySold ?? 0) },
+    { id: "grossRevenue", label: "Gross (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.grossRevenue ?? 0).toLocaleString()}` },
+    { id: "discountAmount", label: "Discount (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.discountAmount ?? 0).toLocaleString()}` },
+    { id: "netRevenue", label: "Net Revenue (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.netRevenue ?? 0).toLocaleString()}` },
+  ],
+  "REP-03": [
     // Invoice Report: All Restaurants
-    columns: [
-      { id: "invoiceNo", label: "Invoice #", sortable: true, getValue: (r) => r.invoiceNo },
-      { id: "timestamp", label: "Date & Time", sortable: true, getValue: (r) => r.timestamp },
-      { id: "outlet", label: "Outlet", sortable: true, getValue: (r) => r.outlet },
-      { id: "orderType", label: "Order Type", sortable: true, filterable: true, getValue: (r) => r.orderType },
-      { id: "tableToken", label: "Table / Token", sortable: true, getValue: (r) => r.tableToken },
-      { id: "customer", label: "Guest", sortable: true, getValue: (r) => r.customer },
-      { id: "paymentMode", label: "Payment Mode", sortable: true, filterable: true, getValue: (r) => r.paymentMode },
-      { id: "subTotal", label: "Subtotal (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.subTotal}` },
-      { id: "tax", label: "Tax (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.tax}` },
-      { id: "grandTotal", label: "Total Paid (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.grandTotal}` },
-      { id: "status", label: "Status", sortable: true, filterable: true, getValue: (r) => r.status },
-    ],
-    data: [
-      { id: "1", invoiceNo: "INV-2026-0901", timestamp: "2026-09-02 21:40", outlet: "HIGHWAY INN", orderType: "Dine-In", tableToken: "Table T-04", customer: "Rahul Sharma", paymentMode: "UPI / GPay", subTotal: 2450, tax: 122.5, grandTotal: 2572.5, status: "Paid" },
-      { id: "2", invoiceNo: "INV-2026-0902", timestamp: "2026-09-02 21:15", outlet: "HIGHWAY INN", orderType: "Delivery (Zomato)", tableToken: "ZOM-8921", customer: "Pooja Verma", paymentMode: "Aggregator Online", subTotal: 890, tax: 44.5, grandTotal: 934.5, status: "Settled" },
-      { id: "3", invoiceNo: "INV-2026-0903", timestamp: "2026-09-02 20:50", outlet: "HIGHWAY INN", orderType: "Takeaway", tableToken: "Token #14", customer: "Anand Gupta", paymentMode: "Card / Pine Labs", subTotal: 1280, tax: 64.0, grandTotal: 1344.0, status: "Paid" },
-      { id: "4", invoiceNo: "INV-2026-0904", timestamp: "2026-09-02 20:20", outlet: "HIGHWAY INN", orderType: "Dine-In", tableToken: "Table T-12", customer: "Siddharth Rao", paymentMode: "Cash", subTotal: 3400, tax: 170.0, grandTotal: 3570.0, status: "Paid" },
-      { id: "5", invoiceNo: "INV-2026-0905", timestamp: "2026-09-02 19:45", outlet: "BANQUET HALL", orderType: "Banquet Event", tableToken: "Hall A", customer: "Verma Corporate Reception", paymentMode: "Bank Transfer", subTotal: 48000, tax: 2400.0, grandTotal: 50400.0, status: "Paid" },
-      { id: "6", invoiceNo: "INV-2026-0906", timestamp: "2026-09-02 19:10", outlet: "HIGHWAY INN", orderType: "Dine-In", tableToken: "Table T-02", customer: "Deepak Mehta", paymentMode: "UPI / Paytm", subTotal: 1980, tax: 99.0, grandTotal: 2079.0, status: "Paid" },
-    ],
-  },
-  "REP-04": {
+    { id: "invoiceNo", label: "Invoice #", sortable: true, getValue: (r) => r.invoiceNo },
+    { id: "timestamp", label: "Date & Time", sortable: true, getValue: (r) => r.timestamp },
+    { id: "outlet", label: "Outlet", sortable: true, getValue: (r) => r.outlet },
+    { id: "orderType", label: "Order Type", sortable: true, filterable: true, getValue: (r) => r.orderType },
+    { id: "tableToken", label: "Table / Token", sortable: true, getValue: (r) => r.tableToken },
+    { id: "customer", label: "Guest", sortable: true, getValue: (r) => r.customer },
+    { id: "paymentMode", label: "Payment Mode", sortable: true, filterable: true, getValue: (r) => r.paymentMode },
+    { id: "subTotal", label: "Subtotal (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.subTotal ?? 0}` },
+    { id: "tax", label: "Tax (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.tax ?? 0}` },
+    { id: "grandTotal", label: "Total Paid (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.grandTotal ?? 0}` },
+    { id: "status", label: "Status", sortable: true, filterable: true, getValue: (r) => r.status },
+  ],
+  "REP-04": [
     // Pax Sales Report: Biller Wise
-    columns: [
-      { id: "billerName", label: "Biller / Captain Name", sortable: true, getValue: (r) => r.billerName },
-      { id: "empId", label: "Staff ID", sortable: true, getValue: (r) => r.empId },
-      { id: "outlet", label: "Outlet", sortable: true, getValue: (r) => r.outlet },
-      { id: "shift", label: "Shift", sortable: true, filterable: true, getValue: (r) => r.shift },
-      { id: "totalPax", label: "Pax", align: "right", sortable: true, getValue: (r) => String(r.totalPax) },
-      { id: "totalBills", label: "Total Bills", align: "right", sortable: true, getValue: (r) => String(r.totalBills) },
-      { id: "totalSales", label: "Total Sales (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.totalSales.toLocaleString()}` },
-      { id: "avgPerPax", label: "Avg Spend / Pax (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.avgPerPax}` },
-      { id: "avgPerBill", label: "Avg Ticket Size (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.avgPerBill}` },
-    ],
-    data: [
-      { id: "1", billerName: "Sunil Verma (Cashier)", empId: "EMP-041", outlet: "HIGHWAY INN", shift: "Evening Shift", totalPax: 148, totalBills: 52, totalSales: 54600, avgPerPax: 368.9, avgPerBill: 1050 },
-      { id: "2", billerName: "Ramesh Patel (Captain)", empId: "EMP-048", outlet: "HIGHWAY INN", shift: "Evening Shift", totalPax: 96, totalBills: 31, totalSales: 38200, avgPerPax: 397.9, avgPerBill: 1232 },
-      { id: "3", billerName: "Priya Sharma (Manager)", empId: "EMP-012", outlet: "HIGHWAY INN", shift: "Day & Evening", totalPax: 64, totalBills: 18, totalSales: 28900, avgPerPax: 451.5, avgPerBill: 1605 },
-      { id: "4", billerName: "Kailash (Counter Staff)", empId: "EMP-055", outlet: "HIGHWAY INN", shift: "Day Shift", totalPax: 82, totalBills: 29, totalSales: 24500, avgPerPax: 298.7, avgPerBill: 844 },
-    ],
-  },
-  "REP-05": {
+    { id: "billerName", label: "Biller / Captain Name", sortable: true, getValue: (r) => r.billerName },
+    { id: "empId", label: "Staff ID", sortable: true, getValue: (r) => r.empId },
+    { id: "outlet", label: "Outlet", sortable: true, getValue: (r) => r.outlet },
+    { id: "shift", label: "Shift", sortable: true, filterable: true, getValue: (r) => r.shift },
+    { id: "totalPax", label: "Pax", align: "right", sortable: true, getValue: (r) => String(r.totalPax ?? 0) },
+    { id: "totalBills", label: "Total Bills", align: "right", sortable: true, getValue: (r) => String(r.totalBills ?? 0) },
+    { id: "totalSales", label: "Total Sales (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.totalSales ?? 0).toLocaleString()}` },
+    { id: "avgPerPax", label: "Avg Spend / Pax (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.avgPerPax ?? 0}` },
+    { id: "avgPerBill", label: "Avg Ticket Size (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.avgPerBill ?? 0}` },
+  ],
+  "REP-05": [
     // Order Report: Sub-Order Wise
-    columns: [
-      { id: "subOrderType", label: "Sub-Order Type", sortable: true, getValue: (r) => r.subOrderType },
-      { id: "channel", label: "Channel Source", sortable: true, filterable: true, getValue: (r) => r.channel },
-      { id: "totalOrders", label: "Total Orders", align: "right", sortable: true, getValue: (r) => String(r.totalOrders) },
-      { id: "deliveredOrders", label: "Delivered / Completed", align: "right", sortable: true, getValue: (r) => String(r.deliveredOrders) },
-      { id: "cancelledOrders", label: "Cancelled", align: "right", sortable: true, getValue: (r) => String(r.cancelledOrders) },
-      { id: "grossAmount", label: "Gross Amount (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.grossAmount.toLocaleString()}` },
-      { id: "netSettled", label: "Net Settled (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.netSettled.toLocaleString()}` },
-    ],
-    data: [
-      { id: "1", subOrderType: "Dine-In AC Section", channel: "POS Table Desk", totalOrders: 142, deliveredOrders: 140, cancelledOrders: 2, grossAmount: 98400, netSettled: 96800 },
-      { id: "2", subOrderType: "Dine-In Garden Bar", channel: "POS Table Desk", totalOrders: 88, deliveredOrders: 86, cancelledOrders: 2, grossAmount: 64200, netSettled: 63100 },
-      { id: "3", subOrderType: "Zomato Delivery", channel: "Aggregator Integration", totalOrders: 74, deliveredOrders: 72, cancelledOrders: 2, grossAmount: 42100, netSettled: 34500 },
-      { id: "4", subOrderType: "Swiggy Delivery", channel: "Aggregator Integration", totalOrders: 58, deliveredOrders: 57, cancelledOrders: 1, grossAmount: 32900, netSettled: 26900 },
-      { id: "5", subOrderType: "Direct Counter Takeaway", channel: "POS Walk-In", totalOrders: 49, deliveredOrders: 49, cancelledOrders: 0, grossAmount: 21800, netSettled: 21800 },
-      { id: "6", subOrderType: "Room Service", channel: "Hotel PMS Interop", totalOrders: 18, deliveredOrders: 18, cancelledOrders: 0, grossAmount: 14200, netSettled: 14200 },
-    ],
-  },
-  "REP-06": {
+    { id: "subOrderType", label: "Sub-Order Type", sortable: true, getValue: (r) => r.subOrderType },
+    { id: "channel", label: "Channel Source", sortable: true, filterable: true, getValue: (r) => r.channel },
+    { id: "totalOrders", label: "Total Orders", align: "right", sortable: true, getValue: (r) => String(r.totalOrders ?? 0) },
+    { id: "deliveredOrders", label: "Delivered / Completed", align: "right", sortable: true, getValue: (r) => String(r.deliveredOrders ?? 0) },
+    { id: "cancelledOrders", label: "Cancelled", align: "right", sortable: true, getValue: (r) => String(r.cancelledOrders ?? 0) },
+    { id: "grossAmount", label: "Gross Amount (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.grossAmount ?? r.salesAmount ?? 0).toLocaleString()}` },
+    { id: "netSettled", label: "Net Settled (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.netSettled ?? r.salesAmount ?? 0).toLocaleString()}` },
+  ],
+  "REP-06": [
     // All Restaurant Report: Day Wise
-    columns: [
-      { id: "date", label: "Date", sortable: true, getValue: (r) => r.date },
-      { id: "dayOfWeek", label: "Day", sortable: true, getValue: (r) => r.dayOfWeek },
-      { id: "dineInRev", label: "Dine-In (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.dineInRev.toLocaleString()}` },
-      { id: "takeawayRev", label: "Takeaway (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.takeawayRev.toLocaleString()}` },
-      { id: "deliveryRev", label: "Delivery (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.deliveryRev.toLocaleString()}` },
-      { id: "totalBills", label: "Total Bills", align: "right", sortable: true, getValue: (r) => String(r.totalBills) },
-      { id: "totalNetRev", label: "Total Net Revenue (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.totalNetRev.toLocaleString()}` },
-    ],
-    data: [
-      { id: "1", date: "2026-09-02", dayOfWeek: "Wednesday", dineInRev: 48200, takeawayRev: 12400, deliveryRev: 18900, totalBills: 84, totalNetRev: 79500 },
-      { id: "2", date: "2026-09-01", dayOfWeek: "Tuesday", dineInRev: 54100, takeawayRev: 14200, deliveryRev: 21500, totalBills: 92, totalNetRev: 89800 },
-      { id: "3", date: "2026-08-31", dayOfWeek: "Monday", dineInRev: 42000, takeawayRev: 10800, deliveryRev: 16400, totalBills: 78, totalNetRev: 69200 },
-      { id: "4", date: "2026-08-30", dayOfWeek: "Sunday", dineInRev: 68500, takeawayRev: 18900, deliveryRev: 28400, totalBills: 110, totalNetRev: 115800 },
-      { id: "5", date: "2026-08-29", dayOfWeek: "Saturday", dineInRev: 64200, takeawayRev: 17100, deliveryRev: 26000, totalBills: 105, totalNetRev: 107300 },
-      { id: "6", date: "2026-08-28", dayOfWeek: "Friday", dineInRev: 58900, takeawayRev: 15400, deliveryRev: 22800, totalBills: 98, totalNetRev: 97100 },
-      { id: "7", date: "2026-08-27", dayOfWeek: "Thursday", dineInRev: 49800, takeawayRev: 11900, deliveryRev: 19100, totalBills: 86, totalNetRev: 80800 },
-    ],
-  },
-  "REP-07": {
+    { id: "date", label: "Date", sortable: true, getValue: (r) => r.date },
+    { id: "dayOfWeek", label: "Day", sortable: true, getValue: (r) => r.dayOfWeek },
+    { id: "dineInRev", label: "Dine-In (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.dineInRev ?? 0).toLocaleString()}` },
+    { id: "takeawayRev", label: "Takeaway (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.takeawayRev ?? 0).toLocaleString()}` },
+    { id: "deliveryRev", label: "Delivery (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.deliveryRev ?? 0).toLocaleString()}` },
+    { id: "totalBills", label: "Total Bills", align: "right", sortable: true, getValue: (r) => String(r.totalBills ?? r.totalOrders ?? 0) },
+    { id: "totalNetRev", label: "Total Net Revenue (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.totalNetRev ?? r.netSales ?? 0).toLocaleString()}` },
+  ],
+  "REP-07": [
     // Discount & Comp Audit Report
-    columns: [
-      { id: "billNo", label: "Bill / Order No", sortable: true, getValue: (r) => r.billNo },
-      { id: "timestamp", label: "Date & Time", sortable: true, getValue: (r) => r.timestamp },
-      { id: "authorizedBy", label: "Authorized By", sortable: true, getValue: (r) => r.authorizedBy },
-      { id: "reason", label: "Discount Reason", sortable: true, filterable: true, getValue: (r) => r.reason },
-      { id: "discountType", label: "Type", sortable: true, getValue: (r) => r.discountType },
-      { id: "originalAmount", label: "Bill Amount (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.originalAmount}` },
-      { id: "discountValue", label: "Discount (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.discountValue}` },
-      { id: "finalBill", label: "Final Paid (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.finalBill}` },
-    ],
-    data: [
-      { id: "1", billNo: "RET-2026-0812", timestamp: "2026-09-02 22:30", authorizedBy: "Priya Sharma (Manager)", reason: "VIP Guest Courtesy", discountType: "Percentage (15%)", originalAmount: 3000, discountValue: 450, finalBill: 2550 },
-      { id: "2", billNo: "RET-2026-0814", timestamp: "2026-09-02 21:10", authorizedBy: "Sunil Verma (Cashier)", reason: "Happy Hour Special", discountType: "Flat ₹200", originalAmount: 1850, discountValue: 200, finalBill: 1650 },
-      { id: "3", billNo: "RET-2026-0822", timestamp: "2026-09-01 20:15", authorizedBy: "Priya Sharma (Manager)", reason: "Food Quality / Delayed Order", discountType: "Comp Item 100%", originalAmount: 2400, discountValue: 480, finalBill: 1920 },
-      { id: "4", billNo: "RET-2026-0830", timestamp: "2026-08-31 19:40", authorizedBy: "Amitabh Verma (Owner)", reason: "Owner Friends & Family", discountType: "Percentage (25%)", originalAmount: 4500, discountValue: 1125, finalBill: 3375 },
-    ],
-  },
-  "REP-08": {
+    { id: "billNo", label: "Bill / Order No", sortable: true, getValue: (r) => r.billNo || r.invoiceNo },
+    { id: "timestamp", label: "Date & Time", sortable: true, getValue: (r) => r.timestamp || r.dateTime },
+    { id: "authorizedBy", label: "Authorized By", sortable: true, getValue: (r) => r.authorizedBy || r.biller },
+    { id: "reason", label: "Discount Reason", sortable: true, filterable: true, getValue: (r) => r.reason },
+    { id: "discountType", label: "Type", sortable: true, getValue: (r) => r.discountType },
+    { id: "originalAmount", label: "Bill Amount (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.originalAmount ?? 0}` },
+    { id: "discountValue", label: "Discount (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.discountValue ?? r.discountAmount ?? 0}` },
+    { id: "finalBill", label: "Final Paid (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.finalBill ?? 0}` },
+  ],
+  "REP-08": [
     // Category Contribution Analysis
-    columns: [
-      { id: "categoryName", label: "Category Name", sortable: true, getValue: (r) => r.categoryName },
-      { id: "itemCount", label: "Active Items", align: "right", sortable: true, getValue: (r) => String(r.itemCount) },
-      { id: "qtySold", label: "Total Qty Sold", align: "right", sortable: true, getValue: (r) => String(r.qtySold) },
-      { id: "totalRevenue", label: "Total Revenue (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.totalRevenue.toLocaleString()}` },
-      { id: "contributionPct", label: "Revenue Share (%)", align: "right", sortable: true, getValue: (r) => `${r.contributionPct}%` },
-      { id: "profitMargin", label: "Est. Margin (%)", align: "right", sortable: true, getValue: (r) => `${r.profitMargin}%` },
-    ],
-    data: [
-      { id: "1", categoryName: "Main Course (Gravy & Biryani)", itemCount: 34, qtySold: 640, totalRevenue: 182400, contributionPct: 42.5, profitMargin: 68 },
-      { id: "2", categoryName: "Bar, Beer & Cocktails", itemCount: 28, qtySold: 390, totalRevenue: 109200, contributionPct: 25.4, profitMargin: 74 },
-      { id: "3", categoryName: "Starters, Kebabs & Tandoor", itemCount: 22, qtySold: 310, totalRevenue: 86800, contributionPct: 20.2, profitMargin: 65 },
-      { id: "4", categoryName: "Indian Breads & Rotis", itemCount: 10, qtySold: 850, totalRevenue: 34000, contributionPct: 7.9, profitMargin: 82 },
-      { id: "5", categoryName: "Desserts & Mocktails", itemCount: 12, qtySold: 115, totalRevenue: 17250, contributionPct: 4.0, profitMargin: 70 },
-    ],
-  },
-  "REP-09": {
+    { id: "categoryName", label: "Category Name", sortable: true, getValue: (r) => r.categoryName },
+    { id: "itemCount", label: "Active Items", align: "right", sortable: true, getValue: (r) => String(r.itemCount ?? 0) },
+    { id: "qtySold", label: "Total Qty Sold", align: "right", sortable: true, getValue: (r) => String(r.qtySold ?? 0) },
+    { id: "totalRevenue", label: "Total Revenue (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.totalRevenue ?? 0).toLocaleString()}` },
+    { id: "contributionPct", label: "Revenue Share (%)", align: "right", sortable: true, getValue: (r) => `${r.contributionPct ?? 0}%` },
+    { id: "profitMargin", label: "Est. Margin (%)", align: "right", sortable: true, getValue: (r) => `${r.profitMargin ?? 0}%` },
+  ],
+  "REP-09": [
     // Customer Repeat Order Matrix
-    columns: [
-      { id: "customerName", label: "Guest Name", sortable: true, getValue: (r) => r.customerName },
-      { id: "phone", label: "Mobile No", sortable: true, getValue: (r) => r.phone },
-      { id: "segment", label: "Guest Tier", sortable: true, filterable: true, getValue: (r) => r.segment },
-      { id: "totalVisits", label: "Total Visits", align: "right", sortable: true, getValue: (r) => String(r.totalVisits) },
-      { id: "lastVisit", label: "Last Visit", sortable: true, getValue: (r) => r.lastVisit },
-      { id: "lifetimeSpend", label: "Lifetime Spend (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.lifetimeSpend.toLocaleString()}` },
-      { id: "avgOrderValue", label: "Avg Ticket (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.avgOrderValue}` },
-    ],
-    data: [
-      { id: "1", customerName: "Rahul Sharma", phone: "9876543210", segment: "Platinum VIP", totalVisits: 18, lastVisit: "2026-09-02", lifetimeSpend: 42500, avgOrderValue: 2361 },
-      { id: "2", customerName: "Pooja Verma", phone: "9812345678", segment: "Gold Regular", totalVisits: 12, lastVisit: "2026-09-02", lifetimeSpend: 24800, avgOrderValue: 2066 },
-      { id: "3", customerName: "Vikram Malhotra", phone: "9823456789", segment: "Gold Regular", totalVisits: 9, lastVisit: "2026-08-30", lifetimeSpend: 19400, avgOrderValue: 2155 },
-      { id: "4", customerName: "Deepak Mehta", phone: "9834567890", segment: "Silver Returning", totalVisits: 5, lastVisit: "2026-08-28", lifetimeSpend: 9200, avgOrderValue: 1840 },
-      { id: "5", customerName: "Ananya Roy", phone: "9845678901", segment: "New Guest", totalVisits: 2, lastVisit: "2026-08-25", lifetimeSpend: 3100, avgOrderValue: 1550 },
-    ],
-  },
-  "REP-10": {
+    { id: "customerName", label: "Guest Name", sortable: true, getValue: (r) => r.customerName },
+    { id: "phone", label: "Mobile No", sortable: true, getValue: (r) => r.phone },
+    { id: "segment", label: "Guest Tier", sortable: true, filterable: true, getValue: (r) => r.segment || "Regular" },
+    { id: "totalVisits", label: "Total Visits", align: "right", sortable: true, getValue: (r) => String(r.totalVisits ?? 0) },
+    { id: "lastVisit", label: "Last Visit", sortable: true, getValue: (r) => r.lastVisit },
+    { id: "lifetimeSpend", label: "Lifetime Spend (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.lifetimeSpend ?? r.totalSpend ?? 0).toLocaleString()}` },
+    { id: "avgOrderValue", label: "Avg Ticket (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.avgOrderValue ?? r.avgSpendPerVisit ?? 0}` },
+  ],
+  "REP-10": [
     // Hourly Sales & Peak Time Report
-    columns: [
-      { id: "timeSlot", label: "Time Window", sortable: true, getValue: (r) => r.timeSlot },
-      { id: "ordersCount", label: "Orders Placed", align: "right", sortable: true, getValue: (r) => String(r.ordersCount) },
-      { id: "totalCovers", label: "Guest Covers", align: "right", sortable: true, getValue: (r) => String(r.totalCovers) },
-      { id: "salesAmount", label: "Revenue (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.salesAmount.toLocaleString()}` },
-      { id: "avgSpeed", label: "Avg Prep Time", align: "right", sortable: true, getValue: (r) => r.avgSpeed },
-    ],
-    data: [
-      { id: "1", timeSlot: "12:00 PM - 01:00 PM", ordersCount: 18, totalCovers: 42, salesAmount: 14800, avgSpeed: "14 mins" },
-      { id: "2", timeSlot: "01:00 PM - 02:00 PM (Lunch Peak)", ordersCount: 46, totalCovers: 112, salesAmount: 41200, avgSpeed: "19 mins" },
-      { id: "3", timeSlot: "02:00 PM - 03:30 PM", ordersCount: 22, totalCovers: 54, salesAmount: 18400, avgSpeed: "12 mins" },
-      { id: "4", timeSlot: "07:00 PM - 08:30 PM", ordersCount: 38, totalCovers: 92, salesAmount: 34500, avgSpeed: "16 mins" },
-      { id: "5", timeSlot: "08:30 PM - 10:30 PM (Dinner Peak)", ordersCount: 68, totalCovers: 174, salesAmount: 68900, avgSpeed: "22 mins" },
-      { id: "6", timeSlot: "10:30 PM - 11:30 PM", ordersCount: 14, totalCovers: 28, salesAmount: 11200, avgSpeed: "11 mins" },
-    ],
-  },
-  "REP-11": {
+    { id: "timeSlot", label: "Time Window", sortable: true, getValue: (r) => r.timeSlot },
+    { id: "ordersCount", label: "Orders Placed", align: "right", sortable: true, getValue: (r) => String(r.ordersCount ?? r.totalOrders ?? 0) },
+    { id: "totalCovers", label: "Guest Covers", align: "right", sortable: true, getValue: (r) => String(r.totalCovers ?? r.totalPax ?? 0) },
+    { id: "salesAmount", label: "Revenue (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.salesAmount ?? r.grossSales ?? 0).toLocaleString()}` },
+    { id: "avgSpeed", label: "Share of Daily", align: "right", sortable: true, getValue: (r) => r.shareOfDailySales ? `${r.shareOfDailySales}%` : (r.avgSpeed || "—") },
+  ],
+  "REP-11": [
     // Payment Mode & Settlement Reconciliation
-    columns: [
-      { id: "paymentMethod", label: "Payment Mode", sortable: true, getValue: (r) => r.paymentMethod },
-      { id: "txnCount", label: "Transactions", align: "right", sortable: true, getValue: (r) => String(r.txnCount) },
-      { id: "collectedAmount", label: "Collected (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.collectedAmount.toLocaleString()}` },
-      { id: "processingFee", label: "MDR / Charges (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.processingFee.toLocaleString()}` },
-      { id: "netBankDeposit", label: "Net Credited (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.netBankDeposit.toLocaleString()}` },
-    ],
-    data: [
-      { id: "1", paymentMethod: "UPI (Google Pay / PhonePe / Paytm)", txnCount: 164, collectedAmount: 112400, processingFee: 0, netBankDeposit: 112400 },
-      { id: "2", paymentMethod: "Credit / Debit Cards (Pine Labs POS)", txnCount: 78, collectedAmount: 68900, processingFee: 1033.5, netBankDeposit: 67866.5 },
-      { id: "3", paymentMethod: "Cash Drawer Collection", txnCount: 54, collectedAmount: 36200, processingFee: 0, netBankDeposit: 36200 },
-      { id: "4", paymentMethod: "Zomato Online Settlement", txnCount: 38, collectedAmount: 28400, processingFee: 5112, netBankDeposit: 23288 },
-      { id: "5", paymentMethod: "Swiggy Online Settlement", txnCount: 31, collectedAmount: 22100, processingFee: 3978, netBankDeposit: 18122 },
-      { id: "6", paymentMethod: "Hotel Room Post (Guest Folio)", txnCount: 12, collectedAmount: 14200, processingFee: 0, netBankDeposit: 14200 },
-    ],
-  },
-  "REP-12": {
+    { id: "paymentMethod", label: "Payment Mode", sortable: true, getValue: (r) => r.paymentMethod },
+    { id: "txnCount", label: "Transactions", align: "right", sortable: true, getValue: (r) => String(r.txnCount ?? 0) },
+    { id: "collectedAmount", label: "Collected (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.collectedAmount ?? 0).toLocaleString()}` },
+    { id: "processingFee", label: "MDR / Charges (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.processingFee ?? 0).toLocaleString()}` },
+    { id: "netBankDeposit", label: "Net Credited (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.netBankDeposit ?? 0).toLocaleString()}` },
+  ],
+  "REP-12": [
     // GST Summary & Tax Audit
-    columns: [
-      { id: "taxType", label: "Tax Slab / Category", sortable: true, getValue: (r) => r.taxType },
-      { id: "rate", label: "Rate (%)", align: "right", sortable: true, getValue: (r) => `${r.rate}%` },
-      { id: "taxableAmount", label: "Taxable Value (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.taxableAmount.toLocaleString()}` },
-      { id: "cgst", label: "CGST (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.cgst.toLocaleString()}` },
-      { id: "sgst", label: "SGST (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.sgst.toLocaleString()}` },
-      { id: "totalTax", label: "Total GST (₹)", align: "right", sortable: true, getValue: (r) => `₹${r.totalTax.toLocaleString()}` },
-    ],
-    data: [
-      { id: "1", taxType: "Food & Non-Alcoholic Beverages (AC / Non-AC)", rate: 5, taxableAmount: 215000, cgst: 5375, sgst: 5375, totalTax: 10750 },
-      { id: "2", taxType: "Alcohol & Beverages (VAT)", rate: 18, taxableAmount: 78500, cgst: 7065, sgst: 7065, totalTax: 14130 },
-      { id: "3", taxType: "Banquet Catering & Hall Rentals", rate: 18, taxableAmount: 95000, cgst: 8550, sgst: 8550, totalTax: 17100 },
-      { id: "4", taxType: "Packaged Mineral Water & MRP Goods", rate: 12, taxableAmount: 6400, cgst: 384, sgst: 384, totalTax: 768 },
-    ],
-  },
+    { id: "taxType", label: "Tax Slab / Category", sortable: true, getValue: (r) => r.taxType },
+    { id: "rate", label: "Rate (%)", align: "right", sortable: true, getValue: (r) => `${r.rate ?? 0}%` },
+    { id: "taxableAmount", label: "Taxable Value (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.taxableAmount ?? 0).toLocaleString()}` },
+    { id: "cgst", label: "CGST (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.cgst ?? 0).toLocaleString()}` },
+    { id: "sgst", label: "SGST (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.sgst ?? 0).toLocaleString()}` },
+    { id: "totalTax", label: "Total GST (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.totalTax ?? 0).toLocaleString()}` },
+  ],
 };
 
 // ---------------------------------------------------------
@@ -460,7 +345,7 @@ const CATEGORY_PILLS = [
 
 
 export function MainOtherReportsView() {
-  const { activeOutlet } = useOutletContext();
+  const { activeOutlet, outlets } = useOutletContext();
   const live = isBackendOutletId(activeOutlet?.id);
   const [viewMode, setViewMode] = useState<"catalog" | "dashboard">("catalog");
   const [activePill, setActivePill] = useState<string>("all");
@@ -541,9 +426,9 @@ export function MainOtherReportsView() {
   // ---------------------------------------------------------
   const currentReportConfig = useMemo(() => {
     if (!selectedReport) return null;
-    const base = DATASETS[selectedReport.id] || DATASETS["REP-01"];
-    return { columns: base.columns, data: salesQuery.data?.records || [] };
-  }, [selectedReport, live, salesQuery.data]);
+    const columns = REPORT_COLUMNS[selectedReport.id] || REPORT_COLUMNS["REP-01"];
+    return { columns, data: salesQuery.data?.records || [] };
+  }, [selectedReport, salesQuery.data]);
 
   const allColumns = useMemo(() => {
     return currentReportConfig?.columns || [];
@@ -551,9 +436,9 @@ export function MainOtherReportsView() {
 
   const handleOpenReport = (report: ReportCard) => {
     setSelectedReport(report);
-    const cfg = DATASETS[report.id] || DATASETS["REP-01"];
+    const cols = REPORT_COLUMNS[report.id] || REPORT_COLUMNS["REP-01"];
     const initialVis: Record<string, boolean> = {};
-    cfg.columns.forEach((c) => {
+    cols.forEach((c) => {
       if (c.id) initialVis[c.id] = true;
     });
     setVisibleColumns(initialVis);
@@ -571,24 +456,11 @@ export function MainOtherReportsView() {
     if (!currentReportConfig) return [];
     let rows = currentReportConfig.data;
 
-    if (!live) {
-      // Date range filtering (mock rows only — live rows are already scoped)
-      if (fromDate || toDate) {
-        rows = rows.filter((r) => {
-          if (!r.date && !r.timestamp && !r.lastVisit) return true;
-          const rowDate = r.date || (r.timestamp ? r.timestamp.slice(0, 10) : r.lastVisit);
-          if (fromDate && rowDate < fromDate) return false;
-          if (toDate && rowDate > toDate) return false;
-          return true;
-        });
-      }
-
-      if (selectedOutlet !== "ALL") {
-        rows = rows.filter((r) => {
-          const out = r.outlet || r.outletName || r.outlet_name || "";
-          return !out || out.toLowerCase().includes(selectedOutlet.toLowerCase()) || selectedOutlet.toLowerCase().includes(out.toLowerCase());
-        });
-      }
+    if (selectedOutlet !== "ALL") {
+      rows = rows.filter((r) => {
+        const out = r.outlet || r.outletName || r.outlet_name || "";
+        return !out || out.toLowerCase().includes(selectedOutlet.toLowerCase()) || selectedOutlet.toLowerCase().includes(out.toLowerCase());
+      });
     }
 
     // Search filtering
@@ -618,7 +490,7 @@ export function MainOtherReportsView() {
     }
 
     return rows;
-  }, [currentReportConfig, fromDate, toDate, selectedOutlet, reportSearch, sortConfig, live]);
+  }, [currentReportConfig, selectedOutlet, reportSearch, sortConfig]);
 
   const paginatedReportData = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -665,7 +537,7 @@ export function MainOtherReportsView() {
 
     openPrintReportTable({
       title: (selectedReport.title || "POS REPORT").toUpperCase(),
-      hotelName: "Anshu Suite Restaurant",
+      hotelName: activeOutlet?.name || "Restaurant",
       subtitle: `Category: ${selectedReport.category || "Reports"} • Outlet: ${selectedOutlet === "ALL" ? "All Outlets" : selectedOutlet} • Total Records: ${reportDataset.length}`,
       dateRange: `${formatDateIndian(fromDate)} to ${formatDateIndian(toDate)}`,
       columns,
@@ -807,23 +679,19 @@ export function MainOtherReportsView() {
               <div className="space-y-1">
                 <label className="text-[11.5px] font-semibold text-slate-600">Outlet</label>
                 <select
-                  value={live ? activeOutlet?.name || selectedOutlet : selectedOutlet}
+                  value={selectedOutlet}
                   onChange={(e) => {
-                    if (live) return;
                     setSelectedOutlet(e.target.value);
                     setPage(1);
                   }}
-                  disabled={live}
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer disabled:bg-slate-50"
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
                 >
-                  {live ? (
-                    <option value={activeOutlet?.name}>{activeOutlet?.name}</option>
-                  ) : (
-                    <>
-                      <option value="ALL">All Outlets</option>
-                      <option value="HIGHWAY INN BAR & RESTAURANT">Highway Inn Bar &amp; Restaurant</option>
-                      <option value="HIGHWAY INN BANQUET">Highway Inn Banquet</option>
-                    </>
+                  <option value="ALL">All Outlets</option>
+                  {outlets?.map((o) => (
+                    <option key={o.id} value={o.name}>{o.name}</option>
+                  ))}
+                  {activeOutlet && !outlets?.some((o) => o.name === activeOutlet.name) && (
+                    <option value={activeOutlet.name}>{activeOutlet.name}</option>
                   )}
                 </select>
               </div>
@@ -833,14 +701,9 @@ export function MainOtherReportsView() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (live) {
-                      const today = isoDate(new Date());
-                      setFromDate(today);
-                      setToDate(today);
-                    } else {
-                      setFromDate("2026-09-02");
-                      setToDate("2026-09-02");
-                    }
+                    const today = isoDate(new Date());
+                    setFromDate(today);
+                    setToDate(today);
                     setPage(1);
                   }}
                   className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 transition cursor-pointer"
@@ -915,7 +778,7 @@ export function MainOtherReportsView() {
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-xl font-black text-slate-900 tracking-wide uppercase">
-                {activeOutlet?.name || "HIGHWAY INN BAR & RESTAURANT"}
+                {activeOutlet?.name || "Restaurant Outlet"}
               </h1>
               <h2 className="text-sm font-bold text-slate-800 mt-0.5 uppercase">
                 {selectedReport.title}
@@ -940,7 +803,7 @@ export function MainOtherReportsView() {
         </div>
 
         {/* Tabular Data with DataTableHeader and DataTableFooter */}
-        {live && salesQuery.isFetching ? (
+        {salesQuery.isFetching ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-20 text-center shadow-xs space-y-3 print:hidden">
             <div className="text-[14.5px] font-bold text-slate-700">Loading report…</div>
             <p className="text-[12.5px] text-slate-400 max-w-sm mx-auto">

@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useOutletContext } from "@/context/PosOutletContext";
+import posManagementService, { type POSPaymentGatewayConfigDto } from "@/services/posManagementService";
 import {
   Download,
   Search,
@@ -46,12 +48,61 @@ interface PaymentTransaction {
 const INITIAL_RECORDS: PaymentTransaction[] = [];
 
 export function PaymentInformationView() {
+  const { activeOutlet } = useOutletContext();
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [status, setStatus] = useState("All");
   const [provider, setProvider] = useState("All");
   const [orderId, setOrderId] = useState("");
   const [records, setRecords] = useState<PaymentTransaction[]>(INITIAL_RECORDS);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Gateway Configurations
+  const [gatewayConfigs, setGatewayConfigs] = useState<POSPaymentGatewayConfigDto[]>([]);
+  const [isGatewayModalOpen, setIsGatewayModalOpen] = useState(false);
+  const [gatewayForm, setGatewayForm] = useState({
+    provider: "RAZORPAY",
+    terminal_merchant_id: "",
+    api_key: "",
+    api_secret: "",
+    mdr_rate_pct: "1.75",
+    settlement_cycle: "T+1",
+    is_active: true,
+  });
+
+  const fetchTransactions = useCallback(async () => {
+    if (!activeOutlet?.id) return;
+    setIsLoading(true);
+    try {
+      const data = await posManagementService.getPaymentTransactions(activeOutlet.id, {
+        from_date: fromDate,
+        to_date: toDate,
+        provider: provider !== "All" ? provider : "",
+        status: status !== "All" ? status : "",
+        order_id: orderId,
+      });
+      setRecords(data || []);
+    } catch (err) {
+      console.error("Failed to load payment transactions:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeOutlet?.id, fromDate, toDate, provider, status, orderId]);
+
+  const fetchGateways = useCallback(async () => {
+    if (!activeOutlet?.id) return;
+    try {
+      const configs = await posManagementService.getPaymentGatewayConfigs(activeOutlet.id);
+      setGatewayConfigs(configs || []);
+    } catch (err) {
+      console.error("Failed to load payment gateways:", err);
+    }
+  }, [activeOutlet?.id]);
+
+  useEffect(() => {
+    fetchTransactions();
+    fetchGateways();
+  }, [fetchTransactions, fetchGateways]);
 
   // Pagination & selection
   const [page, setPage] = useState(1);
@@ -168,9 +219,61 @@ export function PaymentInformationView() {
       notes: formData.notes,
     };
 
+    if (activeOutlet?.id) {
+      posManagementService
+        .recordPaymentTransaction(activeOutlet.id, {
+          orderId: formData.orderId,
+          billNo: formData.billNo,
+          customerName: formData.customerName,
+          provider: formData.provider,
+          txnRef: formData.txnRef,
+          amount: amt,
+          fee: feeAmt,
+          status: formData.status,
+          notes: formData.notes,
+        })
+        .then(() => fetchTransactions())
+        .catch((e) => console.error(e));
+    }
+
     setRecords([newTx, ...records]);
     toast.success(`Payment transaction ${newTx.txnRef} recorded successfully!`);
     setIsAddModalOpen(false);
+  };
+
+  const handleSaveGateway = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!gatewayForm.terminal_merchant_id.trim()) {
+      toast.error("Merchant ID / Terminal ID is required.");
+      return;
+    }
+    if (!activeOutlet?.id) return;
+    try {
+      await posManagementService.createPaymentGatewayConfig(activeOutlet.id, {
+        provider: gatewayForm.provider,
+        terminal_merchant_id: gatewayForm.terminal_merchant_id.trim(),
+        api_key: gatewayForm.api_key.trim(),
+        api_secret: gatewayForm.api_secret.trim(),
+        mdr_rate_pct: parseFloat(gatewayForm.mdr_rate_pct) || 1.75,
+        settlement_cycle: gatewayForm.settlement_cycle,
+        is_active: gatewayForm.is_active,
+      });
+      toast.success(`${gatewayForm.provider} payment gateway configuration saved!`);
+      setIsGatewayModalOpen(false);
+      setGatewayForm({
+        provider: "RAZORPAY",
+        terminal_merchant_id: "",
+        api_key: "",
+        api_secret: "",
+        mdr_rate_pct: "1.75",
+        settlement_cycle: "T+1",
+        is_active: true,
+      });
+      fetchGateways();
+    } catch (err) {
+      console.error("Failed to save gateway config:", err);
+      toast.error("Failed to save gateway configuration");
+    }
   };
 
   // KPIs
@@ -397,7 +500,7 @@ export function PaymentInformationView() {
 
     openPrintReportTable({
       title: "DIGITAL PAYMENTS & RECONCILIATION REPORT",
-      hotelName: "Anshu Suite Restaurant",
+      hotelName: activeOutlet?.name || "Restaurant",
       subtitle: `Total Transactions: ${filteredRecords.length} • Total Volume: ₹${totalGross.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
       dateRange: `${formatDateIndian(fromDate)} to ${formatDateIndian(toDate)}`,
       columns: reportCols,
@@ -429,6 +532,14 @@ export function PaymentInformationView() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsGatewayModalOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-xs"
+          >
+            <CreditCard className="h-4 w-4 text-teal-600" />
+            Gateway Config ({gatewayConfigs.length})
+          </button>
           <button
             type="button"
             onClick={handlePrintReport}
@@ -829,6 +940,152 @@ export function PaymentInformationView() {
                 />
               </div>
 
+      </PosCreatePanel>
+
+      {/* 5. Payment Gateway Configuration Panel */}
+      <PosCreatePanel
+        isOpen={isGatewayModalOpen}
+        onClose={() => setIsGatewayModalOpen(false)}
+        title="Payment Gateway Configuration"
+        subtitle="Manage EDC card swipe machines, UPI QR providers, and online gateway credentials."
+        footer={
+          <>
+            <PosCreateCancelButton onClick={() => setIsGatewayModalOpen(false)} />
+            <PosCreateSubmitButton onClick={handleSaveGateway} label="Save Gateway Config" />
+          </>
+        }
+      >
+        <div className="space-y-5">
+          {/* Active Gateways Table / List */}
+          {gatewayConfigs.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-[12.5px] font-semibold text-slate-800">
+                Configured Gateways & Terminals
+              </label>
+              <div className="overflow-hidden rounded-xl border border-slate-200">
+                <table className="w-full text-left text-[12px]">
+                  <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                    <tr>
+                      <th className="px-3 py-2">Provider</th>
+                      <th className="px-3 py-2">Terminal / MID</th>
+                      <th className="px-3 py-2">MDR %</th>
+                      <th className="px-3 py-2">Cycle</th>
+                      <th className="px-3 py-2 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {gatewayConfigs.map((cfg) => (
+                      <tr key={cfg.id} className="hover:bg-slate-50/50">
+                        <td className="px-3 py-2 font-bold text-slate-800">{cfg.provider}</td>
+                        <td className="px-3 py-2 font-mono text-slate-600">{cfg.terminal_merchant_id}</td>
+                        <td className="px-3 py-2 font-mono">{cfg.mdr_rate_pct}%</td>
+                        <td className="px-3 py-2 text-slate-500">{cfg.settlement_cycle || "T+1"}</td>
+                        <td className="px-3 py-2 text-center">
+                          <span
+                            className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              cfg.is_active
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            {cfg.is_active ? "Active" : "Disabled"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Form to add/update gateway */}
+          <div className="space-y-3.5 pt-2 border-t border-slate-100">
+            <h4 className="text-[13px] font-bold text-slate-900">Add / Update Gateway Credentials</h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-semibold text-slate-700">Gateway Provider</label>
+                <select
+                  value={gatewayForm.provider}
+                  onChange={(e) => setGatewayForm({ ...gatewayForm, provider: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[12.5px] text-slate-900 focus:border-teal-500 focus:outline-none cursor-pointer"
+                >
+                  <option value="RAZORPAY">Razorpay POS / QR</option>
+                  <option value="PINELABS">PineLabs Plutus EDC Terminal</option>
+                  <option value="PAYTM">Paytm EDC / Soundbox</option>
+                  <option value="PHONEPE">PhonePe Business Dynamic QR</option>
+                  <option value="CASHFREE">Cashfree Payments</option>
+                  <option value="EDC_CARD_MACHINE">Standalone Bank EDC Machine</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-semibold text-slate-700">
+                  Merchant ID / Terminal ID <span className="text-rose-500 font-bold">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. MID-981240 or PL-POS-01"
+                  value={gatewayForm.terminal_merchant_id}
+                  onChange={(e) => setGatewayForm({ ...gatewayForm, terminal_merchant_id: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[12.5px] font-mono text-slate-900 focus:border-teal-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-semibold text-slate-700">API Key / Client ID</label>
+                <input
+                  type="text"
+                  placeholder="Live API Key"
+                  value={gatewayForm.api_key}
+                  onChange={(e) => setGatewayForm({ ...gatewayForm, api_key: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[12.5px] font-mono text-slate-900 focus:border-teal-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-semibold text-slate-700">API Secret Key</label>
+                <input
+                  type="password"
+                  placeholder="••••••••••••"
+                  value={gatewayForm.api_secret}
+                  onChange={(e) => setGatewayForm({ ...gatewayForm, api_secret: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[12.5px] font-mono text-slate-900 focus:border-teal-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-semibold text-slate-700">MDR Rate Fee (%)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="1.75"
+                  value={gatewayForm.mdr_rate_pct}
+                  onChange={(e) => setGatewayForm({ ...gatewayForm, mdr_rate_pct: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[12.5px] font-mono text-slate-900 focus:border-teal-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-semibold text-slate-700">Settlement Cycle</label>
+                <select
+                  value={gatewayForm.settlement_cycle}
+                  onChange={(e) => setGatewayForm({ ...gatewayForm, settlement_cycle: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[12.5px] text-slate-900 focus:border-teal-500 focus:outline-none cursor-pointer"
+                >
+                  <option value="T+0">Instant / Same Day (T+0)</option>
+                  <option value="T+1">Next Business Day (T+1)</option>
+                  <option value="T+2">Two Business Days (T+2)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
       </PosCreatePanel>
     </div>
   );

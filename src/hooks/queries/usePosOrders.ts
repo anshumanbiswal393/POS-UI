@@ -44,8 +44,8 @@ export function useLiveOrders() {
     queryKey: ["pos", "orders", "live", outletId],
     queryFn: () => getLiveOrdersSummary(outletId),
     initialData: live ? undefined : () => getInitialLiveOrdersData(),
-    staleTime: 1000 * 15,
-    refetchInterval: 1000 * 30,
+    staleTime: 3000,
+    refetchInterval: 5000,
   });
 }
 
@@ -56,8 +56,8 @@ export function useCurrentOrdersTimeline() {
     queryKey: ["pos", "orders", "current-timeline", outletId],
     queryFn: async (): Promise<CurrentOrderRecord[]> => getCurrentOrdersTimeline(outletId),
     initialData: live ? undefined : [],
-    staleTime: 1000 * 5,
-    refetchInterval: 1000 * 15,
+    staleTime: 3000,
+    refetchInterval: 5000,
   });
 }
 
@@ -80,7 +80,8 @@ export function useAllOrders(filters?: Record<string, any>) {
     queryKey: ["pos", "orders", "all", outletId, filters],
     queryFn: () => getAllOrders(filters, outletId),
     initialData: live ? undefined : () => getInitialAllOrdersData(),
-    staleTime: 1000 * 30,
+    staleTime: 3000,
+    refetchInterval: 5000,
   });
 }
 
@@ -89,8 +90,8 @@ export function useOnlineOrders(filters?: Record<string, any>) {
     queryKey: ["pos", "orders", "online", filters],
     queryFn: () => getOnlineOrders(filters),
     initialData: () => getInitialOnlineOrdersData(),
-    staleTime: 1000 * 15,
-    refetchInterval: 1000 * 30,
+    staleTime: 3000,
+    refetchInterval: 5000,
   });
 }
 
@@ -101,8 +102,8 @@ export function useKotOrders(filters?: Record<string, any>) {
     queryKey: ["pos", "orders", "kot", outletId, filters],
     queryFn: () => getKotOrders(filters, outletId),
     initialData: live ? undefined : () => getInitialKotData(),
-    staleTime: 1000 * 5,
-    refetchInterval: 1000 * 15,
+    staleTime: 3000,
+    refetchInterval: 5000,
   });
 }
 
@@ -112,8 +113,8 @@ export function useDueBills() {
     queryKey: ["pos", "orders", "due-bills", outletId],
     queryFn: () => getDueBills(outletId),
     enabled: Boolean(outletId),
-    staleTime: 1000 * 5,
-    refetchInterval: (query) => (query.state.status === "error" ? 1000 * 5 : 1000 * 15),
+    staleTime: 3000,
+    refetchInterval: 5000,
     refetchOnMount: "always",
     retry: 2,
   });

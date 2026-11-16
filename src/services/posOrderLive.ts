@@ -472,6 +472,8 @@ export async function liveSettleOrder(
   body: {
     paymentMode: string;
     tenderedAmount?: number;
+    depositAmount?: number;
+    deposit_amount?: number;
     folioId?: string;
     reservationId?: string;
     idempotencyKey?: string;

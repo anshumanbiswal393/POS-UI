@@ -26,6 +26,7 @@ import {
   MapPin,
   User,
   Tag,
+  ShoppingCart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ColorActionView, ColorActionDelete } from "@/components/common/ColorActionIcons";
@@ -202,6 +203,9 @@ export function StockPurchaseView({
   const [formTax, setFormTax] = useState("0");
   const [formTaxType, setFormTaxType] = useState<"flat" | "percent">("flat");
   const [formTaxRate, setFormTaxRate] = useState("5");
+  const [formDiscount, setFormDiscount] = useState("0");
+  const [formDiscountType, setFormDiscountType] = useState<"flat" | "percent">("flat");
+  const [formDiscountRate, setFormDiscountRate] = useState("0");
   const [formNotes, setFormNotes] = useState("");
   const [formItems, setFormItems] = useState<PurchaseLineItem[]>([
     { stockItemId: "", name: "", quantity: 1, unit: "Kg", unitPrice: 0, lineTotal: 0 },
@@ -508,6 +512,9 @@ export function StockPurchaseView({
     setFormTax("0");
     setFormTaxType("flat");
     setFormTaxRate("5");
+    setFormDiscount("0");
+    setFormDiscountType("flat");
+    setFormDiscountRate("0");
     setFormNotes("");
     setFormItems([{ stockItemId: "", sku: "", name: "", quantity: 1, unit: "Kg", unitPrice: 0, lineTotal: 0 }]);
     setIsAddOpen(true);
@@ -549,11 +556,17 @@ export function StockPurchaseView({
 
   const formCalculations = useMemo(() => {
     const subtotal = formItems.reduce((acc, it) => acc + (it.lineTotal || 0), 0);
+    const rawDiscount =
+      formDiscountType === "percent"
+        ? Math.round(subtotal * (parseFloat(formDiscountRate) || 0)) / 100
+        : parseFloat(formDiscount) || 0;
+    const discount = Math.min(subtotal, Math.max(0, rawDiscount));
+    const taxableAmount = Math.max(0, subtotal - discount);
     const tax =
       formTaxType === "percent"
-        ? Math.round(subtotal * (parseFloat(formTaxRate) || 0)) / 100
+        ? Math.round(taxableAmount * (parseFloat(formTaxRate) || 0)) / 100
         : parseFloat(formTax) || 0;
-    const total = Math.round((subtotal + tax) * 100) / 100;
+    const total = Math.round((taxableAmount + tax) * 100) / 100;
     let paid = 0;
     if (formPaymentStatus === "Done") {
       paid = total;
@@ -563,8 +576,8 @@ export function StockPurchaseView({
       paid = formPaidAmount === "" ? 0 : Math.min(total, parseFloat(formPaidAmount) || 0);
     }
     const due = Math.max(0, Math.round((total - paid) * 100) / 100);
-    return { subtotal, tax, total, paid, due };
-  }, [formItems, formTax, formTaxType, formTaxRate, formPaymentStatus, formPaidAmount]);
+    return { subtotal, discount, taxableAmount, tax, total, paid, due };
+  }, [formItems, formDiscount, formDiscountType, formDiscountRate, formTax, formTaxType, formTaxRate, formPaymentStatus, formPaidAmount]);
 
   const handlePaymentStatusChange = (status: "Done" | "Pending" | "Partial") => {
     setFormPaymentStatus(status);
@@ -610,6 +623,9 @@ export function StockPurchaseView({
         vendorName: formVendor,
         invoiceNo: formInvoiceNo.trim(),
         invoiceDate: formInvoiceDate,
+        subtotal: formCalculations.subtotal,
+        discountAmount: formCalculations.discount,
+        taxableAmount: formCalculations.taxableAmount,
         totalAmount: formCalculations.total,
         taxAmount: formCalculations.tax,
         paymentStatus: formPaymentStatus,
@@ -1505,7 +1521,7 @@ export function StockPurchaseView({
                     </div>
                   </div>
 
-                  {/* Totals Summary: Subtotal, GST, Total Bill, Received Amount, Due */}
+                  {/* Totals Summary: Subtotal, Discount, Taxable Amount, GST, Total Bill, Received Amount, Due */}
                   <div className="rounded-xl bg-slate-50/80 p-3.5 border border-slate-200/80 space-y-2 text-[12.5px]">
                     <div className="flex items-center justify-between">
                       <span className="text-slate-600 font-medium">Subtotal:</span>
@@ -1516,6 +1532,89 @@ export function StockPurchaseView({
 
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
+                        <span className="text-slate-600 font-medium">Discount:</span>
+                        <div className="flex items-center gap-1.5">
+                          {/* Discount mode toggle: % vs Flat (₹) */}
+                          <div className="flex rounded-md border border-slate-200 bg-slate-100 p-0.5 text-[11px] font-bold">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (formCalculations.subtotal > 0 && formDiscountType === "flat") {
+                                  const rate = ((parseFloat(formDiscount) || 0) / formCalculations.subtotal) * 100;
+                                  setFormDiscountRate(rate > 0 ? rate.toFixed(1) : formDiscountRate);
+                                }
+                                setFormDiscountType("percent");
+                              }}
+                              className={`px-1.5 py-0.5 rounded cursor-pointer transition ${
+                                formDiscountType === "percent"
+                                  ? "bg-white text-teal-700 shadow-2xs"
+                                  : "text-slate-500 hover:text-slate-800"
+                              }`}
+                            >
+                              %
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (formDiscountType === "percent") {
+                                  setFormDiscount(formCalculations.discount.toFixed(2));
+                                }
+                                setFormDiscountType("flat");
+                              }}
+                              className={`px-1.5 py-0.5 rounded cursor-pointer transition ${
+                                formDiscountType === "flat"
+                                  ? "bg-white text-teal-700 shadow-2xs"
+                                  : "text-slate-500 hover:text-slate-800"
+                              }`}
+                            >
+                              ₹ Flat
+                            </button>
+                          </div>
+
+                          {formDiscountType === "percent" ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                step="any"
+                                min="0"
+                                max="100"
+                                value={formDiscountRate}
+                                onChange={(e) => setFormDiscountRate(e.target.value)}
+                                className="w-16 rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-right font-mono text-[12px] text-slate-800 focus:border-teal-500 focus:outline-none"
+                              />
+                              <span className="text-slate-500 font-mono text-[11px]">%</span>
+                              <span className="text-[11px] text-slate-500 font-mono pl-1">
+                                (-₹{formCalculations.discount.toFixed(2)})
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-500 font-mono text-[11px]">₹</span>
+                              <input
+                                type="number"
+                                step="any"
+                                min="0"
+                                value={formDiscount}
+                                onChange={(e) => setFormDiscount(e.target.value)}
+                                className="w-24 rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-right font-mono text-[12px] text-slate-800 focus:border-teal-500 focus:outline-none"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {formCalculations.discount > 0 && (
+                      <div className="flex items-center justify-between text-slate-600">
+                        <span className="font-medium">Taxable Amount:</span>
+                        <span className="font-mono font-semibold text-slate-800">
+                          ₹ {formCalculations.taxableAmount.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
                         <span className="text-slate-600 font-medium">GST / Tax:</span>
                         <div className="flex items-center gap-1.5">
                           {/* Tax mode toggle: % vs Flat (₹) */}
@@ -1523,6 +1622,10 @@ export function StockPurchaseView({
                             <button
                               type="button"
                               onClick={() => {
+                                if (formCalculations.taxableAmount > 0 && formTaxType === "flat") {
+                                  const rate = ((parseFloat(formTax) || 0) / formCalculations.taxableAmount) * 100;
+                                  setFormTaxRate(rate > 0 ? rate.toFixed(1) : formTaxRate);
+                                }
                                 setFormTaxType("percent");
                               }}
                               className={`px-1.5 py-0.5 rounded cursor-pointer transition ${
@@ -1536,6 +1639,9 @@ export function StockPurchaseView({
                             <button
                               type="button"
                               onClick={() => {
+                                if (formTaxType === "percent") {
+                                  setFormTax(formCalculations.tax.toFixed(2));
+                                }
                                 setFormTaxType("flat");
                               }}
                               className={`px-1.5 py-0.5 rounded cursor-pointer transition ${

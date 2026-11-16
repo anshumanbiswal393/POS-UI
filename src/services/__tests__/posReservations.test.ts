@@ -1,5 +1,22 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from "vitest";
+
+const storageMap = new Map<string, string>();
+const localStorageMock = {
+  getItem: (k: string) => storageMap.get(k) ?? null,
+  setItem: (k: string, v: string) => { storageMap.set(k, String(v)); },
+  removeItem: (k: string) => { storageMap.delete(k); },
+  clear: () => { storageMap.clear(); },
+  get length() { return storageMap.size; },
+  key: (i: number) => Array.from(storageMap.keys())[i] ?? null,
+};
+if (typeof globalThis.localStorage === "undefined" || !globalThis.localStorage?.clear) {
+  Object.defineProperty(globalThis, "localStorage", {
+    value: localStorageMock,
+    writable: true,
+    configurable: true,
+  });
+}
 import {
   toIsoDate,
   to24HourTime,

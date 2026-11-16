@@ -1588,6 +1588,8 @@ export function PosBillingManager() {
             const settled = await liveSettleOrder(orderId, {
               paymentMode: payMap[paymentMethod] || "CASH",
               tenderedAmount: effectiveTendered,
+              depositAmount: activeReservationDeposit,
+              deposit_amount: activeReservationDeposit,
               folioId: folioId || undefined,
               reservationId: reservationId || undefined,
               idempotencyKey: `settle-${orderId}-${Date.now()}`,
