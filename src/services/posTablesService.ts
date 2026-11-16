@@ -1781,18 +1781,23 @@ export const posTablesService = {
     reservationId?: string;
     tableId?: string;
     tableNumber?: string;
+    customerName?: string;
   }): Promise<ReservationItem[]> => {
     const effectiveOutlet =
       scopedOutletId ||
       (typeof window !== "undefined" ? localStorage.getItem("retrod_pos_active_outlet_id") : null) ||
       undefined;
 
-    const { reservationId, tableId, tableNumber } = params;
+    const { reservationId, tableId, tableNumber, customerName } = params;
     const normDigits = (v?: string) => (v || "").replace(/\D+/g, "");
     const targetDigits = normDigits(tableNumber);
     const targetLower = (tableNumber || "").trim().toLowerCase();
+    const guestLower = (customerName || "").trim().toLowerCase();
 
     const matchesTable = (r: ReservationItem) => {
+      if (guestLower && (r.customerName || "").trim().toLowerCase() === guestLower) {
+        return true;
+      }
       if (tableId && (r.tableId === tableId || r.mergedTableIds?.includes(tableId))) {
         return true;
       }
@@ -1819,6 +1824,7 @@ export const posTablesService = {
     const shouldComplete = (r: ReservationItem) => {
       if (r.status === "completed" || r.status === "cancelled") return false;
       if (reservationId && r.id === reservationId) return true;
+      if (guestLower && (r.customerName || "").trim().toLowerCase() === guestLower) return true;
       if (matchesTable(r)) {
         return r.status === "seated" || (r.status === "reserved" && isReservationActiveNow(r));
       }

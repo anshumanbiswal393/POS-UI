@@ -500,7 +500,10 @@ export function PosBillingManager() {
     if (qWaiter) setWaiterFromUrl(decodeURIComponent(qWaiter));
     if (qTableId) setBillingTableId(qTableId);
     if (qRoomUnitId) setRoomUnitId(qRoomUnitId);
-    if (qReservationId) setReservationId(qReservationId);
+    if (qReservationId) {
+      setReservationId(qReservationId);
+      setActiveTableReservationId(qReservationId);
+    }
     if (qFolioId) setFolioId(qFolioId);
 
     if (qOrderType) {
@@ -1618,9 +1621,10 @@ export function PosBillingManager() {
               }
               try {
                 await posTablesService.completeReservation({
-                  reservationId: activeTableReservationId || undefined,
+                  reservationId: activeTableReservationId || reservationId || undefined,
                   tableId: targetTblId,
                   tableNumber: tableLabel,
+                  customerName: selectedCustomer?.name,
                 });
               } catch {
                 // non-blocking so bill settlement still completes cleanly
