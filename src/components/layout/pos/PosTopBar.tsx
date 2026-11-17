@@ -215,8 +215,8 @@ export function PosTopBar({
   ];
 
   return (
-    <header className="sticky top-0 z-40 shrink-0 overflow-x-clip border-b border-border bg-surface shadow-2xs print:hidden">
-      <div className="flex h-14 items-center justify-between gap-2 sm:gap-3 px-2.5 sm:px-4 lg:px-5">
+    <header className="sticky top-0 z-40 shrink-0 overflow-x-clip bg-surface print:hidden">
+      <div className="flex h-14 items-center justify-between gap-2 sm:gap-3 px-2.5 sm:px-4 lg:px-5 border-b border-border">
         {/* Left: Nav toggles & Breadcrumbs */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
           {onOpenMobileNav && (
@@ -569,7 +569,7 @@ export function PosTopBar({
 
       {/* Expandable Compact Global Search Bar (<xl) */}
       {mobileSearchOpen && (
-        <div className="xl:hidden border-t border-border bg-surface px-2.5 sm:px-4 py-2 animate-in slide-in-from-top-1 duration-150">
+        <div className="xl:hidden border-b border-border bg-surface px-2.5 sm:px-4 py-2 animate-in slide-in-from-top-1 duration-150">
           <PosGlobalSearch
             id="pos-global-search-mobile"
             isMobile={true}

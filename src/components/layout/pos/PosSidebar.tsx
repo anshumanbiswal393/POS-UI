@@ -486,7 +486,7 @@ export function PosSidebar({
   return (
     <aside
       className={cn(
-        "sticky top-0 z-30 flex h-screen flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-xs transition-[width] duration-200",
+        "sticky top-0 z-30 flex h-screen flex-col bg-sidebar text-sidebar-foreground border-r border-border transition-[width] duration-200",
         collapsed ? "w-[64px]" : "w-[268px]",
       )}
     >
@@ -553,7 +553,7 @@ export function PosSidebar({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="mx-3 mt-3 flex items-center justify-between rounded-lg border border-border bg-sidebar-hover/40 px-3 py-2 text-left transition hover:bg-sidebar-hover outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-2xs"
+              className="mx-3 mt-3 flex items-center justify-between rounded-lg border border-border bg-sidebar-hover/40 px-3 py-2 text-left transition hover:bg-sidebar-hover outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
               title={`Active: ${activeOutlet?.name || "Choose Outlet"}`}
             >
               <div className="min-w-0 flex-1 pr-1">
@@ -622,7 +622,7 @@ export function PosSidebar({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-sidebar-hover/40 text-sidebar-foreground transition hover:bg-sidebar-hover outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-2xs"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-sidebar-hover/40 text-sidebar-foreground transition hover:bg-sidebar-hover outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
                 title={`Active: ${activeOutlet?.name || "Choose Outlet"}`}
               >
                 <Store className="h-4 w-4 text-primary" />
@@ -895,7 +895,7 @@ export function PosSidebar({
         })}
       </nav>
 
-      <div className="space-y-0.5 border-t border-sidebar-border p-2">
+      <div className="space-y-0.5 border-t border-border p-2">
         {POS_FOOTER_NAV_ITEMS.filter((item) => isNodeAllowed(item)).map((item) => {
           const Icon = item.icon;
           const active = isActive(item.to);
