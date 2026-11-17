@@ -1,6 +1,7 @@
 import httpClient from "@/utils/httpClient";
 import { liveGetCurrent, liveGetHistory } from "./posOrderLive";
 import { posTablesService } from "./posTablesService";
+import { toTitleCase } from "@/utils/textUtils";
 import type { PosDashboardApiResponse } from "@/types/posDashboardApi";
 import type {
   PosDashboardData,
@@ -582,8 +583,8 @@ export async function getPosDashboardData(
     const topSellingItems = Array.from(dishCountMap.entries())
       .map(([name, val]) => ({
         id: name,
-        name,
-        category: val.cat,
+        name: toTitleCase(name),
+        category: toTitleCase(val.cat),
         quantitySold: val.count,
         unitLabel: "Plates",
         revenue: val.rev,

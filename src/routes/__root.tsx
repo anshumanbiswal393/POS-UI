@@ -19,6 +19,7 @@ import { AuthProvider } from "@/components/providers/AuthProvider";
 import { PosOutletProvider } from "@/context/PosOutletContext";
 import { useAuth } from "@/hooks/useAuth";
 import { applyTheme, readSavedTheme } from "@/app/theme/theme";
+import { standardizeExistingPosLocalStorage } from "@/utils/textUtils";
 
 function NotFoundComponent() {
   return (
@@ -212,6 +213,7 @@ function RootComponent() {
 
   useEffect(() => {
     applyTheme(readSavedTheme());
+    standardizeExistingPosLocalStorage();
   }, []);
 
   useEffect(() => {

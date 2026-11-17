@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Utensils } from "lucide-react";
 import type { TopDishItem } from "@/types/posDashboard";
+import { toTitleCase } from "@/utils/textUtils";
 
 interface TopSellingItemsCardProps {
   items: TopDishItem[];
@@ -46,7 +47,9 @@ export function TopSellingItemsCard({ items, isToday = true }: TopSellingItemsCa
                   <Utensils className="h-3.5 w-3.5" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[12.5px] font-bold text-slate-900 truncate">{item.name}</div>
+                  <div className="text-[12.5px] font-bold text-slate-900 truncate">
+                    {toTitleCase(item.name)}
+                  </div>
                 </div>
               </div>
 

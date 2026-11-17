@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { toTitleCase, isExcludedFromTitleCase, formatTitleCaseSafe } from "../textUtils";
+import {
+  toTitleCase,
+  isExcludedFromTitleCase,
+  formatTitleCaseSafe,
+  deepNormalizeTitleCase,
+} from "../textUtils";
 import { formatDateIndian, formatDateTimeIndian, parseDateSafeIndian, toStorageIsoDate, compareDates } from "../dateUtils";
 import { fuzzyMatch, fuzzyFilter, matchTermAgainstString } from "../fuzzySearch";
 
@@ -44,6 +49,29 @@ describe("Title Case Formatting Utility", () => {
     expect(formatTitleCaseSafe("samprita patra", "customerName")).toBe("Samprita Patra");
     expect(formatTitleCaseSafe("samprita@gmail.com", "email", "email")).toBe("samprita@gmail.com");
     expect(formatTitleCaseSafe("9876543210", "mobile", "tel")).toBe("9876543210");
+  });
+
+  it("deepNormalizeTitleCase standardizes existing stored objects and arrays while preserving ids & codes", () => {
+    const raw = {
+      id: "dish-101",
+      name: "chicken biryani",
+      category: "main course",
+      code: "FD-101",
+      email: "chef@example.com",
+      items: [
+        { id: "1", itemName: "masala colddrinks", quantity: 2 },
+        { id: "2", itemName: "mushroom dum biryani", quantity: 1 },
+      ],
+    };
+
+    const normalized = deepNormalizeTitleCase(raw);
+    expect(normalized.id).toBe("dish-101");
+    expect(normalized.code).toBe("FD-101");
+    expect(normalized.email).toBe("chef@example.com");
+    expect(normalized.name).toBe("Chicken Biryani");
+    expect(normalized.category).toBe("Main Course");
+    expect(normalized.items[0].itemName).toBe("Masala Colddrinks");
+    expect(normalized.items[1].itemName).toBe("Mushroom Dum Biryani");
   });
 });
 
