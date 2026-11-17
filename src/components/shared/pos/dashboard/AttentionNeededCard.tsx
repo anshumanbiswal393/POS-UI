@@ -21,7 +21,7 @@ export function AttentionNeededCard({ alerts }: AttentionNeededCardProps) {
   };
 
   return (
-    <div className="flex min-h-[175px] flex-col rounded-xl border border-slate-400/80 bg-white p-2.5 sm:p-3 shadow-2xs">
+    <div className="flex h-full min-h-[175px] flex-col rounded-xl border border-slate-400/80 bg-white p-2.5 sm:p-3 shadow-2xs">
       <h2 className="shrink-0 text-[13.5px] font-bold text-slate-900">Attention needed</h2>
 
       {alerts.length === 0 ? (
