@@ -26,12 +26,12 @@ export function OrderTypesDonutChart({ orderTypes }: OrderTypesDonutChartProps) 
 
   const resolveSliceColor = (entry: OrderTypeMixItem) => {
     if (entry.type === "dine_in") return "var(--primary, #006a4e)";
-    if (entry.type === "takeaway") return "var(--color-primary-pressed, #0d9488)";
+    if (entry.type === "takeaway") return "#f59e0b"; // warm amber - distinctive from green & blue, visible and not too dark
     return entry.color;
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-300 bg-white p-2.5 sm:p-3 shadow-2xs">
+    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-400/80 bg-white p-2.5 sm:p-3 shadow-2xs">
       <div className="flex shrink-0 items-center justify-between border-b border-slate-200 pb-1">
         <h2 className="text-[13px] font-bold text-slate-900">Order Types</h2>
         <span className="text-[10.5px] font-semibold text-slate-500">{totalCount} Orders</span>

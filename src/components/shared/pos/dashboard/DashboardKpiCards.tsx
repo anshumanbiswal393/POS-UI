@@ -41,7 +41,7 @@ export function DashboardKpiCards({ stats }: DashboardKpiCardsProps) {
     <div className="grid shrink-0 grid-cols-2 gap-2 lg:grid-cols-4">
       {cards.map((c) => {
         const CardBody = (
-          <div className="relative flex flex-col justify-between rounded-xl border border-slate-300 bg-white px-3 py-1.5 sm:px-3.5 sm:py-2 shadow-2xs hover:shadow-xs transition min-w-0">
+          <div className="relative flex flex-col justify-between rounded-xl border border-slate-400/80 bg-white px-3 py-1.5 sm:px-3.5 sm:py-2 shadow-2xs hover:shadow-xs transition min-w-0">
             <div
               className="absolute left-0 top-1.5 bottom-1.5 w-[3.5px] rounded-r"
               style={{ background: c.accent }}

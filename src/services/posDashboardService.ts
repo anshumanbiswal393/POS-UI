@@ -53,7 +53,7 @@ const EMPTY_DASHBOARD_API_RESPONSE: PosDashboardApiResponse = {
   ],
   orderTypes: [
     { type: "dine_in", label: "Dine-in", count: 0, percentage: 0, color: "#0f766e" },
-    { type: "takeaway", label: "Takeaway", count: 0, percentage: 0, color: "#0d9488" },
+    { type: "takeaway", label: "Takeaway", count: 0, percentage: 0, color: "#f59e0b" },
     { type: "room_service", label: "Room service", count: 0, percentage: 0, color: "#0284c7" },
   ],
   liveOrders: [],
@@ -476,7 +476,7 @@ export async function getPosDashboardData(
         label: "Takeaway",
         count: takeawayCount,
         percentage: Math.round((takeawayCount / totalMix) * 1000) / 10,
-        color: "#0d9488",
+        color: "#f59e0b",
       },
       {
         type: "room_service" as const,
