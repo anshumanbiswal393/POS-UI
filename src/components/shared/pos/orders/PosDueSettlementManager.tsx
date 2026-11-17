@@ -66,6 +66,14 @@ export function PosDueSettlementManager() {
     [dueBills],
   );
 
+  const advanceCollected = useMemo(() => {
+    return dueBills.reduce((acc, b) => acc + (b.paidAmount || 0), 0);
+  }, [dueBills]);
+
+  const partiallyPaidCount = useMemo(() => {
+    return dueBills.filter((b) => (b.paidAmount || 0) > 0).length;
+  }, [dueBills]);
+
   // List follows top-nav business day — with intelligent multi-field fuzzy search
   const filteredRecords = useMemo(() => {
     if (!searchQuery.trim()) return dueBills;
@@ -588,14 +596,6 @@ export function PosDueSettlementManager() {
       </div>
     );
   }
-
-  const advanceCollected = useMemo(() => {
-    return dueBills.reduce((acc, b) => acc + (b.paidAmount || 0), 0);
-  }, [dueBills]);
-
-  const partiallyPaidCount = useMemo(() => {
-    return dueBills.filter((b) => (b.paidAmount || 0) > 0).length;
-  }, [dueBills]);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50 pb-8">

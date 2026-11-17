@@ -71,4 +71,23 @@ describe("Pending Payments / Due Settlement & Global Standards", () => {
     // Guest contact cell renders clean name without initials icon
     expect(resContent).not.toContain("{getInitials(res.customerName)}");
   });
+
+  it("Pending Payments declares all React hooks before conditional return to avoid React error #300", () => {
+    const duePath = path.resolve(__dirname, "../PosDueSettlementManager.tsx");
+    const dueContent = fs.readFileSync(duePath, "utf-8");
+
+    const earlyReturnIdx = dueContent.indexOf("if (selectedBill) {");
+    expect(earlyReturnIdx).toBeGreaterThan(0);
+
+    const advanceCollectedIdx = dueContent.indexOf("const advanceCollected = useMemo");
+    const partiallyPaidCountIdx = dueContent.indexOf("const partiallyPaidCount = useMemo");
+
+    expect(advanceCollectedIdx).toBeLessThan(earlyReturnIdx);
+    expect(partiallyPaidCountIdx).toBeLessThan(earlyReturnIdx);
+
+    // Ensure no hook declarations exist after the early return
+    const afterEarlyReturn = dueContent.slice(earlyReturnIdx);
+    const hookMatches = afterEarlyReturn.match(/\buse(Memo|State|Effect|Callback|Ref|Query|Mutation)\b/g);
+    expect(hookMatches).toBeNull();
+  });
 });
