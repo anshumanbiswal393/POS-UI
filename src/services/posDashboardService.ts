@@ -589,7 +589,7 @@ export async function getPosDashboardData(
         revenue: val.rev,
       }))
       .sort((a, b) => b.quantitySold - a.quantitySold)
-      .slice(0, 5);
+      .slice(0, 3);
 
     // Tables status and occupancy synchronized with live orders
     const tableItems = outletTables.map((t: any) => {

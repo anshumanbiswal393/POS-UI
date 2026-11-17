@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react";
  */
 export function PosDashboardSkeleton({ banner }: { banner?: React.ReactNode } = {}) {
   return (
-    <div className="relative flex flex-col flex-1 gap-2 p-3 sm:p-4 lg:p-5 pt-2 sm:pt-2.5 lg:pt-3 min-h-0 overflow-y-auto 2xl:pos-terminal-viewport">
+    <div className="relative flex flex-col flex-1 h-full min-h-0 overflow-hidden gap-1.5 sm:gap-2 p-2 sm:p-2.5 lg:p-3 2xl:pos-terminal-viewport">
       {banner}
       {/* Subtle loading indicator pill */}
       <div className="flex items-center justify-between px-0.5">
@@ -35,8 +35,8 @@ export function PosDashboardSkeleton({ banner }: { banner?: React.ReactNode } = 
         ))}
       </div>
 
-      {/* 2. Middle Row: Live Orders, Order Types Donut, Table Status */}
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:min-h-0 xl:flex-[1.15] xl:grid-cols-3">
+      {/* 2. Middle Row 1: Live Orders, Order Types Donut, Table Status */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5 sm:gap-2 flex-1 min-h-0">
         {/* Current Orders Skeleton */}
         <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-2xs animate-pulse">
           <div className="flex shrink-0 items-center justify-between border-b border-slate-100 pb-1.5">
@@ -102,8 +102,8 @@ export function PosDashboardSkeleton({ banner }: { banner?: React.ReactNode } = 
         </div>
       </div>
 
-      {/* 3. Bottom Row: Payment Summary, Top Selling Items, Attention Needed */}
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:min-h-0 xl:flex-1 xl:grid-cols-3">
+      {/* 3. Middle Row 2: Payment Summary, Top Selling Items, Attention Needed */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5 sm:gap-2 flex-1 min-h-0">
         {/* Payment Summary Skeleton */}
         <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-2xs animate-pulse">
           <div className="h-3.5 w-28 rounded bg-slate-200" />
