@@ -7,6 +7,7 @@ import { printKotTicket } from "@/utils/printKotTicket";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { kotStartMs, pushKotReadyNotice } from "@/lib/posReadyNotifications";
 import { KotHistoryTableView } from "./KotHistoryTableView";
+import { PageHeader } from "@/components/ui/Primitives";
 
 type KdsTicket = {
   id: string;
@@ -182,65 +183,49 @@ export function PosKotManager() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 w-full lg:overflow-hidden bg-background">
-      {/* 1. Top Header Row - Flush with TopBar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-border shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8.5 w-8.5 items-center justify-center rounded-lg bg-teal-50 border border-teal-300 text-teal-700">
-            <ChefHat className="h-4.5 w-4.5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">
-                Kitchen Orders
-              </h1>
-              <span className="inline-flex items-center gap-1 rounded-md bg-primary-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary border border-primary/20">
-                <Flame className="h-3 w-3" />
-                Live
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500">
-              FCFS · timer orange at 10m · red at 15m · Ready leaves KOT and notifies waiter
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          {/* Tab Switcher: Kitchen Orders vs Kitchen History */}
-          <div className="flex items-center rounded-lg border border-slate-300 bg-slate-100 p-0.5 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setActiveTab("orders")}
-              className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-[12px] font-bold transition cursor-pointer ${
-                activeTab === "orders"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-slate-700 hover:text-slate-900 hover:bg-slate-200/60"
-              }`}
-            >
-              <UtensilsCrossed className="h-3.5 w-3.5" />
-              <span>Kitchen Orders</span>
-              <span
-                className={`ml-1 inline-flex min-w-[1.25rem] justify-center rounded-md px-1.5 py-0.2 text-[10.5px] tabular-nums ${
-                  activeTab === "orders" ? "bg-white text-primary" : "bg-primary text-white"
+      {/* 1. Top Header Row - PMS Standard PageHeader */}
+      <PageHeader
+        title="Kitchen Orders"
+        eyebrow="FCFS Kitchen Display System · Live Prep Monitoring"
+        actions={
+          <div className="flex items-center gap-2">
+            {/* Tab Switcher: Kitchen Orders vs Kitchen History */}
+            <div className="flex items-center rounded-lg border border-border bg-surface p-0.5 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setActiveTab("orders")}
+                className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-[12px] font-bold transition cursor-pointer ${
+                  activeTab === "orders"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-2"
                 }`}
               >
-                {tickets.length}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("history")}
-              className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-[12px] font-bold transition cursor-pointer ${
-                activeTab === "history"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-slate-700 hover:text-slate-900 hover:bg-slate-200/60"
-              }`}
-            >
-              <History className="h-3.5 w-3.5" />
-              <span>Kitchen History</span>
-            </button>
+                <UtensilsCrossed className="h-3.5 w-3.5" />
+                <span>Kitchen Orders</span>
+                <span
+                  className={`ml-1 inline-flex min-w-[1.25rem] justify-center rounded-md px-1.5 py-0.2 text-[10.5px] tabular-nums ${
+                    activeTab === "orders" ? "bg-white text-primary" : "bg-primary text-white"
+                  }`}
+                >
+                  {tickets.length}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("history")}
+                className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-[12px] font-bold transition cursor-pointer ${
+                  activeTab === "history"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-2"
+                }`}
+              >
+                <History className="h-3.5 w-3.5" />
+                <span>Kitchen History</span>
+              </button>
+            </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Main Tab Content */}
       {activeTab === "orders" ? (

@@ -26,8 +26,8 @@ describe("Pending Payments / Due Settlement & Global Standards", () => {
     expect(dueContent).not.toContain("Moves to Order History");
     expect(dueContent).not.toContain('<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">');
 
-    // Open dues badge near heading
-    expect(dueContent).toContain("Open Dues:");
+    // Open dues KPI card
+    expect(dueContent).toMatch(/Open Dues:?/);
     expect(dueContent).toContain("totalOpenDues");
   });
 

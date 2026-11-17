@@ -180,13 +180,25 @@ export function PosTopBar({
 
   const getBreadcrumbTitle = (pathname: string) => {
     if (pathname.includes("/take-order")) return "Take Order";
-    if (pathname.includes("/billing")) return "POS";
-    if (pathname.includes("/orders")) return "Orders";
+    if (pathname.includes("/billing")) return "POS Billing";
+    if (pathname.includes("/kot")) return "Kitchen Orders";
+    if (pathname.includes("/settlement")) return "Pending Payments";
+    if (pathname.includes("/orders/all")) return "Order History";
+    if (pathname.includes("/orders")) return "Current Orders";
+    if (pathname.includes("/reservations")) return "Reservations";
+    if (pathname.includes("/room-service")) return "Room Service";
     if (pathname.includes("/menu")) return "Food Menu";
+    if (pathname.includes("/inventory/purchase")) return "Purchases & Invoices";
+    if (pathname.includes("/inventory/production")) return "Daily Kitchen Prep";
+    if (pathname.includes("/inventory/wastage")) return "Stock Wastage";
+    if (pathname.includes("/inventory/available-stock")) return "Available Stock";
     if (pathname.includes("/inventory")) return "Stock & Inventory";
     if (pathname.includes("/reports")) return "Reports & Graphs";
     if (pathname.includes("/management/users/roles")) return "User Roles";
     if (pathname.includes("/management/users")) return "Users";
+    if (pathname.includes("/management/accounting")) return "Accounting";
+    if (pathname.includes("/management/logs")) return "System Logs";
+    if (pathname.includes("/management/audit")) return "Audit Trail";
     if (pathname.includes("/management")) return "Management";
     if (pathname.includes("/settings")) return "Settings";
     if (pathname.includes("/help")) return "Help Guide";

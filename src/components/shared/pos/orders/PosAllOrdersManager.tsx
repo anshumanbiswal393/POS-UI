@@ -12,6 +12,7 @@ import {
   Printer,
 } from "lucide-react";
 import { ColorActionPrint, ColorActionEdit, ColorActionView } from "@/components/common/ColorActionIcons";
+import { PageHeader, KpiCard } from "@/components/ui/Primitives";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useAllOrders } from "@/hooks/queries/usePosOrders";
 import type { AllOrderItem } from "@/types/posOrders";
@@ -629,70 +630,96 @@ export function PosAllOrdersManager() {
     }
   };
 
+  const dineInCount = useMemo(() => {
+    return filteredRecords.filter((r) => r.orderType?.toLowerCase().includes("dine")).length;
+  }, [filteredRecords]);
+
+  const nonDineInCount = useMemo(() => {
+    return filteredRecords.filter((r) => !r.orderType?.toLowerCase().includes("dine")).length;
+  }, [filteredRecords]);
+
   return (
     <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden bg-slate-50/50">
-      {/* 1. Top Header Row - Flush with TopBar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
+      {/* 1. Page Header (PMS Standard) */}
+      <PageHeader
+        title="Order History"
+        eyebrow="Completed Orders & Settled Checks"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Table / Grid view switcher */}
+            <div className="flex items-center rounded-lg border border-border bg-surface p-0.5 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                title="Table view"
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer ${
+                  viewMode === "table"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-2"
+                }`}
+              >
+                <Table2 className="h-3.5 w-3.5" />
+                <span>Table</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("grid")}
+                title="Grid view"
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer ${
+                  viewMode === "grid"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-2"
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span>Grid</span>
+              </button>
+            </div>
 
-        {/* Left: Title, Table/Grid view */}
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">Order History</h1>
-
-          {/* Table / Grid view switcher with theme-based selected background */}
-          <div className="flex items-center rounded-lg border border-slate-300 bg-slate-100 p-0.5 shadow-2xs">
+            <ExportToExcelButton onClick={handleExportExcel} />
             <button
               type="button"
-              onClick={() => setViewMode("table")}
-              title="Table view"
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer ${
-                viewMode === "table"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-slate-700 hover:text-slate-900 hover:bg-slate-200/60"
-              }`}
+              onClick={handlePrintReport}
+              disabled={filteredRecords.length === 0}
+              className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border bg-surface text-[12px] font-bold text-text-primary hover:bg-surface-2 transition cursor-pointer shadow-2xs disabled:opacity-50"
+              title="Print Orders Master Report"
             >
-              <Table2 className="h-3.5 w-3.5" />
-              <span>Table</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("grid")}
-              title="Grid view"
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer ${
-                viewMode === "grid"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-slate-700 hover:text-slate-900 hover:bg-slate-200/60"
-              }`}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              <span>Grid</span>
+              <Printer className="h-3.5 w-3.5 text-text-secondary shrink-0" />
+              <span>Print</span>
             </button>
           </div>
-        </div>
-
-        {/* Right: Total Amount + Export */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="text-[13px] font-bold text-slate-900">
-            Total Amount :{" "}
-            <span className="text-teal-700">
-              {filteredGrandTotal}
-            </span>
-          </div>
-          <ExportToExcelButton onClick={handleExportExcel} />
-          <button
-            type="button"
-            onClick={handlePrintReport}
-            disabled={filteredRecords.length === 0}
-            className="flex items-center gap-1.5 h-8.5 px-3 rounded-lg border border-slate-300 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs disabled:opacity-50"
-            title="Print Orders Master Report"
-          >
-            <Printer className="h-3.5 w-3.5 text-slate-500 shrink-0" />
-            <span>Print</span>
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="responsive-page-x py-4 sm:py-5 space-y-4">
+          {/* KPI Summary Cards matching PMS */}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <KpiCard
+              label="Total Revenue"
+              value={filteredGrandTotal}
+              accent="brand"
+              subtitle="All billed orders in scope"
+            />
+            <KpiCard
+              label="Total Orders"
+              value={String(filteredRecords.length)}
+              accent="info"
+              subtitle="Completed checks"
+            />
+            <KpiCard
+              label="Dine-In Orders"
+              value={String(dineInCount)}
+              accent="success"
+              subtitle="Table seated checks"
+            />
+            <KpiCard
+              label="Takeaway & Delivery"
+              value={String(nonDineInCount)}
+              accent="warning"
+              subtitle="Pickup, parcel & room"
+            />
+          </div>
           {/* 2. Structured Filter Card */}
       <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
         {!showMoreFilters ? (
