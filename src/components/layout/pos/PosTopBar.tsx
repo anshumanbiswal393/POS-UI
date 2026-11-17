@@ -457,7 +457,7 @@ export function PosTopBar({
                 <img
                   src={user.avatarUrl}
                   alt={user?.name || "User"}
-                  className="h-7 w-7 rounded-full object-cover shrink-0 border border-primary/20"
+                  className="h-7 w-7 rounded-full object-cover shrink-0 border border-border shadow-xs"
                 />
               ) : (
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary font-bold text-[11px] text-primary-foreground shrink-0">
@@ -477,16 +477,29 @@ export function PosTopBar({
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-56 rounded-md border border-border bg-white p-1.5 text-text-primary shadow-2xl data-[state=closed]:animate-none"
+            className="w-60 rounded-md border border-border bg-white p-1.5 text-text-primary shadow-2xl data-[state=closed]:animate-none"
           >
-            <div className="px-2.5 py-2 border-b border-border mb-1">
-              <div className="font-semibold text-[13px] text-text-primary truncate">{user?.name || "User"}</div>
-              <div className="text-[11px] text-text-secondary truncate">{user?.email}</div>
-              {(activeOutlet?.name || user?.property) && (
-                <div className="text-[10.5px] text-primary truncate mt-0.5 font-medium">
-                  {activeOutlet?.name || user?.property}
+            <div className="flex items-center gap-2.5 px-2.5 py-2.5 border-b border-border mb-1">
+              {user?.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user?.name || "User"}
+                  className="h-9 w-9 rounded-full object-cover shrink-0 border border-primary/20 shadow-xs"
+                />
+              ) : (
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary font-bold text-[12px] text-primary-foreground shrink-0">
+                  {user?.initials || "U"}
                 </div>
               )}
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold text-[13px] text-text-primary truncate">{user?.name || "User"}</div>
+                <div className="text-[11px] text-text-secondary truncate">{user?.email}</div>
+                {(activeOutlet?.name || user?.property) && (
+                  <div className="text-[10.5px] text-primary truncate mt-0.5 font-medium">
+                    {activeOutlet?.name || user?.property}
+                  </div>
+                )}
+              </div>
             </div>
             {!isKitchen && (
               <DropdownMenuItem

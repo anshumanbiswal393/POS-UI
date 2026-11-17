@@ -71,6 +71,7 @@ const REPORT_COLUMNS: Record<string, DataTableColumn<any>[]> = {
     { id: "totalBills", label: "Total Bills", align: "right", sortable: true, getValue: (r) => String(r.totalBills ?? 0) },
     { id: "dineInSales", label: "Dine-In (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.dineInSales ?? 0).toLocaleString()}` },
     { id: "takeawaySales", label: "Takeaway (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.takeawaySales ?? 0).toLocaleString()}` },
+    { id: "roomServiceSales", label: "Room Service (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.roomServiceSales ?? 0).toLocaleString()}` },
     { id: "deliverySales", label: "Delivery (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.deliverySales ?? 0).toLocaleString()}` },
     { id: "grossSales", label: "Gross Sales (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.grossSales ?? 0).toLocaleString()}` },
     { id: "discounts", label: "Discounts (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.discounts ?? 0).toLocaleString()}` },
@@ -131,7 +132,7 @@ const REPORT_COLUMNS: Record<string, DataTableColumn<any>[]> = {
     { id: "dayOfWeek", label: "Day", sortable: true, getValue: (r) => r.dayOfWeek },
     { id: "dineInRev", label: "Dine-In (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.dineInRev ?? 0).toLocaleString()}` },
     { id: "takeawayRev", label: "Takeaway (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.takeawayRev ?? 0).toLocaleString()}` },
-    { id: "deliveryRev", label: "Delivery (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.deliveryRev ?? 0).toLocaleString()}` },
+    { id: "roomServiceRev", label: "Room Service (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.roomServiceRev ?? 0).toLocaleString()}` },
     { id: "totalBills", label: "Total Bills", align: "right", sortable: true, getValue: (r) => String(r.totalBills ?? r.totalOrders ?? 0) },
     { id: "totalNetRev", label: "Total Net Revenue (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.totalNetRev ?? r.netSales ?? 0).toLocaleString()}` },
   ],
@@ -171,7 +172,7 @@ const REPORT_COLUMNS: Record<string, DataTableColumn<any>[]> = {
     { id: "ordersCount", label: "Orders Placed", align: "right", sortable: true, getValue: (r) => String(r.ordersCount ?? r.totalOrders ?? 0) },
     { id: "totalCovers", label: "Guest Covers", align: "right", sortable: true, getValue: (r) => String(r.totalCovers ?? r.totalPax ?? 0) },
     { id: "salesAmount", label: "Revenue (₹)", align: "right", sortable: true, getValue: (r) => `₹${Number(r.salesAmount ?? r.grossSales ?? 0).toLocaleString()}` },
-    { id: "avgSpeed", label: "Share of Daily", align: "right", sortable: true, getValue: (r) => r.shareOfDailySales ? `${r.shareOfDailySales}%` : (r.avgSpeed || "—") },
+    { id: "shareOfDailySales", label: "Share of Daily", align: "right", sortable: true, getValue: (r) => `${r.shareOfDailySales ?? 0}%` },
   ],
   "REP-11": [
     // Payment Mode & Settlement Reconciliation
