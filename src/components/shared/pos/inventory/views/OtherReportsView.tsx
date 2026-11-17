@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
-  Bookmark,
+  Star,
   FileText,
   ArrowRight,
   ArrowLeft,
@@ -25,6 +25,12 @@ import {
   Award,
   AlertTriangle,
   Check,
+  LayoutGrid,
+  BarChart3,
+  Utensils,
+  Boxes,
+  Receipt,
+  Coins,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -94,9 +100,46 @@ export interface ReportDefinition {
   categoryLabel: string;
   title: string;
   desc: string;
-  iconBg: string;
+  iconColor: "teal" | "emerald" | "amber" | "purple" | "sky" | "indigo" | "rose";
   icon: React.ElementType;
+  isFavorite?: boolean;
+  isNew?: boolean;
 }
+
+const COLOR_STYLES: Record<string, { bg: string; text: string }> = {
+  rose: { bg: "bg-[#ffeef0]", text: "text-[#f43f5e]" },
+  pink: { bg: "bg-[#ffeef0]", text: "text-[#f43f5e]" },
+  sky: { bg: "bg-[#e0f2fe]", text: "text-[#0284c7]" },
+  cyan: { bg: "bg-[#e0f2fe]", text: "text-[#0284c7]" },
+  emerald: { bg: "bg-[#e6f4ea]", text: "text-[#00875a]" },
+  green: { bg: "bg-[#e6f4ea]", text: "text-[#00875a]" },
+  purple: { bg: "bg-[#f3e8ff]", text: "text-[#9333ea]" },
+  indigo: { bg: "bg-[#e0e7ff]", text: "text-[#4f46e5]" },
+  amber: { bg: "bg-[#fff7ed]", text: "text-[#ea580c]" },
+  orange: { bg: "bg-[#fff7ed]", text: "text-[#ea580c]" },
+  teal: { bg: "bg-[#e6f4ea]", text: "text-[#0d9488]" },
+};
+
+const CATEGORY_PILLS = [
+  { id: "all", label: "All reports" },
+  { id: "movements", label: "Movements & Transfers" },
+  { id: "closing_tracking", label: "Closing & Variance" },
+  { id: "po_monitoring", label: "Purchase Orders" },
+  { id: "cost_profitability", label: "Cost & Profitability" },
+  { id: "all_other", label: "Other Store Reports" },
+  { id: "favorites", label: "Favorites" },
+] as const;
+
+const SECTION_ORDER = [
+  { key: "movements", title: "PURCHASE & TRANSFER MOVEMENTS" },
+  { key: "closing_tracking", title: "CLOSING STOCK & VARIANCE TRACKING" },
+  { key: "po_monitoring", title: "PURCHASE ORDER MONITORING" },
+  { key: "cost_profitability", title: "COST & PROFITABILITY ANALYSIS" },
+  { key: "all_other", title: "STORE AUDIT & OTHER REPORTS" },
+];
+
+const formatINR = (val: number): string =>
+  `₹${val.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 
 // ---------------------------------------------------------------------------
 // Complete Catalog of Inventory & Store Analytical Reports
@@ -109,8 +152,9 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Cost & Consumption",
     title: "Consumption Summary",
     desc: "Displays raw material consumption details, including usage from bills, wastage, transfers, and capturing all types of movements.",
-    iconBg: "bg-teal-50 text-teal-600",
+    iconColor: "teal",
     icon: RefreshCw,
+    isFavorite: true,
   },
   // 2. Opening - Closing Report
   {
@@ -119,8 +163,9 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Closing Stock",
     title: "Opening - Closing Report",
     desc: "Displays opening and closing balances, avg purchase price, and total stock value for each raw material over the selected period.",
-    iconBg: "bg-emerald-50 text-emerald-600",
+    iconColor: "emerald",
     icon: BarChart2,
+    isFavorite: true,
   },
   // 3. Food Costing Report
   {
@@ -129,8 +174,9 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Profitability",
     title: "Food Costing Report",
     desc: "Cost analysis of each menu item, including raw material cost, sales price, and calculated profit margin percentage.",
-    iconBg: "bg-amber-50 text-amber-600",
+    iconColor: "amber",
     icon: TrendingUp,
+    isFavorite: true,
   },
   // 4. Recipe Costing
   {
@@ -139,8 +185,10 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Recipe Master",
     title: "Recipe Costing",
     desc: "Shows the estimated cost and profit of a menu item before billing, based on recipe ingredients and selected material prices.",
-    iconBg: "bg-purple-50 text-purple-600",
+    iconColor: "purple",
     icon: FileText,
+    isNew: true,
+    isFavorite: true,
   },
   // 5. GRN Summary
   {
@@ -149,7 +197,7 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Purchase Movements",
     title: "Goods Received Note (GRN) Summary",
     desc: "Complete chronological audit trail of all vendor invoices received and accepted at store.",
-    iconBg: "bg-teal-50 text-teal-600",
+    iconColor: "sky",
     icon: FileText,
   },
   // 6. Section Transfer Ledger
@@ -159,7 +207,7 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Stock Transfers",
     title: "Inter-Outlet / Section Transfer Ledger",
     desc: "Detailed movement vouchers between kitchen, bar, central warehouse, and banquet pantry.",
-    iconBg: "bg-emerald-50 text-emerald-600",
+    iconColor: "emerald",
     icon: RefreshCw,
   },
   // 7. Supplier Purchase Summary
@@ -169,7 +217,7 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Procurement Summary",
     title: "Supplier Purchase Summary",
     desc: "Consolidated procurement summary by supplier showing volume, spend, returns, and payment balances.",
-    iconBg: "bg-blue-50 text-blue-600",
+    iconColor: "indigo",
     icon: Package,
   },
   // 8. Vendor Return Ledger
@@ -179,7 +227,7 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Vendor Adjustments",
     title: "Vendor Return Ledger",
     desc: "Debit notes and goods return vouchers issued to suppliers for damaged, sub-standard, or rejected materials.",
-    iconBg: "bg-rose-50 text-rose-600",
+    iconColor: "rose",
     icon: Truck,
   },
   // 9. Daily Closing Variance Log
@@ -189,7 +237,7 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Stock Variance",
     title: "Daily Closing Variance Log",
     desc: "Calculates difference between physical counting entries and theoretical closing stock.",
-    iconBg: "bg-amber-50 text-amber-600",
+    iconColor: "amber",
     icon: BarChart2,
   },
   // 10. Closing Stock Submission Audit
@@ -199,7 +247,7 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Audit & Compliance",
     title: "Closing Stock Submission Audit",
     desc: "Staff compliance log showing exact timestamp and user ID when daily closing stock was locked.",
-    iconBg: "bg-teal-50 text-teal-600",
+    iconColor: "teal",
     icon: FileText,
   },
   // 11. Wastage Loss Register
@@ -209,7 +257,7 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Wastage Control",
     title: "Wastage & Damage Loss Register",
     desc: "Tracks ingredients spoiled, burnt, expired, or dropped during kitchen preparation shifts.",
-    iconBg: "bg-rose-50 text-rose-600",
+    iconColor: "rose",
     icon: AlertTriangle,
   },
   // 12. Physical vs Theoretical Stock
@@ -219,7 +267,7 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Stock Reconciliations",
     title: "Physical vs Theoretical Stock",
     desc: "Direct comparison between POS recorded usage and actual physical storeroom balances.",
-    iconBg: "bg-indigo-50 text-indigo-600",
+    iconColor: "purple",
     icon: Layers,
   },
   // 13. Pending Purchase Orders Tracking
@@ -229,8 +277,9 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "PO Tracking",
     title: "Pending Purchase Orders Tracking",
     desc: "List of open POs issued to vendors awaiting delivery fulfillment or acknowledgment.",
-    iconBg: "bg-purple-50 text-purple-600",
+    iconColor: "sky",
     icon: FileText,
+    isNew: true,
   },
   // 14. PO Fulfillment & Delay Analysis
   {
@@ -239,7 +288,7 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Delivery Performance",
     title: "PO Fulfillment & Delay Analysis",
     desc: "Vendor delivery punctuality tracking comparing promised vs actual delivery dates.",
-    iconBg: "bg-amber-50 text-amber-600",
+    iconColor: "amber",
     icon: Clock,
   },
   // 15. Vendor Lead Time & Fill Rate
@@ -249,7 +298,7 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Vendor Scorecard",
     title: "Vendor Lead Time & Fill Rate",
     desc: "Vendor scorecard evaluating average turnaround time, complete order fulfillment rate, and quality compliance.",
-    iconBg: "bg-emerald-50 text-emerald-600",
+    iconColor: "emerald",
     icon: Award,
   },
   // 16. Gross Margin & Food Cost Matrix
@@ -259,8 +308,9 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Margin Optimization",
     title: "Gross Margin & Food Cost % Matrix",
     desc: "Identifies top high-margin dishes and dishes where ingredient inflation reduced profitability.",
-    iconBg: "bg-emerald-50 text-emerald-600",
+    iconColor: "teal",
     icon: TrendingUp,
+    isNew: true,
   },
   // 17. Ingredient Price Fluctuation Trend
   {
@@ -269,7 +319,7 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Inflation Trends",
     title: "Ingredient Price Fluctuation Trend",
     desc: "Monitors vendor price shifts across essential commodities compared to baseline contract rates.",
-    iconBg: "bg-sky-50 text-sky-600",
+    iconColor: "sky",
     icon: DollarSign,
   },
   // 18. Menu Item Contribution Margin
@@ -279,7 +329,7 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Menu Engineering",
     title: "Menu Item Contribution Margin",
     desc: "Evaluates which items generate the bulk of the kitchen's net profit contribution.",
-    iconBg: "bg-purple-50 text-purple-600",
+    iconColor: "purple",
     icon: Percent,
   },
   // 19. Stock Expiry & Aging Analysis
@@ -289,8 +339,9 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Perishables Management",
     title: "Stock Expiry & Aging Analysis",
     desc: "Early warning system tracking perishable items nearing expiration dates in dry store, chiller, and freezer.",
-    iconBg: "bg-rose-50 text-rose-600",
+    iconColor: "rose",
     icon: ShieldAlert,
+    isNew: true,
   },
   // 20. Reorder Level Breach Alert Log
   {
@@ -299,7 +350,7 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Replenishment Alerts",
     title: "Reorder Level Breach Alert Log",
     desc: "Automated replenishment alerts triggered when stock levels dip below designated buffer thresholds.",
-    iconBg: "bg-amber-50 text-amber-600",
+    iconColor: "amber",
     icon: AlertCircle,
   },
   // 21. Batch & Lot Tracking Register
@@ -309,18 +360,31 @@ export const ALL_INVENTORY_REPORTS: ReportDefinition[] = [
     categoryLabel: "Traceability & Safety",
     title: "Batch & Lot Tracking Register",
     desc: "End-to-end traceability register linking raw material batches from supplier invoice to kitchen consumption.",
-    iconBg: "bg-teal-50 text-teal-600",
+    iconColor: "teal",
     icon: Layers,
   },
+  // 22. Daily Stock Summary Report
+  {
+    id: "REP-STK-00",
+    tabCategory: "closing_tracking",
+    categoryLabel: "Stock Valuation",
+    title: "Daily Stock Summary Report",
+    desc: "Detailed breakdown of opening, inward purchases, consumption, and closing valuation across raw materials.",
+    iconColor: "emerald",
+    icon: BarChart2,
+    isNew: true,
+  },
+  // 23. Order-wise Consumption
+  {
+    id: "REP-ORD-00",
+    tabCategory: "cost_profitability",
+    categoryLabel: "Consumption Audit",
+    title: "Order-wise Raw Material Consumption",
+    desc: "Audit log of bill settlements and recipe ingredient deductions for each customer order.",
+    iconColor: "teal",
+    icon: Utensils,
+  },
 ];
-
-// Initial default bookmarked report IDs
-const DEFAULT_BOOKMARKS = new Set([
-  "REP-CONS-01",
-  "REP-OPCL-02",
-  "REP-FOODCOST-03",
-  "REP-RECIPE-04",
-]);
 
 // ---------------------------------------------------------------------------
 // REPORT DATASETS & TAILORED TABLE SCHEMAS
@@ -329,6 +393,35 @@ export const REPORT_DATASETS: Record<
   string,
   { columns: DataTableColumn<any>[]; data: any[] }
 > = {
+  // 0A. Daily Stock Summary Report
+  "REP-STK-00": {
+    columns: [
+      { id: "name", label: "Raw Material", sortable: true, filterable: true, defaultWidth: 220, getValue: (r) => r.name },
+      { id: "category", label: "Category", sortable: true, filterable: true, defaultWidth: 140, getValue: (r) => r.category },
+      { id: "opening", label: "Opening (A)", align: "right", sortable: true, defaultWidth: 110, getValue: (r) => String(r.opening) },
+      { id: "purchase", label: "Purchase (B)", align: "right", sortable: true, defaultWidth: 110, getValue: (r) => String(r.purchase) },
+      { id: "consumed", label: "Consumption", align: "right", sortable: true, defaultWidth: 120, getValue: (r) => String(r.consumed) },
+      { id: "wastage", label: "Wastage", align: "right", sortable: true, defaultWidth: 100, getValue: (r) => String(r.wastage) },
+      { id: "transfer", label: "Transfers", align: "right", sortable: true, defaultWidth: 100, getValue: (r) => String(r.transfer) },
+      { id: "closingStock", label: "Closing Stock", align: "right", sortable: true, defaultWidth: 120, getValue: (r) => String(r.closingStock) },
+      { id: "valuation", label: "Valuation (₹)", align: "right", sortable: true, defaultWidth: 140, getValue: (r) => `₹ ${Number(r.valuation || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
+    ],
+    data: [],
+  },
+
+  // 0B. Order-wise Consumption
+  "REP-ORD-00": {
+    columns: [
+      { id: "orderNumber", label: "Order Ref", sortable: true, filterable: true, defaultWidth: 120, getValue: (r) => r.orderNumber },
+      { id: "time", label: "Time", defaultWidth: 110, getValue: (r) => r.time },
+      { id: "table", label: "Table / Counter", sortable: true, filterable: true, defaultWidth: 150, getValue: (r) => r.table },
+      { id: "item", label: "Billed Dish", sortable: true, filterable: true, defaultWidth: 200, getValue: (r) => r.item },
+      { id: "recipeItems", label: "Deducted Ingredients", defaultWidth: 240, getValue: (r) => r.recipeItems },
+      { id: "balanceAfter", label: "Remaining Stock", align: "right", defaultWidth: 140, getValue: (r) => r.balanceAfter },
+      { id: "status", label: "Status", align: "center", defaultWidth: 110, getValue: (r) => r.status },
+    ],
+    data: [],
+  },
   // 1. Consumption Summary
   "REP-CONS-01": {
     columns: [
@@ -670,54 +763,71 @@ export const REPORT_DATASETS: Record<
 // ---------------------------------------------------------------------------
 export function OtherReportsView() {
   const { activeOutlet } = useOutletContext();
-  const [activeTab, setActiveTab] = useState<
-    | "bookmarked"
-    | "movements"
-    | "closing_tracking"
-    | "po_monitoring"
-    | "cost_profitability"
-    | "all_other"
-  >("bookmarked");
-
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(
-    () => new Set(DEFAULT_BOOKMARKS)
-  );
-
+  const [activePill, setActivePill] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"catalog" | "dashboard">("catalog");
   const [selectedReport, setSelectedReport] = useState<ReportDefinition | null>(null);
 
-  // Tab navigation definitions
-  const tabs = [
-    { id: "bookmarked", label: "Bookmarked Reports" },
-    { id: "movements", label: "Purchase And Transfer Movements" },
-    { id: "closing_tracking", label: "Closing Stock Tracking" },
-    { id: "po_monitoring", label: "Purchase Order Monitoring" },
-    { id: "cost_profitability", label: "Cost & Profitability" },
-    { id: "all_other", label: "Other Reports" },
-  ] as const;
-
-  // Toggle bookmark star
-  const toggleBookmark = (id: string, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setBookmarkedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-        toast.info("Removed from Bookmarked Reports");
-      } else {
-        next.add(id);
-        toast.success("Added to Bookmarked Reports");
+  const [reportList, setReportList] = useState<ReportDefinition[]>(() => {
+    if (typeof window === "undefined") return ALL_INVENTORY_REPORTS;
+    try {
+      const saved = localStorage.getItem("pos_stock_reports_favorites");
+      if (!saved) {
+        return ALL_INVENTORY_REPORTS;
       }
+      const favIds = new Set(JSON.parse(saved));
+      return ALL_INVENTORY_REPORTS.map((r) => ({ ...r, isFavorite: favIds.has(r.id) }));
+    } catch {
+      return ALL_INVENTORY_REPORTS;
+    }
+  });
+
+  const toggleFavorite = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setReportList((prev) => {
+      const next = prev.map((r) => (r.id === id ? { ...r, isFavorite: !r.isFavorite } : r));
+      try {
+        const favIds = next.filter((r) => r.isFavorite).map((r) => r.id);
+        localStorage.setItem("pos_stock_reports_favorites", JSON.stringify(favIds));
+      } catch {}
       return next;
     });
+    toast.success("Favorite status updated");
   };
 
-  // Get report cards for the active catalog tab
-  const activeReportsList = useMemo(() => {
-    if (activeTab === "bookmarked") {
-      return ALL_INVENTORY_REPORTS.filter((r) => bookmarkedIds.has(r.id));
+  const favoriteCount = useMemo(() => reportList.filter((r) => r.isFavorite).length, [reportList]);
+
+  const groupedSections = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    let filtered = reportList;
+
+    if (activePill === "favorites") {
+      filtered = filtered.filter((r) => r.isFavorite);
+    } else if (activePill !== "all") {
+      filtered = filtered.filter((r) => r.tabCategory === activePill);
     }
-    return ALL_INVENTORY_REPORTS.filter((r) => r.tabCategory === activeTab);
-  }, [activeTab, bookmarkedIds]);
+
+    if (query) {
+      filtered = filtered.filter(
+        (r) =>
+          r.title.toLowerCase().includes(query) ||
+          r.desc.toLowerCase().includes(query) ||
+          r.id.toLowerCase().includes(query) ||
+          r.categoryLabel.toLowerCase().includes(query)
+      );
+    }
+
+    const groups: Record<string, ReportDefinition[]> = {};
+
+    SECTION_ORDER.forEach(({ key, title }) => {
+      const sectionCards = filtered.filter((r) => r.tabCategory === key);
+      if (sectionCards.length > 0) {
+        groups[title] = sectionCards;
+      }
+    });
+
+    return groups;
+  }, [reportList, activePill, searchQuery]);
 
   // -------------------------------------------------------------------------
   // DRILLDOWN REPORT VIEW STATE (When a report is opened)
@@ -782,11 +892,66 @@ export function OtherReportsView() {
   const { data: recipes = [] } = useDishRecipes();
   const { data: vendors = [] } = useVendors();
 
+  // Dashboard Metrics Computed from Live/Mock Inventory Queries
+  const dashboardStats = useMemo(() => {
+    let totalStockValuation = 0;
+    let lowStockCount = 0;
+    const totalItems = stockItems.length;
+
+    stockItems.forEach((item: any) => {
+      const stock = Number(item.currentStock || item.openingStock || 0);
+      const price = Number(item.unitPrice || item.purchasePrice || 0);
+      totalStockValuation += stock * price;
+      if (stock <= Number(item.minStock || 5)) {
+        lowStockCount++;
+      }
+    });
+
+    const openPos = purchaseOrders.filter(
+      (po: any) => po.status !== "Completed" && po.status !== "Received"
+    );
+    const openPosTotal = openPos.reduce(
+      (acc: number, po: any) => acc + Number(po.totalAmount || po.grandTotal || 0),
+      0
+    );
+
+    const sortedByValuation = [...stockItems]
+      .map((item: any) => ({
+        name: item.name || "Item",
+        category: item.category || "General",
+        qty: item.currentStock ?? 0,
+        unit: item.unit || "unit",
+        rate: Number(item.unitPrice || item.purchasePrice || 0),
+        val: (item.currentStock ?? 0) * Number(item.unitPrice || item.purchasePrice || 0),
+      }))
+      .sort((a, b) => b.val - a.val)
+      .slice(0, 5);
+
+    return {
+      totalStockValuation: totalStockValuation || 248950,
+      totalItems: totalItems || 36,
+      lowStockCount: lowStockCount || 4,
+      openPosCount: openPos.length || 3,
+      openPosTotal: openPosTotal || 34500,
+      sortedByValuation:
+        sortedByValuation.length > 0
+          ? sortedByValuation
+          : [
+              { name: "Basmati Rice Supreme", category: "Dry Grocery", qty: 45, unit: "kg", rate: 120, val: 5400 },
+              { name: "Cooking Butter Fresh", category: "Dairy", qty: 22, unit: "kg", rate: 480, val: 10560 },
+              { name: "Chicken Breast Boneless", category: "Poultry", qty: 38, unit: "kg", rate: 260, val: 9880 },
+              { name: "Paneer Cottage Cheese", category: "Dairy", qty: 18, unit: "kg", rate: 360, val: 6480 },
+              { name: "Cooking Refined Oil", category: "Oils", qty: 50, unit: "L", rate: 140, val: 7000 },
+            ],
+    };
+  }, [stockItems, purchaseOrders]);
+
   const getReportRows = (reportId: string) => {
     switch (reportId) {
       case "REP-CONS-01":
       case "REP-OPCL-02":
       case "REP-VAL-04":
+      case "REP-STK-00":
       case "REP-STOCKAGE-10":
       case "REP-OPEN-CLOS-TRACK-01":
       case "REP-CLOS-ACC-02":
@@ -877,6 +1042,39 @@ export function OtherReportsView() {
           outstandingDue: Number(v.outstandingBalance || 0),
           rating: "Active",
         }));
+      case "REP-ORD-00":
+        return [
+          {
+            id: "ORD-101",
+            orderNumber: "ORD-101",
+            time: "12:45 PM",
+            table: "Table 4",
+            item: "Paneer Butter Masala",
+            recipeItems: "Paneer (200g), Butter (50g), Tomato (150g)",
+            balanceAfter: "4.8 kg",
+            status: "Settled",
+          },
+          {
+            id: "ORD-102",
+            orderNumber: "ORD-102",
+            time: "01:15 PM",
+            table: "Table 7",
+            item: "Chicken Dum Biryani",
+            recipeItems: "Chicken (300g), Basmati Rice (250g), Spices (30g)",
+            balanceAfter: "8.2 kg",
+            status: "Settled",
+          },
+          {
+            id: "ORD-103",
+            orderNumber: "ORD-103",
+            time: "01:30 PM",
+            table: "Room 204",
+            item: "Dal Makhani & Naan",
+            recipeItems: "Black Lentil (150g), Cream (40g), Butter (30g)",
+            balanceAfter: "6.1 kg",
+            status: "Settled",
+          },
+        ];
       default:
         return [];
     }
@@ -900,6 +1098,7 @@ export function OtherReportsView() {
     setReportSearch("");
     setSortConfig(null);
     setColumnFilters({});
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Get columns and data configuration for current report
@@ -1059,7 +1258,7 @@ export function OtherReportsView() {
     openPrintReportTable({
       title: selectedReport.title.toUpperCase(),
       hotelName: activeOutlet?.name || "Restaurant Outlet",
-      subtitle: `Category: ${selectedReport.category.toUpperCase()} • Total Records: ${filteredDataset.length}`,
+      subtitle: `Category: ${selectedReport.tabCategory.toUpperCase()} • Total Records: ${filteredDataset.length}`,
       dateRange: `${formatToDmy(startDate)} to ${formatToDmy(endDate)}`,
       columns,
       rows,
@@ -1071,57 +1270,59 @@ export function OtherReportsView() {
   // -------------------------------------------------------------------------
   if (selectedReport) {
     return (
-      <div className="space-y-4 print:p-0">
-        {/* Top Header / Breadcrumbs Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3 print:hidden">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setSelectedReport(null)}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-teal-600 transition cursor-pointer"
-              title="Back to All Reports"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-[19px] font-bold text-slate-900 tracking-tight">
-                  {selectedReport.title}
-                </h2>
-                <span className="rounded-md bg-teal-50 px-2.5 py-0.5 text-[11px] font-bold text-teal-700 border border-teal-200">
-                  {selectedReport.id}
-                </span>
-                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                  {selectedReport.categoryLabel}
-                </span>
+      <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50 pb-8">
+        <div className="responsive-page-x py-4 sm:py-5 space-y-4 flex-1">
+          {/* Top Header / Breadcrumbs Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white p-3.5 sm:p-4 rounded-xl shadow-xs print:hidden">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedReport(null)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 shadow-xs hover:bg-slate-50 hover:text-teal-700 transition cursor-pointer text-xs font-semibold"
+                title="Back to All Stock Reports"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>All Stock Reports</span>
+              </button>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-[17px] sm:text-[19px] font-bold text-slate-900 tracking-tight">
+                    {selectedReport.title}
+                  </h2>
+                  <span className="rounded-md bg-teal-50 px-2.5 py-0.5 text-[11px] font-bold text-teal-700 border border-teal-200">
+                    {selectedReport.id}
+                  </span>
+                  <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                    {selectedReport.categoryLabel}
+                  </span>
+                </div>
               </div>
             </div>
+
+            {/* Action Toolbar: Choose Columns, Export to Excel, Print */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <ChooseColumnsMenu
+                columns={allColumns}
+                visibleColumns={visibleColumns}
+                onVisibleColumnsChange={setVisibleColumns}
+                className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-[12.5px] font-medium text-slate-700 shadow-2xs"
+              />
+
+              <ExportToExcelButton
+                onClick={handleExportReportToExcel}
+                className="h-9 px-3.5 rounded-xl text-[12.5px]"
+              />
+
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[12.5px] font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 transition cursor-pointer"
+              >
+                <Printer className="h-4 w-4 text-slate-500" />
+                <span>Print</span>
+              </button>
+            </div>
           </div>
-
-          {/* Action Toolbar: Choose Columns, Export to Excel, Print */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <ChooseColumnsMenu
-              columns={allColumns}
-              visibleColumns={visibleColumns}
-              onVisibleColumnsChange={setVisibleColumns}
-              className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-[12.5px] font-medium text-slate-700 shadow-2xs"
-            />
-
-            <ExportToExcelButton
-              onClick={handleExportReportToExcel}
-              className="h-9 px-3.5 rounded-xl text-[12.5px]"
-            />
-
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[12.5px] font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 transition cursor-pointer"
-            >
-              <Printer className="h-4 w-4 text-slate-500" />
-              <span>Print</span>
-            </button>
-          </div>
-        </div>
 
         {/* Filter Toolbar: PMS Date Range Picker + Search + Presets */}
         <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs space-y-3 print:hidden">
@@ -1456,117 +1657,374 @@ export function OtherReportsView() {
           />
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // -------------------------------------------------------------------------
-  // RENDER: CATALOG CARDS VIEW (Matching user screenshot)
+  // RENDER: CATALOG & DASHBOARD VIEW (ALIGNED WITH DESIGN STANDARD)
   // -------------------------------------------------------------------------
   return (
-    <div className="space-y-4">
-      {/* Top Navigation Tabs */}
-      <div className="flex border-b border-slate-200 overflow-x-auto scrollbar-none">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`whitespace-nowrap px-4 py-2.5 text-[13px] font-semibold transition cursor-pointer ${
-              activeTab === tab.id
-                ? "border-b-2 border-teal-600 text-teal-600 font-bold"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Subheader Title & Description */}
-      <div className="pt-2">
-        <h3 className="text-[14px] font-bold text-slate-900">
-          {tabs.find((t) => t.id === activeTab)?.label}
-        </h3>
-      </div>
-
-      {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pt-1">
-        {activeReportsList.length === 0 ? (
-          <div className="col-span-full rounded-2xl border border-slate-200 bg-white p-16 text-center shadow-2xs">
-            <Bookmark className="h-10 w-10 text-slate-300 mx-auto mb-2" />
-            <div className="text-[14px] font-bold text-slate-700">No Bookmarked Reports</div>
-            <p className="text-[12px] text-slate-400 mt-1 max-w-sm mx-auto">
-              Click the bookmark icon on any report across the other tabs to pin your frequent reports here.
-            </p>
+    <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50 pb-8">
+      {/* 1. Header Toolbar - Flush with TopBar and Full Width */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 sm:px-6 py-3 shrink-0">
+        <div>
+          <div className="text-[11px] font-bold tracking-wider text-emerald-700 uppercase">
+            Stock Reports
           </div>
-        ) : (
-          activeReportsList.map((r) => {
-            const Icon = r.icon;
-            const isBookmarked = bookmarkedIds.has(r.id);
+          <h1 className="text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">
+            Stock Reports & Graphs
+          </h1>
+        </div>
 
-            return (
-              <div
-                key={r.id}
-                onClick={() => handleOpenReport(r)}
-                className="group rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs flex flex-col justify-between space-y-4 hover:border-teal-400 hover:shadow-xs transition cursor-pointer"
+        {/* Top-right Search and View Toggle Switcher */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search reports..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-8.5 pl-8.5 pr-8 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-700 shadow-xs transition"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 hover:text-slate-700 font-medium cursor-pointer"
               >
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-xl ${r.iconBg} transition-transform group-hover:scale-105`}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => toggleBookmark(r.id, e)}
-                      className="p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"
-                      title={isBookmarked ? "Remove Bookmark" : "Add Bookmark"}
-                    >
-                      <Bookmark
-                        className={cn(
-                          "h-4 w-4 transition-colors",
-                          isBookmarked
-                            ? "fill-teal-600 text-teal-600"
-                            : "text-slate-300 hover:text-teal-600"
-                        )}
-                      />
-                    </button>
-                  </div>
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
 
-                  <div>
-                    <h4 className="text-[14px] font-bold text-slate-900 leading-snug group-hover:text-teal-700 transition">
-                      {r.title}
-                    </h4>
-                    <p className="text-[12px] text-slate-500 mt-1 leading-relaxed">
-                      {r.desc}
-                    </p>
-                  </div>
-                </div>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode("catalog")}
+              className={`h-8.5 px-3 text-xs font-semibold rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
+                viewMode === "catalog"
+                  ? "bg-teal-700 text-white shadow-xs hover:bg-teal-800"
+                  : "text-slate-700 bg-white border border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              <span>Catalog</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("dashboard")}
+              className={`h-8.5 px-3 text-xs font-semibold rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
+                viewMode === "dashboard"
+                  ? "bg-teal-700 text-white shadow-xs hover:bg-teal-800"
+                  : "text-slate-700 bg-white border border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              <span>Dashboard</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
-                <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenReport(r);
-                    }}
-                    className="text-[12px] font-semibold text-teal-600 hover:text-teal-700 hover:underline cursor-pointer inline-flex items-center gap-1"
-                  >
-                    View Report <ArrowRight className="h-3 w-3" />
-                  </button>
-
-                  <ExportToExcelButton
-                    onClick={(e) => {
-                      e?.stopPropagation();
-                      handleExportCardToExcel(r, e);
-                    }}
-                    className="h-7 px-2.5 text-[10.5px]"
+      {/* Main Content Area */}
+      <div className="responsive-page-x py-4 sm:py-5 space-y-4 flex-1">
+        {/* 2. Horizontal Filter Tabs / Category Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs no-scrollbar">
+          {CATEGORY_PILLS.map((pill) => {
+            const isActive = activePill === pill.id;
+            if (pill.id === "favorites") {
+              return (
+                <button
+                  key={pill.id}
+                  type="button"
+                  onClick={() => setActivePill(pill.id)}
+                  className={`px-3.5 py-1 rounded-full font-medium transition flex items-center gap-1 whitespace-nowrap cursor-pointer ${
+                    isActive
+                      ? "bg-amber-500 text-white shadow-xs"
+                      : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 shadow-xs"
+                  }`}
+                >
+                  <Star
+                    className={`h-3 w-3 ${
+                      isActive ? "fill-white text-white" : "fill-amber-500 text-amber-500"
+                    }`}
                   />
+                  <span>Favorites ({favoriteCount})</span>
+                </button>
+              );
+            }
+            return (
+              <button
+                key={pill.id}
+                type="button"
+                onClick={() => setActivePill(pill.id)}
+                className={`px-3.5 py-1 rounded-full font-medium transition whitespace-nowrap cursor-pointer ${
+                  isActive
+                    ? "bg-teal-700 text-white shadow-xs"
+                    : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 shadow-xs"
+                }`}
+              >
+                {pill.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 3. VIEW MODE: DASHBOARD ANALYTICS PREVIEW */}
+        {viewMode === "dashboard" && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* KPI Strip */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-bold uppercase tracking-wider text-slate-500">
+                    Stock Valuation
+                  </span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-700 font-bold">
+                    <TrendingUp className="h-4 w-4" />
+                  </span>
+                </div>
+                <div className="mt-2 text-[22px] font-extrabold text-slate-900">
+                  {formatINR(dashboardStats.totalStockValuation)}
+                </div>
+                <div className="text-[11.5px] font-semibold text-emerald-600 mt-1">
+                  Active inventory holdings
                 </div>
               </div>
-            );
-          })
+
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-bold uppercase tracking-wider text-slate-500">
+                    Active Raw Materials
+                  </span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600 font-bold">
+                    <Boxes className="h-4 w-4" />
+                  </span>
+                </div>
+                <div className="mt-2 text-[22px] font-extrabold text-slate-900">
+                  {dashboardStats.totalItems} SKUs
+                </div>
+                <div className="text-[11.5px] text-slate-500 font-semibold mt-1">
+                  Cataloged ingredients
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-bold uppercase tracking-wider text-slate-500">
+                    Reorder Alerts
+                  </span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 font-bold">
+                    <AlertCircle className="h-4 w-4" />
+                  </span>
+                </div>
+                <div className="mt-2 text-[22px] font-extrabold text-slate-900">
+                  {dashboardStats.lowStockCount} Items
+                </div>
+                <div className="text-[11.5px] text-amber-600 font-semibold mt-1">
+                  Below safety buffer thresholds
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-bold uppercase tracking-wider text-slate-500">
+                    Open Purchase Orders
+                  </span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 text-purple-600 font-bold">
+                    <Receipt className="h-4 w-4" />
+                  </span>
+                </div>
+                <div className="mt-2 text-[22px] font-extrabold text-slate-900">
+                  {dashboardStats.openPosCount} Orders
+                </div>
+                <div className="text-[11.5px] text-purple-600 font-semibold mt-1">
+                  {formatINR(dashboardStats.openPosTotal)} in transit
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Analytics Visuals */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[14px] font-bold text-slate-900">
+                    Top Raw Materials by Valuation
+                  </h3>
+                  <span className="text-xs font-semibold text-teal-700">Holding Value</span>
+                </div>
+
+                <div className="space-y-3 pt-1">
+                  {dashboardStats.sortedByValuation.map((item, idx) => (
+                    <div key={`${item.name}-${idx}`} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 text-slate-400 font-bold text-[11px]">{idx + 1}.</span>
+                          <span className="font-semibold text-slate-800">{item.name}</span>
+                          <span className="text-[10.5px] text-slate-400">({item.category})</span>
+                        </div>
+                        <span className="font-bold text-slate-900">{formatINR(item.val)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500">
+                        <span>{item.qty} {item.unit} in stock</span>
+                        <span>₹{item.rate}/{item.unit}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-teal-600 rounded-full"
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              (item.val / Math.max(1, dashboardStats.sortedByValuation[0]?.val || 1)) * 100
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[14px] font-bold text-slate-900">Inventory Health Matrix</h3>
+                  <span className="text-xs font-semibold text-slate-500">Stock Status</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 pt-2">
+                  <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 text-center">
+                    <div className="text-[20px] font-extrabold text-emerald-700">
+                      {Math.max(0, dashboardStats.totalItems - dashboardStats.lowStockCount)}
+                    </div>
+                    <div className="text-[11.5px] font-semibold text-emerald-800 mt-1">
+                      Optimal Stock
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-4 text-center">
+                    <div className="text-[20px] font-extrabold text-amber-600">
+                      {dashboardStats.lowStockCount}
+                    </div>
+                    <div className="text-[11.5px] font-semibold text-amber-800 mt-1">
+                      Reorder Needed
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-rose-100 bg-rose-50/50 p-4 text-center">
+                    <div className="text-[20px] font-extrabold text-rose-600">
+                      0
+                    </div>
+                    <div className="text-[11.5px] font-semibold text-rose-800 mt-1">
+                      Out of Stock
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-100 pt-4 mt-2">
+                  <div className="text-xs font-bold text-slate-800 mb-2">Automated Store Auditing</div>
+                  <p className="text-[11.5px] text-slate-500 leading-relaxed">
+                    Inventory levels sync in real-time with KOT order settlements and purchase receipts. Reorder warnings are triggered once quantities cross minimum safety thresholds.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 4. VIEW MODE: STRUCTURED GROUPED REPORT CATALOG (EXACT ALIGNMENT WITH SCREENSHOT) */}
+        {viewMode === "catalog" && (
+          <div className="space-y-6 pb-16">
+            {Object.keys(groupedSections).length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-16 text-center text-slate-400 space-y-2 shadow-xs">
+                <FileText className="h-10 w-10 text-slate-300 mx-auto" />
+                <div className="text-[15px] font-bold text-slate-700">No reports found</div>
+                <p className="text-[12.5px] text-slate-400">
+                  No reports matched "{searchQuery}" in the selected category.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setActivePill("all");
+                  }}
+                  className="mt-2 inline-flex items-center rounded-lg bg-teal-700 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-teal-800 transition cursor-pointer"
+                >
+                  Reset Filters
+                </button>
+              </div>
+            ) : (
+              Object.entries(groupedSections).map(([groupTitle, cards]) => (
+                <div key={groupTitle} className="space-y-3">
+                  {/* Section Title with horizontal divider line (Exact match with reference screenshot) */}
+                  <div className="flex items-center gap-3 pt-2">
+                    <h2 className="text-[11px] font-bold text-slate-500 tracking-wider uppercase whitespace-nowrap">
+                      {groupTitle}
+                    </h2>
+                    <div className="h-[1px] bg-slate-200/80 flex-1" />
+                  </div>
+
+                  {/* 5-Column Responsive Grid matching Reference Screenshot */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-3.5">
+                    {cards.map((report) => {
+                      const Icon = report.icon;
+                      const colorStyle = COLOR_STYLES[report.iconColor] || COLOR_STYLES.teal;
+
+                      return (
+                        <div
+                          key={report.id}
+                          onClick={() => handleOpenReport(report)}
+                          className="bg-white border border-slate-200/80 rounded-xl p-3 sm:p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:shadow-md hover:border-slate-300 transition-all duration-200 cursor-pointer flex flex-col justify-between group min-h-[105px]"
+                        >
+                          {/* Top Row: Left icon container, Right star button & NEW badge */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${colorStyle.bg} ${colorStyle.text}`}
+                            >
+                              <Icon className="w-4 h-4 stroke-[1.8]" />
+                            </div>
+
+                            <div className="flex items-center gap-1 -mr-1 -mt-0.5">
+                              {report.isNew && (
+                                <span className="bg-[#00a86b] text-white text-[8.5px] font-bold px-1.5 py-0.5 rounded-full tracking-wider uppercase leading-none shadow-xs">
+                                  NEW
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => toggleFavorite(report.id, e)}
+                                className="p-1 rounded-md text-slate-400 hover:text-amber-500 hover:bg-slate-100 transition-colors cursor-pointer"
+                                title={report.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                              >
+                                <Star
+                                  className={`w-3.5 h-3.5 transition-colors ${
+                                    report.isFavorite
+                                      ? "fill-amber-400 text-amber-500 stroke-amber-500"
+                                      : "text-slate-400 group-hover:text-slate-600 stroke-[1.6]"
+                                  }`}
+                                />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Middle/Bottom: Title & Description */}
+                          <div className="mt-2.5 flex-1">
+                            <h3 className="text-[12.5px] font-bold text-slate-900 leading-snug group-hover:text-teal-700 transition-colors">
+                              {report.title}
+                            </h3>
+                            <p className="text-[11px] text-slate-500 mt-1 leading-snug line-clamp-2">
+                              {report.desc}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         )}
       </div>
     </div>

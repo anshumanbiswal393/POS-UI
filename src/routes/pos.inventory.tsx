@@ -20,6 +20,16 @@ function InventoryLayoutRoute() {
     );
   }
 
+  // Stock reports catalog renders full bleed header and manages its own responsive gutters
+  const isReportsCatalog = pathname.includes("/pos/inventory/reports/other-reports");
+  if (isReportsCatalog) {
+    return (
+      <GuardedRoute permission="pos.inventory.view">
+        <Outlet />
+      </GuardedRoute>
+    );
+  }
+
   return (
     <GuardedRoute permission="pos.inventory.view">
       <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-background">
