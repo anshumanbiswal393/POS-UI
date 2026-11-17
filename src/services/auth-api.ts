@@ -333,6 +333,15 @@ export class AuthApiClient {
     return this.handleResponse(res);
   }
 
+  async updateProfile(payload: { name?: string; phone?: string; avatar_url?: string }): Promise<any> {
+    const res = await fetch(`${this.getBaseUrl()}/api/auth/me/`, {
+      method: "PATCH",
+      headers: this.getHeaders(true),
+      body: JSON.stringify(payload),
+    });
+    return this.handleResponse(res);
+  }
+
   saveTokens(access: string, refresh: string) {
     syncAuthSession({ access, refresh });
   }

@@ -680,8 +680,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUsers((prev) => [...prev, invited]);
       },
       updateUser: (id, patch) => {
-        setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...patch } : u)));
-        if (user?.id === id) setUser((u) => (u ? { ...u, ...patch } : u));
+        setUsers((prev) => {
+          const next = prev.map((u) => (u.id === id ? { ...u, ...patch } : u));
+          try {
+            localStorage.setItem(LS_USERS, JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+        if (user?.id === id) {
+          setUser((u) => {
+            if (!u) return u;
+            const updated = { ...u, ...patch };
+            try {
+              localStorage.setItem(LS_USER, JSON.stringify(updated));
+            } catch {}
+            return updated;
+          });
+        }
       },
       deleteUser: (id) => {
         setUsers((prev) => prev.filter((u) => u.id !== id));

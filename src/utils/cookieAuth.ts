@@ -136,7 +136,7 @@ export function getStoredSubdomain(): string {
  * Synchronizes auth session tokens, user data, and tenant context across both localStorage and shared domain cookies.
  */
 export function syncAuthSession(
-  tokens: { access: string; refresh?: string | null },
+  tokens?: { access: string; refresh?: string | null } | null,
   user?: any,
   subdomain?: string,
   propertyId?: string,
@@ -145,8 +145,8 @@ export function syncAuthSession(
 
   // 1. Save to LocalStorage
   try {
-    if (tokens.access) localStorage.setItem(LS_ACCESS_TOKEN, tokens.access);
-    if (tokens.refresh) localStorage.setItem(LS_REFRESH_TOKEN, tokens.refresh);
+    if (tokens?.access) localStorage.setItem(LS_ACCESS_TOKEN, tokens.access);
+    if (tokens?.refresh) localStorage.setItem(LS_REFRESH_TOKEN, tokens.refresh);
     if (user) localStorage.setItem(LS_USER, JSON.stringify(user));
     if (subdomain) localStorage.setItem(LS_SUBDOMAIN, subdomain);
     if (propertyId) localStorage.setItem(LS_PROPERTY_ID, propertyId);
@@ -155,8 +155,8 @@ export function syncAuthSession(
   }
 
   // 2. Save to shared Domain Cookies
-  if (tokens.access) setDomainCookie(COOKIE_ACCESS_TOKEN, tokens.access);
-  if (tokens.refresh) setDomainCookie(COOKIE_REFRESH_TOKEN, tokens.refresh);
+  if (tokens?.access) setDomainCookie(COOKIE_ACCESS_TOKEN, tokens.access);
+  if (tokens?.refresh) setDomainCookie(COOKIE_REFRESH_TOKEN, tokens.refresh);
   if (user) {
     try {
       const basicUser = {

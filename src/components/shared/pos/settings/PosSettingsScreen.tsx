@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { Check, Copy, Lock, Camera, Upload, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { authApi } from "@/services/auth-api";
 import { syncAuthSession } from "@/utils/cookieAuth";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { OutletsManagementView } from "@/components/shared/pos/settings/OutletsManagementView";
@@ -123,40 +124,41 @@ export function PosSettingsScreen() {
         canvas.width = maxDim;
         canvas.height = maxDim;
         const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, maxDim, maxDim);
-          const optimizedDataUrl = canvas.toDataURL("image/jpeg", 0.9);
-          setProfileAvatarUrl(optimizedDataUrl);
-          if (user) {
-            updateUser(user.id, { avatarUrl: optimizedDataUrl });
-            syncAuthSession(undefined, undefined, { ...user, avatarUrl: optimizedDataUrl });
-          }
-          toast.success("Profile picture updated.");
-        } else {
-          setProfileAvatarUrl(rawDataUrl);
-          if (user) {
-            updateUser(user.id, { avatarUrl: rawDataUrl });
-            syncAuthSession(undefined, undefined, { ...user, avatarUrl: rawDataUrl });
-          }
-          toast.success("Profile picture updated.");
+        const finalUrl = ctx
+          ? (() => {
+              ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, maxDim, maxDim);
+              return canvas.toDataURL("image/jpeg", 0.9);
+            })()
+          : rawDataUrl;
+
+        setProfileAvatarUrl(finalUrl);
+        if (user) {
+          updateUser(user.id, { avatarUrl: finalUrl });
+          syncAuthSession(null, { ...user, avatarUrl: finalUrl }, user.tenant_subdomain);
         }
+        toast.success("Profile picture updated. Click 'Save Profile' to commit changes.");
       };
       img.src = rawDataUrl;
     };
     reader.readAsDataURL(file);
   }
 
-  function handleRemoveAvatar() {
+  async function handleRemoveAvatar() {
     setProfileAvatarUrl("");
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (user) {
       updateUser(user.id, { avatarUrl: undefined });
-      syncAuthSession(undefined, undefined, { ...user, avatarUrl: undefined });
+      syncAuthSession(null, { ...user, avatarUrl: undefined }, user.tenant_subdomain);
+      try {
+        await authApi.updateProfile({ avatar_url: "" });
+      } catch (err) {
+        console.warn("Could not sync avatar removal to backend:", err);
+      }
     }
     toast.success("Profile picture removed.");
   }
 
-  function handleSaveProfile(event: React.FormEvent) {
+  async function handleSaveProfile(event: React.FormEvent) {
     event.preventDefault();
     if (!user) return;
     const phone = profilePhone.replace(/\D/g, "");
@@ -166,17 +168,38 @@ export function PosSettingsScreen() {
     }
     setPhoneError(null);
     setSavingProfile(true);
-    const updatedName = profileName.trim() || user.name;
-    const updatedPatch = {
-      name: updatedName,
-      initials: initialsFromName(updatedName),
-      phone,
-      avatarUrl: profileAvatarUrl.trim() || undefined,
-    };
-    updateUser(user.id, updatedPatch);
-    syncAuthSession(undefined, undefined, { ...user, ...updatedPatch });
-    setSavingProfile(false);
-    toast.success("Profile saved.");
+    try {
+      const updatedName = profileName.trim() || user.name;
+      const avatarToSave = profileAvatarUrl.trim() || "";
+      const updatedPatch = {
+        name: updatedName,
+        initials: initialsFromName(updatedName),
+        phone,
+        avatarUrl: avatarToSave || undefined,
+      };
+
+      // 1. Persist to Backend API (/api/auth/me/)
+      try {
+        await authApi.updateProfile({
+          name: updatedName,
+          phone,
+          avatar_url: avatarToSave,
+        });
+      } catch (backendErr: any) {
+        console.warn("Backend profile save notice:", backendErr?.message || backendErr);
+      }
+
+      // 2. Persist to local AuthProvider & session cookies/storage
+      updateUser(user.id, updatedPatch);
+      syncAuthSession(null, { ...user, ...updatedPatch }, user.tenant_subdomain);
+
+      toast.success("Profile saved successfully.");
+    } catch (err: any) {
+      console.error("Save profile error:", err);
+      toast.error(err?.message || "Could not save profile.");
+    } finally {
+      setSavingProfile(false);
+    }
   }
 
   useEffect(() => {
