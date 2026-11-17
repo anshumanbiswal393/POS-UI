@@ -388,7 +388,7 @@ export function DataTableHeader<T = any>({
           row: "bg-primary text-primary-foreground border-b border-slate-300 shadow-xs",
           th: "bg-primary text-primary-foreground",
           border: "border-r border-slate-300",
-          text: "text-primary-foreground font-extrabold text-[11.5px] uppercase tracking-wider whitespace-nowrap text-center",
+          text: "text-primary-foreground font-bold text-[12px] whitespace-nowrap text-center",
           iconBtn:
             "text-primary-foreground/75 hover:text-primary-foreground hover:bg-white/15",
           activeFilterBtn: "bg-white text-primary font-bold shadow-xs",
@@ -401,7 +401,7 @@ export function DataTableHeader<T = any>({
           row: "bg-slate-900 text-white dark:bg-slate-950 dark:text-slate-100 border-b border-slate-300 shadow-xs",
           th: "bg-slate-900 text-white dark:bg-slate-950 dark:text-slate-100",
           border: "border-r border-slate-300",
-          text: "text-white font-extrabold text-[11.5px] uppercase tracking-wider whitespace-nowrap text-center",
+          text: "text-white font-bold text-[12px] whitespace-nowrap text-center",
           iconBtn: "text-slate-400 hover:text-white hover:bg-slate-800/80",
           activeFilterBtn:
             "bg-primary text-primary-foreground font-bold shadow-xs",
@@ -413,7 +413,7 @@ export function DataTableHeader<T = any>({
           row: "bg-white text-black border-b border-slate-300",
           th: "bg-white text-black",
           border: "border-r border-slate-300",
-          text: "text-black font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap text-center",
+          text: "text-black font-bold text-[11.5px] whitespace-nowrap text-center",
           iconBtn:
             "text-black hover:text-black hover:bg-black/10",
           activeFilterBtn:
@@ -708,7 +708,7 @@ export function DataTableHeader<T = any>({
               )}
             >
               {colId === "actions" ? (
-                <span className="text-center block font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap mx-auto">
+                <span className="text-center block font-bold text-[12px] whitespace-nowrap mx-auto">
                   {col.label}
                 </span>
               ) : (

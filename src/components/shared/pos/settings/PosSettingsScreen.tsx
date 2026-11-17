@@ -80,6 +80,7 @@ export function PosSettingsScreen() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [taxSettings, setTaxSettings] = useState<PosTaxSettings>(() => getPosTaxSettings());
+  const [newTaxRateInput, setNewTaxRateInput] = useState("");
 
   useEffect(() => {
     if (isKitchen && activeTab !== "account") {
@@ -518,69 +519,158 @@ export function PosSettingsScreen() {
       {activeTab === "receipts" && (
         <PosPanel title="Receipt & invoice" hint="GST, service charge, and tax breakup applied on billing.">
           <p className="mb-4 text-[13px] text-text-secondary">
-            Configure CGST, SGST, and service charge for {activeOutlet.name}. Billing uses these rates
-            automatically (no per-check toggle).
+            Configure CGST, SGST, service charge, and selectable tax % slabs for {activeOutlet.name}. In POS Billing, tax is calculated strictly in % using these rates.
           </p>
           <form
-            className="grid max-w-lg gap-3 sm:grid-cols-3"
+            className="space-y-4 max-w-xl"
             onSubmit={(event) => {
               event.preventDefault();
               const next: PosTaxSettings = {
                 cgstPercent: Math.max(0, Number(taxSettings.cgstPercent) || 0),
                 sgstPercent: Math.max(0, Number(taxSettings.sgstPercent) || 0),
                 serviceChargePercent: Math.max(0, Number(taxSettings.serviceChargePercent) || 0),
+                taxRates: (taxSettings.taxRates && taxSettings.taxRates.length > 0
+                  ? taxSettings.taxRates
+                  : DEFAULT_POS_TAX_SETTINGS.taxRates
+                )
+                  .map((r) => Number(r))
+                  .filter((r) => !isNaN(r) && r >= 0)
+                  .sort((a, b) => a - b),
               };
               savePosTaxSettings(next);
               setTaxSettings(next);
               toast.success("Tax & service charge settings saved.");
             }}
           >
-            <label className="block text-[12px] font-semibold text-text-secondary">
-              CGST %
-              <input
-                type="number"
-                min={0}
-                step={0.1}
-                value={taxSettings.cgstPercent}
-                onChange={(e) =>
-                  setTaxSettings((prev) => ({ ...prev, cgstPercent: Number(e.target.value) }))
-                }
-                className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-[13px] font-bold text-text-primary"
-              />
-            </label>
-            <label className="block text-[12px] font-semibold text-text-secondary">
-              SGST %
-              <input
-                type="number"
-                min={0}
-                step={0.1}
-                value={taxSettings.sgstPercent}
-                onChange={(e) =>
-                  setTaxSettings((prev) => ({ ...prev, sgstPercent: Number(e.target.value) }))
-                }
-                className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-[13px] font-bold text-text-primary"
-              />
-            </label>
-            <label className="block text-[12px] font-semibold text-text-secondary">
-              Service Charge %
-              <input
-                type="number"
-                min={0}
-                step={0.1}
-                value={taxSettings.serviceChargePercent}
-                onChange={(e) =>
-                  setTaxSettings((prev) => ({
-                    ...prev,
-                    serviceChargePercent: Number(e.target.value),
-                  }))
-                }
-                className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-[13px] font-bold text-text-primary"
-              />
-            </label>
-            <div className="sm:col-span-3 flex items-center gap-2 pt-1">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="block text-[12px] font-semibold text-text-secondary">
+                CGST %
+                <input
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  value={taxSettings.cgstPercent}
+                  onChange={(e) =>
+                    setTaxSettings((prev) => ({ ...prev, cgstPercent: Number(e.target.value) }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-[13px] font-bold text-text-primary"
+                />
+              </label>
+              <label className="block text-[12px] font-semibold text-text-secondary">
+                SGST %
+                <input
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  value={taxSettings.sgstPercent}
+                  onChange={(e) =>
+                    setTaxSettings((prev) => ({ ...prev, sgstPercent: Number(e.target.value) }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-[13px] font-bold text-text-primary"
+                />
+              </label>
+              <label className="block text-[12px] font-semibold text-text-secondary">
+                Service Charge %
+                <input
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  value={taxSettings.serviceChargePercent}
+                  onChange={(e) =>
+                    setTaxSettings((prev) => ({
+                      ...prev,
+                      serviceChargePercent: Number(e.target.value),
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-[13px] font-bold text-text-primary"
+                />
+              </label>
+            </div>
+
+            {/* Selectable Tax % Slabs for POS billing dropdown */}
+            <div className="rounded-xl border border-border bg-surface-2/40 p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[12.5px] font-bold text-text-primary">
+                    Selectable Tax % Values (POS Dropdown)
+                  </div>
+                  <div className="text-[11px] text-text-secondary">
+                    Add or remove the tax % rates available in the POS screen tax dropdown.
+                  </div>
+                </div>
+              </div>
+
+              {/* Tax % pills */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                {(taxSettings.taxRates || DEFAULT_POS_TAX_SETTINGS.taxRates).map((rate) => (
+                  <span
+                    key={rate}
+                    className="inline-flex items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1 text-[12px] font-bold text-teal-800"
+                  >
+                    <span>{rate}%</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = (taxSettings.taxRates || DEFAULT_POS_TAX_SETTINGS.taxRates).filter(
+                          (r) => r !== rate,
+                        );
+                        setTaxSettings((prev) => ({ ...prev, taxRates: updated }));
+                      }}
+                      className="ml-1 text-teal-600 hover:text-rose-600 font-bold cursor-pointer"
+                      title={`Remove ${rate}%`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              {/* Add custom tax rate input */}
+              <div className="flex items-center gap-2 pt-1.5">
+                <div className="relative w-32">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.5}
+                    placeholder="e.g. 12"
+                    value={newTaxRateInput}
+                    onChange={(e) => setNewTaxRateInput(e.target.value)}
+                    className="h-8 w-full rounded-lg border border-border bg-surface px-2.5 pr-6 text-[12px] font-bold text-text-primary"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-bold text-text-secondary">
+                    %
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const parsed = parseFloat(newTaxRateInput);
+                    if (isNaN(parsed) || parsed < 0) {
+                      toast.error("Please enter a valid tax percentage.");
+                      return;
+                    }
+                    const current = taxSettings.taxRates || DEFAULT_POS_TAX_SETTINGS.taxRates;
+                    if (current.includes(parsed)) {
+                      toast.info(`${parsed}% is already in the list.`);
+                      return;
+                    }
+                    const updated = [...current, parsed].sort((a, b) => a - b);
+                    setTaxSettings((prev) => ({ ...prev, taxRates: updated }));
+                    setNewTaxRateInput("");
+                    toast.success(`Added ${parsed}% tax option.`);
+                  }}
+                  className="h-8 rounded-lg border border-border bg-surface px-3 text-[12px] font-bold text-text-primary hover:bg-surface-2 transition cursor-pointer"
+                >
+                  + Add Tax %
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
               <button
                 type="submit"
-                className="rounded-lg bg-primary px-3.5 py-2 text-[12.5px] font-bold text-primary-foreground"
+                className="rounded-lg bg-primary px-3.5 py-2 text-[12.5px] font-bold text-primary-foreground hover:bg-primary/90 transition cursor-pointer"
               >
                 Save tax settings
               </button>
@@ -591,7 +681,7 @@ export function PosSettingsScreen() {
                   savePosTaxSettings(DEFAULT_POS_TAX_SETTINGS);
                   toast.info("Reset to default GST / service charge rates.");
                 }}
-                className="rounded-lg border border-border px-3 py-2 text-[12.5px] font-semibold text-text-secondary"
+                className="rounded-lg border border-border px-3 py-2 text-[12.5px] font-semibold text-text-secondary hover:bg-surface-2 transition cursor-pointer"
               >
                 Reset defaults
               </button>

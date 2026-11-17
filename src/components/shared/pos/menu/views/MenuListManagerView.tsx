@@ -156,6 +156,13 @@ export function MenuListManagerView() {
     ]);
   }, [menuItems, selectedMealTime, searchQuery]);
 
+  const filteredMenuItemsWithSerial = useMemo(() => {
+    return filteredMenuItems.map((item, idx) => ({
+      ...item,
+      serialNumber: idx + 1,
+    }));
+  }, [filteredMenuItems]);
+
   useEffect(() => {
     if (!categoryMenuOpen) return;
     const onDocClick = (e: MouseEvent) => {
@@ -253,6 +260,18 @@ export function MenuListManagerView() {
   };
 
   const columns: DataGridColumn<MenuItem>[] = [
+    {
+      id: "serialNumber",
+      header: "S.No",
+      minWidth: 55,
+      width: 55,
+      align: "center",
+      cell: ({ row, index }) => (
+        <span className="font-semibold text-slate-500 text-xs">
+          {(row as any).serialNumber ?? (index !== undefined ? index + 1 : 1)}
+        </span>
+      ),
+    },
     {
       id: "image",
       header: "Image",
@@ -627,7 +646,7 @@ export function MenuListManagerView() {
 
       {/* 3. Menu Catalog PosDataGrid (Header Search & Filtering Built-in) */}
       <PosDataGrid<MenuItem>
-        data={filteredMenuItems}
+        data={filteredMenuItemsWithSerial}
         isLoading={isLoading}
         columns={columns}
         enablePagination={true}

@@ -49,6 +49,13 @@ export function SetItemCommissionView({ onBack }: { onBack?: () => void } = {}) 
     });
   }, [configuredItems, categoryFilter, searchQuery]);
 
+  const filteredItemsWithSerial = useMemo(() => {
+    return filteredItems.map((item, idx) => ({
+      ...item,
+      serialNumber: idx + 1,
+    }));
+  }, [filteredItems]);
+
   const openEditModal = (item: MenuItemCommission) => {
     setEditingItem(item);
     setIsEditModalOpen(true);
@@ -86,6 +93,18 @@ export function SetItemCommissionView({ onBack }: { onBack?: () => void } = {}) 
 
   const columns: DataGridColumn<MenuItemCommission>[] = useMemo(
     () => [
+      {
+        id: "serialNumber",
+        header: "S.No",
+        minWidth: 55,
+        width: 55,
+        align: "center",
+        cell: ({ row, index }) => (
+          <span className="font-semibold text-slate-500 text-xs">
+            {(row as any).serialNumber ?? (index !== undefined ? index + 1 : 1)}
+          </span>
+        ),
+      },
       {
         id: "name",
         header: "Item Name",
@@ -271,7 +290,7 @@ export function SetItemCommissionView({ onBack }: { onBack?: () => void } = {}) 
 
       {/* 2. Main Commission Table: Always visible with all columns, even when vacant */}
       <PosDataGrid<MenuItemCommission>
-        data={filteredItems}
+        data={filteredItemsWithSerial}
         columns={columns}
         isLoading={isLoading || isFetching}
         enableSelection={false}

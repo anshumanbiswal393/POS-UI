@@ -159,7 +159,24 @@ export function CategoriesManagementView() {
     );
   };
 
+  const categoriesWithSerial = useMemo(
+    () => categories.map((c, i) => ({ ...c, serialNumber: i + 1 })),
+    [categories],
+  );
+
   const columns: DataGridColumn<StockCategory>[] = [
+    {
+      id: "serialNumber",
+      header: "S.No",
+      sortable: false,
+      align: "center",
+      width: 60,
+      render: (_: any, row: any, index: number) => (
+        <span className="font-semibold text-slate-500 text-xs">
+          {row.serialNumber ?? index + 1}
+        </span>
+      ),
+    },
     {
       id: "name",
       header: "Category Name",
@@ -271,7 +288,7 @@ export function CategoriesManagementView() {
 
       {/* 2. Interactive Data Grid */}
       <PosDataGrid
-        data={categories}
+        data={categoriesWithSerial}
         columns={columns}
         keyField="id"
         showToolbar

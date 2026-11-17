@@ -113,6 +113,8 @@ export function KotHistoryModal({ isOpen, onClose, outletName }: KotHistoryModal
         isModified: kot.isModified,
         specialNote: kot.notes || kot.orderNote,
         outletName,
+        isHistory: true,
+        status: kot.status || "COMPLETED",
       });
       toast.success(`Printing KOT #${kot.kotId || kot.kotNumber}`);
     } catch (err) {

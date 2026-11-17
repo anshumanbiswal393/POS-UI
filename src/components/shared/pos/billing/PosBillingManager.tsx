@@ -274,8 +274,12 @@ export function PosBillingManager() {
   const [isTablesPanelCollapsed, setIsTablesPanelCollapsed] = useState(false);
   const [discountType, setDiscountType] = useState<"percent" | "flat">("percent");
   const [discountValue, setDiscountValue] = useState<number>(0);
-  const [taxType, setTaxType] = useState<"percent" | "flat">("percent");
-  const [taxValue, setTaxValue] = useState<number>(5);
+  const [taxType, setTaxType] = useState<"percent">("percent");
+  const [taxValue, setTaxValue] = useState<number>(() => {
+    const s = getPosTaxSettings();
+    const sum = (s.cgstPercent || 0) + (s.sgstPercent || 0);
+    return sum > 0 ? sum : 5;
+  });
   const [specialNote, setSpecialNote] = useState("");
   const [waiterFromUrl, setWaiterFromUrl] = useState("");
   const [billingTableId, setBillingTableId] = useState("");
@@ -903,7 +907,9 @@ export function PosBillingManager() {
     setDiscountType("percent");
     setDiscountValue(0);
     setTaxType("percent");
-    setTaxValue(5);
+    const s = getPosTaxSettings();
+    const sum = (s.cgstPercent || 0) + (s.sgstPercent || 0);
+    setTaxValue(sum > 0 ? sum : 5);
     toast.info("Cleared order cart");
   };
 
@@ -925,7 +931,9 @@ export function PosBillingManager() {
     setDiscountType("percent");
     setDiscountValue(0);
     setTaxType("percent");
-    setTaxValue(5);
+    const s = getPosTaxSettings();
+    const sum = (s.cgstPercent || 0) + (s.sgstPercent || 0);
+    setTaxValue(sum > 0 ? sum : 5);
     if (orderType === "room_service") {
       setRoomNumber("");
       setRoomUnitId("");
@@ -971,10 +979,7 @@ export function PosBillingManager() {
 
     const taxableAmount = Math.max(0, subtotal - discountAmount);
 
-    const taxAmount =
-      taxType === "percent"
-        ? Math.round((taxableAmount * Math.max(0, taxValue)) / 100)
-        : Math.max(0, Math.round(taxValue));
+    const taxAmount = Math.round((taxableAmount * Math.max(0, taxValue)) / 100);
 
     const cgst = Math.round(taxAmount / 2);
     const sgst = taxAmount - cgst;

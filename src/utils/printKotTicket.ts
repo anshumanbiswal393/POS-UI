@@ -22,6 +22,8 @@ export type KotPrintPayload = {
   isModified?: boolean;
   specialNote?: string;
   outletName?: string;
+  status?: string;
+  isHistory?: boolean;
 };
 
 function escapeHtml(value: string | number | undefined | null) {
@@ -96,7 +98,6 @@ function buildKotHtml(payload: KotPrintPayload) {
       font-size: 16px;
       font-weight: 900;
       letter-spacing: 0.04em;
-      text-transform: uppercase;
     }
     .sub {
       font-size: 11px;
@@ -210,7 +211,7 @@ function buildKotHtml(payload: KotPrintPayload) {
 <body>
   <div class="slip">
     <div class="center">
-      <div class="title">KITCHEN ORDER TICKET</div>
+      <div class="title">Kitchen Order Ticket</div>
       <div class="sub">${escapeHtml(payload.outletName || "Anshu Suite Kitchen")}</div>
     </div>
 
@@ -219,7 +220,17 @@ function buildKotHtml(payload: KotPrintPayload) {
     <div class="meta-box">
       <div class="kot-id-row">
         <span class="kot-id">KOT #${escapeHtml(payload.kotId)}</span>
-        ${payload.isModified ? '<span class="badge">UPDATED / EXTRA</span>' : '<span class="badge">NEW</span>'}
+        ${
+          payload.isHistory || (payload.status && !["new", "draft"].includes(payload.status.toLowerCase()))
+            ? `<span class="badge">${escapeHtml(
+                payload.status && payload.status.toLowerCase() !== "new"
+                  ? payload.status.toUpperCase()
+                  : "COMPLETED"
+              )}</span>`
+            : payload.isModified
+              ? '<span class="badge">UPDATED / EXTRA</span>'
+              : '<span class="badge">NEW</span>'
+        }
       </div>
 
       ${

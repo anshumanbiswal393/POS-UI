@@ -186,7 +186,7 @@ export function PosKotManager() {
       {/* 1. Top Header Row - PMS Standard PageHeader */}
       <PageHeader
         title="Kitchen Orders"
-        eyebrow="FCFS Kitchen Display System · Live Prep Monitoring"
+        eyebrow="FCFS Live Preparation Monitoring · Kitchen Order System"
         actions={
           <div className="flex items-center gap-2">
             {/* Tab Switcher: Kitchen Orders vs Kitchen History */}

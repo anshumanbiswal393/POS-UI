@@ -377,15 +377,16 @@ export function RawMaterialsManagementView() {
   const [sortConfig, setSortConfig] = useState<{ colId: string; direction: "asc" | "desc" } | null>(null);
 
   const columns: DataTableColumn<RawMaterialRow>[] = [
-    { id: "code", label: "CODE", sortable: true },
-    { id: "name", label: "MATERIAL NAME", sortable: true },
-    { id: "category", label: "CATEGORY & SUBCATEGORY", sortable: true },
-    { id: "stock", label: "STOCK / ALERT QTY", sortable: true },
-    { id: "pricePerUnit", label: "PRICE / UNIT", sortable: true },
-    { id: "isReturnable", label: "RETURNABLE", align: "center", sortable: true },
-    { id: "expiryDate", label: "EXPIRY DATE", sortable: true },
-    { id: "isActive", label: "STATUS", align: "center", sortable: true },
-    { id: "actions", label: "ACTIONS", align: "right" },
+    { id: "serialNumber", label: "S.No", align: "center", sortable: false },
+    { id: "code", label: "Code", sortable: true },
+    { id: "name", label: "Material Name", sortable: true },
+    { id: "category", label: "Category & Subcategory", sortable: true },
+    { id: "stock", label: "Stock / Alert Qty", sortable: true },
+    { id: "pricePerUnit", label: "Price / Unit", sortable: true },
+    { id: "isReturnable", label: "Returnable", align: "center", sortable: true },
+    { id: "expiryDate", label: "Expiry Date", sortable: true },
+    { id: "isActive", label: "Status", align: "center", sortable: true },
+    { id: "actions", label: "Actions", align: "right" },
   ];
 
   // Filtering with multi-field fuzzy search
@@ -533,10 +534,13 @@ export function RawMaterialsManagementView() {
                   </td>
                 </tr>
               ) : (
-                paginatedRows.map((row) => {
+                paginatedRows.map((row, idx) => {
                   const isLow = row.availableStock <= row.alertQuantity;
                   return (
                     <tr key={row.id} className="hover:bg-slate-50/70 transition">
+                      <td className="px-3 py-3 text-center font-semibold text-slate-500 text-xs">
+                        {(currentPage - 1) * pageSize + idx + 1}
+                      </td>
                       <td className="px-4 py-3 font-mono font-bold text-teal-700 text-xs">
                         {row.code}
                       </td>

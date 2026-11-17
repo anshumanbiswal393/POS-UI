@@ -42,8 +42,25 @@ export function SpecialNoteView({ onBack }: { onBack?: () => void }) {
     });
   };
 
+  const specialNotesWithSerial = useMemo(
+    () => specialNotes.map((n, i) => ({ ...n, serialNumber: i + 1 })),
+    [specialNotes],
+  );
+
   const columns: DataGridColumn<SpecialNote>[] = useMemo(
     () => [
+      {
+        id: "serialNumber",
+        header: "S.No",
+        minWidth: 55,
+        width: 55,
+        align: "center",
+        cell: ({ row, index }) => (
+          <span className="font-semibold text-slate-500 text-xs">
+            {(row as any).serialNumber ?? (index !== undefined ? index + 1 : 1)}
+          </span>
+        ),
+      },
       {
         id: "name",
         header: "Special Note",
@@ -134,7 +151,7 @@ export function SpecialNoteView({ onBack }: { onBack?: () => void }) {
   return (
     <div>
       <PosDataGrid<SpecialNote>
-        data={specialNotes}
+        data={specialNotesWithSerial}
         isLoading={isLoading}
         columns={columns}
         showToolbar

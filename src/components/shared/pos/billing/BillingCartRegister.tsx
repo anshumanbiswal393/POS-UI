@@ -29,6 +29,7 @@ import { useSpecialNotes } from "@/hooks/queries/usePosMenu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FoodTypeIcon } from "@/components/ui/FoodTypeIcon";
+import { getPosTaxSettings, POS_TAX_SETTINGS_EVENT } from "@/lib/posTaxSettings";
 
 export type RunningOrderSummary = {
   id: string;
@@ -194,13 +195,22 @@ export function BillingCartRegister({
     String(propDiscountValue ?? 0)
   );
 
-  // Tax (Percentage or Flat Amount) - default 5%
-  const [taxType, setTaxType] = useState<"percent" | "flat">(
-    propTaxType ?? "percent"
-  );
-  const [taxInput, setTaxInput] = useState<string>(
-    String(propTaxValue ?? 5)
-  );
+  // Tax settings from Receipts (percentage only)
+  const [taxSettings, setTaxSettings] = useState(() => getPosTaxSettings());
+  const [taxInput, setTaxInput] = useState<string>(() => {
+    if (propTaxValue !== undefined) return String(propTaxValue);
+    const s = getPosTaxSettings();
+    const sum = (s.cgstPercent || 0) + (s.sgstPercent || 0);
+    return String(sum > 0 ? sum : 5);
+  });
+
+  useEffect(() => {
+    const onTaxSettingsChanged = () => {
+      setTaxSettings(getPosTaxSettings());
+    };
+    window.addEventListener(POS_TAX_SETTINGS_EVENT, onTaxSettingsChanged);
+    return () => window.removeEventListener(POS_TAX_SETTINGS_EVENT, onTaxSettingsChanged);
+  }, []);
 
   useEffect(() => {
     if (propDiscountType !== undefined) setDiscountType(propDiscountType);
@@ -209,10 +219,6 @@ export function BillingCartRegister({
   useEffect(() => {
     if (propDiscountValue !== undefined) setDiscountInput(String(propDiscountValue));
   }, [propDiscountValue]);
-
-  useEffect(() => {
-    if (propTaxType !== undefined) setTaxType(propTaxType);
-  }, [propTaxType]);
 
   useEffect(() => {
     if (propTaxValue !== undefined) setTaxInput(String(propTaxValue));
@@ -230,16 +236,10 @@ export function BillingCartRegister({
     onDiscountChange?.(discountType, num);
   };
 
-  const handleTaxTypeChange = (type: "percent" | "flat") => {
-    setTaxType(type);
-    const num = Math.max(0, parseFloat(taxInput) || 0);
-    onTaxChange?.(type, num);
-  };
-
   const handleTaxInputChange = (val: string) => {
     setTaxInput(val);
     const num = Math.max(0, parseFloat(val) || 0);
-    onTaxChange?.(taxType, num);
+    onTaxChange?.("percent", num);
   };
 
   // Calculations
@@ -267,11 +267,8 @@ export function BillingCartRegister({
   const taxNumber = Math.max(0, parseFloat(taxInput) || 0);
   const calculatedTax = useMemo(() => {
     if (taxableAmount <= 0 || taxNumber <= 0) return 0;
-    if (taxType === "percent") {
-      return Math.round((taxableAmount * taxNumber) / 100);
-    }
-    return Math.round(taxNumber);
-  }, [taxableAmount, taxType, taxNumber]);
+    return Math.round((taxableAmount * taxNumber) / 100);
+  }, [taxableAmount, taxNumber]);
 
   const rawTotal = taxableAmount + calculatedTax;
   const grandTotal = Math.round(rawTotal);
@@ -727,40 +724,62 @@ export function BillingCartRegister({
           </div>
         </div>
 
-        {/* Tax Control Row: Dropdown (% / ₹) + Input + Display */}
+        {/* Tax Control Row: Dropdown (% preset values from Settings) + % Input + Display */}
         <div className="flex items-center justify-between gap-2 text-slate-700 py-0.5">
           <div className="flex items-center gap-1 min-w-0">
             <span className="font-medium text-[11.5px]">Tax</span>
-            {taxType === "percent" && taxNumber > 0 && (
+            {taxNumber > 0 && (
               <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap">
                 (CGST {(taxNumber / 2).toFixed(1)}% + SGST {(taxNumber / 2).toFixed(1)}%)
               </span>
             )}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Dropdown: % or ₹ */}
+            {/* Dropdown: Tax % options setup in Settings */}
             <div className="relative">
               <select
-                value={taxType}
-                onChange={(e) => handleTaxTypeChange(e.target.value as "percent" | "flat")}
+                value={
+                  (taxSettings.taxRates || [0, 5, 12, 18, 28]).includes(taxNumber)
+                    ? String(taxNumber)
+                    : "custom"
+                }
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val !== "custom") {
+                    handleTaxInputChange(val);
+                  }
+                }}
                 className="h-7 pl-2 pr-5 text-[11px] font-bold bg-white border border-slate-200 rounded-md text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer appearance-none shadow-2xs"
-                title="Tax Type"
+                title="Select Tax % Rate"
               >
-                <option value="percent">% (Percentage)</option>
-                <option value="flat">₹ (Flat)</option>
+                {(taxSettings.taxRates || [0, 5, 12, 18, 28]).map((rate) => (
+                  <option key={rate} value={String(rate)}>
+                    {rate}%
+                  </option>
+                ))}
+                {!(taxSettings.taxRates || [0, 5, 12, 18, 28]).includes(taxNumber) && (
+                  <option value="custom">Custom ({taxNumber}%)</option>
+                )}
               </select>
               <ChevronDown className="h-3 w-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            {/* Input value */}
-            <input
-              type="number"
-              min="0"
-              value={taxInput}
-              onChange={(e) => handleTaxInputChange(e.target.value)}
-              placeholder="0"
-              className="h-7 w-16 px-2 text-[11.5px] font-semibold text-right bg-white border border-slate-200 rounded-md text-slate-900 focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            />
+            {/* Input % value */}
+            <div className="relative">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={taxInput}
+                onChange={(e) => handleTaxInputChange(e.target.value)}
+                placeholder="0"
+                className="h-7 w-16 pl-1.5 pr-4 text-[11.5px] font-semibold text-right bg-white border border-slate-200 rounded-md text-slate-900 focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">
+                %
+              </span>
+            </div>
 
             {/* Computed display */}
             <span className="font-bold text-slate-900 min-w-[55px] text-right font-mono text-[11.5px]">
