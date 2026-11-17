@@ -83,7 +83,8 @@ export function PosShell({ children }: { children: React.ReactNode }) {
     <div
       className={cn(
         "flex min-h-dvh w-full bg-background text-foreground",
-        (mobileOpen && isCompactNav) || isDashboard ? "h-dvh max-h-dvh overflow-hidden" : "",
+        mobileOpen && isCompactNav ? "h-dvh max-h-dvh overflow-hidden" : "",
+        isDashboard ? "lg:h-dvh lg:max-h-dvh lg:overflow-hidden" : "",
       )}
     >
       {/* Mobile / Tablet backdrop (<1024px) */}
@@ -139,7 +140,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
       {/* Content column spanning the remaining length/width — matches PMS */}
       <div className={cn(
         "flex min-w-0 flex-1 flex-col bg-background text-text-primary print:!m-0 print:!h-auto print:!overflow-visible print:!p-0 print:!w-full print:!min-h-0 print:!bg-white",
-        isDashboard ? "h-dvh max-h-dvh overflow-hidden" : "",
+        isDashboard ? "lg:h-dvh lg:max-h-dvh lg:overflow-hidden" : "",
       )}>
         <PosSubscriptionRenewalBanner />
         <PosTopBar
@@ -153,7 +154,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         />
         <main className={cn(
           "flex-1 min-w-0 flex flex-col pb-[env(safe-area-inset-bottom)] print:!m-0 print:!p-0 print:!w-full print:!overflow-visible",
-          isDashboard ? "h-full min-h-0 overflow-hidden" : "",
+          isDashboard ? "lg:h-full lg:min-h-0 lg:overflow-hidden" : "",
         )}>
           {children}
         </main>

@@ -68,7 +68,7 @@ export function PosDashboardManager() {
   }
 
   return (
-    <div className="relative flex flex-col flex-1 h-full min-h-0 w-full overflow-hidden xl:overflow-hidden overflow-y-auto gap-2 p-2 sm:p-2.5 lg:p-3">
+    <div className="relative flex flex-col flex-1 w-full lg:h-full lg:min-h-0 overflow-y-auto lg:overflow-hidden gap-2 p-2 sm:p-2.5 lg:p-3">
       {/* Background sync progress bar */}
       {isFetching && (
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/20 overflow-hidden z-20">
@@ -80,13 +80,13 @@ export function PosDashboardManager() {
 
       <DashboardKpiCards stats={data.stats} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 flex-1 min-h-0">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 lg:flex-1 lg:min-h-0">
         <LiveOrdersWidget orders={data.liveOrders} />
         <OrderTypesDonutChart orderTypes={data.orderTypes} totalCount={data.totalOrderTypesCount} />
         <TableStatusCard tables={data.tables} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 flex-1 min-h-0">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 lg:flex-1 lg:min-h-0">
         <PaymentSummaryCard paymentSummary={data.paymentSummary} />
         <TopSellingItemsCard items={data.topSellingItems} isToday={isToday} />
         <AttentionNeededCard alerts={data.attentionAlerts} />
