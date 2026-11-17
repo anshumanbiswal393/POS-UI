@@ -7,7 +7,6 @@ import {
   Bug,
   Calendar,
   ChevronDown,
-  ChevronRight,
   ChevronsRight,
   FileText,
   HelpCircle,
@@ -451,55 +450,35 @@ export function PosTopBar({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-2 rounded-md border border-border bg-surface px-1.5 sm:px-2.5 py-1 hover:bg-surface-2 transition cursor-pointer outline-none"
+              aria-label={user?.name || "User profile"}
+              title={user?.name || "User profile"}
+              className="flex items-center justify-center rounded-full transition cursor-pointer outline-none ring-2 ring-transparent hover:ring-primary/30 focus-visible:ring-2 focus-visible:ring-primary shrink-0"
             >
               {user?.avatarUrl ? (
                 <img
                   src={user.avatarUrl}
                   alt={user?.name || "User"}
-                  className="h-7 w-7 rounded-full object-cover shrink-0 border border-border shadow-xs"
+                  className="h-9 w-9 rounded-full object-cover shrink-0 border border-border shadow-xs hover:opacity-95"
                 />
               ) : (
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary font-bold text-[11px] text-primary-foreground shrink-0">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary font-bold text-[12px] text-primary-foreground shrink-0 shadow-xs">
                   {user?.initials || "U"}
                 </div>
               )}
-              <div className="hidden text-left md:block min-w-0">
-                <div className="text-[12.5px] font-semibold text-text-primary leading-tight truncate max-w-[130px]" title={user?.name || "User"}>
-                  {user?.name || "User"}
-                </div>
-                <div className="text-[10.5px] text-text-secondary leading-tight truncate max-w-[130px]" title={user?.role_name || (user ? roleLabel(user.role) : "Staff")}>
-                  {user?.role_name || (user ? roleLabel(user.role) : "Staff")}
-                </div>
-              </div>
-              <ChevronRight className="hidden md:block h-3.5 w-3.5 text-text-disabled shrink-0" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-60 rounded-md border border-border bg-white p-1.5 text-text-primary shadow-2xl data-[state=closed]:animate-none"
+            className="w-56 rounded-md border border-border bg-white p-1.5 text-text-primary shadow-2xl data-[state=closed]:animate-none"
           >
-            <div className="flex items-center gap-2.5 px-2.5 py-2.5 border-b border-border mb-1">
-              {user?.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt={user?.name || "User"}
-                  className="h-9 w-9 rounded-full object-cover shrink-0 border border-primary/20 shadow-xs"
-                />
-              ) : (
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary font-bold text-[12px] text-primary-foreground shrink-0">
-                  {user?.initials || "U"}
+            <div className="px-2.5 py-2 border-b border-border mb-1">
+              <div className="font-semibold text-[13px] text-text-primary truncate">{user?.name || "User"}</div>
+              <div className="text-[11px] text-text-secondary truncate">{user?.email}</div>
+              {(activeOutlet?.name || user?.property) && (
+                <div className="text-[10.5px] text-primary truncate mt-0.5 font-medium">
+                  {activeOutlet?.name || user?.property}
                 </div>
               )}
-              <div className="min-w-0 flex-1">
-                <div className="font-semibold text-[13px] text-text-primary truncate">{user?.name || "User"}</div>
-                <div className="text-[11px] text-text-secondary truncate">{user?.email}</div>
-                {(activeOutlet?.name || user?.property) && (
-                  <div className="text-[10.5px] text-primary truncate mt-0.5 font-medium">
-                    {activeOutlet?.name || user?.property}
-                  </div>
-                )}
-              </div>
             </div>
             {!isKitchen && (
               <DropdownMenuItem
