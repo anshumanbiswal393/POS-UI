@@ -845,46 +845,58 @@ export const posTablesService = {
 
       // Real tables only from DB - zero hardcoded mock fallbacks
 
-      // Hydrate active orders on occupied tables if order details/amount are missing
-      const needsHydration = mapped.some(
-        (t) => t.status === "occupied" && (!t.activeOrder || !t.activeOrder.totalAmount)
-      );
-      if (needsHydration) {
-        try {
-          const currentOrders = await liveGetCurrent(cid);
-          if (currentOrders && currentOrders.length > 0) {
-            mapped = mapped.map((tbl) => {
-              if (tbl.status !== "occupied") return tbl;
-              const matched = currentOrders.find((co) => {
-                if (co.tableId && co.tableId === tbl.id) return true;
-                const tblClean = tbl.tableNumber.toLowerCase().replace(/[^0-9a-z]/g, "");
-                const orderSrcClean = (co.tableOrRoom || co.source || "").toLowerCase().replace(/[^0-9a-z]/g, "");
-                return tblClean && orderSrcClean && (tblClean.includes(orderSrcClean) || orderSrcClean.includes(tblClean));
-              });
-              if (matched) {
-                return {
-                  ...tbl,
-                  activeOrder: {
-                    orderId: matched.id,
-                    orderNumber: matched.orderNumber,
-                    serverName: matched.waiterName || tbl.activeOrder?.serverName || "Captain",
-                    seatedAt: matched.startTime || "",
-                    elapsedMinutes: Math.max(1, matched.elapsedMinutes || 0),
-                    itemsCount: matched.items?.length || 0,
-                    subtotal: matched.subtotal || matched.amount,
-                    totalAmount: matched.amount,
-                    status: matched.currentStage === "placed" ? "in_prep" : "served",
-                    guestName: matched.customerName,
-                    guestPhone: matched.customerPhone,
-                  },
-                };
+      // Hydrate active orders on tables from currentOrders so ALL constituent merged tables show as OCCUPIED
+      try {
+        const currentOrders = await liveGetCurrent(cid);
+        if (currentOrders && currentOrders.length > 0) {
+          mapped = mapped.map((tbl) => {
+            const tblClean = tbl.tableNumber.toLowerCase().replace(/[^0-9a-z]/g, "");
+            const tblNumOnly = tbl.tableNumber.replace(/\D/g, "");
+
+            const matched = currentOrders.find((co: any) => {
+              if (co.tableId && co.tableId === tbl.id) return true;
+              const orderSrc = String(co.tableOrRoom || co.source || co.tableNumber || "").toLowerCase();
+              const orderSrcClean = orderSrc.replace(/[^0-9a-z]/g, "");
+              if (tblClean && orderSrcClean && (orderSrcClean.includes(tblClean) || tblClean.includes(orderSrcClean))) {
+                return true;
               }
-              return tbl;
+              // If order has merged tables (e.g. contains "+")
+              if (orderSrc.includes("+")) {
+                const parts: string[] = orderSrc.split("+").map((p: string) => p.trim());
+                for (const p of parts) {
+                  const pClean = p.replace(/[^0-9a-z]/g, "");
+                  const pNumOnly = p.replace(/\D/g, "");
+                  if (pClean === tblClean) return true;
+                  if (tblNumOnly && pNumOnly && tblNumOnly === pNumOnly) return true;
+                }
+              }
+              return false;
             });
-          }
-        } catch (e) {
-          console.warn("Could not hydrate table active order details from liveGetCurrent:", e);
+
+            if (matched) {
+              return {
+                ...tbl,
+                status: "occupied",
+                activeOrder: {
+                  orderId: matched.id,
+                  orderNumber: matched.orderNumber,
+                  serverName: matched.waiterName || tbl.activeOrder?.serverName || "Captain",
+                  seatedAt: matched.startTime || "",
+                  elapsedMinutes: Math.max(1, matched.elapsedMinutes || 0),
+                  itemsCount: matched.items?.length || 0,
+                  subtotal: matched.subtotal || matched.amount,
+                  totalAmount: matched.amount,
+                  status: matched.currentStage === "placed" ? "in_prep" : "served",
+                  guestName: matched.customerName,
+                  guestPhone: matched.customerPhone,
+                },
+              };
+            }
+            return tbl;
+          });
         }
+      } catch (e) {
+        console.warn("Could not hydrate table active order details from liveGetCurrent:", e);
       }
 
       // Dynamic table reservation state based on actual reservation timing

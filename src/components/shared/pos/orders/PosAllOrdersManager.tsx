@@ -25,6 +25,7 @@ import {
   type DataTableColumn,
 } from "@/components/ui/data-grid";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
+import { PrintReportButton } from "@/components/ui/PrintReportButton";
 import { exportToExcel } from "@/utils/exportUtils";
 import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 import { toast } from "sonner";
@@ -677,16 +678,11 @@ export function PosAllOrdersManager() {
             </div>
 
             <ExportToExcelButton onClick={handleExportExcel} />
-            <button
-              type="button"
+            <PrintReportButton
               onClick={handlePrintReport}
               disabled={filteredRecords.length === 0}
-              className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border bg-surface text-[12px] font-bold text-text-primary hover:bg-surface-2 transition cursor-pointer shadow-2xs disabled:opacity-50"
               title="Print Orders Master Report"
-            >
-              <Printer className="h-3.5 w-3.5 text-text-secondary shrink-0" />
-              <span>Print</span>
-            </button>
+            />
           </div>
         }
       />

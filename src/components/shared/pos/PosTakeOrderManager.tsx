@@ -131,6 +131,7 @@ export function PosTakeOrderManager() {
         Boolean(table.activeOrder?.orderId) &&
         !table.activeOrder?.orderId.startsWith("ord-") &&
         (Number(table.activeOrder?.itemsCount || 0) > 0 ||
+          Number(table.activeOrder?.totalAmount || 0) > 0 ||
           (Array.isArray(table.activeOrder?.items) && table.activeOrder.items.length > 0));
 
       navigate({

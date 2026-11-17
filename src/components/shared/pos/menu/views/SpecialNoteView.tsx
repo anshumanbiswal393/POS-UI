@@ -9,6 +9,7 @@ import {
 import { AddSpecialNoteModal } from "../modals/AddSpecialNoteModal";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import type { SpecialNote } from "@/types/posMenu";
+import { ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
 import { toast } from "sonner";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { formatDateTimeIndian } from "@/utils/dateUtils";
@@ -128,18 +129,18 @@ export function SpecialNoteView({ onBack }: { onBack?: () => void }) {
                 toast.info(`Editing "${row.name}"`);
                 setIsAddModalOpen(true);
               }}
-              className="p-1 hover:text-teal-600 hover:bg-slate-100 rounded transition cursor-pointer"
-              title="Edit"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
+              title="Edit Note"
             >
-              <Edit2 className="h-4 w-4" />
+              <ColorActionEdit className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => handleDelete(row.id, row.name)}
-              className="p-1 hover:text-red-600 hover:bg-slate-100 rounded transition cursor-pointer"
-              title="Delete"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
+              title="Delete Note"
             >
-              <Trash2 className="h-4 w-4" />
+              <ColorActionDelete className="h-4 w-4" />
             </button>
           </div>
         ),

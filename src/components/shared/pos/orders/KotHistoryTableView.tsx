@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useKotOrders } from "@/hooks/queries/usePosOrders";
 import { printKotTicket } from "@/utils/printKotTicket";
+import { ColorActionPrint } from "@/components/common/ColorActionIcons";
 import { toast } from "sonner";
 import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid";
@@ -288,10 +289,10 @@ export function KotHistoryTableView({ outletName }: KotHistoryTableViewProps) {
               <button
                 type="button"
                 onClick={() => handlePrint(row)}
-                className="inline-flex items-center justify-center p-1.5 rounded-lg text-foreground hover:bg-surface-2 border border-border bg-white transition cursor-pointer shadow-2xs hover:border-primary/40"
+                className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
                 title="Print KOT Ticket"
               >
-                <Printer className="h-4 w-4 text-primary" />
+                <ColorActionPrint className="h-4 w-4" />
               </button>
             </div>
           );

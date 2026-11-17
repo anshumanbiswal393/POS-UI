@@ -35,6 +35,8 @@ import {
 import { toast } from "sonner";
 import { ColorActionPrint, ColorActionView } from "@/components/common/ColorActionIcons";
 import { PageHeader, KpiCard } from "@/components/ui/Primitives";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
+import { PrintReportButton } from "@/components/ui/PrintReportButton";
 import {
   usePosReservations,
   usePosTables,
@@ -573,22 +575,12 @@ export function PosReservationsManager() {
         eyebrow="Dining Tables & Banquet Booking Management"
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={handleExportExcel}
-              className="inline-flex items-center gap-1.5 h-9 px-3 text-[12px] font-semibold text-text-primary bg-surface border border-border rounded-lg hover:bg-surface-2 shadow-2xs transition cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5 text-text-secondary" />
-              <span>Excel</span>
-            </button>
-            <button
-              type="button"
+            <ExportToExcelButton onClick={handleExportExcel} />
+            <PrintReportButton
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 h-9 px-3 text-[12px] font-semibold text-text-primary bg-surface border border-border rounded-lg hover:bg-surface-2 shadow-2xs transition cursor-pointer"
-            >
-              <ColorActionPrint className="w-3.5 h-3.5" />
-              <span>Print</span>
-            </button>
+              disabled={filteredReservations.length === 0}
+              title="Print Reservations Master List"
+            />
             <button
               type="button"
               onClick={() => setIsNewBookingOpen(true)}

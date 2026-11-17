@@ -53,6 +53,7 @@ export type LiveOrderPayload = {
   discountAmount?: number;
   grandTotal?: number;
   append?: boolean;
+  append_items?: boolean;
   sendKot?: boolean;
   markSettled?: boolean;
   paymentMode?: string;

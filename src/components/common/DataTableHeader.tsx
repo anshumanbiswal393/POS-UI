@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { exportToExcel } from "@/utils/exportUtils";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
+import { PrintReportButton } from "@/components/ui/PrintReportButton";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -1228,14 +1229,11 @@ export function DataTableSelectionBar({
       <div className="flex items-center gap-2 flex-wrap">
         {actions}
         {onPrint && (
-          <button
-            type="button"
+          <PrintReportButton
             onClick={onPrint}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-border text-foreground font-bold hover:bg-surface-2 transition cursor-pointer shadow-2xs"
-          >
-            <Printer className="h-3.5 w-3.5" />
-            <span>Print Selected</span>
-          </button>
+            label="Print Selected"
+            title="Print selected rows"
+          />
         )}
         {onExport && <ExportToExcelButton onClick={onExport} title="Export selected rows to Excel" />}
         {handleClear && (
@@ -2013,15 +2011,11 @@ export function DataTableToolbar<T = any>({
           )}
 
           {onPrint && (
-            <button
-              type="button"
+            <PrintReportButton
               onClick={onPrint}
-              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-border bg-surface hover:bg-surface-2 text-xs font-semibold text-foreground transition-colors cursor-pointer shadow-xs"
+              label={printLabel || "Print"}
               title="Print table data"
-            >
-              <Printer className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>{printLabel}</span>
-            </button>
+            />
           )}
 
           {exportHandler && <ExportToExcelButton onClick={exportHandler} />}

@@ -210,15 +210,14 @@ export function PosBillingManager() {
         };
       }
 
-      // 3. Search reservations list for this table
-      const numOnly = (tblLabel || "").replace(/\D/g, "");
+      // 3. Search reservations list for this table (ONLY active seated or reserved, never completed/cancelled)
       const resMatch = reservations.find((r) => {
+        const isActiveRes = r.status === "seated" || r.status === "reserved";
+        if (!isActiveRes) return false;
         if (tblId && r.tableId === tblId) return true;
         if (matchedTable?.id && r.tableId === matchedTable.id) return true;
         if (r.tableNumber && tblLabel && r.tableNumber.toLowerCase() === tblLabel.toLowerCase()) return true;
         if (matchedTable?.tableNumber && r.tableNumber === matchedTable.tableNumber) return true;
-        const resNum = (r.tableNumber || "").replace(/\D/g, "");
-        if (numOnly && resNum && numOnly === resNum) return true;
         return false;
       });
 
@@ -235,6 +234,7 @@ export function PosBillingManager() {
       }
 
       // 4. Search activeTimeline for this table
+      const numOnly = (tblLabel || "").replace(/\D/g, "");
       const orderMatch = (currentTimeline || []).find((ord) => {
         if (tblId && ord.tableId === tblId) return true;
         if (ord.tableOrRoom && tblLabel && ord.tableOrRoom.toLowerCase() === tblLabel.toLowerCase()) return true;
@@ -291,10 +291,16 @@ export function PosBillingManager() {
 
   // 3. Customer Loyalty State
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerProfile | null>(null);
+  const [isExplicitWalkIn, setIsExplicitWalkIn] = useState(false);
 
   const handleSelectCustomer = useCallback(
     (cust: CustomerProfile | null) => {
       setSelectedCustomer(cust);
+      if (!cust) {
+        setIsExplicitWalkIn(true);
+      } else {
+        setIsExplicitWalkIn(false);
+      }
       if (cust?.name) {
         try {
           savePosCustomer(
@@ -388,14 +394,14 @@ export function PosBillingManager() {
     if (!roomUnitId && match.roomUnitId) setRoomUnitId(match.roomUnitId);
   }, [orderType, roomNumber, occupiedRooms, guestCount, folioId, reservationId, roomUnitId]);
 
-  // When a table is active/selected for dine-in, auto-fetch guest details from reservation if not selected
+  // When a table is active/selected for dine-in, auto-fetch guest details from reservation if not selected and not explicit walk-in
   useEffect(() => {
-    if (orderType !== "dine_in" || !activeTable || selectedCustomer) return;
+    if (orderType !== "dine_in" || !activeTable || selectedCustomer || isExplicitWalkIn) return;
     const autoCust = findCustomerForTable(activeTable, billingTableId);
     if (autoCust) {
       handleSelectCustomer(autoCust);
     }
-  }, [orderType, activeTable, billingTableId, selectedCustomer, findCustomerForTable, handleSelectCustomer]);
+  }, [orderType, activeTable, billingTableId, selectedCustomer, isExplicitWalkIn, findCustomerForTable, handleSelectCustomer]);
 
   const handleOrderTypeChange = useCallback(
     (type: BillingOrderType) => {
@@ -919,6 +925,7 @@ export function PosBillingManager() {
     setBillNumber(nextNum);
     setCartItems([]);
     setSelectedCustomer(null);
+    setIsExplicitWalkIn(false);
     setSpecialNote("");
     setKotSentForCart(false);
     setLinkedOrderNumber(null);
@@ -1607,9 +1614,22 @@ export function PosBillingManager() {
               toast.error("Could not create order");
               return;
             }
+            if (linkedOrderId && cartItems.length > 0 && !kotSentForCart) {
+              const isExtraAppend = Boolean(runningOrderMeta?.id === linkedOrderId || !isEditOrderParam);
+              await livePatchOrder(linkedOrderId, {
+                outletId: activeOutlet.id,
+                items: orderItems,
+                subtotal,
+                grandTotal,
+                append: isExtraAppend,
+                append_items: isExtraAppend,
+                sendKot: false,
+              });
+            }
+            const cumulativeBillTotal = runningOrderMeta ? runningOrderMeta.amount + grandTotal : grandTotal;
             const effectiveTendered = Number(tenderedAmount || 0);
             const totalPaidTowardsBill = effectiveTendered + activeReservationDeposit;
-            const isPartial = totalPaidTowardsBill < grandTotal;
+            const isPartial = totalPaidTowardsBill < cumulativeBillTotal;
             const settled = await liveSettleOrder(orderId, {
               paymentMode: payMap[paymentMethod] || "CASH",
               tenderedAmount: effectiveTendered,
@@ -2212,8 +2232,16 @@ export function PosBillingManager() {
               : "Takeaway"
         }
         customerName={selectedCustomer?.name}
-        itemsSummary={buildOrderPayload().itemsSummary}
-        grandTotal={buildOrderPayload().grandTotal}
+        itemsSummary={
+          runningOrderMeta && cartItems.length > 0
+            ? `${runningOrderMeta.itemsCount} previous items + ${buildOrderPayload().itemsSummary}`
+            : buildOrderPayload().itemsSummary
+        }
+        grandTotal={
+          runningOrderMeta
+            ? runningOrderMeta.amount + buildOrderPayload().grandTotal
+            : buildOrderPayload().grandTotal
+        }
         depositAmount={activeReservationDeposit}
         busy={busyAction === "pay"}
         onConfirm={handleSettleBill}

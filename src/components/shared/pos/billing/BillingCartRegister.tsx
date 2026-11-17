@@ -345,8 +345,8 @@ export function BillingCartRegister({
                     )}
                   </div>
                 ) : (
-                  <span className="truncate text-slate-400 font-normal">
-                    Choose Guest (Walk-in)...
+                  <span className="truncate text-slate-800 font-semibold">
+                    Walk-in Guest (Default)
                   </span>
                 )}
               </div>
@@ -397,7 +397,7 @@ export function BillingCartRegister({
                       }}
                       className="w-full px-2.5 py-1.5 text-left text-xs rounded hover:bg-slate-100 flex items-center justify-between text-slate-700 transition cursor-pointer"
                     >
-                      <span className="font-medium">Walk-in Guest (Default)</span>
+                      <span className="font-semibold text-slate-800">Walk-in Guest (Default)</span>
                       {!selectedCustomer && <Check className="h-3.5 w-3.5 text-primary" />}
                     </button>
 
@@ -796,8 +796,25 @@ export function BillingCartRegister({
           </div>
         )}
 
-        {/* Grand Total & Advance Reservation Deposit Breakdown */}
-        {depositAmount > 0 ? (
+        {/* Grand Total & Advance Reservation Deposit / Cumulative Running Order Breakdown */}
+        {runningOrder ? (
+          <div className="pt-2 border-t border-slate-200 space-y-1">
+            <div className="flex items-center justify-between text-slate-600 text-xs font-semibold">
+              <span>Previous Bill ({runningOrder.orderNumber || "Running Order"})</span>
+              <span className="font-mono font-bold text-slate-800">₹{runningOrder.amount.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600 text-xs font-semibold">
+              <span>Extra Items Total</span>
+              <span className="font-mono font-bold text-slate-800">₹{grandTotal.toLocaleString()}</span>
+            </div>
+            <div className="pt-1 border-t border-dashed border-slate-300 flex items-center justify-between text-slate-900">
+              <span className="font-extrabold text-xs tracking-tight">Cumulative Grand Total</span>
+              <span className="font-black text-base text-primary font-mono tracking-tight">
+                ₹{(runningOrder.amount + grandTotal).toLocaleString()}
+              </span>
+            </div>
+          </div>
+        ) : depositAmount > 0 ? (
           <div className="pt-2 border-t border-slate-200 space-y-1">
             <div className="flex items-center justify-between text-slate-700 text-xs font-semibold">
               <span>Total Bill</span>
