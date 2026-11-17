@@ -734,22 +734,13 @@ export function BillingCartRegister({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Dropdown: Tax % options setup in Settings */}
             <div className="relative">
               <select
-                value={
-                  (taxSettings.taxRates || [0, 5, 12, 18, 28]).includes(taxNumber)
-                    ? String(taxNumber)
-                    : "custom"
-                }
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val !== "custom") {
-                    handleTaxInputChange(val);
-                  }
-                }}
-                className="h-7 pl-2 pr-5 text-[11px] font-bold bg-white border border-slate-200 rounded-md text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer appearance-none shadow-2xs"
+                value={String(taxNumber)}
+                onChange={(e) => handleTaxInputChange(e.target.value)}
+                className="h-7 pl-2 pr-6 text-[11px] font-bold bg-white border border-slate-200 rounded-md text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer appearance-none shadow-2xs"
                 title="Select Tax % Rate"
               >
                 {(taxSettings.taxRates || [0, 5, 12, 18, 28]).map((rate) => (
@@ -758,27 +749,10 @@ export function BillingCartRegister({
                   </option>
                 ))}
                 {!(taxSettings.taxRates || [0, 5, 12, 18, 28]).includes(taxNumber) && (
-                  <option value="custom">Custom ({taxNumber}%)</option>
+                  <option value={String(taxNumber)}>{taxNumber}%</option>
                 )}
               </select>
               <ChevronDown className="h-3 w-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-
-            {/* Input % value */}
-            <div className="relative">
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={taxInput}
-                onChange={(e) => handleTaxInputChange(e.target.value)}
-                placeholder="0"
-                className="h-7 w-16 pl-1.5 pr-4 text-[11.5px] font-semibold text-right bg-white border border-slate-200 rounded-md text-slate-900 focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              />
-              <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">
-                %
-              </span>
             </div>
 
             {/* Computed display */}
