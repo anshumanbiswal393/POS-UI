@@ -682,9 +682,11 @@ export function BillingTablesOrdersSidebar({
                       {code}
                     </div>
 
-                    {/* Zone & Floor Subtitle */}
+                    {/* Zone & Floor Subtitle OR Guest Name if Occupied */}
                     <div className="text-[10px] text-slate-500 font-medium truncate max-w-full my-1">
-                      {floorSubtitle}
+                      {table.status === "occupied" && (table.activeReservation?.customerName || table.activeOrder?.guestName)
+                        ? (table.activeReservation?.customerName || table.activeOrder?.guestName)
+                        : floorSubtitle}
                     </div>
 
                     {/* Status Pill */}
@@ -733,7 +735,9 @@ export function BillingTablesOrdersSidebar({
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="font-extrabold text-sm text-slate-900">{code}</div>
                       <div className="text-xs text-slate-500 truncate">
-                        {table.area || "Dining Area"} · {table.capacity || 4} seats
+                        {table.status === "occupied" && (table.activeReservation?.customerName || table.activeOrder?.guestName)
+                          ? `${table.activeReservation?.customerName || table.activeOrder?.guestName} · ${table.capacity || 4} seats`
+                          : `${table.area || "Dining Area"} · ${table.capacity || 4} seats`}
                       </div>
                     </div>
                     <div

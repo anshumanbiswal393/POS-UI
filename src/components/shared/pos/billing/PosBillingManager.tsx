@@ -1252,8 +1252,11 @@ export function PosBillingManager() {
 
   // Select Table from Left Sidebar (or via Reservations Tab)
   const handleSelectTableFromSidebar = (table: RestaurantTable, reservation?: ReservationItem) => {
-    const code =
-      table.tableNumber && /^T\d+/i.test(table.tableNumber)
+    const effectiveRes = reservation || table.activeReservation;
+    const isMerged = effectiveRes?.isMerged && (effectiveRes.mergedTableNumbers?.length || 0) > 1;
+    const code = isMerged && effectiveRes?.tableNumber
+      ? effectiveRes.tableNumber
+      : table.tableNumber && /^T\d+/i.test(table.tableNumber)
         ? table.tableNumber.toUpperCase()
         : `T${String(table.tableNumberRaw || 1).padStart(2, "0")}`;
 
@@ -1277,13 +1280,13 @@ export function PosBillingManager() {
       })();
     }
 
-    if (reservation?.customerName) {
+    if (effectiveRes?.customerName) {
       handleSelectCustomer({
-        id: `cust-${reservation.id}`,
-        name: reservation.customerName,
-        phone: reservation.customerPhone || "",
+        id: `cust-${effectiveRes.id}`,
+        name: effectiveRes.customerName,
+        phone: effectiveRes.customerPhone || "",
       });
-      toast.info(`Selected Table ${code} for ${reservation.customerName} (${reservation.guests} pax)`);
+      toast.info(`Selected Table ${code} for ${effectiveRes.customerName} (${effectiveRes.guests} pax)`);
     } else {
       const foundCust = findCustomerForTable(code, table.id);
       handleSelectCustomer(foundCust || null);
@@ -1835,6 +1838,22 @@ export function PosBillingManager() {
           });
           if (!kotSentForCart) {
             deductPlatesForItems(cartItems);
+          }
+          if (orderType === "dine_in") {
+            const targetTblId = billingTableId || resolveTableMatch(activeTable)?.id;
+            if (targetTblId) {
+              posTablesService.vacateTable(targetTblId).catch(() => {});
+            }
+            try {
+              await posTablesService.completeReservation({
+                reservationId: activeTableReservationId || reservationId || undefined,
+                tableId: targetTblId,
+                tableNumber: tableLabel,
+                customerName: selectedCustomer?.name,
+              });
+            } catch {
+              // non-blocking
+            }
           }
           invalidateOrderSurfaces();
           toast.success(`Posted to room ${roomBare} folio`, {

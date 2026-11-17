@@ -491,7 +491,7 @@ export function PosSidebar({
       )}
     >
       {/* Logo & Top Header */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border px-3">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-3">
         {!collapsed ? (
           <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2">
@@ -553,7 +553,7 @@ export function PosSidebar({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="mx-3 mt-3 flex items-center justify-between rounded-lg border border-black bg-sidebar-hover/40 px-3 py-2 text-left transition hover:bg-sidebar-hover outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-2xs"
+              className="mx-3 mt-3 flex items-center justify-between rounded-lg border border-border bg-sidebar-hover/40 px-3 py-2 text-left transition hover:bg-sidebar-hover outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-2xs"
               title={`Active: ${activeOutlet?.name || "Choose Outlet"}`}
             >
               <div className="min-w-0 flex-1 pr-1">
@@ -622,7 +622,7 @@ export function PosSidebar({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-black bg-sidebar-hover/40 text-sidebar-foreground transition hover:bg-sidebar-hover outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-2xs"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-sidebar-hover/40 text-sidebar-foreground transition hover:bg-sidebar-hover outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-2xs"
                 title={`Active: ${activeOutlet?.name || "Choose Outlet"}`}
               >
                 <Store className="h-4 w-4 text-primary" />

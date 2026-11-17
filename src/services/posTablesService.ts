@@ -152,7 +152,10 @@ function mapBackendReservation(r: any): ReservationItem {
 
   const primaryTableId = tableIds[0] || "";
 
-  const primaryTableNumber = tableNumbers[0] || "Table";
+  const primaryTableNumber =
+    tableNumbers.length > 1
+      ? tableNumbers.join(" + ")
+      : (tableNumbers[0] || "Table");
 
   let status: "reserved" | "seated" | "completed" | "cancelled" = "reserved";
 
@@ -891,21 +894,38 @@ export const posTablesService = {
       mapped = mapped.map((tbl) => {
         // Find matching reservation for this table (seated, reserved, or completed today)
         const matchedRes = allReservations.find(
-          (r) =>
-            (r.tableId === tbl.id ||
-              r.mergedTableIds?.includes(tbl.id) ||
+          (r) => {
+            const matchesId =
+              r.tableId === tbl.id ||
+              r.mergedTableIds?.includes(tbl.id);
+            if (matchesId) return (r.status === "seated" || r.status === "reserved" || (tbl.status === "occupied" && r.status === "completed"));
+
+            const matchesTableNumber =
               r.tableNumber === tbl.tableNumber ||
-              (r.tableNumber && String(tbl.tableNumberRaw) === r.tableNumber.replace(/\D/g, ""))) &&
-            (r.status === "seated" || r.status === "reserved" || (tbl.status === "occupied" && r.status === "completed"))
+              r.mergedTableNumbers?.includes(tbl.tableNumber) ||
+              (r.tableNumber && r.tableNumber.includes("+") &&
+                r.tableNumber.split("+").some((p) => {
+                  const s = p.trim();
+                  return s === tbl.tableNumber || s.replace(/\D/g, "") === String(tbl.tableNumberRaw);
+                })) ||
+              (r.tableNumber && String(tbl.tableNumberRaw) === r.tableNumber.replace(/\D/g, ""));
+            return matchesTableNumber && (r.status === "seated" || r.status === "reserved" || (tbl.status === "occupied" && r.status === "completed"));
+          }
         );
 
-        // Only maintain active reservation/order info if the reservation is still currently seated or reserved (not completed)
-        if (tbl.status === "occupied" || tbl.activeOrder?.orderId) {
+        // If reservation is currently seated (or table is marked occupied with an order),
+        // ensure this table reflects OCCUPIED status with guest details
+        if (
+          tbl.status === "occupied" ||
+          tbl.activeOrder?.orderId ||
+          (matchedRes && matchedRes.status === "seated")
+        ) {
           if (matchedRes && matchedRes.status !== "completed" && matchedRes.status !== "cancelled") {
             const guestName = tbl.activeOrder?.guestName || matchedRes.customerName;
             const guestPhone = tbl.activeOrder?.guestPhone || matchedRes.customerPhone;
             return {
               ...tbl,
+              status: "occupied" as const,
               activeReservation: matchedRes,
               currentGuests: tbl.currentGuests || matchedRes.guests || tbl.capacity,
               activeOrder: tbl.activeOrder
@@ -942,6 +962,12 @@ export const posTablesService = {
                   (r.tableId === tbl.id ||
                     r.mergedTableIds?.includes(tbl.id) ||
                     r.tableNumber === tbl.tableNumber ||
+                    r.mergedTableNumbers?.includes(tbl.tableNumber) ||
+                    (r.tableNumber && r.tableNumber.includes("+") &&
+                      r.tableNumber.split("+").some((p) => {
+                        const s = p.trim();
+                        return s === tbl.tableNumber || s.replace(/\D/g, "") === String(tbl.tableNumberRaw);
+                      })) ||
                     (r.tableNumber && String(tbl.tableNumberRaw) === r.tableNumber.replace(/\D/g, ""))) &&
                   isReservationActiveNow(r, now),
               );
@@ -1094,9 +1120,10 @@ export const posTablesService = {
         : [data.tableId];
 
     const tables = store().tables.length > 0 ? store().tables : await posTablesService.getTables();
-    const mergedNumbers = mergedIds.map(
-      (id) => tables.find((t) => t.id === id)?.tableNumber || id,
-    );
+    const mergedNumbers =
+      data.mergedTableNumbers && data.mergedTableNumbers.length === mergedIds.length
+        ? data.mergedTableNumbers
+        : mergedIds.map((id) => tables.find((t) => t.id === id)?.tableNumber || id);
     const isMerged = mergedIds.length > 1;
 
     const isoDate = toIsoDate(data.reservationDate);
@@ -1108,7 +1135,7 @@ export const posTablesService = {
       ...data,
       id: `res-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       tableId: mergedIds[0],
-      tableNumber: mergedNumbers.join(" + ") || data.tableNumber,
+      tableNumber: data.tableNumber || mergedNumbers.join(" + "),
       mergedTableIds: isMerged ? mergedIds : undefined,
       mergedTableNumbers: isMerged ? mergedNumbers : undefined,
       isMerged,
@@ -1213,6 +1240,21 @@ export const posTablesService = {
         }
       }
       await patchTableStatus(tableId, "OCCUPIED").catch(() => {});
+      // Also patch any merged tables if known from stored reservations
+      const preStored = getStoredReservations(effectiveOutlet);
+      const targetRes = preStored.find(
+        (r) =>
+          r.id === reservationId ||
+          r.tableId === tableId ||
+          r.mergedTableIds?.includes(tableId)
+      );
+      if (targetRes?.mergedTableIds) {
+        for (const tid of targetRes.mergedTableIds) {
+          if (tid !== tableId) {
+            patchTableStatus(tid, "OCCUPIED").catch(() => {});
+          }
+        }
+      }
     }
 
     // Mark reservation status as "seated" (maintained in reservation list)
@@ -1292,6 +1334,11 @@ export const posTablesService = {
     });
 
     if (isLiveFloor()) {
+      for (const tid of linkedIds) {
+        if (tid !== tableId) {
+          patchTableStatus(tid, "OCCUPIED").catch(() => {});
+        }
+      }
       const tables = await posTablesService.getTables();
       const found = tables.find((t) => t.id === tableId);
       if (found) return found;
@@ -1862,10 +1909,22 @@ export const posTablesService = {
     saveStoredReservations(effectiveOutlet, updatedStored);
 
     if (completedMap.size > 0) {
+      const completedTableIds = new Set<string>();
+      for (const r of completedMap.values()) {
+        if (r.tableId) completedTableIds.add(r.tableId);
+        if (r.mergedTableIds) {
+          for (const tid of r.mergedTableIds) completedTableIds.add(tid);
+        }
+      }
+
       store().tables = store().tables.map((tbl) => {
-        if (tbl.activeReservation && completedMap.has(tbl.activeReservation.id)) {
+        const matchesReservation = tbl.activeReservation && completedMap.has(tbl.activeReservation.id);
+        const matchesTableId = completedTableIds.has(tbl.id);
+        if (matchesReservation || matchesTableId) {
           return {
             ...tbl,
+            status: "vacant" as const,
+            currentGuests: 0,
             activeReservation: undefined,
           };
         }
@@ -1878,6 +1937,11 @@ export const posTablesService = {
             await httpClient
               .patch(`${API_ENDPOINTS.TABLES.RESERVATIONS}${rid}/`, { status: "COMPLETED" })
               .catch(() => {});
+          }
+        }
+        for (const tid of completedTableIds) {
+          if (isBackendOutletId(tid)) {
+            patchTableStatus(tid, "VACANT").catch(() => {});
           }
         }
       }

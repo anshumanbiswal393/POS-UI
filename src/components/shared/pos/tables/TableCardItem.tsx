@@ -220,11 +220,11 @@ export function TableCardItem({
         {status === "occupied" ? (
           <>
             <div className="min-w-0 pr-2">
-              <div className="text-[12.5px] font-extrabold text-slate-900 leading-tight">
-                ₹{Math.round(activeOrder?.totalAmount || 0).toLocaleString("en-IN")}
+              <div className="text-[12px] font-extrabold text-slate-900 leading-tight truncate">
+                {activeReservation?.customerName || activeOrder?.guestName || `₹${Math.round(activeOrder?.totalAmount || 0).toLocaleString("en-IN")}`}
               </div>
-              <div className="text-[9.5px] font-medium text-slate-500 mt-0.5">
-                {activeOrder?.orderNumber ? `Order #${activeOrder.orderNumber}` : "1 active order"}
+              <div className="text-[9.5px] font-medium text-slate-500 mt-0.5 truncate">
+                {activeOrder?.orderNumber ? `Order #${activeOrder.orderNumber}` : activeReservation?.isMerged ? "Merged Table" : "1 active order"}
               </div>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
