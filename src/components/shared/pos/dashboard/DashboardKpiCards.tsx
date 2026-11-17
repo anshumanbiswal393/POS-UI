@@ -38,7 +38,7 @@ export function DashboardKpiCards({ stats }: DashboardKpiCardsProps) {
   ];
 
   return (
-    <div className="grid shrink-0 grid-cols-2 gap-2 lg:grid-cols-4">
+    <div className="grid shrink-0 grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5">
       {cards.map((c) => {
         const CardBody = (
           <div className="relative flex flex-col justify-between rounded-xl border border-slate-400/80 bg-white px-3 py-1.5 sm:px-3.5 sm:py-2 shadow-2xs hover:shadow-xs transition min-w-0">

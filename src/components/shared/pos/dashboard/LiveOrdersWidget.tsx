@@ -11,7 +11,7 @@ interface LiveOrdersWidgetProps {
 export function LiveOrdersWidget({ orders }: LiveOrdersWidgetProps) {
   const visibleOrders = orders.slice(0, VISIBLE_ORDER_ROWS);
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-400/80 bg-white p-2.5 sm:p-3 shadow-2xs">
+    <div className="flex min-h-[175px] flex-col rounded-xl border border-slate-400/80 bg-white p-2.5 sm:p-3 shadow-2xs">
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between border-b border-slate-200 pb-1">
         <div className="flex items-center gap-1.5">
