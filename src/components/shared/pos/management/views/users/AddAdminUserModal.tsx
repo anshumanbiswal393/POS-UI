@@ -90,7 +90,6 @@ export function AddAdminUserModal({
       setErrors({});
     }
   }, [initialData, isOpen, defaultOutletName]);
-  }, [initialData, isOpen]);
 
   // Validation engine
   const validate = (data: AdminUserFormData) => {
