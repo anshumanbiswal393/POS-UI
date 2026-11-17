@@ -34,6 +34,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/ui/Primitives";
+import { cn } from "@/lib/utils";
 
 export function ClosingStockView({
   initialTab = "count",
@@ -252,43 +254,55 @@ export function ClosingStockView({
 
   return (
     <div className="space-y-4">
-      {/* Tab Switcher: Available Stock vs Daily Stock Count */}
-      <div className="flex items-center gap-1.5 border-b border-slate-200 pb-2">
-        <button
-          type="button"
-          onClick={() => setActiveTab("available")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition cursor-pointer ${
-            activeTab === "available"
-              ? "bg-teal-600 text-white shadow-xs"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-          }`}
-        >
-          <Boxes className="h-4 w-4" />
-          <span>Available Stock</span>
-          <span
-            className={`px-2 py-0.5 rounded-full text-[11px] font-bold ml-1 ${
-              activeTab === "available"
-                ? "bg-white/20 text-white"
-                : "bg-slate-200 text-slate-700"
-            }`}
-          >
-            {stockItems?.length || 0}
-          </span>
-        </button>
+      {/* Page Header (PMS Standard) */}
+      <PageHeader
+        title={activeTab === "available" ? "Available Stock" : "Daily Stock Count"}
+        eyebrow="Stock Audit & Real-Time Closing Balances"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Tab Switcher: Available Stock vs Daily Stock Count */}
+            <div className="flex items-center rounded-lg border border-border bg-surface p-0.5 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setActiveTab("available")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer",
+                  activeTab === "available"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-2",
+                )}
+              >
+                <Boxes className="h-3.5 w-3.5" />
+                <span>Available Stock</span>
+                <span
+                  className={cn(
+                    "px-1.5 py-0.2 rounded-full text-[10px] font-bold ml-0.5",
+                    activeTab === "available"
+                      ? "bg-white/20 text-white"
+                      : "bg-surface-2 text-text-primary",
+                  )}
+                >
+                  {stockItems?.length || 0}
+                </span>
+              </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("count")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition cursor-pointer ${
-            activeTab === "count"
-              ? "bg-teal-600 text-white shadow-xs"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-          }`}
-        >
-          <ClipboardList className="h-4 w-4" />
-          <span>Daily Stock Count</span>
-        </button>
-      </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("count")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer",
+                  activeTab === "count"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-2",
+                )}
+              >
+                <ClipboardList className="h-3.5 w-3.5" />
+                <span>Daily Stock Count</span>
+              </button>
+            </div>
+          </div>
+        }
+      />
 
       {activeTab === "available" ? (
         <AvailableStockView />

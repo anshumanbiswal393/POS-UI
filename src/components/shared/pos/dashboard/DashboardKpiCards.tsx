@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { IndianRupee, ShoppingBag, Utensils, ReceiptText } from "lucide-react";
 import type { PosDashboardStats } from "@/types/posDashboard";
+import { KpiCard } from "@/components/ui/Primitives";
 
 interface DashboardKpiCardsProps {
   stats: PosDashboardStats;
@@ -8,88 +8,40 @@ interface DashboardKpiCardsProps {
 
 export function DashboardKpiCards({ stats }: DashboardKpiCardsProps) {
   return (
-    <div className="grid shrink-0 grid-cols-1 min-[360px]:grid-cols-2 gap-2 lg:grid-cols-4">
+    <div className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
       {/* 1. Total collections */}
-      <div className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-2xs">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/30 text-primary">
-          <IndianRupee className="h-4.5 w-4.5" />
-        </div>
-        <div className="min-w-0">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-black">
-            Total collections
-          </div>
-          <div className="text-[16px] font-black text-black leading-tight">
-            {stats.totalCollectionsFormatted}
-          </div>
-          <div className="text-[10.5px] text-primary font-medium">Paid today</div>
-        </div>
-      </div>
+      <KpiCard
+        label="Total Collections"
+        value={stats.totalCollectionsFormatted}
+        accent="brand"
+        subtitle="Paid today"
+      />
 
       {/* 2. Total orders */}
-      <div className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-2xs">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-slate-200 text-black">
-          <ShoppingBag className="h-4.5 w-4.5" />
-        </div>
-        <div className="min-w-0">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-black">
-            Total orders
-          </div>
-          <div className="text-[16px] font-black text-black leading-tight">
-            {stats.totalOrders}
-          </div>
-          <div className="text-[10.5px] text-black font-medium">Today</div>
-        </div>
-      </div>
+      <KpiCard
+        label="Total Orders"
+        value={String(stats.totalOrders)}
+        accent="info"
+        subtitle="Placed today"
+      />
 
       {/* 3. Active tables */}
-      <div className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-2xs">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-slate-200 text-black">
-          <Utensils className="h-4.5 w-4.5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-black">
-            Active tables
-          </div>
-          <div className="text-[16px] font-black text-black leading-tight">
-            {stats.activeTablesCount}{" "}
-            <span className="text-[12px] font-bold text-black">
-              / {stats.totalTablesCount}
-            </span>
-          </div>
-          <div className="mt-0.5 flex items-center gap-1.5">
-            <div className="h-1.5 w-14 overflow-hidden rounded-full bg-slate-200 border border-slate-300">
-              <div
-                className="h-full rounded-full bg-primary"
-                style={{ width: `${stats.occupancyPercentage}%` }}
-              />
-            </div>
-            <span className="text-[10.5px] text-primary font-bold">
-              {stats.occupancyPercentage}% occupied
-            </span>
-          </div>
-        </div>
-      </div>
+      <KpiCard
+        label="Active Tables"
+        value={`${stats.activeTablesCount} / ${stats.totalTablesCount}`}
+        accent="warning"
+        subtitle={`${stats.occupancyPercentage}% occupied`}
+      />
 
-      {/* 4. Unpaid bills */}
-      <div className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-2xs">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-slate-200 text-black">
-          <ReceiptText className="h-4.5 w-4.5" />
-        </div>
-        <div className="min-w-0">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-black">
-            Unpaid bills
-          </div>
-          <div className="text-[16px] font-black text-black leading-tight">
-            {stats.unpaidBillsFormatted}
-          </div>
-          <Link
-            to="/pos/settlement"
-            className="text-[10.5px] font-bold text-primary hover:underline"
-          >
-            Review dues →
-          </Link>
-        </div>
-      </div>
+      {/* 4. Unpaid dues */}
+      <Link to="/pos/settlement" className="block">
+        <KpiCard
+          label="Unpaid Dues"
+          value={stats.unpaidBillsFormatted}
+          accent="error"
+          subtitle="Pending settlement →"
+        />
+      </Link>
     </div>
   );
 }

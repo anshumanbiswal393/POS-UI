@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ColorActionPrint, ColorActionView } from "@/components/common/ColorActionIcons";
+import { PageHeader, KpiCard } from "@/components/ui/Primitives";
 import {
   usePosReservations,
   usePosTables,
@@ -552,46 +553,82 @@ export function PosReservationsManager() {
     }
   };
 
+  const confirmedCount = useMemo(() => {
+    return reservations.filter((r) => r.status?.toLowerCase().includes("confirm")).length;
+  }, [reservations]);
+
+  const seatedCount = useMemo(() => {
+    return reservations.filter((r) => r.status?.toLowerCase().includes("seat") || r.status?.toLowerCase().includes("din")).length;
+  }, [reservations]);
+
+  const pendingOrCancelledCount = useMemo(() => {
+    return reservations.filter((r) => r.status?.toLowerCase().includes("cancel") || r.status?.toLowerCase().includes("pend")).length;
+  }, [reservations]);
+
   return (
     <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50 pb-8">
-      {/* Top Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border bg-card px-4 sm:px-6 py-2.5 shrink-0">
-        <div>
-          <h1 className="text-[20px] sm:text-[22px] font-bold tracking-tight text-foreground leading-tight">
-            Reservations List
-          </h1>
-        </div>
-
-        {/* Top Right Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleExportExcel}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground bg-card border border-border rounded-xl hover:bg-primary-tint/20 shadow-2xs transition cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-foreground/70" />
-            Excel
-          </button>
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground bg-card border border-border rounded-xl hover:bg-primary-tint/20 shadow-2xs transition cursor-pointer"
-          >
-            <ColorActionPrint className="w-3.5 h-3.5" />
-            Print
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsNewBookingOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold text-white bg-teal-600 rounded-xl hover:bg-teal-700 shadow-sm transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            Book Reservation
-          </button>
-        </div>
-      </div>
+      {/* 1. Page Header (PMS Standard) */}
+      <PageHeader
+        title="Reservations List"
+        eyebrow="Dining Tables & Banquet Booking Management"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              className="inline-flex items-center gap-1.5 h-9 px-3 text-[12px] font-semibold text-text-primary bg-surface border border-border rounded-lg hover:bg-surface-2 shadow-2xs transition cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 text-text-secondary" />
+              <span>Excel</span>
+            </button>
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 h-9 px-3 text-[12px] font-semibold text-text-primary bg-surface border border-border rounded-lg hover:bg-surface-2 shadow-2xs transition cursor-pointer"
+            >
+              <ColorActionPrint className="w-3.5 h-3.5" />
+              <span>Print</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsNewBookingOpen(true)}
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 text-[12px] font-semibold text-primary-foreground bg-primary rounded-lg hover:bg-primary-pressed shadow-xs transition cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Book Reservation</span>
+            </button>
+          </div>
+        }
+      />
 
       <div className="responsive-page-x py-4 sm:py-5 space-y-4">
+        {/* 2. KPI Metric Cards (PMS Standard) */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard
+            label="Total Bookings"
+            value={String(reservations.length)}
+            accent="brand"
+            subtitle="Recorded dining reservations"
+          />
+          <KpiCard
+            label="Confirmed"
+            value={String(confirmedCount)}
+            accent="info"
+            subtitle="Upcoming guest arrivals"
+          />
+          <KpiCard
+            label="Seated & Dining"
+            value={String(seatedCount)}
+            accent="success"
+            subtitle="Currently occupied at tables"
+          />
+          <KpiCard
+            label="Pending / Cancelled"
+            value={String(pendingOrCancelledCount)}
+            accent="warning"
+            subtitle="Awaiting deposit or released"
+          />
+        </div>
         {/* View Switcher & Filter Toolbar — Aligned in one line */}
         <div className="flex items-center gap-2 bg-card p-2.5 sm:p-3 rounded-xl border border-border shadow-2xs overflow-x-auto scrollbar-none">
           {/* View Mode Buttons */}

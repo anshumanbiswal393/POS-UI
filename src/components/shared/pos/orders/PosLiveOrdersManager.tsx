@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Pencil,
 } from "lucide-react";
+import { PageHeader, KpiCard } from "@/components/ui/Primitives";
 import { ColorActionView } from "@/components/common/ColorActionIcons";
 import {
   useLiveOrders,
@@ -166,134 +167,103 @@ export function PosLiveOrdersManager() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden bg-slate-50/50">
-      {/* 1. TOP HEADER & VIEW SWITCHER - Flush with TopBar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
+      {/* 1. TOP HEADER & VIEW SWITCHER - PMS Standard PageHeader */}
+      <PageHeader
+        title="Current Orders"
+        eyebrow="Live Kitchen & Floor Tracking"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary border border-primary/20">
+              <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
+              Live Feed
+            </span>
 
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8.5 w-8.5 items-center justify-center rounded-lg bg-teal-50 border border-teal-300 text-teal-700">
-            <Timer className="h-4.5 w-4.5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">Current Orders</h1>
-              <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2 py-0.2 text-[10.5px] font-bold text-teal-700 border border-teal-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-teal-600 animate-pulse" />
-                Live Feed
-              </span>
+            <div className="flex items-center rounded-lg border border-border bg-surface p-0.5 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setActiveTab("gantt_timeline")}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer ${
+                  activeTab === "gantt_timeline"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-2"
+                }`}
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+                <span>Gantt Timeline</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("running_orders")}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer ${
+                  activeTab === "running_orders"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-2"
+                }`}
+              >
+                <ListOrdered className="h-3.5 w-3.5" />
+                <span>Summary</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("running_tables")}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer ${
+                  activeTab === "running_tables"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-2"
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span>Tables ({data?.runningTables.length ?? 0})</span>
+              </button>
             </div>
-          </div>
-        </div>
 
-        {/* View Switchers */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center rounded-lg border border-slate-300 bg-slate-100 p-0.5 shadow-2xs">
             <button
               type="button"
-              onClick={() => setActiveTab("gantt_timeline")}
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-[12px] font-bold transition cursor-pointer ${
-                activeTab === "gantt_timeline"
-                  ? "bg-white text-teal-800 shadow-2xs border border-slate-300"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
+              onClick={() => {
+                refetch();
+                refetchTimeline();
+              }}
+              disabled={isFetching}
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-[12px] font-semibold text-text-primary hover:bg-surface-2 shadow-2xs transition cursor-pointer"
             >
-              <BarChart3 className="h-3.5 w-3.5" />
-              <span>Gantt Timeline</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("running_orders")}
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-[12px] font-bold transition cursor-pointer ${
-                activeTab === "running_orders"
-                  ? "bg-white text-teal-800 shadow-2xs border border-slate-300"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <ListOrdered className="h-3.5 w-3.5" />
-              <span>Summary</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("running_tables")}
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-[12px] font-bold transition cursor-pointer ${
-                activeTab === "running_tables"
-                  ? "bg-white text-teal-800 shadow-2xs border border-slate-300"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              <span>Tables ({data?.runningTables.length ?? 0})</span>
+              <RefreshCw
+                className={`h-3.5 w-3.5 text-text-secondary ${isFetching ? "animate-spin text-primary" : ""}`}
+              />
+              <span>{isFetching ? "Syncing..." : "Sync"}</span>
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              refetch();
-              refetchTimeline();
-            }}
-            disabled={isFetching}
-            className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-[12px] font-medium text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
-          >
-            <RefreshCw
-              className={`h-3 w-3 text-slate-500 ${isFetching ? "animate-spin text-teal-600" : ""}`}
-            />
-            <span>{isFetching ? "Syncing..." : "Sync"}</span>
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="responsive-page-x py-4 sm:py-5 space-y-4">
-          {/* 2. KPI METRIC STRIP — Clean Slate & Teal Theme */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Active Orders</span>
-            <span className="h-2 w-2 rounded-full bg-teal-600" />
+          {/* 2. KPI METRIC STRIP — PMS Standard KpiCard Grid */}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <KpiCard
+              label="Active Orders"
+              value={String(running.totalOrders + pending.totalOrders)}
+              accent="brand"
+              subtitle={`${running.totalOrders} Running · ${pending.totalOrders} Pending`}
+            />
+            <KpiCard
+              label="Live Revenue"
+              value={running.totalAmountFormatted}
+              accent="success"
+              subtitle="Synced in POS billing"
+            />
+            <KpiCard
+              label="In Kitchen"
+              value={String(pending.inPreparation.count)}
+              accent="warning"
+              subtitle="Tickets currently cooking"
+            />
+            <KpiCard
+              label="Active Tables"
+              value={String(data?.runningTables.length ?? 0)}
+              accent="info"
+              subtitle="Occupied tables now"
+            />
           </div>
-          <div className="mt-0.5 text-[20px] font-black text-slate-900">
-            {running.totalOrders + pending.totalOrders}
-          </div>
-          <div className="flex items-center gap-1 text-[10.5px] text-slate-500">
-            <span className="font-bold text-teal-700">{running.totalOrders} Running</span>
-            <span>·</span>
-            <span>{pending.totalOrders} Pending</span>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Live Revenue</span>
-            <span className="h-2 w-2 rounded-full bg-teal-600" />
-          </div>
-          <div className="mt-0.5 text-[20px] font-black text-slate-900">
-            {running.totalAmountFormatted}
-          </div>
-          <div className="text-[10.5px] text-teal-700 font-medium">Synced in POS billing</div>
-        </div>
-
-        <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[11px] font-bold uppercase tracking-wider">In Kitchen</span>
-            <ChefHat className="h-3.5 w-3.5 text-slate-600" />
-          </div>
-          <div className="mt-0.5 text-[20px] font-black text-slate-900">
-            {pending.inPreparation.count}
-          </div>
-          <div className="text-[10.5px] text-slate-500">Tickets currently cooking</div>
-        </div>
-
-        <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Active Tables</span>
-            <Utensils className="h-3.5 w-3.5 text-slate-600" />
-          </div>
-          <div className="mt-0.5 text-[20px] font-black text-slate-900">
-            {data?.runningTables.length ?? 0}
-          </div>
-          <div className="text-[10.5px] text-teal-700 font-medium">Occupied tables now</div>
-        </div>
-      </div>
 
       {/* VIEW 1: GANTT CHART & ORDER STATUS TIMELINE */}
       {activeTab === "gantt_timeline" && (

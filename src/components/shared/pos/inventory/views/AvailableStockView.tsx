@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useStockItems } from "@/hooks/queries/usePosInventory";
+import { KpiCard } from "@/components/ui/Primitives";
 import {
   DataTableHeader,
   type DataTableColumn,
@@ -56,38 +57,41 @@ export function AvailableStockView() {
     [],
   );
 
+  const items = stockItems ?? [];
+  const inStockCount = items.filter((i) => (i.availableStock || 0) > 0).length;
+  const lowStockCount = items.filter(
+    (i) => (i.availableStock || 0) <= (i.alertQuantity || 5) && (i.availableStock || 0) > 0,
+  ).length;
+  const zeroStockCount = items.filter((i) => (i.availableStock || 0) <= 0).length;
+
   return (
     <div className="space-y-4">
-      {/* 1. Top Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">Available Stock</h2>
-
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <input
-              type="date"
-              max={new Date().toISOString().slice(0, 10)}
-              value={selectedDate}
-              onChange={(e) => {
-                const val = e.target.value;
-                const todayIso = new Date().toISOString().slice(0, 10);
-                if (val && val > todayIso) return;
-                setSelectedDate(val);
-              }}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Tabs */}
-      <div className="flex border-b border-slate-200">
-        <button
-          type="button"
-          className="px-5 py-2 text-[13px] font-bold border-b-2 border-teal-600 text-teal-600"
-        >
-          Available Stock List
-        </button>
+      {/* KPI Cards (PMS Standard) */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiCard
+          label="Tracked Materials"
+          value={String(items.length)}
+          accent="brand"
+          subtitle="Active stock catalog"
+        />
+        <KpiCard
+          label="In Stock"
+          value={String(inStockCount)}
+          accent="success"
+          subtitle="Available for consumption"
+        />
+        <KpiCard
+          label="Low Stock Alert"
+          value={String(lowStockCount)}
+          accent="warning"
+          subtitle="Near reorder par level"
+        />
+        <KpiCard
+          label="Zero Stock"
+          value={String(zeroStockCount)}
+          accent="error"
+          subtitle="Requires purchase order"
+        />
       </div>
 
       {/* Manual Available Stock Table */}

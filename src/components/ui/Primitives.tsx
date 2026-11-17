@@ -5,21 +5,28 @@ export function PageHeader({
   description,
   actions,
   eyebrow,
+  className,
 }: {
   title: string;
   description?: string;
   actions?: React.ReactNode;
   eyebrow?: string;
+  className?: string;
 }) {
   return (
-    <div className="flex flex-col items-start justify-between gap-3 border-b border-primary/20 bg-gradient-to-r from-primary-tint/40 via-primary/5 to-surface px-4 py-3.5 shadow-xs sm:flex-row sm:items-end sm:gap-4 sm:px-6 sm:py-4">
+    <div
+      className={cn(
+        "flex flex-col items-start justify-between gap-2.5 border-b border-primary/20 bg-gradient-to-r from-primary-tint/40 via-primary/5 to-surface px-4 py-3.5 sm:flex-row sm:items-center sm:gap-4 sm:px-6 sm:py-4 shadow-xs",
+        className,
+      )}
+    >
       <div className="min-w-0">
         {eyebrow && (
           <div className="mb-0.5 text-[11px] font-bold uppercase tracking-wider text-primary">
             {eyebrow}
           </div>
         )}
-        <h1 className="text-[20px] font-bold leading-tight text-text-primary sm:text-[22px]">
+        <h1 className="font-sans text-[20px] font-bold leading-tight text-text-primary sm:text-[22px] tracking-tight">
           {title}
         </h1>
         {description && (
@@ -29,7 +36,7 @@ export function PageHeader({
         )}
       </div>
       {actions ? (
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap [&>*]:flex-1 sm:[&>*]:flex-none">
+        <div className="flex flex-wrap items-center gap-2 max-w-full">
           {actions}
         </div>
       ) : null}
@@ -98,46 +105,82 @@ export function StatusBadge({
 
 export function KpiCard({
   label,
+  title,
   value,
   delta,
+  subtitle,
+  icon,
   deltaTone = "success",
   accent = "brand",
   suffix,
+  className,
 }: {
-  label: string;
-  value: string;
+  label?: string;
+  title?: string;
+  value: string | number;
   delta?: string;
-  deltaTone?: "success" | "error" | "neutral";
+  subtitle?: string;
+  icon?: React.ReactNode;
+  deltaTone?: "success" | "error" | "neutral" | "warning" | "info";
   accent?: "brand" | "info" | "success" | "warning" | "error";
   suffix?: string;
+  className?: string;
 }) {
   const accentColor = {
-    brand: "var(--color-primary)",
-    info: "var(--color-info)",
-    success: "var(--color-success)",
-    warning: "var(--color-warning)",
-    error: "var(--color-error)",
+    brand: "var(--color-primary, #006a4e)",
+    info: "var(--color-info, #2563eb)",
+    success: "var(--color-success, #16a34a)",
+    warning: "var(--color-warning, #d97706)",
+    error: "var(--color-error, #dc2626)",
   }[accent];
+  const displayLabel = label || title || "";
+  const displaySubtitle = delta || subtitle;
   const deltaCls =
     deltaTone === "success"
-      ? "text-[var(--color-success)]"
+      ? "text-emerald-700 dark:text-emerald-400 font-medium"
       : deltaTone === "error"
-        ? "text-[var(--color-error)]"
-        : "text-text-secondary";
+        ? "text-rose-700 dark:text-rose-400 font-medium"
+        : deltaTone === "warning"
+          ? "text-amber-700 dark:text-amber-400 font-medium"
+          : deltaTone === "info"
+            ? "text-sky-700 dark:text-sky-400 font-medium"
+            : "text-slate-600 dark:text-slate-400 font-medium";
   return (
-    <div className="relative rounded-lg border border-border bg-surface px-4 py-3.5 shadow-e1 transition hover:shadow-e2 sm:px-5 sm:py-4">
+    <div
+      className={cn(
+        "relative rounded-xl border border-border bg-surface p-4 sm:p-5 shadow-e1 transition hover:shadow-e2",
+        className,
+      )}
+    >
       <div
-        className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r"
+        className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r"
         style={{ background: accentColor }}
       />
-      <div className="label-uppercase">{label}</div>
-      <div className="mt-1.5 flex items-baseline gap-1">
+      <div className="flex items-center justify-between gap-2">
+        <div className="label-uppercase text-[11px] font-bold tracking-wider text-text-secondary">
+          {displayLabel}
+        </div>
+        {icon && (
+          <div className="p-1.5 rounded-lg bg-surface-2 text-text-primary">
+            {icon}
+          </div>
+        )}
+      </div>
+      <div className="mt-2.5 flex items-baseline gap-1">
         <span className="font-mono text-[24px] font-bold leading-none tracking-tight text-text-primary sm:text-[28px]">
           {value}
         </span>
-        {suffix && <span className="text-[12px] text-text-secondary">{suffix}</span>}
+        {suffix && (
+          <span className="text-[14px] font-semibold text-text-secondary">
+            {suffix}
+          </span>
+        )}
       </div>
-      {delta && <div className={cn("mt-2 text-[11px] font-medium", deltaCls)}>{delta}</div>}
+      {displaySubtitle && (
+        <div className={cn("mt-1.5 text-[11.5px] leading-tight", deltaCls)}>
+          {displaySubtitle}
+        </div>
+      )}
     </div>
   );
 }

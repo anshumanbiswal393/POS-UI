@@ -29,6 +29,7 @@ import { exportToExcel } from "@/utils/exportUtils";
 import { openPrintReportTable } from "@/utils/printReportTable";
 import { toast } from "sonner";
 import { ColorActionPrint } from "@/components/common/ColorActionIcons";
+import { PageHeader, KpiCard } from "@/components/ui/Primitives";
 import { cn } from "@/lib/utils";
 import { fuzzyFilter } from "@/utils/fuzzySearch";
 import { formatDateIndian } from "@/utils/dateUtils";
@@ -588,46 +589,65 @@ export function PosDueSettlementManager() {
     );
   }
 
+  const advanceCollected = useMemo(() => {
+    return dueBills.reduce((acc, b) => acc + (b.paidAmount || 0), 0);
+  }, [dueBills]);
+
+  const partiallyPaidCount = useMemo(() => {
+    return dueBills.filter((b) => (b.paidAmount || 0) > 0).length;
+  }, [dueBills]);
+
   return (
     <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50 pb-8">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-border shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8.5 w-8.5 items-center justify-center rounded-lg bg-teal-50 border border-teal-300 text-teal-700">
-            <CreditCard className="h-4.5 w-4.5" />
+      {/* 1. Page Header (PMS Standard) */}
+      <PageHeader
+        title="Pending Payments"
+        eyebrow="Due Collections & Settlement"
+        actions={
+          <div className="flex items-center gap-2">
+            <ExportToExcelButton onClick={handleExportExcel} />
+            <button
+              type="button"
+              onClick={handlePrintReport}
+              disabled={filteredRecords.length === 0}
+              className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border bg-surface text-[12.5px] font-semibold text-text-primary hover:bg-surface-2 transition cursor-pointer shadow-2xs disabled:opacity-50"
+              title="Print Pending Payments Report"
+            >
+              <ColorActionPrint className="h-3.5 w-3.5 shrink-0" />
+              <span>Print</span>
+            </button>
           </div>
-          <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">Pending Payments</h1>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg border border-border bg-slate-50 text-slate-900 text-xs font-bold shadow-2xs">
-                <span className="text-slate-600">Open Dues:</span>
-                <span className="font-extrabold text-teal-800">₹ {totalOpenDues.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-teal-700 px-1 text-[10px] font-bold text-white">
-                  {dueBills.length}
-                </span>
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500">
-              Settle open bills · paid orders move to Order History
-            </p>
-          </div>
-        </div>
+        }
+      />
 
-        <div className="flex items-center gap-2">
-          <ExportToExcelButton onClick={handleExportExcel} />
-          <button
-            type="button"
-            onClick={handlePrintReport}
-            disabled={filteredRecords.length === 0}
-            className="flex items-center gap-1.5 h-8.5 px-3 rounded-lg border border-border bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs disabled:opacity-50"
-            title="Print Pending Payments Report"
-          >
-            <ColorActionPrint className="h-3.5 w-3.5 shrink-0" />
-            <span>Print</span>
-          </button>
+      <div className="responsive-page-x py-4 sm:py-5 space-y-4">
+        {/* 2. KPI Metric Cards (PMS Standard) */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard
+            label="Open Dues"
+            value={`₹${totalOpenDues.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            accent="brand"
+            subtitle={`${dueBills.length} pending checks`}
+          />
+          <KpiCard
+            label="Pending Bills"
+            value={String(dueBills.length)}
+            accent="warning"
+            subtitle="Awaiting full settlement"
+          />
+          <KpiCard
+            label="Partial Paid"
+            value={String(partiallyPaidCount)}
+            accent="info"
+            subtitle="Advance deposit credited"
+          />
+          <KpiCard
+            label="Advance Collected"
+            value={`₹${advanceCollected.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            accent="success"
+            subtitle="Secured against orders"
+          />
         </div>
-      </div>
-
-      <div className="responsive-page-x py-3 sm:py-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div className="relative w-full sm:w-auto sm:min-w-[280px] flex-1">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
