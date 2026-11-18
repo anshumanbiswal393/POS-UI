@@ -32,6 +32,10 @@ describe("PMS Cards & TopBar Standardization in POS", () => {
     expect(content).toContain('if (pathname.includes("/inventory/production")) return "Daily Kitchen Prep";');
     expect(content).toContain('if (pathname.includes("/inventory/wastage")) return "Stock Wastage";');
     expect(content).toContain('if (pathname.includes("/inventory/available-stock")) return "Available Stock";');
+
+    // Star icon / Upgrade plan removed from user profile dropdown
+    expect(content).not.toContain("<Sparkles");
+    expect(content).not.toContain("Upgrade plan");
   });
 
   it("Current Orders and KOT use standardized PageHeader and KpiCards", () => {

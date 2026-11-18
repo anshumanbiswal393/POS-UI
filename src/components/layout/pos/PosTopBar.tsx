@@ -15,7 +15,6 @@ import {
   Search,
   ScrollText,
   ShieldCheck,
-  Sparkles,
   Plus,
   Settings,
   ChefHat,
@@ -480,15 +479,6 @@ export function PosTopBar({
                 </div>
               )}
             </div>
-            {!isKitchen && (
-              <DropdownMenuItem
-                onClick={() => navigate({ to: "/pos/settings" })}
-                className="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium"
-              >
-                <Sparkles className="h-4 w-4 text-amber-500" />
-                <span>Upgrade plan</span>
-              </DropdownMenuItem>
-            )}
             <DropdownMenuItem
               onClick={() => navigate({ to: "/pos/settings" })}
               className="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium"
