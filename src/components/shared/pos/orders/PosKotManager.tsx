@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { ChefHat, Clock, CheckCircle2, Flame, Printer, History, UtensilsCrossed } from "lucide-react";
+import { ChefHat, Clock, CheckCircle2, Flame, Printer, History, UtensilsCrossed, RefreshCw } from "lucide-react";
 import { useKotOrders, useMarkKotPreparedMutation } from "@/hooks/queries/usePosOrders";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -82,13 +82,17 @@ export function PosKotManager() {
     return () => clearInterval(timer);
   }, []);
 
-  const { data: kotData, refetch } = useKotOrders();
+  const { data: kotData, refetch, isFetching } = useKotOrders();
   const markPreparedMutation = useMarkKotPreparedMutation();
 
-  useEffect(() => {
-    const id = setInterval(() => refetch(), 4000);
-    return () => clearInterval(id);
-  }, [refetch]);
+  const handleManualSync = async () => {
+    try {
+      await refetch();
+      toast.success("Kitchen orders refreshed");
+    } catch {
+      toast.error("Failed to refresh kitchen orders");
+    }
+  };
 
   // Kitchen queue: Ready removes the ticket immediately (and from the API cook queue)
   const tickets: KdsTicket[] = useMemo(() => {
@@ -223,6 +227,17 @@ export function PosKotManager() {
                 <span>Kitchen History</span>
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={handleManualSync}
+              disabled={isFetching}
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[12px] font-semibold text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer shadow-2xs disabled:opacity-50"
+              title="Refresh kitchen orders"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
+              <span>Sync</span>
+            </button>
           </div>
         }
       />

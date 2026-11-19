@@ -148,7 +148,7 @@ export const useAIRevenueDashboardQuery = () =>
   useQuery({
     queryKey: dataKeys.aiRevenueDashboard,
     queryFn: fetchAIRevenueDashboard,
-    refetchInterval: 15000,
+    staleTime: 5 * 60 * 1000,
   });
 export const useMealPlansQuery = () =>
   useQuery({ queryKey: dataKeys.mealPlans, queryFn: fetchMealPlans });

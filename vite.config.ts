@@ -49,6 +49,41 @@ export default defineConfig(async ({ command }) => {
         "@tanstack/query-core",
       ],
     },
+    build: {
+      chunkSizeWarningLimit: 800,
+      rollupOptions: {
+        output: {
+          manualChunks(id: string) {
+            if (id.includes("node_modules")) {
+              if (
+                id.includes("react") ||
+                id.includes("scheduler") ||
+                id.includes("@tanstack")
+              ) {
+                return "vendor-core";
+              }
+              if (id.includes("recharts") || id.includes("d3")) {
+                return "vendor-charts";
+              }
+              if (id.includes("lucide-react")) {
+                return "vendor-icons";
+              }
+              if (id.includes("xlsx")) {
+                return "vendor-xlsx";
+              }
+              if (
+                id.includes("@radix-ui") ||
+                id.includes("class-variance-authority") ||
+                id.includes("clsx") ||
+                id.includes("tailwind-merge")
+              ) {
+                return "vendor-ui";
+              }
+            }
+          },
+        },
+      },
+    },
     plugins,
   };
 });
