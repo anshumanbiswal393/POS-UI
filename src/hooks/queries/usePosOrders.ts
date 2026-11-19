@@ -44,8 +44,7 @@ export function useLiveOrders() {
     queryKey: ["pos", "orders", "live", outletId],
     queryFn: () => getLiveOrdersSummary(outletId),
     initialData: live ? undefined : () => getInitialLiveOrdersData(),
-    staleTime: 3000,
-    refetchInterval: 5000,
+    staleTime: 60 * 1000,
   });
 }
 
@@ -56,8 +55,7 @@ export function useCurrentOrdersTimeline() {
     queryKey: ["pos", "orders", "current-timeline", outletId],
     queryFn: async (): Promise<CurrentOrderRecord[]> => getCurrentOrdersTimeline(outletId),
     initialData: live ? undefined : [],
-    staleTime: 3000,
-    refetchInterval: 5000,
+    staleTime: 60 * 1000,
   });
 }
 
@@ -80,8 +78,7 @@ export function useAllOrders(filters?: Record<string, any>) {
     queryKey: ["pos", "orders", "all", outletId, filters],
     queryFn: () => getAllOrders(filters, outletId),
     initialData: live ? undefined : () => getInitialAllOrdersData(),
-    staleTime: 3000,
-    refetchInterval: 5000,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -90,8 +87,7 @@ export function useOnlineOrders(filters?: Record<string, any>) {
     queryKey: ["pos", "orders", "online", filters],
     queryFn: () => getOnlineOrders(filters),
     initialData: () => getInitialOnlineOrdersData(),
-    staleTime: 3000,
-    refetchInterval: 5000,
+    staleTime: 60 * 1000,
   });
 }
 
@@ -102,8 +98,7 @@ export function useKotOrders(filters?: Record<string, any>) {
     queryKey: ["pos", "orders", "kot", outletId, filters],
     queryFn: () => getKotOrders(filters, outletId),
     initialData: live ? undefined : () => getInitialKotData(),
-    staleTime: 3000,
-    refetchInterval: 5000,
+    staleTime: 60 * 1000,
   });
 }
 
@@ -113,8 +108,7 @@ export function useDueBills() {
     queryKey: ["pos", "orders", "due-bills", outletId],
     queryFn: () => getDueBills(outletId),
     enabled: Boolean(outletId),
-    staleTime: 3000,
-    refetchInterval: 5000,
+    staleTime: 60 * 1000,
     refetchOnMount: "always",
     retry: 2,
   });
