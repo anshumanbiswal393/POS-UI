@@ -61,9 +61,12 @@ export function CreatePurchaseModal({ isOpen, onClose }: { isOpen: boolean; onCl
       return;
     }
 
+    const matchedVendor = vendors?.find((v) => v.name.toLowerCase() === vendorName.toLowerCase());
+
     createMutation.mutate(
       {
         invoiceNo: invoiceNo.trim(),
+        vendorId: matchedVendor?.id || null,
         vendorName,
         purchaseDate: new Date().toLocaleDateString("en-GB", {
           day: "numeric",
@@ -71,7 +74,6 @@ export function CreatePurchaseModal({ isOpen, onClose }: { isOpen: boolean; onCl
           year: "numeric",
         }),
         invoiceDate,
-        subtotal,
         discountAmount: discount,
         taxableAmount,
         totalAmount: total,

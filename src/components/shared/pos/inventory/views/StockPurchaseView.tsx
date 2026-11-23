@@ -620,7 +620,10 @@ export function StockPurchaseView({
             ? 0
             : parseFloat(formPaidAmount) || 0;
 
+      const matchedVendor = vendors.find((v) => v.name.toLowerCase() === formVendor.toLowerCase());
+
       const payload = {
+        vendorId: matchedVendor?.id || null,
         vendorName: formVendor,
         invoiceNo: formInvoiceNo.trim(),
         invoiceDate: formInvoiceDate,

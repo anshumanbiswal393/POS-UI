@@ -238,10 +238,13 @@ export function RawMaterialsManagementView() {
             (s) => s.name.toLowerCase() === finalSubCategory.toLowerCase(),
           );
         if (!existingCat || (finalSubCategory && !hasSub)) {
-          const nextSubs = [...existingSubs];
+          const nextSubs = existingSubs.map((s, idx) => ({
+            ...s,
+            id: s.id || `sub-${existingCat?.id || "cat"}-${idx}-${(s.name || "").replace(/\s+/g, "-")}`,
+          }));
           if (finalSubCategory && !hasSub) {
             nextSubs.push({
-              id: `sub-${Date.now()}`,
+              id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
               name: finalSubCategory,
               unit: unit || "Kg",
             });
@@ -316,7 +319,7 @@ export function RawMaterialsManagementView() {
     code: skuItem.sku || skuItem.code || skuItem.id,
     name: skuItem.rawMaterial || skuItem.name || "",
     category: skuItem.category || "General",
-    subCategory: skuItem.subCategory || "",
+    subCategory: (skuItem.subCategory || (skuItem as any).sub_category || "").trim(),
     unit: skuItem.unit || "Kg",
     availableStock: skuItem.availableStock ?? skuItem.quantityOnHand ?? (skuItem as any).quantity_on_hand ?? skuItem.closingStock ?? 0,
     alertQuantity: skuItem.alertQuantity ?? skuItem.reorderLevel ?? skuItem.minThreshold ?? 5,
@@ -334,7 +337,12 @@ export function RawMaterialsManagementView() {
         map.set(c.name.trim().toLowerCase(), {
           id: c.id,
           name: c.name.trim(),
-          subCategories: c.subCategories ? [...c.subCategories] : [],
+          subCategories: c.subCategories
+            ? c.subCategories.map((s, idx) => ({
+                ...s,
+                id: s.id || `sub-${c.id || "cat"}-${idx}-${(s.name || "").replace(/\s+/g, "-")}`,
+              }))
+            : [],
         });
       }
     }
@@ -350,11 +358,11 @@ export function RawMaterialsManagementView() {
         });
       }
       const target = map.get(key)!;
-      const rawSub = (it.subCategory || "").trim();
+      const rawSub = (it.subCategory || (it as any).sub_category || "").trim();
       if (rawSub && target.subCategories) {
         if (!target.subCategories.some((s) => s.name.toLowerCase() === rawSub.toLowerCase())) {
           target.subCategories.push({
-            id: `sub-${target.subCategories.length}`,
+            id: `sub-${target.id || key}-${target.subCategories.length}-${rawSub.replace(/\s+/g, "-")}`,
             name: rawSub,
             unit: it.unit || "Kg",
           });

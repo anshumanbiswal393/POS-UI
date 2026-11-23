@@ -64,8 +64,10 @@ export const DEFAULT_VENDORS: PurchaseVendor[] = [];
 
 export const DEFAULT_PURCHASES: UnifiedPurchaseDto[] = [];
 
+let inMemoryPurchases: UnifiedPurchaseDto[] = [];
+
 function getStoredPurchases(): UnifiedPurchaseDto[] {
-  if (typeof window === "undefined") return DEFAULT_PURCHASES;
+  if (typeof window === "undefined") return inMemoryPurchases.length > 0 ? inMemoryPurchases : DEFAULT_PURCHASES;
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_PURCHASES_KEY);
     if (raw) {
@@ -75,10 +77,11 @@ function getStoredPurchases(): UnifiedPurchaseDto[] {
   } catch (err) {
     console.error("Failed to read purchases from localStorage", err);
   }
-  return DEFAULT_PURCHASES;
+  return inMemoryPurchases.length > 0 ? inMemoryPurchases : DEFAULT_PURCHASES;
 }
 
 function saveStoredPurchases(items: UnifiedPurchaseDto[]) {
+  inMemoryPurchases = items;
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(LOCAL_STORAGE_PURCHASES_KEY, JSON.stringify(items));
@@ -213,8 +216,12 @@ export const posPurchasesService = {
         { params: { ...params, outlet_id: params?.outletId } },
       );
       if (res?.data?.purchases && res.data.purchases.length > 0) {
-        saveStoredPurchases(res.data.purchases);
-        return res.data.purchases;
+        const mapped = res.data.purchases.map((p: any) => ({
+          ...p,
+          vendorId: p.vendorId ?? p.vendor_id ?? p.vendor ?? null,
+        }));
+        saveStoredPurchases(mapped);
+        return mapped;
       }
     } catch {
       // Fallback
@@ -271,6 +278,7 @@ export const posPurchasesService = {
   },
 
   async createPurchase(payload: {
+    vendorId?: string | null;
     vendorName: string;
     invoiceNo?: string;
     invoiceDate?: string;
@@ -287,12 +295,20 @@ export const posPurchasesService = {
       try {
         const res = await httpClient.post<UnifiedPurchaseDto>(
           "/api/pos/stock/purchases/",
-          payload,
+          {
+            ...payload,
+            vendorId: payload.vendorId ?? (payload as any).vendor_id ?? null,
+            vendor_id: payload.vendorId ?? (payload as any).vendor_id ?? null,
+          },
           { params: { outlet_id: payload.outletId } },
         );
         if (res?.data) {
+          const purchaseWithVendorId: UnifiedPurchaseDto = {
+            ...res.data,
+            vendorId: res.data.vendorId ?? (res.data as any).vendor_id ?? payload.vendorId ?? null,
+          };
           const stored = getStoredPurchases();
-          const updated = [res.data, ...stored];
+          const updated = [purchaseWithVendorId, ...stored];
           saveStoredPurchases(updated);
           for (const line of payload.items || []) {
             if (line.stockItemId) {
@@ -306,7 +322,7 @@ export const posPurchasesService = {
               );
             }
           }
-          return res.data;
+          return purchaseWithVendorId;
         }
       } catch {
         // Fall through to local ledger
@@ -347,6 +363,7 @@ export const posPurchasesService = {
     const newPurchase: UnifiedPurchaseDto = {
       id: `PUR-${Date.now()}`,
       invoiceNo,
+      vendorId: payload.vendorId ?? (payload as any).vendor_id ?? null,
       vendorName: payload.vendorName,
       purchaseDate: dateStr,
       invoiceDate: dateStr,

@@ -51,11 +51,12 @@ interface RecipeRow {
 const DEMO_RECIPES: RecipeRow[] = [];
 
 function mapRecipe(r: any): RecipeRow {
+  const dishName = r.menuItem || r.name || r.menuItemName || "Unnamed Dish";
   return {
     id: r.id,
-    name: r.name || r.menuItemName || r.menuItem || "Unnamed Recipe",
+    name: r.menuItem || r.name || r.menuItemName || "Unnamed Recipe",
     category: r.category || "Main Course",
-    menuItem: r.menuItemName || r.menuItem || r.name,
+    menuItem: dishName,
     yieldQty: String(r.yieldQty ?? "1"),
     yieldUnit: r.yieldUnit || "portion",
     prepTimeMinutes: String(r.prepTimeMinutes ?? "15"),
@@ -63,7 +64,7 @@ function mapRecipe(r: any): RecipeRow {
     ingredients: (r.ingredients || []).map((ing: any, idx: number) => ({
       id: ing.id || `ing-${idx}-${ing.stockItemId}`,
       stockItemId: ing.stockItemId,
-      name: ing.stockItemName || ing.name || "",
+      name: ing.name || ing.stockItemName || ing.stock_item_name || "",
       quantity: String(ing.quantity || 0),
       unit: ing.unit || "Kg",
     })),

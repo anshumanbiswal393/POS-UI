@@ -69,7 +69,7 @@ export function extractCategoriesFromStock(
       });
     }
     const target = map.get(key)!;
-    const rawSub = (it.subCategory || it.sub_category || "").trim();
+    const rawSub = (it.subCategory || (it as any).sub_category || "").trim();
     if (rawSub) {
       const subExists = target.subCategories.some(
         (s) => s.name.trim().toLowerCase() === rawSub.toLowerCase(),
@@ -185,8 +185,9 @@ function mapStock(raw: Partial<StockItem> & { id: string }): StockItem {
     ...raw,
     rawMaterial: name,
     name,
-    category: raw.category || "",
-    subCategory: raw.subCategory || (raw as any).sub_category || "",
+    category: (raw.category || "").trim(),
+    subCategory: (raw.subCategory || (raw as any).sub_category || "").trim(),
+    sub_category: (raw.subCategory || (raw as any).sub_category || "").trim(),
     unit: raw.unit || "Kg",
     availableStock: qty,
     closingStock: raw.closingStock ?? qty,
@@ -233,7 +234,11 @@ export const posInventoryService = {
           "/api/pos/stock/purchases/",
           { params: scopeParams(outletId) },
         );
-        return res.data.purchases || [];
+        const purchases = res.data.purchases || [];
+        return purchases.map((p: any) => ({
+          ...p,
+          vendorId: p.vendorId ?? p.vendor_id ?? p.vendor ?? null,
+        }));
       } catch {
         return [];
       }
@@ -245,9 +250,17 @@ export const posInventoryService = {
     outletId?: string,
   ): Promise<StockPurchaseRecord> => {
     if (isBackendOutletId(outletId)) {
-      const res = await httpClient.post<StockPurchaseRecord>("/api/pos/stock/purchases/", data, {
-        params: scopeParams(outletId),
-      });
+      const res = await httpClient.post<StockPurchaseRecord>(
+        "/api/pos/stock/purchases/",
+        {
+          ...data,
+          vendorId: data.vendorId ?? (data as any).vendor_id ?? null,
+          vendor_id: data.vendorId ?? (data as any).vendor_id ?? null,
+        },
+        {
+          params: scopeParams(outletId),
+        },
+      );
       for (const line of data.items || []) {
         if (!line.stockItemId) continue;
         await posInventoryService.adjustStock(
@@ -259,9 +272,16 @@ export const posInventoryService = {
           { unitCost: line.unitPrice },
         );
       }
-      return res.data;
+      return {
+        ...res.data,
+        vendorId: res.data?.vendorId ?? (res.data as any)?.vendor_id ?? data.vendorId ?? null,
+      };
     }
-    const newPurchase: StockPurchaseRecord = { ...data, id: `pur-${Date.now()}` };
+    const newPurchase: StockPurchaseRecord = {
+      ...data,
+      id: `pur-${Date.now()}`,
+      vendorId: data.vendorId ?? (data as any).vendor_id ?? null,
+    };
     purchasesStore = [newPurchase, ...purchasesStore];
     for (const line of data.items || []) {
       if (!line.stockItemId) continue;
@@ -551,8 +571,9 @@ export const posInventoryService = {
             code: skuCode,
             name: data.name || data.rawMaterial,
             rawMaterial: data.rawMaterial || data.name,
-            category: data.category,
-            subCategory: data.subCategory,
+            category: data.category?.trim() || "",
+            subCategory: (data.subCategory || (data as any).sub_category || "").trim(),
+            sub_category: (data.subCategory || (data as any).sub_category || "").trim(),
             unit: data.unit,
             availableStock: data.availableStock,
             parLevel: data.parLevel,
@@ -575,8 +596,9 @@ export const posInventoryService = {
           code: skuCode,
           name: data.name || data.rawMaterial,
           rawMaterial: data.rawMaterial || data.name,
-          category: data.category,
-          subCategory: data.subCategory,
+          category: data.category?.trim() || "",
+          subCategory: (data.subCategory || (data as any).sub_category || "").trim(),
+          sub_category: (data.subCategory || (data as any).sub_category || "").trim(),
           unit: data.unit,
           availableStock: data.availableStock,
           parLevel: data.parLevel,
@@ -603,8 +625,9 @@ export const posInventoryService = {
       sku: skuCode,
       rawMaterial: data.rawMaterial || data.name || "",
       name: data.name || data.rawMaterial || "",
-      category: data.category || "",
-      subCategory: data.subCategory || "",
+      category: data.category?.trim() || "",
+      subCategory: (data.subCategory || (data as any).sub_category || "").trim(),
+      sub_category: (data.subCategory || (data as any).sub_category || "").trim(),
       unit: data.unit || "Kg",
       availableStock: qty,
       closingStock: qty,

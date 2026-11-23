@@ -25,6 +25,7 @@ interface NewReservationModalProps {
   tables?: RestaurantTable[];
   preselectedTableId?: string;
   onSaveReservation?: (data: Omit<ReservationItem, "id" | "createdAt" | "status">) => void;
+  onSuccess?: () => void;
 }
 
 const PAX_PRESETS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16] as const;
@@ -74,6 +75,7 @@ export function NewReservationModal({
   tables = [],
   preselectedTableId,
   onSaveReservation,
+  onSuccess,
 }: NewReservationModalProps) {
   const safeTables = useMemo(() => (Array.isArray(tables) ? tables : []), [tables]);
 
@@ -307,6 +309,7 @@ export function NewReservationModal({
     setDepositAmountStr("0");
     setPaymentMode("UPI");
     setIsPaymentDone(false);
+    onSuccess?.();
     onClose();
   }
 

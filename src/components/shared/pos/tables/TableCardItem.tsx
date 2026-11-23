@@ -135,7 +135,7 @@ export function TableCardItem({
       <div className="flex items-start justify-between px-3.5 pt-2.5 pb-0.5 shrink-0">
         <div className="min-w-0 pr-2">
           <h3 className="text-[13px] font-bold text-slate-900 tracking-tight leading-snug truncate">
-            {tableNumber}
+            {tableNumber || activeOrder?.tableNumber || "Table"}
           </h3>
           <div className="flex items-center gap-1 text-[10.5px] font-medium text-slate-500 mt-0.5">
             <Users className="w-3 h-3 text-slate-400 shrink-0" />

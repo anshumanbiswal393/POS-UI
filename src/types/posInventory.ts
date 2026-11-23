@@ -10,6 +10,7 @@ export type StockPurchaseLine = {
 export type StockPurchaseRecord = {
   id: string;
   invoiceNo: string;
+  vendorId?: string | null;
   vendorName: string;
   purchaseDate: string;
   invoiceDate: string;

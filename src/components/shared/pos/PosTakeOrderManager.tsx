@@ -636,6 +636,7 @@ export function PosTakeOrderManager() {
         tables={allTables}
         preselectedTableId={bookingTableId}
         onSaveReservation={(data) => addReservationMutation.mutate(data)}
+        onSuccess={() => setIsNewReservationOpen(false)}
       />
 
       {/* 6. Room Order Detail Slide */}

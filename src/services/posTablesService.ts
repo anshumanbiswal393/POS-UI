@@ -284,12 +284,13 @@ function mapApiTable(dto: Record<string, any>, areaName?: string): RestaurantTab
   };
 
   const label = String(dto.table_number || raw);
+  const formattedTableNumber = label.toLowerCase().startsWith("table") ? label : `Table #${label}`;
 
   return {
 
     id: String(dto.id),
 
-    tableNumber: label.toLowerCase().startsWith("table") ? label : `Table #${label}`,
+    tableNumber: formattedTableNumber,
 
     tableNumberRaw: raw,
 
@@ -310,6 +311,8 @@ function mapApiTable(dto: Record<string, any>, areaName?: string): RestaurantTab
           orderId: String(dto.active_order_id),
 
           orderNumber: "",
+
+          tableNumber: formattedTableNumber,
 
           serverName: dto.active_waiter_name || "Captain",
 
@@ -882,6 +885,7 @@ export const posTablesService = {
                 activeOrder: {
                   orderId: matched.id,
                   orderNumber: matched.orderNumber,
+                  tableNumber: tbl.tableNumber,
                   serverName: matched.waiterName || tbl.activeOrder?.serverName || "Captain",
                   seatedAt: matched.startTime || "",
                   elapsedMinutes: Math.max(1, matched.elapsedMinutes || 0),
@@ -952,6 +956,7 @@ export const posTablesService = {
                 : {
                     orderId: `ord-${tbl.id}`,
                     orderNumber: `ORD-${tbl.tableNumberRaw || 1}`,
+                    tableNumber: tbl.tableNumber,
                     serverName: "Captain Jack",
                     seatedAt: matchedRes.reservationTime || "12:00 PM",
                     elapsedMinutes: 1,
