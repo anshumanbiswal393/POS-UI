@@ -114,5 +114,19 @@ describe("POS Navigation - Stock Reports placement", () => {
       to: "/pos/inventory/production",
     });
   });
+
+  it("removes Purchase Returns from sidebar and maps Purchases directly to /pos/inventory/purchase", () => {
+    const stockSection = POS_NAV_ITEMS.find((item) => item.id === "inventory");
+    expect(stockSection).toBeDefined();
+
+    const stockChildren = stockSection?.children || [];
+    const purchaseReturns = stockChildren.find((c) => c.id === "purchase-return" || c.label === "Purchase Returns");
+    expect(purchaseReturns).toBeUndefined();
+
+    const purchasesItem = stockChildren.find((c) => c.id === "purchase-group" || c.id === "stock-purchase");
+    expect(purchasesItem).toBeDefined();
+    expect(purchasesItem?.to).toBe("/pos/inventory/purchase");
+    expect(purchasesItem?.children).toBeUndefined();
+  });
 });
 

@@ -709,54 +709,54 @@ export function StockPurchaseView({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Page Header (PMS Standard) */}
+    <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-background">
+      {/* Page Header (PMS Standard) attached directly to top nav */}
       <PageHeader
         title={activeTab === "returns" ? "Purchase Returns" : "Purchase Entry"}
         eyebrow="Stock & Raw Materials Procurement"
+        titleExtra={
+          <div className="flex items-center rounded-lg border border-border bg-surface p-0.5 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setActiveTab("purchases")}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer",
+                activeTab === "purchases"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-text-secondary hover:text-text-primary hover:bg-surface-2",
+              )}
+            >
+              <ShoppingCart className="h-3.5 w-3.5" />
+              <span>Purchases</span>
+              <span
+                className={cn(
+                  "px-1.5 py-0.2 rounded-full text-[10px] font-bold ml-0.5",
+                  activeTab === "purchases"
+                    ? "bg-white/20 text-white"
+                    : "bg-surface-2 text-text-primary",
+                )}
+              >
+                {purchases.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("returns")}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer",
+                activeTab === "returns"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-text-secondary hover:text-text-primary hover:bg-surface-2",
+              )}
+            >
+              <PackageCheck className="h-3.5 w-3.5" />
+              <span>Purchase Returns</span>
+            </button>
+          </div>
+        }
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            {/* Tab Switcher: Purchases vs Purchase Returns */}
-            <div className="flex items-center rounded-lg border border-border bg-surface p-0.5 shadow-2xs">
-              <button
-                type="button"
-                onClick={() => setActiveTab("purchases")}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer",
-                  activeTab === "purchases"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-text-secondary hover:text-text-primary hover:bg-surface-2",
-                )}
-              >
-                <ShoppingCart className="h-3.5 w-3.5" />
-                <span>Purchases</span>
-                <span
-                  className={cn(
-                    "px-1.5 py-0.2 rounded-full text-[10px] font-bold ml-0.5",
-                    activeTab === "purchases"
-                      ? "bg-white/20 text-white"
-                      : "bg-surface-2 text-text-primary",
-                  )}
-                >
-                  {purchases.length}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab("returns")}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer",
-                  activeTab === "returns"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-text-secondary hover:text-text-primary hover:bg-surface-2",
-                )}
-              >
-                <PackageCheck className="h-3.5 w-3.5" />
-                <span>Purchase Returns</span>
-              </button>
-            </div>
-
             {activeTab === "purchases" && (
               <>
                 <ExportToExcelButton
@@ -787,10 +787,12 @@ export function StockPurchaseView({
         }
       />
 
-      {activeTab === "returns" ? (
-        <PurchaseReturnView />
-      ) : (
-        <>
+      {/* Main page content with responsive padding */}
+      <div className="responsive-page-x py-4 sm:py-5 space-y-6">
+        {activeTab === "returns" ? (
+          <PurchaseReturnView />
+        ) : (
+          <>
           {/* KPI Summary Cards matching PMS */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <KpiCard
@@ -1188,6 +1190,7 @@ export function StockPurchaseView({
       </div>
         </>
       )}
+      </div>
 
       {/* 6. Record Payment Modal */}
       {paymentModalInvoice && (

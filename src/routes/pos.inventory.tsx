@@ -20,9 +20,13 @@ function InventoryLayoutRoute() {
     );
   }
 
-  // Stock reports catalog renders full bleed header and manages its own responsive gutters
-  const isReportsCatalog = pathname.includes("/pos/inventory/reports/other-reports");
-  if (isReportsCatalog) {
+  // Stock reports catalog & purchases render full bleed header attached to top nav
+  const isFullBleed =
+    pathname.includes("/pos/inventory/reports/other-reports") ||
+    pathname.includes("/pos/inventory/purchase") ||
+    pathname.includes("/pos/inventory/return");
+
+  if (isFullBleed) {
     return (
       <GuardedRoute permission="pos.inventory.view">
         <Outlet />

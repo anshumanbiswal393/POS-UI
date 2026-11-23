@@ -132,12 +132,9 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
       {
         id: "purchase-group",
         label: "Purchases",
+        to: "/pos/inventory/purchase",
         icon: ShoppingCart,
         permission: "pos.inventory.manage",
-        children: [
-          { id: "stock-purchase", label: "Purchases", to: "/pos/inventory/purchase", icon: ShoppingCart, permission: "pos.inventory.manage" },
-          { id: "purchase-return", label: "Purchase Returns", to: "/pos/inventory/return", icon: ArrowLeftRight, permission: "pos.inventory.manage" },
-        ],
       },
       {
         id: "manage-stock-group",

@@ -6,12 +6,14 @@ export function PageHeader({
   actions,
   eyebrow,
   className,
+  titleExtra,
 }: {
-  title: string;
+  title: React.ReactNode;
   description?: string;
   actions?: React.ReactNode;
   eyebrow?: string;
   className?: string;
+  titleExtra?: React.ReactNode;
 }) {
   return (
     <div
@@ -26,9 +28,12 @@ export function PageHeader({
             {eyebrow}
           </div>
         )}
-        <h1 className="font-sans text-[20px] font-bold leading-tight text-text-primary sm:text-[22px] tracking-tight">
-          {title}
-        </h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="font-sans text-[20px] font-bold leading-tight text-text-primary sm:text-[22px] tracking-tight">
+            {title}
+          </h1>
+          {titleExtra}
+        </div>
         {description && (
           <p className="mt-0.5 max-w-2xl text-[12px] text-text-secondary sm:text-[13px]">
             {description}
