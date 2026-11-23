@@ -1,4 +1,5 @@
 import httpClient from "@/utils/httpClient";
+import { API_ENDPOINTS } from "@/config/apiEndpoints";
 import { formatINR } from "./posDashboardService";
 import { isBackendOutletId } from "@/utils/outletId";
 import {
@@ -415,7 +416,7 @@ export async function getKotOrders(filters?: Record<string, any>, outletId?: str
   }
   if (typeof window === "undefined") return getInitialKotData();
   try {
-    const res = await httpClient.get<KotApiResponse>("/api/pos/kot", { params: filters });
+    const res = await httpClient.get<KotApiResponse>(API_ENDPOINTS.ORDERS.KOT, { params: filters });
     if (res.data && res.data.success && res.data.records) return mapKotDto(res.data);
     return getInitialKotData();
   } catch {

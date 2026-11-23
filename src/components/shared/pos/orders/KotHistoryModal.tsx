@@ -44,7 +44,10 @@ export function KotHistoryModal({ isOpen, onClose, outletName }: KotHistoryModal
 
   // Fetch KOTs from database/API with 3 main statuses (READY, PREPARING, CANCELLED) or ALL, plus date filtering
   const queryFilters = useMemo(() => {
-    const f: Record<string, any> = {};
+    const f: Record<string, any> = {
+      includeHistory: true,
+      includeSettled: true,
+    };
     if (statusFilter !== "ALL") {
       f.status = statusFilter === "READY" ? "READY,SERVED" : statusFilter;
     } else {

@@ -28,7 +28,10 @@ export function KotHistoryTableView({ outletName }: KotHistoryTableViewProps) {
 
   // Fetch KOTs with real database filtering: PREPARING, COMPLETED/READY, CANCELLED or ALL, plus date filtering
   const queryFilters = useMemo(() => {
-    const f: Record<string, any> = {};
+    const f: Record<string, any> = {
+      includeHistory: true,
+      includeSettled: true,
+    };
     if (statusFilter !== "ALL") {
       f.status = statusFilter === "READY" ? "READY,SERVED" : statusFilter;
     } else {

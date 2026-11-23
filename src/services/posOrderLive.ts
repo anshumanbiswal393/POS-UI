@@ -353,24 +353,45 @@ export async function liveGetKot(outletId?: string, filters?: Record<string, any
   const scope = orderScope(outletId);
   if (!scope) return { records: [], totalCount: 0 };
   const params = { ...scope, ...(filters || {}) };
-  // Explicitly remove includeSettled filter so closed/settled orders never leak into KDS
-  delete (params as any).includeSettled;
+
+  const isHistoryQuery = Boolean(
+    filters?.status ||
+    filters?.date_from ||
+    filters?.date_to ||
+    filters?.from ||
+    filters?.to ||
+    filters?.startDate ||
+    filters?.endDate ||
+    filters?.includeHistory ||
+    filters?.includeSettled
+  );
+
+  if (!isHistoryQuery) {
+    // Explicitly remove includeSettled filter only for live cook queue so closed/settled orders never leak into KDS
+    delete (params as any).includeSettled;
+  }
+
   const res = await httpClient.get<KotApiResponse & { kots?: KotRecordApiDto[] }>(API_ENDPOINTS.ORDERS.KOT, {
     params,
   });
   const rows = (res.data?.records || res.data?.kots || []) as any[];
-  const records = rows
-    .map(mapLiveKotRecord)
-    .filter(
-      (k) =>
-        k &&
-        k.status !== "Served" &&
-        k.status !== "Prepared" &&
-        (k as any).status !== "Ready" &&
-        (k as any).status !== "Cancelled" &&
-        (k as any).status !== "Settled" &&
-        (k as any).status !== "settled",
-    );
+  const mapped = rows.map(mapLiveKotRecord).filter(Boolean) as KotItem[];
+
+  // For history queries, return all tickets returned by the backend.
+  // For the active kitchen cook queue (no filters/history), filter out non-active tickets.
+  const records = isHistoryQuery
+    ? mapped
+    : mapped.filter(
+        (k) =>
+          k &&
+          k.status !== "Served" &&
+          k.status !== "Prepared" &&
+          (k as any).status !== "Ready" &&
+          (k as any).status !== "Cancelled" &&
+          (k as any).status !== "Settled" &&
+          (k as any).status !== "settled",
+      );
+
   return { records, totalCount: Number(res.data?.totalCount ?? (res.data as any)?.count ?? records.length) };
 }
 
