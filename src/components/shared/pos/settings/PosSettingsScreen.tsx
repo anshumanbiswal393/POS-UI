@@ -653,6 +653,15 @@ export function PosSettingsScreen() {
 
       {activeTab === "receipts" && (
         <PosPanel title="Receipt & invoice" hint="GST, service charge, and tax breakup applied on billing.">
+          <div className="mb-4 flex items-center justify-between rounded-xl border border-border bg-surface px-4 py-3">
+            <div>
+              <span className="block text-xs font-semibold text-text-secondary">Registered GSTIN</span>
+              <span className="font-mono text-sm font-bold text-text-primary">
+                {activeOutlet.gstin || (activeOutlet as any).gstNumber || (activeOutlet as any).taxId || "Not Registered"}
+              </span>
+            </div>
+            <span className="text-xs text-text-secondary">{activeOutlet.name}</span>
+          </div>
           <p className="mb-4 text-[13px] text-text-secondary">
             Configure CGST, SGST, service charge, and selectable tax % slabs for {activeOutlet.name}. In POS Billing, tax is calculated strictly in % using these rates.
           </p>

@@ -248,7 +248,7 @@ export function PosReservationsManager() {
       "Guest Name": r.customerName,
       "Phone": r.customerPhone || "N/A",
       "Email": r.customerEmail || "N/A",
-      "Pax": r.guests,
+      "Pax": r.guestCount ?? r.guests ?? (r as any).pax ?? (r as any).covers ?? 1,
       "Table": r.tableNumber,
       "Date": r.reservationDate,
       "Time": r.reservationTime,
@@ -292,7 +292,7 @@ export function PosReservationsManager() {
       r.reservationTime || "—",
       (r as any).source || "Direct Walk-in",
       (r.status || "CONFIRMED").toUpperCase(),
-      r.guests || 1,
+      (r as any).guestCount ?? r.guests ?? (r as any).pax ?? (r as any).covers ?? 1,
       Number(r.depositAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
     ]);
 
@@ -362,7 +362,7 @@ export function PosReservationsManager() {
         render: (_, res) => (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary-tint/30 font-bold text-foreground text-xs">
             <Users className="w-3.5 h-3.5 text-primary" />
-            {res.guests} Pax
+            {res.guestCount ?? res.guests ?? (res as any).pax ?? (res as any).covers ?? 1} Pax
           </span>
         ),
       },
@@ -889,7 +889,7 @@ export function PosReservationsManager() {
                       >
                         <div className="flex items-center gap-1 text-xs font-bold text-slate-700">
                           <Users className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{res.guests} Guests</span>
+                          <span>{res.guestCount ?? res.guests ?? (res as any).pax ?? (res as any).covers ?? 1} Guests</span>
                         </div>
 
                         <div className="flex items-center gap-2">

@@ -135,7 +135,8 @@ export function RoomGridFloorView({
                       )}
                     </div>
                     <span className="text-[10.5px] text-slate-400 block mt-0.5">
-                      Ext. {guest.phoneExtension} • {guest.checkInDate} - {guest.checkOutDate}
+                      {guest.phone || guest.mobile || guest.phoneExtension ? `Contact: ${guest.phone || guest.mobile || guest.phoneExtension}` : "In-house"}
+                      {guest.checkInDate && guest.checkOutDate ? ` • ${guest.checkInDate} - ${guest.checkOutDate}` : ""}
                     </span>
                   </div>
                 ) : (

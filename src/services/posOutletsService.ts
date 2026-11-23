@@ -113,6 +113,18 @@ export function mapOutletApiToPosOutlet(dto: OutletApiDto): PosOutlet {
   const parentOutletId =
     typeof parentRaw === "string" && parentRaw.trim() ? String(parentRaw) : null;
   const kind = (dto.outlet_type || "PRIMARY").toUpperCase();
+  const gstinVal =
+    (dto as any).gstin ||
+    meta.gstin ||
+    (dto as any).gstNumber ||
+    (dto as any).gst_number ||
+    meta.gst_number ||
+    meta.gstNumber ||
+    (dto as any).taxId ||
+    (dto as any).tax_id ||
+    meta.tax_id ||
+    meta.taxId ||
+    undefined;
   return {
     id: String(dto.id),
     name: dto.name,
@@ -136,6 +148,9 @@ export function mapOutletApiToPosOutlet(dto: OutletApiDto): PosOutlet {
     parentOutletId,
     propertyId: dto.property ? String(dto.property) : null,
     tenantId: dto.tenant ? String(dto.tenant) : null,
+    gstin: gstinVal,
+    gstNumber: gstinVal,
+    taxId: gstinVal,
   };
 }
 

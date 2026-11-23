@@ -135,6 +135,8 @@ export type PosOutlet = {
   status: "Active" | "Inactive";
   menuCount: number;
   gstin?: string;
+  gstNumber?: string;
+  taxId?: string;
   city?: string;
   email?: string;
   /** Parent physical/HO outlet id for virtual / cloud brands */

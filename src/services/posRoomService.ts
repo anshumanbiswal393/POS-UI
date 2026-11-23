@@ -170,7 +170,9 @@ export const posRoomService = {
           roomType: "Standard Room",
           guest: {
             name: o.customerName,
-            phoneExtension: o.customerPhone,
+            phone: o.customerPhone ?? o.customerMobile ?? "",
+            mobile: o.customerMobile ?? o.customerPhone ?? "",
+            phoneExtension: o.customerPhone ?? o.customerMobile ?? "",
             pax: o.pax,
           },
           items: (o.items || []).map((i: any) => ({
@@ -330,7 +332,9 @@ export const posRoomService = {
             isOccupied: true,
             guest: {
               name: occ.guest_name || "In-house guest",
-              phoneExtension: occ.guest_phone || "",
+              phone: occ.guest_phone ?? occ.guest_mobile ?? occ.phone ?? occ.mobile ?? "",
+              mobile: occ.guest_mobile ?? occ.guest_phone ?? occ.mobile ?? occ.phone ?? "",
+              phoneExtension: occ.guest_phone || occ.guest_mobile || "",
               pax: Number(occ.pax || 1),
               checkInDate: occ.arrival_date || undefined,
               checkOutDate: occ.departure_date || undefined,
@@ -383,7 +387,9 @@ export const posRoomService = {
             isOccupied: true,
             guest: {
               name: occ.guest_name || "In-house guest",
-              phoneExtension: occ.guest_phone || "",
+              phone: occ.guest_phone ?? occ.guest_mobile ?? occ.phone ?? occ.mobile ?? "",
+              mobile: occ.guest_mobile ?? occ.guest_phone ?? occ.mobile ?? occ.phone ?? "",
+              phoneExtension: occ.guest_phone || occ.guest_mobile || "",
               pax: Number(occ.pax || 1),
               checkInDate: occ.arrival_date || undefined,
               checkOutDate: occ.departure_date || undefined,
@@ -418,7 +424,9 @@ export const posRoomService = {
         isOccupied: true,
         guest: {
           name: occ.guest_name || "In-house guest",
-          phoneExtension: occ.guest_phone || "",
+          phone: occ.guest_phone ?? occ.guest_mobile ?? occ.phone ?? occ.mobile ?? "",
+          mobile: occ.guest_mobile ?? occ.guest_phone ?? occ.mobile ?? occ.phone ?? "",
+          phoneExtension: occ.guest_phone || occ.guest_mobile || "",
           pax: Number(occ.pax || 1),
           checkInDate: occ.arrival_date || undefined,
           checkOutDate: occ.departure_date || undefined,
@@ -556,7 +564,7 @@ export const posRoomService = {
         reservationId: room?.reservationId,
         folioId: room?.folioId,
         guestName: newOrderData.guest?.name,
-        guestPhone: newOrderData.guest?.phoneExtension,
+        guestPhone: newOrderData.guest?.phone ?? newOrderData.guest?.mobile ?? newOrderData.guest?.phoneExtension,
         waiterName: newOrderData.assignedRunner,
         pax: newOrderData.guest?.pax || 1,
         orderNote: newOrderData.specialInstructions || newOrderData.notes,

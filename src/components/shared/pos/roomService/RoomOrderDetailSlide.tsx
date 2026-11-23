@@ -202,8 +202,8 @@ export function RoomOrderDetailSlide({
                     )}
                   </div>
                   <span className="text-xs text-slate-500 block mt-0.5">
-                    Phone Ext: <strong className="text-slate-700">{guest.phoneExtension}</strong> •
-                    Stay: {guest.checkInDate} - {guest.checkOutDate}
+                    Phone / Ext: <strong className="text-slate-700">{guest.phone || guest.mobile || guest.phoneExtension || "—"}</strong>
+                    {guest.checkInDate ? ` • Stay: ${guest.checkInDate}${guest.checkOutDate ? ` - ${guest.checkOutDate}` : ""}` : ""}
                   </span>
                 </div>
               </div>

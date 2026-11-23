@@ -189,7 +189,13 @@ function mapBackendReservation(r: any): ReservationItem {
 
     customerEmail: r.guest_email || undefined,
 
-    guests: r.pax || 2,
+    guests: Number(r.guestCount ?? r.guests ?? r.pax ?? r.covers ?? 2),
+
+    guestCount: Number(r.guestCount ?? r.guests ?? r.pax ?? r.covers ?? 2),
+
+    pax: Number(r.guestCount ?? r.guests ?? r.pax ?? r.covers ?? 2),
+
+    covers: Number(r.guestCount ?? r.guests ?? r.pax ?? r.covers ?? 2),
 
     reservationDate: r.reservation_date || "",
 

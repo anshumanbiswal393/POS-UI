@@ -24,6 +24,9 @@ export interface ReservationItem {
   customerPhone: string;
   customerEmail?: string;
   guests: number;
+  guestCount?: number;
+  pax?: number;
+  covers?: number;
   reservationDate: string; // e.g. "2024-01-11" or "Today"
   reservationTime: string; // e.g. "07:30 PM"
   endTime?: string; // e.g. "09:30 PM"

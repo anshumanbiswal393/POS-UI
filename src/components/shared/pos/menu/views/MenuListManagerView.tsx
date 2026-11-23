@@ -148,7 +148,7 @@ export function MenuListManagerView() {
       (item) => item.name,
       (item) => item.code,
       (item) => item.category,
-      (item) => item.subCategory,
+      (item) => item.subCategory || (item as any).sub_category,
       (item) => item.description,
       (item) => String(item.price || ""),
       (item) => item.status,
@@ -351,6 +351,21 @@ export function MenuListManagerView() {
       enableFiltering: true,
       minWidth: 140,
       cell: ({ row }) => <span className="font-semibold text-slate-700">{row.category}</span>,
+    },
+    {
+      id: "subCategory",
+      header: "Subcategory",
+      accessorKey: "subCategory",
+      enableSorting: true,
+      enableFiltering: true,
+      minWidth: 130,
+      cell: ({ row }) => (
+        <span className="text-slate-600 text-[12px] font-medium">
+          {row.subCategory || (row as any).sub_category || "—"}
+        </span>
+      ),
+      filterValueAccessor: (row: MenuItem) =>
+        row.subCategory || (row as any).sub_category || "",
     },
     {
       id: "mealTimes",

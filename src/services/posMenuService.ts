@@ -13,6 +13,8 @@ import type {
   ScheduleVariantItem,
   ScheduleTableItem,
 } from "@/types/posMenu";
+
+export type { MenuItemIngredient };
 import httpClient from "@/utils/httpClient";
 import { API_ENDPOINTS } from "@/config/apiEndpoints";
 import { isBackendOutletId } from "@/utils/outletId";
@@ -497,6 +499,7 @@ export const posMenuService = {
                 ? Number(i.plates)
                 : undefined;
           const rawItem = i as unknown as Record<string, unknown>;
+          const subCategory = (i.subCategory || rawItem.sub_category || rawItem.subcategory || "") as string;
           const apiMealTimes =
             (Array.isArray(rawItem.mealTimes) && rawItem.mealTimes.length > 0)
               ? (rawItem.mealTimes as string[])
@@ -508,6 +511,8 @@ export const posMenuService = {
           return {
             ...i,
             plates,
+            subCategory,
+            sub_category: subCategory,
             mealTimes: apiMealTimes,
             meal_times: apiMealTimes,
             rawMaterials:

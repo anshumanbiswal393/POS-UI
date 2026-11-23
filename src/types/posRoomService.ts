@@ -24,6 +24,7 @@ export interface RoomGuest {
   checkOutDate?: string;
   phoneExtension?: string;
   phone?: string;
+  mobile?: string;
   /** In-house party size (adults + children) for room service billing */
   pax?: number;
 }

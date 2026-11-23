@@ -177,12 +177,12 @@ export function PosGlobalSearch({
         id: `menu-${item.id}`,
         type: "menu",
         title: item.name,
-        subtitle: `${item.category || "General"} ${item.subCategory ? `· ${item.subCategory}` : ""} · ₹${item.price || 0}`,
+        subtitle: `${item.category || "General"} · ₹${item.price || 0}`,
         badge: item.code ? `Code: ${item.code}` : "Menu Item",
         badgeClass: "bg-purple-100 text-purple-900 border-purple-300",
         extraInfo: item.description,
         route: "/pos/menu",
-        searchableText: `${item.name} ${item.code || ""} ${item.category || ""} ${item.subCategory || ""} ${item.description || ""}`,
+        searchableText: `${item.name} ${item.code || ""} ${item.category || ""} ${item.description || ""}`,
       });
     }
 
