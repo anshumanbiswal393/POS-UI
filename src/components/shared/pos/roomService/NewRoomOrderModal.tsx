@@ -77,7 +77,7 @@ export function NewRoomOrderModal({
   let subtotal = 0;
   const orderItems: RoomOrderItem[] = [];
   Object.entries(selectedItems).forEach(([id, qty]) => {
-    const item = MENU_ITEMS.find((m) => m.id === id);
+    const item = MENU_ITEMS.find((m) => String(m.id) === String(id));
     if (item && qty > 0) {
       subtotal += item.price * qty;
       orderItems.push({
@@ -123,6 +123,7 @@ export function NewRoomOrderModal({
       paymentMethod,
       isUrgent,
       notes: notes || undefined,
+      specialInstructions: notes || undefined,
     });
 
     onClose();

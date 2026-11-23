@@ -290,6 +290,15 @@ export function TableFloorPlan({
                 ({areas.length === 0 ? 0 : (Array.isArray(tables) ? tables : []).filter((t) => t && t.status === "occupied").length})
               </span>
             </div>
+
+            {/* Billed */}
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-300/80 text-amber-950 font-bold text-[11px]">
+              <span className="h-2 w-2 rounded-full bg-amber-500 border border-amber-600" />
+              <span>Billed</span>
+              <span className="text-[10px] text-amber-700 font-extrabold ml-0.5">
+                ({areas.length === 0 ? 0 : (Array.isArray(tables) ? tables : []).filter((t) => t && t.status === "billed").length})
+              </span>
+            </div>
           </div>
 
           {/* User Requested: Quick action buttons */}

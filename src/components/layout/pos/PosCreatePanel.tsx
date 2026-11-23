@@ -45,7 +45,8 @@ export function PosCreateSubmitButton({
 }
 
 type PosCreatePanelProps = {
-  open: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   title: string;
   description?: string;
@@ -59,6 +60,7 @@ type PosCreatePanelProps = {
 
 export function PosCreatePanel({
   open,
+  isOpen,
   onClose,
   title,
   description,
@@ -69,8 +71,10 @@ export function PosCreatePanel({
   size = "md",
   className,
 }: PosCreatePanelProps) {
+  const isPanelOpen = Boolean(open ?? isOpen);
+
   useEffect(() => {
-    if (!open) return;
+    if (!isPanelOpen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
@@ -81,9 +85,9 @@ export function PosCreatePanel({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = previousOverflow;
     };
-  }, [open, onClose]);
+  }, [isPanelOpen, onClose]);
 
-  if (!open || typeof document === "undefined") return null;
+  if (!isPanelOpen || typeof document === "undefined") return null;
 
   const body = (
     <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">{children}</div>

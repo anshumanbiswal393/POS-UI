@@ -30,7 +30,7 @@ import {
   PosCreateSubmitButton,
 } from "@/components/layout/pos/PosCreatePanel";
 
-interface PaymentTransaction {
+export interface PaymentTransaction {
   id: string;
   orderId: string;
   billNo: string;
@@ -43,6 +43,9 @@ interface PaymentTransaction {
   status: "Success" | "Pending" | "Failed";
   timestamp: string;
   notes?: string;
+  mode?: string;
+  mdrFee?: number;
+  netSettled?: number;
 }
 
 const INITIAL_RECORDS: PaymentTransaction[] = [];
@@ -81,7 +84,13 @@ export function PaymentInformationView() {
         status: status !== "All" ? status : "",
         order_id: orderId,
       });
-      setRecords(data || []);
+      const normalized = (data || []).map((t: any) => ({
+        ...t,
+        mode: t.mode ?? t.provider ?? "UPI",
+        mdrFee: typeof t.mdrFee === "number" ? t.mdrFee : typeof t.fee === "number" ? t.fee : parseFloat(t.mdr_fee ?? t.fee) || 0,
+        netSettled: typeof t.netSettled === "number" ? t.netSettled : typeof t.netAmount === "number" ? t.netAmount : parseFloat(t.net_settled ?? t.net_amount) || Math.max(0, (t.amount || 0) - (t.fee || 0)),
+      }));
+      setRecords(normalized);
     } catch (err) {
       console.error("Failed to load payment transactions:", err);
     } finally {
@@ -210,10 +219,13 @@ export function PaymentInformationView() {
       billNo: formData.billNo,
       customerName: formData.customerName,
       provider: formData.provider,
+      mode: formData.provider,
       txnRef: formData.txnRef,
       amount: amt,
       fee: feeAmt,
+      mdrFee: feeAmt,
       netAmount: net,
+      netSettled: net,
       status: formData.status,
       timestamp: ts,
       notes: formData.notes,
@@ -226,9 +238,12 @@ export function PaymentInformationView() {
           billNo: formData.billNo,
           customerName: formData.customerName,
           provider: formData.provider,
+          mode: formData.provider,
           txnRef: formData.txnRef,
           amount: amt,
           fee: feeAmt,
+          mdrFee: feeAmt,
+          netSettled: net,
           status: formData.status,
           notes: formData.notes,
         })
@@ -944,6 +959,7 @@ export function PaymentInformationView() {
 
       {/* 5. Payment Gateway Configuration Panel */}
       <PosCreatePanel
+        open={isGatewayModalOpen}
         isOpen={isGatewayModalOpen}
         onClose={() => setIsGatewayModalOpen(false)}
         title="Payment Gateway Configuration"

@@ -124,7 +124,7 @@ export function DailyPreparationView() {
       enableSorting: true,
       minWidth: 220,
       cell: ({ row }) => {
-        const liveDish = menuItems.find((m) => m.id === row.menuItemId);
+        const liveDish = menuItems.find((m) => String(m.id) === String(row.menuItemId));
         return (
           <div className="flex items-center gap-2.5 py-1">
             <FoodTypeIcon

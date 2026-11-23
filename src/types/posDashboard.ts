@@ -51,7 +51,7 @@ export interface PaymentSummaryData {
 
 export interface TableStatusItem {
   tableNumber: string;
-  status: "available" | "occupied" | "reserved";
+  status: "available" | "occupied" | "reserved" | "billed";
 }
 
 export interface TopDishItem {

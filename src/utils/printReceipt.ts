@@ -1189,7 +1189,7 @@ export function roomOrderToInvoicePayload(
         amount: grandTotal,
       },
     ],
-    specialNote: order.specialInstructions,
+    specialNote: order.specialInstructions || order.notes,
   };
 }
 

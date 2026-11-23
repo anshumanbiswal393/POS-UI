@@ -40,7 +40,7 @@ export function CreateDailyPrepModal({ isOpen, onClose, preselectedItemId }: Pro
   }, [stockItems]);
 
   const selectedItem = useMemo(() => {
-    return menuItems.find((m) => m.id === menuItemId);
+    return menuItems.find((m) => String(m.id) === String(menuItemId));
   }, [menuItems, menuItemId]);
 
   // Reset or pre-fill on open
@@ -53,7 +53,7 @@ export function CreateDailyPrepModal({ isOpen, onClose, preselectedItemId }: Pro
       setNotes("");
       setPreparedBy(user?.name || "Kitchen Chef");
 
-      const itemMatch = menuItems.find((m) => m.id === targetId);
+      const itemMatch = menuItems.find((m) => String(m.id) === String(targetId));
       if (itemMatch && itemMatch.rawMaterials && itemMatch.rawMaterials.length > 0) {
         setIngredients(
           itemMatch.rawMaterials.map((rm) => ({
@@ -72,7 +72,7 @@ export function CreateDailyPrepModal({ isOpen, onClose, preselectedItemId }: Pro
   // Handle dish selection change
   const handleItemSelect = (id: string) => {
     setMenuItemId(id);
-    const itemMatch = menuItems.find((m) => m.id === id);
+    const itemMatch = menuItems.find((m) => String(m.id) === String(id));
     if (itemMatch && itemMatch.rawMaterials && itemMatch.rawMaterials.length > 0) {
       setIngredients(
         itemMatch.rawMaterials.map((rm) => ({

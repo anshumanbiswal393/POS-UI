@@ -190,6 +190,7 @@ export const posRoomService = {
           traySetup: "Single Tray",
           paymentMethod: "room_folio",
           notes: o.orderNote,
+          specialInstructions: o.orderNote || (o as any).specialInstructions || (o as any).notes,
         }));
       if (floor && floor !== "All") return mapped.filter((o) => o.floor === floor);
       return mapped;
@@ -556,7 +557,7 @@ export const posRoomService = {
         guestPhone: newOrderData.guest?.phoneExtension,
         waiterName: newOrderData.assignedRunner,
         pax: newOrderData.guest?.pax || 1,
-        orderNote: newOrderData.notes,
+        orderNote: newOrderData.specialInstructions || newOrderData.notes,
         subtotal: newOrderData.subtotal,
         taxAmount: newOrderData.tax,
         serviceCharge: newOrderData.serviceCharge,

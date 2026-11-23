@@ -562,21 +562,21 @@ export const posMenuService = {
       });
   },
 
-  getMenuItemById: async (id: string) => {
+  getMenuItemById: async (id: string | number) => {
     try {
-      const res = await httpClient.get<MenuItem>(API_ENDPOINTS.MENU.ITEM_BY_ID(id));
+      const res = await httpClient.get<MenuItem>(API_ENDPOINTS.MENU.ITEM_BY_ID(String(id)));
       if (res.data) return res.data;
     } catch {
       // Fallback
     }
-    return menuItemsStore.find((i) => i.id === id) || null;
+    return menuItemsStore.find((i) => String(i.id) === String(id)) || null;
   },
 
-  addMenuItem: async (item: Omit<MenuItem, "id" | "updatedAt">) => {
+  addMenuItem: async (item: Omit<MenuItem, "id" | "updatedAt"> & { id?: string }) => {
     const newItem: MenuItem = {
       ...item,
       outletId: item.outletId || "outlet-primary",
-      id: `itm-${Date.now()}`,
+      id: (item as any).id || `itm-${Date.now()}`,
       updatedAt: "Just now",
       images: item.images || [],
       plates:
@@ -635,10 +635,10 @@ export const posMenuService = {
       return res.data;
     }
     menuItemsStore = menuItemsStore.map((item) =>
-      item.id === id ? { ...item, ...data, updatedAt: "Just now" } : item,
+      String(item.id) === String(id) ? { ...item, ...data, updatedAt: "Just now" } : item,
     );
     saveMenuItemsToStorage(menuItemsStore);
-    return menuItemsStore.find((i) => i.id === id);
+    return menuItemsStore.find((i) => String(i.id) === String(id));
   },
 
   updateItemPlates: (
@@ -659,7 +659,7 @@ export const posMenuService = {
       await httpClient.delete(API_ENDPOINTS.MENU.DELETE_ITEM(id));
       return true;
     }
-    menuItemsStore = menuItemsStore.filter((i) => i.id !== id);
+    menuItemsStore = menuItemsStore.filter((i) => String(i.id) !== String(id));
     saveMenuItemsToStorage(menuItemsStore);
     return true;
   },
@@ -671,7 +671,7 @@ export const posMenuService = {
       return res.data;
     }
     menuItemsStore = menuItemsStore.map((item) => {
-      if (item.id === id) {
+      if (String(item.id) === String(id)) {
         const nextVal = !item[platform];
         return {
           ...item,
@@ -682,7 +682,7 @@ export const posMenuService = {
       return item;
     });
     saveMenuItemsToStorage(menuItemsStore);
-    return menuItemsStore.find((i) => i.id === id);
+    return menuItemsStore.find((i) => String(i.id) === String(id));
   },
 
   bulkUpdatePlatformAvailability: async (
@@ -724,7 +724,7 @@ export const posMenuService = {
       return res.data;
     }
     menuItemsStore = menuItemsStore.map((item) => {
-      if (item.id === id) {
+      if (String(item.id) === String(id)) {
         const nextStatus = item.status === "Active" ? "Inactive" : "Active";
         return {
           ...item,
@@ -735,7 +735,7 @@ export const posMenuService = {
       }
       return item;
     });
-    return menuItemsStore.find((i) => i.id === id);
+    return menuItemsStore.find((i) => String(i.id) === String(id));
   },
 
   // 3. Multi-Image Management per Item
@@ -747,7 +747,7 @@ export const posMenuService = {
   ) => {
     let existing = existingImages;
     if (!existing) {
-      const found = menuItemsStore.find((i) => i.id === itemId);
+      const found = menuItemsStore.find((i) => String(i.id) === String(itemId));
       existing = found?.images || [];
     }
     const hasExistingPrimary = existing.some((img) => img.isPrimary);
@@ -780,7 +780,7 @@ export const posMenuService = {
 
     let foundInStore = false;
     menuItemsStore = menuItemsStore.map((item) => {
-      if (item.id === itemId) {
+      if (String(item.id) === String(itemId)) {
         foundInStore = true;
         const patched = {
           ...item,
@@ -827,7 +827,7 @@ export const posMenuService = {
   ) => {
     let existing = existingImages;
     if (!existing) {
-      const found = menuItemsStore.find((i) => i.id === itemId);
+      const found = menuItemsStore.find((i) => String(i.id) === String(itemId));
       existing = found?.images || [];
     }
     const filtered = existing.filter((img) => img.id !== imageId);
@@ -859,7 +859,7 @@ export const posMenuService = {
 
     let foundInStore = false;
     menuItemsStore = menuItemsStore.map((item) => {
-      if (item.id === itemId) {
+      if (String(item.id) === String(itemId)) {
         foundInStore = true;
         const patched = {
           ...item,
@@ -906,7 +906,7 @@ export const posMenuService = {
   ) => {
     let existing = existingImages;
     if (!existing) {
-      const found = menuItemsStore.find((i) => i.id === itemId);
+      const found = menuItemsStore.find((i) => String(i.id) === String(itemId));
       existing = found?.images || [];
     }
     const updatedImages = existing.map((img) => ({
@@ -937,7 +937,7 @@ export const posMenuService = {
 
     let foundInStore = false;
     menuItemsStore = menuItemsStore.map((item) => {
-      if (item.id === itemId) {
+      if (String(item.id) === String(itemId)) {
         foundInStore = true;
         const patched = {
           ...item,
@@ -1212,7 +1212,7 @@ export const posMenuService = {
         });
         // Also update local store if cached
         menuItemsStore = menuItemsStore.map((item) =>
-          item.id === id ? { ...item, commissionType, commissionValue } : item,
+          String(item.id) === String(id) ? { ...item, commissionType, commissionValue } : item,
         );
         saveMenuItemsToStorage(menuItemsStore);
         return {
@@ -1228,12 +1228,12 @@ export const posMenuService = {
       }
     }
     menuItemsStore = menuItemsStore.map((item) =>
-      item.id === id ? { ...item, commissionType, commissionValue } : item,
+      String(item.id) === String(id) ? { ...item, commissionType, commissionValue } : item,
     );
     saveMenuItemsToStorage(menuItemsStore);
 
     commissionsStore = commissionsStore.map((item) =>
-      item.id === id ? { ...item, commissionType, commissionValue } : item,
+      String(item.id) === String(id) ? { ...item, commissionType, commissionValue } : item,
     );
     return {
       id,

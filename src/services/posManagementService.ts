@@ -137,12 +137,19 @@ export interface POSGstSettingDto {
 export interface POSVirtualWalletDto {
   id: string;
   outlet: string;
+  outlet_name?: string;
   customer_name: string;
-  customer_phone: string;
+  customer_phone?: string;
+  customer_mobile?: string;
   customer_email?: string;
-  balance: string;
-  credit_limit: string;
+  balance: string | number;
+  credit_limit?: string | number;
+  total_credited?: string | number;
+  total_debited?: string | number;
+  last_transaction_at?: string;
   is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
   transactions?: Array<{
     id: string;
     transaction_type: string;
@@ -545,7 +552,25 @@ export const posManagementService = {
       ? `/api/pos/management/accounting/wallets/?outlet_id=${outletId}&search=${encodeURIComponent(search)}`
       : `/api/pos/management/accounting/wallets/?outlet_id=${outletId}`;
     const res = await httpClient.get(url);
-    return Array.isArray(res.data) ? res.data : res.data.results || [];
+    const rawList: any[] = Array.isArray(res.data) ? res.data : res.data.results || [];
+    return rawList.map((w) => {
+      const txs = Array.isArray(w.transactions) ? w.transactions : [];
+      const computedCredited = txs
+        .filter((t: any) => t.transaction_type === "credit")
+        .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0);
+      const computedDebited = txs
+        .filter((t: any) => t.transaction_type === "debit")
+        .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0);
+      return {
+        ...w,
+        customer_phone: w.customer_phone || w.customer_mobile || "",
+        customer_mobile: w.customer_mobile || w.customer_phone || "",
+        total_credited: w.total_credited !== undefined ? String(w.total_credited) : String(computedCredited),
+        total_debited: w.total_debited !== undefined ? String(w.total_debited) : String(computedDebited),
+        balance: String(w.balance ?? 0),
+        last_transaction_at: w.last_transaction_at || (txs.length ? txs[txs.length - 1].created_at : w.updated_at || w.created_at),
+      };
+    });
   },
 
   async createWallet(outletId: string, payload: Partial<POSVirtualWalletDto>): Promise<POSVirtualWalletDto> {

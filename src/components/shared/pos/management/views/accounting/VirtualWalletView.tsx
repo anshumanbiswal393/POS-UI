@@ -72,17 +72,44 @@ export function VirtualWalletView() {
     if (!activeOutlet?.id) return;
     posManagementService.getWallets(activeOutlet.id).then((res) => {
       setRecords(
-        (res || []).map((w) => ({
-          id: w.id,
-          customerName: w.customer_name,
-          mobile: w.customer_mobile,
-          amount: parseFloat(w.balance) || 0,
-          totalCredited: parseFloat(w.total_credited) || 0,
-          totalDebited: parseFloat(w.total_debited) || 0,
-          lastUsedDate: formatDateTimeIndian(w.last_transaction_at),
-          created: formatDateTimeIndian(w.created_at),
-          transactions: [],
-        }))
+        (res || []).map((w: any) => {
+          const txs = Array.isArray(w.transactions) ? w.transactions : [];
+          const computedCredited = txs
+            .filter((t: any) => t.transaction_type === "credit")
+            .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0);
+          const computedDebited = txs
+            .filter((t: any) => t.transaction_type === "debit")
+            .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0);
+          const lastTx = txs[txs.length - 1];
+
+          return {
+            id: w.id,
+            customerName: w.customer_name || w.customerName || "Customer",
+            mobile: w.customer_mobile || w.customer_phone || w.mobile || "—",
+            amount: parseFloat(w.balance?.toString() || "0") || 0,
+            totalCredited:
+              parseFloat(w.total_credited?.toString() || "0") ||
+              computedCredited ||
+              0,
+            totalDebited:
+              parseFloat(w.total_debited?.toString() || "0") ||
+              computedDebited ||
+              0,
+            lastUsedDate: formatDateTimeIndian(
+              w.last_transaction_at || lastTx?.created_at || w.updated_at || w.created_at,
+            ),
+            created: formatDateTimeIndian(w.created_at),
+            transactions: txs.map((t: any) => ({
+              id: t.id,
+              type: t.transaction_type === "debit" ? "debit" : "credit",
+              amount: parseFloat(t.amount) || 0,
+              balanceAfter: parseFloat(t.balance_after) || 0,
+              reason: t.note || t.reference || "",
+              date: formatDateTimeIndian(t.created_at),
+              mode: t.reference || "UPI",
+            })),
+          };
+        })
       );
     }).catch(() => {});
   }, [activeOutlet?.id]);

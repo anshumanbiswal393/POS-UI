@@ -491,6 +491,8 @@ export function MenuItemEditModal({
         {
           onSuccess: () => {
             void deductStockAfterSave();
+            queryClient.invalidateQueries({ queryKey: ["pos", "menu"] });
+            queryClient.invalidateQueries({ queryKey: ["pos", "billing", "menu"] });
             toast.success(`Updated "${name}" successfully`);
             onClose();
           },

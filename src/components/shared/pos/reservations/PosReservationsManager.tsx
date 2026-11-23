@@ -56,7 +56,6 @@ import { NewReservationModal } from "../tables/NewReservationModal";
 import { ReservationDetailSlide } from "../tables/ReservationDetailSlide";
 import { SwitchTableModal } from "../tables/SwitchTableModal";
 import { fuzzyMatch } from "@/utils/fuzzySearch";
-import { formatDateIndian } from "@/utils/dateUtils";
 import { exportToExcel } from "@/utils/exportUtils";
 import {
   PosDataGrid,

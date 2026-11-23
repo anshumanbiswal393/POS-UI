@@ -57,6 +57,7 @@ export interface RoomServiceOrder {
   paymentMethod: "room_folio" | "card_at_door" | "cash_on_delivery" | "complimentary";
   isUrgent?: boolean;
   notes?: string;
+  specialInstructions?: string;
 }
 
 export interface RoomFolioOrderItem {

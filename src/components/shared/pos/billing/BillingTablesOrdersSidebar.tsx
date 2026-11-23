@@ -262,6 +262,14 @@ export function BillingTablesOrdersSidebar({
 
   // Status config mapping using theme patterns
   const getTableStatusConfig = (table: RestaurantTable) => {
+    if (table.status === "billed") {
+      return {
+        label: "Billed",
+        dotColor: "bg-amber-500",
+        badgeBg: "bg-amber-100 text-amber-800 border border-amber-300",
+        cardBg: "bg-amber-50/80 border-amber-300 hover:border-amber-400",
+      };
+    }
     if (table.status === "occupied") {
       return {
         label: "Occupied",
