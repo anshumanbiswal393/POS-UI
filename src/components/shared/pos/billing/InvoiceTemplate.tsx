@@ -378,10 +378,21 @@ export function InvoiceTemplate({
             <span className="text-slate-700">Taxable Value:</span>
             <span className="font-mono font-bold">₹{formatINR(taxableVal)}</span>
           </div>
-          <div className="flex justify-between text-slate-700">
-            <span>Tax (CGST {(p.taxRate ? p.taxRate / 2 : 2.5).toFixed(1)}% + SGST {(p.taxRate ? p.taxRate / 2 : 2.5).toFixed(1)}%):</span>
-            <span className="font-mono">₹{formatINR((p.cgst || 0) + (p.sgst || 0))}</span>
-          </div>
+          {(() => {
+            const computedHalfRate = (
+              p.taxRate && !isNaN(p.taxRate)
+                ? p.taxRate / 2
+                : taxableVal > 0 && ((p.cgst || 0) + (p.sgst || 0)) > 0
+                ? (((p.cgst || 0) + (p.sgst || 0)) / taxableVal / 2) * 100
+                : 2.5
+            ).toFixed(1);
+            return (
+              <div className="flex justify-between text-slate-700">
+                <span>Tax (CGST {computedHalfRate}% + SGST {computedHalfRate}%):</span>
+                <span className="font-mono">₹{formatINR((p.cgst || 0) + (p.sgst || 0))}</span>
+              </div>
+            );
+          })()}
           {p.serviceCharge && p.serviceCharge > 0 ? (
             <div className="flex justify-between text-slate-700">
               <span>Service Charge:</span>

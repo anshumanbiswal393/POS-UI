@@ -1,4 +1,4 @@
-export type TableStatus = "vacant" | "reserved" | "occupied" | "blocked";
+export type TableStatus = "vacant" | "reserved" | "occupied" | "blocked" | "billed";
 
 export type TableShape = "rectangle" | "square" | "circle";
 
@@ -27,7 +27,7 @@ export interface ReservationItem {
   reservationDate: string; // e.g. "2024-01-11" or "Today"
   reservationTime: string; // e.g. "07:30 PM"
   endTime?: string; // e.g. "09:30 PM"
-  status: "reserved" | "seated" | "completed" | "cancelled";
+  status: "reserved" | "seated" | "completed" | "cancelled" | "no_show";
   paymentStatus?: "unpaid" | "deposit_paid" | "paid";
   depositAmount?: number;
   notes?: string;

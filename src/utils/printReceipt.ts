@@ -61,6 +61,7 @@ export interface PosInvoicePrintPayload {
   discountAmount?: number;
   discountCode?: string;
   taxableAmount?: number;
+  taxRate?: number;
   cgst: number;
   sgst: number;
   serviceCharge?: number;

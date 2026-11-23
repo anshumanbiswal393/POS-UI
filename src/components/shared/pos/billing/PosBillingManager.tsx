@@ -274,7 +274,7 @@ export function PosBillingManager() {
   const [isTablesPanelCollapsed, setIsTablesPanelCollapsed] = useState(false);
   const [discountType, setDiscountType] = useState<"percent" | "flat">("percent");
   const [discountValue, setDiscountValue] = useState<number>(0);
-  const [taxType, setTaxType] = useState<"percent">("percent");
+  const [taxType, setTaxType] = useState<"percent" | "flat">("percent");
   const [taxValue, setTaxValue] = useState<number>(() => {
     const s = getPosTaxSettings();
     const sum = (s.cgstPercent || 0) + (s.sgstPercent || 0);
@@ -598,7 +598,7 @@ export function PosBillingManager() {
               tableNumber: open.tableOrRoom || qTable || "",
               guestName: open.customerName || "Guest",
               itemsCount: (open.items || []).length,
-              amount: open.grandTotal || open.amount || 0,
+              amount: (open as any).grandTotal || open.amount || 0,
               items: (open.items || []).map((line) => ({
                 name: line.name,
                 quantity: line.quantity,
@@ -1292,15 +1292,20 @@ export function PosBillingManager() {
       })();
     }
 
+    let foundCust: CustomerProfile | null = null;
     if (effectiveRes?.customerName) {
       handleSelectCustomer({
         id: `cust-${effectiveRes.id}`,
         name: effectiveRes.customerName,
         phone: effectiveRes.customerPhone || "",
+        tier: "Silver",
+        loyaltyPoints: 0,
+        visitCount: 1,
+        lastVisit: "Today",
       });
       toast.info(`Selected Table ${code} for ${effectiveRes.customerName} (${effectiveRes.guests} pax)`);
     } else {
-      const foundCust = findCustomerForTable(code, table.id);
+      foundCust = findCustomerForTable(code, table.id);
       handleSelectCustomer(foundCust || null);
     }
 
@@ -1336,7 +1341,7 @@ export function PosBillingManager() {
         orderNumber: activeTimelineOrder.orderNumber,
         tableNumber: activeTimelineOrder.tableOrRoom || code,
         guestName: activeTimelineOrder.customerName || (foundCust ? foundCust.name : "Guest"),
-        itemsCount: activeTimelineOrder.itemCount || (activeTimelineOrder.items || []).length || 0,
+        itemsCount: (activeTimelineOrder.items || []).length || 0,
         amount: activeTimelineOrder.amount || 0,
         items: (activeTimelineOrder.items || []).map((it) => ({
           name: it.name,
@@ -1864,7 +1869,7 @@ export function PosBillingManager() {
           if (!kotSentForCart) {
             deductPlatesForItems(cartItems);
           }
-          if (orderType === "dine_in") {
+          if (billingTableId || activeTable) {
             const targetTblId = billingTableId || resolveTableMatch(activeTable)?.id;
             if (targetTblId) {
               posTablesService.vacateTable(targetTblId).catch(() => {});

@@ -48,8 +48,9 @@ export function useLiveOrders() {
   });
 }
 
-export function useCurrentOrdersTimeline() {
-  const outletId = useActiveOutletId();
+export function useCurrentOrdersTimeline(outletIdParam?: string) {
+  const activeOutletId = useActiveOutletId();
+  const outletId = outletIdParam || activeOutletId;
   const live = isBackendOutletId(outletId);
   return useQuery({
     queryKey: ["pos", "orders", "current-timeline", outletId],
@@ -201,7 +202,7 @@ export function useSettleDueBillMutation() {
             .then(() => {
               queryClient.invalidateQueries({ queryKey: POS_RESERVATIONS_QUERY_KEY });
             })
-            .catch(() => {});
+            .catch(() => { });
         }
       }
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "due-bills"] });
