@@ -318,7 +318,7 @@ export function RawMaterialsManagementView() {
     category: skuItem.category || "General",
     subCategory: skuItem.subCategory || "",
     unit: skuItem.unit || "Kg",
-    availableStock: skuItem.availableStock ?? 0,
+    availableStock: skuItem.availableStock ?? skuItem.quantityOnHand ?? (skuItem as any).quantity_on_hand ?? skuItem.closingStock ?? 0,
     alertQuantity: skuItem.alertQuantity ?? skuItem.reorderLevel ?? skuItem.minThreshold ?? 5,
     pricePerUnit: skuItem.pricePerUnit ?? skuItem.unitCost ?? 0,
     isReturnable: Boolean(skuItem.isReturnable),

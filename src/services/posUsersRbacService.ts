@@ -352,7 +352,8 @@ export const posUsersRbacService = {
   getUsers: async (): Promise<POSUser[]> => {
     try {
       const res = await httpClient.get<any>("/api/users/");
-      const rawList = Array.isArray(res) ? res : res?.results || [];
+      const data = res?.data;
+      const rawList = Array.isArray(data) ? data : data?.results || [];
       if (rawList.length > 0) {
         const mapped: POSUser[] = rawList.map((u: any) => ({
           id: String(u.id),
@@ -408,21 +409,22 @@ export const posUsersRbacService = {
     let savedUser: POSUser | null = null;
     try {
       const res = await httpClient.post<any>("/api/users/", payload);
-      if (res && res.id) {
+      const data = res?.data;
+      if (data && (data.id || data.uuid)) {
         savedUser = {
-          id: String(res.id),
-          name: res.name || payload.name,
-          username: res.username || payload.username,
-          email: res.email || payload.email,
-          phone: res.phone || payload.phone,
-          role: res.role || payload.role,
-          role_name: res.role_name || payload.role,
-          outlet_id: payload.outlet_id || (res.outlet_id ? String(res.outlet_id) : undefined),
-          outlet_name: payload.outlet_name || res.outlet_name,
+          id: String(data.id || data.uuid),
+          name: data.name || payload.name,
+          username: data.username || payload.username,
+          email: data.email || payload.email,
+          phone: data.phone || payload.phone,
+          role: data.role || payload.role,
+          role_name: data.role_name || payload.role,
+          outlet_id: payload.outlet_id || (data.outlet_id ? String(data.outlet_id) : undefined),
+          outlet_name: payload.outlet_name || data.outlet_name,
           user_code: payload.user_code,
           pin: payload.pin,
           is_active: payload.is_active !== false,
-          created_at: res.created_at || new Date().toISOString(),
+          created_at: data.created_at || new Date().toISOString(),
         };
       }
     } catch {
@@ -565,7 +567,8 @@ export const posUsersRbacService = {
 
     try {
       const res = await httpClient.get<any>("/api/roles/");
-      const rawList = Array.isArray(res) ? res : res?.results || [];
+      const data = res?.data;
+      const rawList = Array.isArray(data) ? data : data?.results || [];
       if (rawList.length > 0) {
         const mapped: POSRole[] = rawList.map((r: any) => ({
           id: String(r.id),
@@ -616,8 +619,9 @@ export const posUsersRbacService = {
 
     try {
       const res = await httpClient.post<any>("/api/roles/", role);
-      if (res && res.id) {
-        newRole.id = String(res.id);
+      const data = res?.data;
+      if (data && (data.id || data.uuid)) {
+        newRole.id = String(data.id || data.uuid);
       }
     } catch {
       // Local fallback
@@ -649,7 +653,8 @@ export const posUsersRbacService = {
   getPermissions: async (): Promise<POSPermission[]> => {
     try {
       const res = await httpClient.get<any>("/api/permissions/");
-      const rawList = Array.isArray(res) ? res : res?.results || [];
+      const data = res?.data;
+      const rawList = Array.isArray(data) ? data : data?.results || [];
       if (rawList.length > 0) {
         const mapped: POSPermission[] = rawList.map((p: any) => ({
           id: String(p.id),
@@ -774,7 +779,8 @@ export const posUsersRbacService = {
     try {
       const url = roleId ? `/api/role-permissions/?role=${roleId}` : "/api/role-permissions/";
       const res = await httpClient.get<any>(url);
-      const rawList = Array.isArray(res) ? res : res?.results || [];
+      const data = res?.data;
+      const rawList = Array.isArray(data) ? data : data?.results || [];
       if (rawList.length > 0) {
         return rawList.map((rp: any) => ({
           id: String(rp.id),

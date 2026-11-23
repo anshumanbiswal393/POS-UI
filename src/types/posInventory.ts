@@ -13,6 +13,9 @@ export type StockPurchaseRecord = {
   vendorName: string;
   purchaseDate: string;
   invoiceDate: string;
+  subtotal?: number;
+  discountAmount?: number;
+  taxableAmount?: number;
   totalAmount: number;
   taxAmount: number;
   itemCount: number;
@@ -80,6 +83,16 @@ export type StockItem = {
   availableStock: number;
   closingStock: number;
   quantityOnHand?: number;
+  quantity_on_hand?: number;
+  openingBalance?: number;
+  openingStock?: number;
+  purchaseQty?: number;
+  consumedQty?: number;
+  wastageQty?: number;
+  currentStock?: number;
+  unitPrice?: number;
+  purchasePrice?: number;
+  itemCode?: string;
   parLevel?: number;
   reorderLevel?: number;
   minThreshold?: number;

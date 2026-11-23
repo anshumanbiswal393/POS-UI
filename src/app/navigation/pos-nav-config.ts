@@ -129,7 +129,16 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
     permission: "pos.inventory.view",
     children: [
       { id: "inv-dashboard", label: "Stock Overview", to: "/pos/inventory", icon: LayoutGrid, permission: "pos.inventory.view" },
-      { id: "stock-purchase", label: "Purchases", to: "/pos/inventory/purchase", icon: ShoppingCart, permission: "pos.inventory.manage" },
+      {
+        id: "purchase-group",
+        label: "Purchases",
+        icon: ShoppingCart,
+        permission: "pos.inventory.manage",
+        children: [
+          { id: "stock-purchase", label: "Purchases", to: "/pos/inventory/purchase", icon: ShoppingCart, permission: "pos.inventory.manage" },
+          { id: "purchase-return", label: "Purchase Returns", to: "/pos/inventory/return", icon: ArrowLeftRight, permission: "pos.inventory.manage" },
+        ],
+      },
       {
         id: "manage-stock-group",
         label: "Manage Stock",

@@ -25,7 +25,10 @@ export const INVENTORY_QUERY_KEYS = {
   consumption: ["pos", "inventory", "consumption"] as const,
   settings: ["pos", "inventory", "settings"] as const,
   units: ["pos", "inventory", "units"] as const,
+  movements: ["pos", "inventory", "movements"] as const,
 };
+
+export const queryKeys = INVENTORY_QUERY_KEYS;
 
 function invalidateStock(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.stockItems });
@@ -33,6 +36,8 @@ function invalidateStock(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.overview });
   queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.alerts });
   queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.consumption });
+  queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.movements });
+  queryClient.invalidateQueries({ queryKey: ["pos", "inventory", "movements"] });
 }
 
 export function useInventoryVendors() {

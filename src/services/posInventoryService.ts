@@ -171,9 +171,16 @@ function scopeParams(outletId?: string) {
 
 function mapStock(raw: Partial<StockItem> & { id: string }): StockItem {
   const name = raw.rawMaterial || raw.name || "";
-  const qty = raw.availableStock ?? raw.quantityOnHand ?? raw.closingStock ?? 0;
+  const qty = Number(
+    raw.availableStock ??
+      raw.quantityOnHand ??
+      (raw as any).quantity_on_hand ??
+      (raw as any).currentStock ??
+      raw.closingStock ??
+      0,
+  );
   const alertQty = raw.alertQuantity ?? raw.reorderLevel ?? raw.minThreshold ?? 0;
-  const unitCost = raw.unitCost ?? raw.pricePerUnit ?? 0;
+  const unitCost = raw.unitCost ?? raw.pricePerUnit ?? (raw as any).unitPrice ?? (raw as any).purchasePrice ?? 0;
   return {
     ...raw,
     rawMaterial: name,
@@ -184,6 +191,7 @@ function mapStock(raw: Partial<StockItem> & { id: string }): StockItem {
     availableStock: qty,
     closingStock: raw.closingStock ?? qty,
     quantityOnHand: qty,
+    quantity_on_hand: qty,
     parLevel: raw.parLevel ?? 0,
     reorderLevel: alertQty,
     minThreshold: alertQty,

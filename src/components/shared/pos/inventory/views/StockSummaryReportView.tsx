@@ -3,7 +3,12 @@ import { Clock, BarChart3, Package } from "lucide-react";
 import { toast } from "sonner";
 import { PosDataGrid } from "@/components/ui/data-grid";
 import type { DataGridColumn } from "@/components/ui/data-grid/types";
-import { useStockItems } from "@/hooks/queries/usePosInventory";
+import {
+  useStockItems,
+  useStockPurchases,
+  useWastageEntries,
+  useStockMovements,
+} from "@/hooks/queries/usePosInventory";
 import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 
 interface StockSummaryRow {
@@ -248,16 +253,74 @@ export function StockSummaryReportView() {
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
   const { data: stockItems = [], isLoading } = useStockItems();
+  const { data: purchases = [] } = useStockPurchases();
+  const { data: wastageList = [] } = useWastageEntries();
+  const { data: movements = [] } = useStockMovements({ from: fromDate, to: toDate });
 
   const rows: StockSummaryRow[] = useMemo(() => {
     return stockItems.map((item) => {
-      const opening = Number(item.openingBalance ?? item.availableStock ?? 0);
-      const purchase = Number(item.purchaseQty ?? 0);
+      // 1. Calculate purchase quantity for this item
+      const itemPurchases = purchases.reduce((acc: number, p: any) => {
+        const matchingLines = (p.items || []).filter(
+          (line: any) =>
+            line.stockItemId === item.id ||
+            line.name === item.rawMaterial ||
+            line.name === item.name,
+        );
+        return (
+          acc +
+          matchingLines.reduce(
+            (sum: number, l: any) => sum + Number(l.quantity || 0),
+            0,
+          )
+        );
+      }, 0);
+
+      // 2. Calculate wastage quantity for this item
+      const itemWastage = wastageList.reduce((acc: number, w: any) => {
+        if (
+          w.stockItemId === item.id ||
+          w.rawMaterialId === item.id ||
+          w.itemName === item.rawMaterial ||
+          w.itemName === item.name
+        ) {
+          return acc + Number(w.quantity || 0);
+        }
+        return acc;
+      }, 0);
+
+      // 3. Calculate consumption quantity from movements
+      const itemConsumed = movements.reduce((acc: number, m: any) => {
+        if (
+          (m.stockItemId === item.id ||
+            m.name === item.rawMaterial ||
+            m.name === item.name) &&
+          (m.type === "SETTLE_DEDUCT" ||
+            m.type === "CONSUMPTION" ||
+            m.type === "USAGE")
+        ) {
+          return acc + Math.abs(Number(m.signedQty ?? m.quantity ?? 0));
+        }
+        return acc;
+      }, 0);
+
+      const purchase = Number(
+        item.purchaseQty ?? (itemPurchases > 0 ? itemPurchases : 0),
+      );
+      const wastage = Number(
+        item.wastageQty ?? (itemWastage > 0 ? itemWastage : 0),
+      );
+      const consumed = Number(
+        item.consumedQty ?? (itemConsumed > 0 ? itemConsumed : 0),
+      );
+      const closing = Number(item.closingStock ?? item.availableStock ?? 0);
+      const opening = Number(
+        item.openingBalance ??
+          item.openingStock ??
+          Math.max(0, closing - purchase + consumed + wastage),
+      );
       const totalIn = opening + purchase;
-      const consumed = Number(item.consumedQty ?? 0);
-      const wastage = Number(item.wastageQty ?? 0);
       const totalOut = consumed + wastage;
-      const closing = Number(item.availableStock ?? 0);
       const variance = Number(item.variance ?? 0);
 
       return {
@@ -279,7 +342,7 @@ export function StockSummaryReportView() {
         difference: variance.toFixed(3),
       };
     });
-  }, [stockItems]);
+  }, [stockItems, purchases, wastageList, movements]);
 
   return (
     <div className="space-y-4">

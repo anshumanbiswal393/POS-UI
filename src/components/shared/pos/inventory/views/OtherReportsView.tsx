@@ -899,10 +899,10 @@ export function OtherReportsView() {
     const totalItems = stockItems.length;
 
     stockItems.forEach((item: any) => {
-      const stock = Number(item.currentStock || item.openingStock || 0);
-      const price = Number(item.unitPrice || item.purchasePrice || 0);
+      const stock = Number(item.closingStock ?? item.availableStock ?? item.quantityOnHand ?? item.currentStock ?? item.openingStock ?? 0);
+      const price = Number(item.unitCost ?? item.pricePerUnit ?? item.unitPrice ?? item.purchasePrice ?? 0);
       totalStockValuation += stock * price;
-      if (stock <= Number(item.minStock || 5)) {
+      if (stock <= Number(item.reorderLevel ?? item.minThreshold ?? item.minStock ?? 5)) {
         lowStockCount++;
       }
     });
@@ -916,14 +916,18 @@ export function OtherReportsView() {
     );
 
     const sortedByValuation = [...stockItems]
-      .map((item: any) => ({
-        name: item.name || "Item",
-        category: item.category || "General",
-        qty: item.currentStock ?? 0,
-        unit: item.unit || "unit",
-        rate: Number(item.unitPrice || item.purchasePrice || 0),
-        val: (item.currentStock ?? 0) * Number(item.unitPrice || item.purchasePrice || 0),
-      }))
+      .map((item: any) => {
+        const qty = Number(item.closingStock ?? item.availableStock ?? item.quantityOnHand ?? item.currentStock ?? 0);
+        const rate = Number(item.unitCost ?? item.pricePerUnit ?? item.unitPrice ?? item.purchasePrice ?? 0);
+        return {
+          name: item.name || item.rawMaterial || "Item",
+          category: item.category || "General",
+          qty,
+          unit: item.unit || "unit",
+          rate,
+          val: qty * rate,
+        };
+      })
       .sort((a, b) => b.val - a.val)
       .slice(0, 5);
 
@@ -958,49 +962,80 @@ export function OtherReportsView() {
       case "REP-DISCREP-03":
       case "REP-DAYEND-04":
       case "REP-FIFO-01":
-        return stockItems.map((item, idx) => ({
-          id: item.id || String(idx + 1),
-          code: item.code || item.itemCode || `SKU-${(item.id || String(idx + 1)).slice(0, 6)}`,
-          name: item.name || "Item",
-          category: item.category || "General",
-          unit: item.unit || "unit",
-          openingQty: item.openingStock ?? item.currentStock ?? 0,
-          purchaseQty: 0,
-          transfersQty: 0,
-          wastageQty: 0,
-          consumedQty: 0,
-          closingQty: item.currentStock ?? 0,
-          inwardQty: 0,
-          outwardQty: 0,
-          unitRate: Number(item.unitPrice || item.purchasePrice || 0),
-          closingValue: (item.currentStock ?? 0) * Number(item.unitPrice || item.purchasePrice || 0),
-          avgRate: Number(item.unitPrice || item.purchasePrice || 0),
-          totalCost: (item.currentStock ?? 0) * Number(item.unitPrice || item.purchasePrice || 0),
-          healthStatus: (item.currentStock ?? 0) <= (item.minStock ?? 5) ? "Reorder Needed" : "Optimal",
-          currentStock: item.currentStock ?? 0,
-          reorderLevel: item.minStock ?? 0,
-          valuation: (item.currentStock ?? 0) * Number(item.unitPrice || item.purchasePrice || 0),
-        }));
+        return stockItems.map((item: any, idx) => {
+          const rawCode = item.code || item.sku || item.itemCode || `SKU-${(item.id || String(idx + 1)).slice(0, 6)}`;
+          const rawName = item.rawMaterial || item.name || "Item";
+          const rawCategory = item.category || "General";
+          const rawUnit = item.unit || "unit";
+          const stockQty = Number(item.closingStock ?? item.availableStock ?? item.quantityOnHand ?? item.currentStock ?? 0);
+          const openQty = Number(item.openingStock ?? item.openingBalance ?? stockQty);
+          const rate = Number(item.unitCost ?? item.pricePerUnit ?? item.unitPrice ?? item.purchasePrice ?? 0);
+          const reorder = Number(item.reorderLevel ?? item.alertQuantity ?? item.minThreshold ?? item.minStock ?? 5);
+          const totalVal = stockQty * rate;
+
+          return {
+            id: item.id || String(idx + 1),
+            code: rawCode,
+            itemCode: rawCode,
+            name: rawName,
+            rawMaterial: rawName,
+            category: rawCategory,
+            unit: rawUnit,
+            opening: openQty,
+            openingQty: openQty,
+            openingStock: openQty,
+            purchase: 0,
+            purchaseQty: 0,
+            transfersQty: 0,
+            wastage: 0,
+            wastageQty: 0,
+            consumed: 0,
+            consumedQty: 0,
+            transfer: 0,
+            closingStock: stockQty,
+            closingQty: stockQty,
+            currentStock: stockQty,
+            inwardQty: 0,
+            outwardQty: 0,
+            unitRate: rate,
+            purchasePrice: rate,
+            unitPrice: rate,
+            closingValue: totalVal,
+            avgRate: rate,
+            totalCost: totalVal,
+            healthStatus: stockQty <= reorder ? "Reorder Needed" : "Optimal",
+            reorderLevel: reorder,
+            valuation: totalVal,
+          };
+        });
       case "REP-FOODCOST-03":
       case "REP-RECIPE-09":
-        return recipes.map((r, idx) => ({
-          id: r.id || String(idx + 1),
-          menuCode: `REC-${(r.id || String(idx + 1)).slice(0, 6)}`,
-          dishName: r.dishName || r.name || "Recipe",
-          section: r.category || "Main",
-          salesPrice: Number(r.sellingPrice || 0),
-          costPrice: Number(r.costPrice || r.totalCost || 0),
-          grossMargin: Number(r.sellingPrice || 0) - Number(r.costPrice || r.totalCost || 0),
-          costPercent: r.sellingPrice ? ((Number(r.costPrice || 0) / Number(r.sellingPrice)) * 100) : 0,
-          targetPercent: 30,
-          marginPercent: r.sellingPrice ? (((Number(r.sellingPrice) - Number(r.costPrice || 0)) / Number(r.sellingPrice)) * 100) : 0,
-          varianceStatus: "Active",
-          recipeName: r.dishName || r.name || "Recipe",
-          ingredientsCount: r.ingredients?.length || 0,
-          portionSize: "1 Portion",
-          totalBatchCost: Number(r.costPrice || r.totalCost || 0),
-          costPerPortion: Number(r.costPrice || r.totalCost || 0),
-        }));
+        return recipes.map((r: any, idx) => {
+          const dish = r.dishName || r.name || r.recipeName || r.menuItemName || "Recipe";
+          const sp = Number(r.sellingPrice || r.salesPrice || r.price || 0);
+          const cp = Number(r.costPrice || r.totalCost || r.costPerPortion || 0);
+          const gm = sp - cp;
+          return {
+            id: r.id || String(idx + 1),
+            menuCode: r.code || r.menuCode || `REC-${(r.id || String(idx + 1)).slice(0, 6)}`,
+            dishName: dish,
+            recipeName: dish,
+            name: dish,
+            section: r.category || r.section || "Main",
+            salesPrice: sp,
+            sellingPrice: sp,
+            costPrice: cp,
+            grossMargin: gm,
+            costPercent: sp ? (cp / sp) * 100 : 0,
+            targetPercent: 30,
+            marginPercent: sp ? (gm / sp) * 100 : 0,
+            varianceStatus: "Active",
+            ingredientsCount: r.ingredients?.length || 0,
+            portionSize: r.portionSize || "1 Portion",
+            totalBatchCost: cp,
+            costPerPortion: cp,
+          };
+        });
       case "REP-PO-05":
       case "REP-PO-STATUS-01":
       case "REP-PO-VAL-03":
@@ -1242,7 +1277,8 @@ export function OtherReportsView() {
   // Print Report Handler
   const handlePrint = () => {
     if (!selectedReport) return;
-    const cfg = currentReportConfig;
+    const cfg = currentDatasetConfig || REPORT_DATASETS[selectedReport.id] || REPORT_DATASETS["REP-CONS-01"];
+    if (!cfg) return;
     const columns = cfg.columns.map((c) => ({
       header: c.label.toUpperCase(),
       align: (c.align as any) || "left",
