@@ -368,7 +368,7 @@ export function PosLiveOrdersManager() {
                             {ord.orderNumber}
                           </span>
                           <span className="rounded px-1.5 py-0.5 text-[10px] font-bold border border-slate-300 bg-slate-100 text-slate-700">
-                            {ord.typeLabel}
+                            {ord.typeLabel || (String(ord.type ?? (ord as any).orderType).toLowerCase().includes("takeaway") ? "Takeaway" : String(ord.type ?? (ord as any).orderType).toLowerCase().includes("delivery") ? "Delivery" : "Dine-in")}
                           </span>
                           <span className="text-[10.5px] text-slate-400">{ord.startTime}</span>
                         </div>

@@ -182,7 +182,7 @@ export function TableCardItem({
                     </span>
                     <span className="text-orange-300 font-normal">•</span>
                     <span className="text-orange-950 font-extrabold">
-                      ₹{Math.round(activeOrder?.totalAmount || 0).toLocaleString("en-IN")}
+                      ₹{Math.round(activeOrder?.totalAmount || activeOrder?.grandTotal || (activeOrder as any)?.amount || 0).toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
@@ -193,7 +193,7 @@ export function TableCardItem({
                   </span>
                   <div className="flex items-center justify-center gap-1 text-[9.5px] font-bold text-amber-950 leading-tight whitespace-nowrap">
                     <span className="text-amber-950 font-extrabold">
-                      ₹{Math.round(activeOrder?.totalAmount || 0).toLocaleString("en-IN")}
+                      ₹{Math.round(activeOrder?.totalAmount || activeOrder?.grandTotal || (activeOrder as any)?.amount || 0).toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
@@ -238,7 +238,7 @@ export function TableCardItem({
           <>
             <div className="min-w-0 pr-2">
               <div className="text-[12px] font-extrabold text-slate-900 leading-tight truncate">
-                {activeReservation?.customerName || activeOrder?.guestName || `₹${Math.round(activeOrder?.totalAmount || 0).toLocaleString("en-IN")}`}
+                {activeReservation?.customerName || activeOrder?.guestName || `₹${Math.round(activeOrder?.totalAmount || activeOrder?.grandTotal || (activeOrder as any)?.amount || 0).toLocaleString("en-IN")}`}
               </div>
               <div className="text-[9.5px] font-medium text-slate-500 mt-0.5 truncate">
                 {status === "billed" ? "Bill Printed · Do Not Seat" : activeOrder?.orderNumber ? `Order #${activeOrder.orderNumber}` : activeReservation?.isMerged ? "Merged Table" : "1 active order"}

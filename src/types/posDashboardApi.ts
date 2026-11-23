@@ -92,6 +92,8 @@ export interface PosDashboardApiResponse {
   salesGraph: HourlySalesPointApiDto[];
   orderTypes: OrderTypeDistributionApiDto[];
   liveOrders: LiveOrderApiDto[];
+  liveOrdersCount?: number;
+  count?: number;
   paymentSummary: PaymentBreakdownApiDto;
   tables: TableItemApiDto[];
   topSellingItems: TopSellingItemApiDto[];

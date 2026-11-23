@@ -42,7 +42,7 @@ export type BillingMenuItem = {
   originalPrice?: number;
   commissionType?: string;
   commissionValue?: number | null;
-  status?: "Active" | "Inactive" | string;
+  status?: "Active" | "Inactive" | "Out_of_Stock";
   inStock: boolean;
   stockCount?: number;
   plates?: number;

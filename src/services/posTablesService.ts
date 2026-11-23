@@ -157,7 +157,7 @@ function mapBackendReservation(r: any): ReservationItem {
       ? tableNumbers.join(" + ")
       : (tableNumbers[0] || "Table");
 
-  let status: "reserved" | "seated" | "completed" | "cancelled" = "reserved";
+  let status: "reserved" | "seated" | "completed" | "cancelled" | "no_show" = "reserved";
 
   const st = String(r.status || "").toUpperCase();
 
@@ -165,7 +165,9 @@ function mapBackendReservation(r: any): ReservationItem {
 
   else if (st === "COMPLETED") status = "completed";
 
-  else if (st === "CANCELLED" || st === "NO_SHOW") status = "cancelled";
+  else if (st === "NO_SHOW") status = "no_show";
+
+  else if (st === "CANCELLED") status = "cancelled";
 
   return {
 
@@ -884,8 +886,9 @@ export const posTablesService = {
                   seatedAt: matched.startTime || "",
                   elapsedMinutes: Math.max(1, matched.elapsedMinutes || 0),
                   itemsCount: matched.items?.length || 0,
-                  subtotal: matched.subtotal || matched.amount,
-                  totalAmount: matched.amount,
+                  subtotal: Number(matched.subtotal ?? matched.amount ?? 0),
+                  totalAmount: Number(matched.totalAmount ?? matched.grandTotal ?? matched.amount ?? 0),
+                  grandTotal: Number(matched.grandTotal ?? matched.totalAmount ?? matched.amount ?? 0),
                   status: matched.currentStage === "placed" ? "in_prep" : "served",
                   guestName: matched.customerName,
                   guestPhone: matched.customerPhone,
@@ -932,7 +935,7 @@ export const posTablesService = {
           tbl.activeOrder?.orderId ||
           (matchedRes && matchedRes.status === "seated")
         ) {
-          if (matchedRes && matchedRes.status !== "completed" && matchedRes.status !== "cancelled") {
+          if (matchedRes && matchedRes.status !== "completed" && matchedRes.status !== "cancelled" && matchedRes.status !== "no_show") {
             const guestName = tbl.activeOrder?.guestName || matchedRes.customerName;
             const guestPhone = tbl.activeOrder?.guestPhone || matchedRes.customerPhone;
             return {
@@ -1882,7 +1885,7 @@ export const posTablesService = {
     };
 
     const shouldComplete = (r: ReservationItem) => {
-      if (r.status === "completed" || r.status === "cancelled") return false;
+      if (r.status === "completed" || r.status === "cancelled" || r.status === "no_show") return false;
       if (reservationId && r.id === reservationId) return true;
       if (guestLower && (r.customerName || "").trim().toLowerCase() === guestLower) return true;
       if (matchesTable(r)) {

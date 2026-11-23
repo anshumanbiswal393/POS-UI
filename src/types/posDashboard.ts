@@ -87,6 +87,7 @@ export interface PosDashboardData {
   orderTypes: OrderTypeMixItem[];
   totalOrderTypesCount: number;
   liveOrders: LiveOrderItem[];
+  liveOrdersCount?: number;
   paymentSummary: PaymentSummaryData;
   tables: TableStatusItem[];
   topSellingItems: TopDishItem[];

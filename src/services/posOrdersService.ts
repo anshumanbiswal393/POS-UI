@@ -458,6 +458,8 @@ export interface CurrentOrderRecord {
   pax?: number;
   itemsSummary: string;
   amount: number;
+  totalAmount?: number;
+  grandTotal?: number;
   amountFormatted: string;
   startTime: string;
   createdTimestamp: number;

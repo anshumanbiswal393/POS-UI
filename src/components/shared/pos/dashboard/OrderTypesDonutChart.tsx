@@ -15,18 +15,37 @@ export function OrderTypesDonutChart({ orderTypes }: OrderTypesDonutChartProps) 
   }, []);
 
   const { slices, totalCount } = useMemo(() => {
-    const withoutDelivery = orderTypes.filter((item) => item.type !== "delivery");
+    const safeList = Array.isArray(orderTypes) ? orderTypes : [];
+    const withoutDelivery = safeList.filter((item) => {
+      const t = String(item.type ?? (item as any).orderType ?? "").toLowerCase();
+      return t !== "delivery";
+    });
     const total = withoutDelivery.reduce((sum, item) => sum + item.count, 0);
-    const slices = withoutDelivery.map((item) => ({
-      ...item,
-      percentage: total ? Math.round((item.count / total) * 1000) / 10 : 0,
-    }));
+    const slices = withoutDelivery.map((item) => {
+      const rawType = String(item.type ?? (item as any).orderType ?? "").toLowerCase();
+      const label =
+        item.label ||
+        (rawType.includes("dine")
+          ? "Dine-in"
+          : rawType.includes("takeaway") || rawType.includes("pickup")
+            ? "Takeaway"
+            : rawType.includes("delivery")
+              ? "Delivery"
+              : item.type || "Dine-in");
+      return {
+        ...item,
+        label,
+        percentage: total ? Math.round((item.count / total) * 1000) / 10 : 0,
+      };
+    });
     return { slices, totalCount: total };
   }, [orderTypes]);
 
   const resolveSliceColor = (entry: OrderTypeMixItem) => {
-    if (entry.type === "dine_in") return "var(--primary, #006a4e)";
-    if (entry.type === "takeaway") return "#f59e0b"; // warm amber - distinctive from green & blue, visible and not too dark
+    const rawType = String(entry.type ?? (entry as any).orderType ?? "").toLowerCase();
+    if (rawType.includes("dine")) return "var(--primary, #006a4e)";
+    if (rawType.includes("takeaway") || rawType.includes("pickup")) return "#f59e0b"; // warm amber - distinctive from green & blue, visible and not too dark
+    if (rawType.includes("delivery")) return "#10b981";
     return entry.color;
   };
 

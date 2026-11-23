@@ -41,7 +41,7 @@ import { getPosTaxSettings } from "@/lib/posTaxSettings";
 import { useHotelRooms } from "@/hooks/queries/usePosRoomService";
 import { usePosTables, usePosReservations, POS_RESERVATIONS_QUERY_KEY } from "@/hooks/queries/usePosTables";
 import { posTablesService } from "@/services/posTablesService";
-import { savePosCustomer } from "@/services/posCustomerStore";
+import { savePosCustomer, getPosCustomers, type PosCustomerRecord } from "@/services/posCustomerStore";
 import { isBackendOutletId } from "@/utils/outletId";
 import { printPosInvoice, settlementRecordToInvoicePayload } from "@/utils/printReceipt";
 import { POS_ROOM_SERVICE_ROOMS_KEY } from "@/hooks/queries/usePosRoomService";
@@ -308,6 +308,8 @@ export function PosBillingManager() {
               name: cust.name,
               phone: cust.phone || "",
               tier: cust.tier as any,
+              loyaltyPoints: cust.loyaltyPoints,
+              visitCount: cust.visitCount,
             },
             activeOutlet?.id,
           );
@@ -467,11 +469,18 @@ export function PosBillingManager() {
           code: item.code.startsWith("#") ? item.code : `#${item.code}`,
           name: item.name,
           category: item.category as any,
+          subCategory: item.subCategory || (item as any)?.sub_category || "",
           diet,
           price: effectivePrice,
           originalPrice: basePrice,
           commissionType: item.commissionType,
           commissionValue: item.commissionValue,
+          status:
+            item.plates !== undefined && item.plates <= 0
+              ? ("Out_of_Stock" as const)
+              : (item.status as string) === "Out_of_Stock" || (item as any)?.status === "Out_of_Stock"
+                ? ("Out_of_Stock" as const)
+                : ((item.status as any) || "Active"),
           inStock: item.plates !== undefined ? item.plates > 0 : true,
           plates: item.plates,
           prepTimeMinutes: 15,
@@ -541,14 +550,15 @@ export function PosBillingManager() {
     }
     if (qGuestName) {
       const phoneRaw = qGuestPhone?.trim() ? decodeURIComponent(qGuestPhone.trim()) : "";
+      const existing = phoneRaw ? getPosCustomers(activeOutlet?.id).find((c: PosCustomerRecord) => c.phone.trim() === phoneRaw) : undefined;
       handleSelectCustomer({
-        id: `guest-${Date.now()}`,
+        id: existing?.id || `guest-${Date.now()}`,
         name: decodeURIComponent(qGuestName),
         phone: phoneRaw,
-        tier: "Silver",
-        loyaltyPoints: 0,
-        visitCount: 1,
-        lastVisit: "Today",
+        tier: existing?.tier || "Silver",
+        loyaltyPoints: existing?.loyaltyPoints ?? 0,
+        visitCount: existing ? (existing.visitCount || 0) + 1 : 1,
+        lastVisit: existing?.lastVisit || "Today",
       });
     } else if (qTable || qTableId) {
       const autoCust = findCustomerForTable(qTable || "", qTableId || undefined);
@@ -1242,14 +1252,16 @@ export function PosBillingManager() {
     setRunningOrderMeta(null);
 
     if (held.customerName) {
+      const ph = (held.customerPhone || "").trim();
+      const existing = ph ? getPosCustomers(activeOutlet?.id).find((c: PosCustomerRecord) => c.phone.trim() === ph) : undefined;
       handleSelectCustomer({
-        id: `guest-${Date.now()}`,
+        id: existing?.id || `guest-${Date.now()}`,
         name: held.customerName,
-        phone: held.customerPhone || "",
-        tier: "Silver",
-        loyaltyPoints: 0,
-        visitCount: 1,
-        lastVisit: "Today",
+        phone: ph,
+        tier: existing?.tier || "Silver",
+        loyaltyPoints: existing?.loyaltyPoints ?? 0,
+        visitCount: existing ? (existing.visitCount || 0) + 1 : 1,
+        lastVisit: existing?.lastVisit || "Today",
       });
     } else if (held.tableNumber || held.tableId) {
       const autoCust = findCustomerForTable(held.tableNumber || "", held.tableId);
@@ -1294,14 +1306,16 @@ export function PosBillingManager() {
 
     let foundCust: CustomerProfile | null = null;
     if (effectiveRes?.customerName) {
+      const ph = (effectiveRes.customerPhone || "").trim();
+      const existing = ph ? getPosCustomers(activeOutlet?.id).find((c: PosCustomerRecord) => c.phone.trim() === ph) : undefined;
       handleSelectCustomer({
-        id: `cust-${effectiveRes.id}`,
+        id: existing?.id || `cust-${effectiveRes.id}`,
         name: effectiveRes.customerName,
-        phone: effectiveRes.customerPhone || "",
-        tier: "Silver",
-        loyaltyPoints: 0,
-        visitCount: 1,
-        lastVisit: "Today",
+        phone: ph,
+        tier: existing?.tier || "Silver",
+        loyaltyPoints: existing?.loyaltyPoints ?? 0,
+        visitCount: existing ? (existing.visitCount || 0) + 1 : 1,
+        lastVisit: existing?.lastVisit || "Today",
       });
       toast.info(`Selected Table ${code} for ${effectiveRes.customerName} (${effectiveRes.guests} pax)`);
     } else {
@@ -1350,14 +1364,16 @@ export function PosBillingManager() {
         })),
       });
       if (activeTimelineOrder.customerName) {
+        const ph = (activeTimelineOrder.customerPhone && activeTimelineOrder.customerPhone !== "--" ? activeTimelineOrder.customerPhone : "").trim();
+        const existing = ph ? getPosCustomers(activeOutlet?.id).find((c: PosCustomerRecord) => c.phone.trim() === ph) : undefined;
         handleSelectCustomer({
-          id: `guest-${activeTimelineOrder.orderNumber}`,
+          id: existing?.id || `guest-${activeTimelineOrder.orderNumber}`,
           name: activeTimelineOrder.customerName,
-          phone: activeTimelineOrder.customerPhone && activeTimelineOrder.customerPhone !== "--" ? activeTimelineOrder.customerPhone : "",
-          tier: "Silver",
-          loyaltyPoints: 0,
-          visitCount: 1,
-          lastVisit: "Today",
+          phone: ph,
+          tier: existing?.tier || "Silver",
+          loyaltyPoints: existing?.loyaltyPoints ?? 0,
+          visitCount: existing ? (existing.visitCount || 0) + 1 : 1,
+          lastVisit: existing?.lastVisit || "Today",
         });
       } else if (foundCust) {
         handleSelectCustomer(foundCust);

@@ -45,6 +45,7 @@ export interface ActiveOrderSummary {
   itemsCount: number;
   subtotal: number;
   totalAmount: number;
+  grandTotal?: number;
   status: "in_prep" | "served" | "billing";
   guestName?: string;
   guestPhone?: string;

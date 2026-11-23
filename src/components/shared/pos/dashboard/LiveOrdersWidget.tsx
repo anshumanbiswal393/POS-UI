@@ -6,10 +6,13 @@ const VISIBLE_ORDER_ROWS = 3;
 
 interface LiveOrdersWidgetProps {
   orders: LiveOrderItem[];
+  count?: number;
 }
 
-export function LiveOrdersWidget({ orders }: LiveOrdersWidgetProps) {
-  const visibleOrders = orders.slice(0, VISIBLE_ORDER_ROWS);
+export function LiveOrdersWidget({ orders, count }: LiveOrdersWidgetProps) {
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const badgeCount = count ?? (orders as any)?.count ?? safeOrders.length;
+  const visibleOrders = safeOrders.slice(0, VISIBLE_ORDER_ROWS);
   return (
     <div className="flex h-full min-h-[175px] flex-col rounded-xl border border-slate-400/80 bg-white p-2.5 sm:p-3 shadow-2xs">
       {/* Header */}
@@ -18,7 +21,7 @@ export function LiveOrdersWidget({ orders }: LiveOrdersWidgetProps) {
           <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
           <h2 className="text-[13px] font-bold text-slate-900">Current Orders</h2>
           <span className="rounded-full bg-primary/10 px-1.5 py-0.2 text-[10px] font-bold text-primary border border-primary/20">
-            {orders.length} Active
+            {badgeCount} Active
           </span>
         </div>
         <Link
@@ -52,7 +55,7 @@ export function LiveOrdersWidget({ orders }: LiveOrdersWidgetProps) {
                   <div className="flex items-center gap-1.5">
                     <span className="text-[11.5px] font-bold text-slate-900 truncate">{ord.title}</span>
                     <span className="rounded px-1 py-0.2 text-[8.5px] font-semibold bg-white border border-slate-300 text-slate-600 shrink-0">
-                      {ord.orderType}
+                      {ord.orderType || (String((ord as any).type ?? ord.orderType).toLowerCase().includes("takeaway") ? "Takeaway" : String((ord as any).type ?? ord.orderType).toLowerCase().includes("delivery") ? "Delivery" : "Dine-in")}
                     </span>
                   </div>
                   <div className="flex items-center gap-1 text-[10px] text-slate-500">

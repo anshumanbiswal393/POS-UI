@@ -121,10 +121,18 @@ export function mapDtoToDashboardModel(
     color: ot.color,
   }));
 
-  const liveOrders: LiveOrderItem[] = (dto.liveOrders || []).map((lo) => ({
+  const liveOrders: LiveOrderItem[] = (dto.liveOrders || []).map((lo: any) => ({
     id: lo.id,
     title: lo.title,
-    orderType: lo.orderTypeLabel,
+    orderType:
+      lo.orderTypeLabel ||
+      (String(lo.type ?? lo.orderType ?? "").toLowerCase().includes("takeaway")
+        ? "Takeaway"
+        : String(lo.type ?? lo.orderType ?? "").toLowerCase().includes("delivery")
+          ? "Delivery"
+          : String(lo.type ?? lo.orderType ?? "").toLowerCase().includes("room")
+            ? "Room Service"
+            : "Dine-in"),
     status: lo.status === "delivered" ? "ready" : (lo.status as any),
     statusLabel: lo.statusLabel,
     elapsedMinutes: lo.elapsedMinutes,
@@ -195,6 +203,7 @@ export function mapDtoToDashboardModel(
     outletName: dto.outletName || "",
     dateLabel: dto.date || "Today",
     isMockData: isMock,
+    liveOrdersCount: (dto as any).count ?? (dto.liveOrders ? dto.liveOrders.length : 0),
     stats,
     salesGraph,
     orderTypes,
@@ -673,6 +682,7 @@ export async function getPosDashboardData(
       ],
       orderTypes,
       liveOrders,
+      liveOrdersCount: liveOrders.length,
       paymentSummary: {
         cash: { amount: paymentSummary.cash.amount, percentage: paymentSummary.cash.percentage },
         card: { amount: paymentSummary.card.amount, percentage: paymentSummary.card.percentage },

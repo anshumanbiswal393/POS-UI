@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   CreditCard,
@@ -69,6 +69,16 @@ export function PaymentModal({
   const [referenceInput, setReferenceInput] = useState<string>("");
   const [roomNumberInput, setRoomNumberInput] = useState<string>("");
   const [guestNameInput, setGuestNameInput] = useState<string>(guestName);
+
+  useEffect(() => {
+    if (isOpen) {
+      setCashTendered(grandTotal || 0);
+      setPayments([]);
+      setReferenceInput("");
+      setRoomNumberInput("");
+      setGuestNameInput(guestName);
+    }
+  }, [isOpen, grandTotal, guestName]);
 
   if (!isOpen) return null;
 

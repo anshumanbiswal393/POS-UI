@@ -81,7 +81,7 @@ export function PosDashboardManager() {
       <DashboardKpiCards stats={data.stats} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 lg:flex-1 lg:min-h-0">
-        <LiveOrdersWidget orders={data.liveOrders} />
+        <LiveOrdersWidget orders={data.liveOrders} count={(data as any).liveOrdersCount ?? (data as any).count ?? data.liveOrders?.length} />
         <OrderTypesDonutChart orderTypes={data.orderTypes} totalCount={data.totalOrderTypesCount} />
         <TableStatusCard tables={data.tables} />
       </div>

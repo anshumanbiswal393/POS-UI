@@ -64,11 +64,20 @@ export function BillingMenuCatalog({
     const fromItems: string[] = [];
     for (const item of safeItems) {
       const cat = String(item?.category || "").trim();
-      if (!cat) continue;
-      const lower = cat.toLowerCase();
-      if (!seen.has(lower)) {
-        seen.add(lower);
-        fromItems.push(cat);
+      if (cat) {
+        const lower = cat.toLowerCase();
+        if (!seen.has(lower)) {
+          seen.add(lower);
+          fromItems.push(cat);
+        }
+      }
+      const subCat = String(item?.subCategory || (item as any)?.sub_category || "").trim();
+      if (subCat) {
+        const lowerSub = subCat.toLowerCase();
+        if (!seen.has(lowerSub)) {
+          seen.add(lowerSub);
+          fromItems.push(subCat);
+        }
       }
     }
     fromItems.sort((a, b) => a.localeCompare(b));
@@ -90,7 +99,8 @@ export function BillingMenuCatalog({
       if (!item) return false;
       if (
         selectedCategory !== "All Items" &&
-        String(item.category || "").trim().toLowerCase() !== selectedCategory.trim().toLowerCase()
+        String(item.category || "").trim().toLowerCase() !== selectedCategory.trim().toLowerCase() &&
+        String(item.subCategory || (item as any)?.sub_category || "").trim().toLowerCase() !== selectedCategory.trim().toLowerCase()
       ) {
         return false;
       }
@@ -165,7 +175,7 @@ export function BillingMenuCatalog({
       toast.error(`"${item.name}" is currently unavailable.`);
       return;
     }
-    if (item.plates !== undefined && item.plates <= 0) {
+    if (item.status === "Out_of_Stock" || (item.plates !== undefined && item.plates <= 0)) {
       toast.error(`"${item.name}" is sold out.`);
       return;
     }
@@ -439,7 +449,7 @@ export function BillingMenuCatalog({
                           >
                             Unavailable
                           </button>
-                        ) : item.plates !== undefined && item.plates <= 0 ? (
+                        ) : item.status === "Out_of_Stock" || (item.plates !== undefined && item.plates <= 0) ? (
                           <button
                             type="button"
                             disabled
