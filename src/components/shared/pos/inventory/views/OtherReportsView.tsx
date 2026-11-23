@@ -1164,7 +1164,7 @@ export function OtherReportsView() {
       const q = reportSearch.toLowerCase().trim();
       rows = rows.filter((r) => {
         return Object.values(r).some((val) =>
-          String(val).toLowerCase().includes(q)
+          String(val ?? "").toLowerCase().includes(q)
         );
       });
     }
@@ -1211,8 +1211,8 @@ export function OtherReportsView() {
           return sortConfig.direction === "asc" ? valA - valB : valB - valA;
         }
 
-        const strA = String(valA || "").toLowerCase();
-        const strB = String(valB || "").toLowerCase();
+        const strA = String(valA ?? "").toLowerCase();
+        const strB = String(valB ?? "").toLowerCase();
         return sortConfig.direction === "asc"
           ? strA.localeCompare(strB)
           : strB.localeCompare(strA);

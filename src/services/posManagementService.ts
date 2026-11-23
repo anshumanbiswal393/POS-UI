@@ -755,6 +755,7 @@ export const posManagementService = {
     const res = await httpClient.post(`/api/pos/management/support-tickets/?outlet_id=${outletId}`, {
       ...payload,
       outlet: outletId,
+      contact_phone: payload.contact_phone || undefined,
     });
     return res.data;
   },

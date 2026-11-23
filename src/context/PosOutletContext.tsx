@@ -421,6 +421,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
       phone: data.contact,
       address: data.address,
       additionalInfo: data.description,
+      orderTypes: data.orderTypes,
       formType: "Kitchen",
       parentOutletId: parentId,
       is_active: data.status !== "Inactive",
@@ -437,6 +438,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         email: data.email,
         phone: data.contact,
         address: data.address,
+        orderTypes: data.orderTypes,
         status: data.status,
       });
     } catch {

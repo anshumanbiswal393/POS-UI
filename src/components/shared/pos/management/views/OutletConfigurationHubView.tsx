@@ -17,10 +17,6 @@ import {
 } from "@/components/shared/pos/management/outlet-config/outletSetupSteps";
 import { locationRoleLabel } from "@/utils/outletKind";
 
-function withOutlet(path: string, outletId: string) {
-  return `${path}?outletId=${encodeURIComponent(outletId)}`;
-}
-
 function ProgressRing({ value, caption }: { value: number; caption: string }) {
   const radius = 20;
   const circ = 2 * Math.PI * radius;
@@ -86,7 +82,8 @@ function StepRow({
   const inProgress = status === "in_progress";
   return (
     <Link
-      to={withOutlet(step.to, outletId)}
+      to={step.to as any}
+      search={{ outletId } as any}
       className={`group flex items-center gap-3 rounded-2xl border px-3.5 py-3 transition ${
         inProgress
           ? "border-primary/35 bg-primary-tint/70 shadow-xs"

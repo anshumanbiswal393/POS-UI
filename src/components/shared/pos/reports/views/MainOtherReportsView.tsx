@@ -489,15 +489,19 @@ export function MainOtherReportsView() {
     if (selectedOutlet !== "ALL") {
       rows = rows.filter((r) => {
         const out = String(r.outlet || r.outletName || r.outlet_name || "");
-        return !out || out.toLowerCase().includes(selectedOutlet.toLowerCase()) || selectedOutlet.toLowerCase().includes(out.toLowerCase());
+        return (
+          !out ||
+          out.toLowerCase().includes(String(selectedOutlet ?? "").toLowerCase()) ||
+          String(selectedOutlet ?? "").toLowerCase().includes(out.toLowerCase())
+        );
       });
     }
 
     // Search filtering
     if (reportSearch.trim()) {
-      const q = reportSearch.toLowerCase();
+      const q = reportSearch.toLowerCase().trim();
       rows = rows.filter((r) =>
-        Object.values(r).some((val) => String(val).toLowerCase().includes(q))
+        Object.values(r).some((val) => String(val ?? "").toLowerCase().includes(q))
       );
     }
 
@@ -513,8 +517,8 @@ export function MainOtherReportsView() {
         if (typeof valA === "number" && typeof valB === "number") {
           return direction === "asc" ? valA - valB : valB - valA;
         }
-        const strA = String(valA).toLowerCase();
-        const strB = String(valB).toLowerCase();
+        const strA = String(valA ?? "").toLowerCase();
+        const strB = String(valB ?? "").toLowerCase();
         return direction === "asc" ? strA.localeCompare(strB) : strB.localeCompare(strA);
       });
     }
