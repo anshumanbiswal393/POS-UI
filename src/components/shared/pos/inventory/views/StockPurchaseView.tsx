@@ -2220,7 +2220,7 @@ export function StockPurchaseView({
             <>
               Are you sure you want to permanently delete purchase invoice{" "}
               <span className="font-semibold text-slate-900">"{deletePurchaseTarget.invoiceNo}"</span> from{" "}
-              <span className="font-semibold text-slate-900">{deletePurchaseTarget.vendor}</span>?
+              <span className="font-semibold text-slate-900">{deletePurchaseTarget.vendorName || (deletePurchaseTarget as any).vendor}</span>?
             </>
           ) : undefined
         }

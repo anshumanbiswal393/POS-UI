@@ -39,9 +39,10 @@ const INITIAL_ROOMS: HotelRoom[] = [];
 let ordersStore: RoomServiceOrder[] = [];
 let roomsStore: HotelRoom[] = [...INITIAL_ROOMS];
 
-function getEffectivePosOperationalDate(dateOverride?: string): Date {
-  if (dateOverride && /^\d{4}-\d{2}-\d{2}$/.test(dateOverride)) {
-    const [y, m, d] = dateOverride.split("-").map(Number);
+function getEffectivePosOperationalDate(dateOverride?: string | string[]): Date {
+  const normDate = Array.isArray(dateOverride) ? dateOverride[0] : dateOverride;
+  if (normDate && /^\d{4}-\d{2}-\d{2}$/.test(normDate)) {
+    const [y, m, d] = normDate.split("-").map(Number);
     return new Date(y, m - 1, d);
   }
   if (typeof window !== "undefined") {
@@ -160,8 +161,8 @@ export const posRoomService = {
     if (scopedOutletId && isBackendOutletId(scopedOutletId)) {
       const current = await liveGetCurrent(scopedOutletId);
       const mapped: RoomServiceOrder[] = current
-        .filter((o) => o.type === "room_service" && !o.held)
-        .map((o) => ({
+        .filter((o: any) => o.type === "room_service" && !o.held)
+        .map((o: any) => ({
           id: o.id,
           orderNumber: o.orderNumber,
           roomNumber: String(o.roomNumber || o.tableOrRoom || "").replace(/^Room\s+/i, ""),
@@ -172,7 +173,7 @@ export const posRoomService = {
             phoneExtension: o.customerPhone,
             pax: o.pax,
           },
-          items: (o.items || []).map((i) => ({
+          items: (o.items || []).map((i: any) => ({
             id: String(i.id),
             name: i.name,
             quantity: i.quantity,
@@ -201,10 +202,11 @@ export const posRoomService = {
     return [...ordersStore];
   },
 
-  getRooms: async (floor?: RoomFloor, dateOverride?: string): Promise<HotelRoom[]> => {
-    const effectiveOpDate = getEffectivePosOperationalDate(dateOverride);
+  getRooms: async (floor?: RoomFloor, dateOverride?: string | string[]): Promise<HotelRoom[]> => {
+    const normDate = Array.isArray(dateOverride) ? dateOverride[0] : dateOverride;
+    const effectiveOpDate = getEffectivePosOperationalDate(normDate);
     const opDateStr =
-      dateOverride ||
+      normDate ||
       (typeof window !== "undefined"
         ? new URLSearchParams(window.location.search).get("date") ||
           localStorage.getItem("retrod:selected-pos-date")
@@ -596,9 +598,9 @@ export const posRoomService = {
     newItems: RoomOrderItem[],
   ): Promise<RoomServiceOrder> => {
     if (scopedOutletId && isBackendOutletId(scopedOutletId) && isBackendOutletId(orderId)) {
-      const current = (await liveGetCurrent(scopedOutletId)).find((o) => o.id === orderId);
+      const current = (await liveGetCurrent(scopedOutletId)).find((o: any) => o.id === orderId);
       const merged = [
-        ...(current?.items || []).map((i) => ({
+        ...(current?.items || []).map((i: any) => ({
           id: String(i.id),
           name: i.name,
           quantity: i.quantity,

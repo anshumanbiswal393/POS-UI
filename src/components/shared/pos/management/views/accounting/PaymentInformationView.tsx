@@ -43,6 +43,7 @@ export interface PaymentTransaction {
   status: "Success" | "Pending" | "Failed";
   timestamp: string;
   notes?: string;
+  date?: string;
   mode?: string;
   mdrFee?: number;
   netSettled?: number;
@@ -256,8 +257,8 @@ export function PaymentInformationView() {
     setIsAddModalOpen(false);
   };
 
-  const handleSaveGateway = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveGateway = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!gatewayForm.terminal_merchant_id.trim()) {
       toast.error("Merchant ID / Terminal ID is required.");
       return;
@@ -960,14 +961,17 @@ export function PaymentInformationView() {
       {/* 5. Payment Gateway Configuration Panel */}
       <PosCreatePanel
         open={isGatewayModalOpen}
-        isOpen={isGatewayModalOpen}
         onClose={() => setIsGatewayModalOpen(false)}
         title="Payment Gateway Configuration"
-        subtitle="Manage EDC card swipe machines, UPI QR providers, and online gateway credentials."
+        description="Manage EDC card swipe machines, UPI QR providers, and online gateway credentials."
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSaveGateway();
+        }}
         footer={
           <>
             <PosCreateCancelButton onClick={() => setIsGatewayModalOpen(false)} />
-            <PosCreateSubmitButton onClick={handleSaveGateway} label="Save Gateway Config" />
+            <PosCreateSubmitButton>Save Gateway Config</PosCreateSubmitButton>
           </>
         }
       >

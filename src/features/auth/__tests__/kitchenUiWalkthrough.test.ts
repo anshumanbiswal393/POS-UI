@@ -82,7 +82,7 @@ describe("Kitchen User UI Access & Visibility Flow", () => {
           id: "kitchen-orders",
           label: "Kitchen Orders (KOT)",
           to: "/pos/kot",
-          icon: () => null as any,
+          icon: (() => null) as any,
         };
         const items: PosNavItem[] = [kotItem];
         if (stockItem) {

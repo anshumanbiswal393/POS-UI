@@ -210,11 +210,18 @@ export function getInitialOnlineOrdersData(): OnlineOrdersData {
   return mapOnlineOrdersDto(onlineOrdersStore);
 }
 
-export async function getOnlineOrders(filters?: Record<string, any>): Promise<OnlineOrdersData> {
+export async function getOnlineOrders(filters?: Record<string, any> & { channel?: string | string[] }): Promise<OnlineOrdersData> {
   if (typeof window === "undefined") return getInitialOnlineOrdersData();
+  const normalizedFilters = filters
+    ? {
+        ...filters,
+        channel: Array.isArray(filters.channel) ? filters.channel.join(",") : filters.channel,
+        status: Array.isArray(filters.status) ? filters.status.join(",") : filters.status,
+      }
+    : undefined;
   try {
     const res = await httpClient.get<OnlineOrdersApiResponse>("/api/pos/orders/online", {
-      params: filters,
+      params: normalizedFilters,
     });
     if (res.data && res.data.success) return mapOnlineOrdersDto(res.data);
     return mapOnlineOrdersDto(onlineOrdersStore);

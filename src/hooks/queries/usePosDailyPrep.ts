@@ -44,7 +44,7 @@ export function useCreateDailyPrep() {
       queryClient.invalidateQueries({ queryKey: DAILY_PREP_QUERY_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ["pos", "menu"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "billing", "menu"] });
-      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.stockItems });
       queryClient.invalidateQueries({ queryKey: ["pos", "stock"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "inventory"] });
     },
@@ -62,7 +62,7 @@ export function useDeleteDailyPrep() {
       queryClient.invalidateQueries({ queryKey: DAILY_PREP_QUERY_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ["pos", "menu"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "billing", "menu"] });
-      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.stockItems });
       queryClient.invalidateQueries({ queryKey: ["pos", "stock"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "inventory"] });
     },

@@ -43,6 +43,7 @@ export type CreateOutletPayload = {
   city?: string;
   timezone?: string;
   address?: string;
+  orderTypes?: string[];
   area?: string;
   latitude?: string;
   longitude?: string;

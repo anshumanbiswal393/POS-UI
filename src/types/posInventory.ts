@@ -59,9 +59,9 @@ export type InventoryVendor = {
 };
 
 export type StockSubCategory = {
-  id: string;
+  id?: string;
   name: string;
-  unit: string;
+  unit?: string;
 };
 
 export type StockCategory = {
@@ -79,6 +79,7 @@ export type StockItem = {
   rawMaterial: string;
   category: string;
   subCategory?: string;
+  sub_category?: string;
   unit: string;
   availableStock: number;
   closingStock: number;

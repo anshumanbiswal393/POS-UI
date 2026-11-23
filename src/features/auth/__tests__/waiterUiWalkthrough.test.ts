@@ -204,7 +204,6 @@ describe("Waiter Role UI & Permissions Full Walkthrough", () => {
       guests: 3,
       reservationDate: "Today",
       reservationTime: "08:30 PM",
-      status: "reserved",
     });
 
     expect(created.id).toBeDefined();

@@ -43,7 +43,7 @@ describe("Verification of 5 Critical Billing & Cashier Fixes", () => {
       // Flat cash discount calculation
       discountType = "flat";
       discountValue = 150;
-      discountAmount = discountType === "percent" ? (subtotal * discountValue) / 100 : discountValue;
+      discountAmount = (discountType as string) === "percent" ? (subtotal * discountValue) / 100 : discountValue;
       expect(discountAmount).toBe(150);
       expect(subtotal - discountAmount).toBe(850);
     });

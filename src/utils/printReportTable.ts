@@ -116,12 +116,14 @@ export function generateReportPrintHtml(options: PrintReportOptions): string {
   const rawRows: any[] = options.rows || [];
   const normalizedRows: (string | number)[][] = rawRows.map((row) => {
     if (Array.isArray(row)) {
-      return row.map((c) => (c === null || c === undefined ? "" : c));
+      return row.map((c) => (c === null || c === undefined ? "" : typeof c === "boolean" ? (c ? "Yes" : "No") : c));
     }
     return normalizedCols.map((col) => {
       const k = col.key || col.header;
       const val = (row as any)[k] ?? (row as any)[col.header] ?? "";
-      return val === null || val === undefined ? "" : val;
+      if (val === null || val === undefined) return "";
+      if (typeof val === "boolean") return val ? "Yes" : "No";
+      return val;
     });
   });
 
@@ -129,12 +131,14 @@ export function generateReportPrintHtml(options: PrintReportOptions): string {
   let summaryRow: (string | number)[] | null = null;
   if (options.summaryTotals) {
     if (Array.isArray(options.summaryTotals)) {
-      summaryRow = options.summaryTotals.map((c) => (c === null || c === undefined ? "" : c));
+      summaryRow = options.summaryTotals.map((c) => (c === null || c === undefined ? "" : typeof c === "boolean" ? (c ? "Yes" : "No") : c));
     } else {
       summaryRow = normalizedCols.map((col, idx) => {
         if (idx === 0) return (options.summaryTotals as Record<string, string | number>)["Total"] ?? "TOTAL";
         const k = col.key || col.header;
-        return (options.summaryTotals as Record<string, string | number>)[k] ?? (options.summaryTotals as Record<string, string | number>)[col.header] ?? "";
+        const val = (options.summaryTotals as Record<string, string | number>)[k] ?? (options.summaryTotals as Record<string, string | number>)[col.header] ?? "";
+        if (typeof val === "boolean") return val ? "Yes" : "No";
+        return val;
       });
     }
   }

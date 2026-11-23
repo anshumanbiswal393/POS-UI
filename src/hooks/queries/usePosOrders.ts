@@ -75,18 +75,31 @@ export function useAdvanceCurrentOrderStageMutation() {
 export function useAllOrders(filters?: Record<string, any>) {
   const outletId = useActiveOutletId();
   const live = isBackendOutletId(outletId);
+  const normalizedFilters = filters
+    ? {
+        ...filters,
+        status: Array.isArray(filters.status) ? filters.status.join(",") : filters.status,
+      }
+    : undefined;
   return useQuery({
-    queryKey: ["pos", "orders", "all", outletId, filters],
-    queryFn: () => getAllOrders(filters, outletId),
+    queryKey: ["pos", "orders", "all", outletId, normalizedFilters],
+    queryFn: () => getAllOrders(normalizedFilters, outletId),
     initialData: live ? undefined : () => getInitialAllOrdersData(),
     staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useOnlineOrders(filters?: Record<string, any>) {
+export function useOnlineOrders(filters?: Record<string, any> & { channel?: string | string[] }) {
+  const normalizedFilters = filters
+    ? {
+        ...filters,
+        channel: Array.isArray(filters.channel) ? filters.channel.join(",") : filters.channel,
+        status: Array.isArray(filters.status) ? filters.status.join(",") : filters.status,
+      }
+    : undefined;
   return useQuery({
-    queryKey: ["pos", "orders", "online", filters],
-    queryFn: () => getOnlineOrders(filters),
+    queryKey: ["pos", "orders", "online", normalizedFilters],
+    queryFn: () => getOnlineOrders(normalizedFilters),
     initialData: () => getInitialOnlineOrdersData(),
     staleTime: 60 * 1000,
   });

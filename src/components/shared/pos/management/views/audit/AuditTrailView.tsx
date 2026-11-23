@@ -282,7 +282,7 @@ export function AuditTrailView() {
           </button>
 
           <ExportToExcelButton
-            data={filteredLogs}
+            items={filteredLogs}
             columns={columns}
             fileName={`Audit_Trail_${activeOutlet?.code || "POS"}`}
           />

@@ -240,6 +240,7 @@ export interface POSSupportTicketDto {
   description: string;
   priority: string;
   status: string;
+  contact_phone?: string;
   response_notes?: string;
   created_at: string;
 }
@@ -469,7 +470,7 @@ export const posManagementService = {
     return res.data;
   },
 
-  async approveExpense(id: string, approvedByName: string): Promise<POSExpenseDto> {
+  async approveExpense(id: string, approvedByName: string = "Store Manager"): Promise<POSExpenseDto> {
     const res = await httpClient.post(`/api/pos/management/accounting/expenses/${id}/approve/`, {
       approved_by_name: approvedByName,
     });

@@ -37,7 +37,6 @@ describe("Merged Tables Flow Unit Tests", () => {
       guests: 12,
       reservationDate: new Date().toISOString().split("T")[0],
       reservationTime: "11:10 AM",
-      status: "reserved",
       isMerged: true,
     });
 

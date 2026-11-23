@@ -1809,6 +1809,7 @@ export const posTablesService = {
         updatedTable = {
           id: tableId,
           tableNumber: `Table #${tableId}`,
+          tableNumberRaw: parseInt(tableId.replace(/\D/g, ""), 10) || 1,
           capacity: 4,
           currentGuests: 0,
           shape: "square",
@@ -1832,7 +1833,7 @@ export const posTablesService = {
 
     });
 
-    return updatedTable;
+    return updatedTable!;
 
   },
 

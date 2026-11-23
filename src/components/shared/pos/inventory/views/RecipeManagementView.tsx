@@ -50,7 +50,7 @@ interface RecipeRow {
 
 const DEMO_RECIPES: RecipeRow[] = [];
 
-function mapRecipe(r: DishRecipe): RecipeRow {
+function mapRecipe(r: any): RecipeRow {
   return {
     id: r.id,
     name: r.name || r.menuItemName || r.menuItem || "Unnamed Recipe",
@@ -60,7 +60,7 @@ function mapRecipe(r: DishRecipe): RecipeRow {
     yieldUnit: r.yieldUnit || "portion",
     prepTimeMinutes: String(r.prepTimeMinutes ?? "15"),
     notes: r.notes || "",
-    ingredients: (r.ingredients || []).map((ing, idx) => ({
+    ingredients: (r.ingredients || []).map((ing: any, idx: number) => ({
       id: ing.id || `ing-${idx}-${ing.stockItemId}`,
       stockItemId: ing.stockItemId,
       name: ing.stockItemName || ing.name || "",
@@ -88,7 +88,7 @@ export function RecipeManagementView() {
   const [pageSize, setPageSize] = useState(10);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<DishRecipe | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<RecipeRow | null>(null);
   const [isExploreOpen, setIsExploreOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<RecipeRow | null>(null);
   const [createPrefill, setCreatePrefill] = useState<Partial<RecipeFormValues> | null>(null);

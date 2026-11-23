@@ -587,9 +587,9 @@ export function PosHelpGuideBook() {
   };
 
   const getRightPage = (spread: number) => {
-    if (spread === 0) return { isCover: true };
+    if (spread === 0) return { isCover: true as const };
     const pageIndex = (spread - 1) * 2 + 1;
-    return pageIndex < totalPages ? { ...pages[pageIndex], pageNum: pageIndex + 1 } : null;
+    return pageIndex < totalPages ? { ...pages[pageIndex], pageNum: pageIndex + 1, isCover: false as const } : null;
   };
 
   const leftPageData = getLeftPage(currentSpread);

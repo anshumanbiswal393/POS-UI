@@ -47,6 +47,8 @@ interface WalletRecord {
   customerName: string;
   mobile: string;
   amount: number;
+  balance?: number;
+  status?: string;
   totalCredited: number;
   totalDebited: number;
   lastUsedDate: string;

@@ -16,9 +16,9 @@ import type {
 
 const initialVendors: InventoryVendor[] = [];
 
-const STOCK_STORE_KEY = "retrod_pos_stock_items_v1";
+export const STOCK_STORE_KEY = "retrod_pos_stock_items_v1";
 const MOVEMENT_STORE_KEY = "retrod_pos_stock_movements_v1";
-const CATEGORY_STORE_KEY = "retrod_pos_stock_categories_v1";
+export const CATEGORY_STORE_KEY = "retrod_pos_stock_categories_v1";
 const DELETED_CATEGORY_STORE_KEY = "retrod_pos_deleted_stock_categories_v1";
 
 const DEFAULT_CATEGORIES: StockCategory[] = [];

@@ -480,7 +480,7 @@ export function MenuItemEditModal({
           // ignore
         }
       }
-      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.stockItems });
       queryClient.invalidateQueries({ queryKey: ["pos", "stock"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "inventory"] });
     };

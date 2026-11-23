@@ -261,7 +261,7 @@ export function NewReservationModal({
         ? `Advance deposit of ₹${finalDeposit} collected via ${paymentMode} (Payment Confirmed).`
         : "Booked without advance payment (₹0 deposit).";
 
-    onSaveReservation({
+    onSaveReservation?.({
       tableId: primary.id,
       tableNumber: tableLabel,
       mergedTableIds: ordered.map((t) => t.id),

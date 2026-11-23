@@ -36,11 +36,13 @@ export type BillingMenuItem = {
   code: string;
   name: string;
   category: BillingCategory;
+  subCategory?: string;
   diet: "veg" | "non_veg" | "egg" | "drinks";
   price: number;
   originalPrice?: number;
   commissionType?: string;
   commissionValue?: number | null;
+  status?: "Active" | "Inactive" | string;
   inStock: boolean;
   stockCount?: number;
   plates?: number;

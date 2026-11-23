@@ -7,6 +7,10 @@ type ExportToExcelButtonProps = {
   className?: string;
   title?: string;
   label?: string;
+  items?: any[];
+  data?: any[];
+  columns?: any[];
+  fileName?: string;
 };
 
 /** Canonical POS “Excel” control — matches the standard nav pill styling. */

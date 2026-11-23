@@ -19,13 +19,13 @@ if (typeof globalThis.localStorage === "undefined" || !globalThis.localStorage?.
 }
 
 import { posTablesService } from "@/services/posTablesService";
-import type { RestaurantTable } from "@/types/pos";
+import type { RestaurantTable } from "@/types/posTables";
 
 describe("Switch Table & Occupancy Lifecycle Unit Tests", () => {
   const mockTable1: RestaurantTable = {
     id: "tbl-1",
     tableNumber: "Table #1",
-    tableNumberRaw: "1",
+    tableNumberRaw: 1,
     capacity: 4,
     currentGuests: 4,
     shape: "square",
@@ -49,7 +49,7 @@ describe("Switch Table & Occupancy Lifecycle Unit Tests", () => {
   const mockTable2: RestaurantTable = {
     id: "tbl-2",
     tableNumber: "Table #2",
-    tableNumberRaw: "2",
+    tableNumberRaw: 2,
     capacity: 6,
     currentGuests: 0,
     shape: "rectangle",

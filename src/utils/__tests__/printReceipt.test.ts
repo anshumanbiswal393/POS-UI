@@ -253,8 +253,9 @@ describe("Unified POS Tax Invoice (PMS standard)", () => {
       serviceCharge: 48,
       tax: 25.6,
       totalAmount: 393.6,
-      paymentStatus: "settled",
-      billingType: "Room Charge",
+      elapsedMinutes: 10,
+      traySetup: "Single Tray",
+      paymentMethod: "room_folio",
       createdAt: "13-Nov-2026 11:30",
     };
 

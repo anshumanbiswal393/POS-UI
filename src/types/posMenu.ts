@@ -35,6 +35,7 @@ export type MenuItem = {
   onlineDisplayName: string;
   category: string;
   categoryId?: string | null;
+  subCategory?: string;
   itemType: MenuItemType;
   price: number;
   taxRate: number; // in percentage e.g. 5, 12, 18
@@ -133,6 +134,7 @@ export type PosOutlet = {
   orderTypes: string[];
   status: "Active" | "Inactive";
   menuCount: number;
+  gstin?: string;
   city?: string;
   email?: string;
   /** Parent physical/HO outlet id for virtual / cloud brands */

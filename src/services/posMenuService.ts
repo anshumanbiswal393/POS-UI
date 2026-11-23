@@ -3,6 +3,7 @@ import type {
   MenuCategory,
   MenuItemCommission,
   MenuItem,
+  MenuItemIngredient,
   MenuItemImage,
   PhysicalMenuRecord,
   MenuScheduleItem,
@@ -580,7 +581,7 @@ export const posMenuService = {
       updatedAt: "Just now",
       images: item.images || [],
       plates:
-        item.plates !== undefined && item.plates !== null && item.plates !== "" && Number(item.plates) > 0
+        item.plates !== undefined && item.plates !== null && (item.plates as any) !== "" && Number(item.plates) > 0
           ? Number(item.plates)
           : undefined,
       mealTimes: item.mealTimes || ["All Day"],

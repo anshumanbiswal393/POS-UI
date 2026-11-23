@@ -1041,7 +1041,7 @@ export function OtherReportsView() {
       case "REP-PO-VAL-03":
       case "REP-PO-PARTIAL-04":
       case "REP-VENDOR-DELAY-02":
-        return purchaseOrders.map((po, idx) => ({
+        return purchaseOrders.map((po: any, idx) => ({
           id: po.id || String(idx + 1),
           poNumber: po.poNumber || po.orderNumber || `PO-${idx + 1}`,
           vendor: po.vendorName || po.vendor || "Vendor",
@@ -1065,15 +1065,15 @@ export function OtherReportsView() {
           recordedBy: w.approvedBy || w.recordedBy || "-",
         }));
       case "REP-VEND-08":
-        return vendors.map((v, idx) => ({
+        return vendors.map((v: any, idx) => ({
           id: v.id || String(idx + 1),
           vendorName: v.name,
           contactPerson: v.contactPerson || "-",
           phone: v.phone || "-",
-          totalOrders: purchases.filter((p) => p.vendorId === v.id || p.vendorName === v.name).length,
+          totalOrders: purchases.filter((p: any) => p.vendorId === v.id || p.vendorName === v.name).length,
           totalPurchased: purchases
-            .filter((p) => p.vendorId === v.id || p.vendorName === v.name)
-            .reduce((sum, p) => sum + Number(p.totalAmount || p.grandTotal || 0), 0),
+            .filter((p: any) => p.vendorId === v.id || p.vendorName === v.name)
+            .reduce((sum, p: any) => sum + Number(p.totalAmount || p.grandTotal || 0), 0),
           outstandingDue: Number(v.outstandingBalance || 0),
           rating: "Active",
         }));
@@ -1157,7 +1157,7 @@ export function OtherReportsView() {
   // Filtered & Sorted dataset
   const filteredDataset = useMemo(() => {
     if (!currentDatasetConfig) return [];
-    let rows = currentDatasetConfig.data;
+    let rows: any[] = currentDatasetConfig.data;
 
     // Search query filter
     if (reportSearch.trim()) {

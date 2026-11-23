@@ -122,7 +122,7 @@ export function ExpenseLogsView() {
 
   const handleApprove = async (id: string, voucherNo: string) => {
     try {
-      await posManagementService.approveExpense(id);
+      await posManagementService.approveExpense(id, "Store Manager");
       toast.success(`Voucher ${voucherNo} approved!`);
       await fetchExpenses();
     } catch (err) {

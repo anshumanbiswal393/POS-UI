@@ -30,16 +30,33 @@ export function PosCreateCancelButton({
 
 export function PosCreateSubmitButton({
   children,
+  label,
   disabled,
   className,
+  onClick,
+  type = "submit",
+  isSubmitting,
+  icon: Icon,
 }: {
-  children: ReactNode;
+  children?: ReactNode;
+  label?: ReactNode;
   disabled?: boolean;
   className?: string;
+  onClick?: (e: any) => void;
+  type?: "submit" | "button";
+  isSubmitting?: boolean;
+  icon?: LucideIcon;
 }) {
+  const content = children ?? label;
   return (
-    <button type="submit" disabled={disabled} className={cn(posCreateSubmitClassName, className)}>
-      {children}
+    <button
+      type={type}
+      disabled={disabled || isSubmitting}
+      onClick={onClick}
+      className={cn(posCreateSubmitClassName, className)}
+    >
+      {Icon && <Icon className={cn("h-4 w-4", isSubmitting ? "animate-spin" : "")} />}
+      {content}
     </button>
   );
 }
@@ -50,6 +67,7 @@ type PosCreatePanelProps = {
   onClose: () => void;
   title: string;
   description?: string;
+  subtitle?: string;
   icon?: LucideIcon;
   children: ReactNode;
   footer?: ReactNode;

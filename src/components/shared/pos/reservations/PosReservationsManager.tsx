@@ -91,7 +91,7 @@ export function PosReservationsManager() {
   // View state
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string | string[]>("all");
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [switchReservation, setSwitchReservation] = useState<ReservationItem | null>(null);
@@ -131,7 +131,7 @@ export function PosReservationsManager() {
           res.reservationDate || "",
           res.reservationTime || "",
           res.status || "",
-          String(res.guestCount || res.guests || ""),
+          String((res as any).guestCount || res.guests || ""),
         ]);
         if (!matches) {
           return false;
@@ -140,7 +140,11 @@ export function PosReservationsManager() {
 
       // 2. Status Filter
       if (statusFilter !== "all") {
-        if (res.status.toLowerCase() !== statusFilter.toLowerCase()) {
+        if (Array.isArray(statusFilter)) {
+          if (!statusFilter.map((s) => s.toLowerCase()).includes(res.status.toLowerCase())) {
+            return false;
+          }
+        } else if (res.status.toLowerCase() !== statusFilter.toLowerCase()) {
           return false;
         }
       }

@@ -38,6 +38,7 @@ export interface ReservationItem {
 export interface ActiveOrderSummary {
   orderId: string;
   orderNumber: string;
+  tableNumber?: string;
   serverName: string;
   seatedAt: string; // e.g. "12:45 PM"
   elapsedMinutes: number;

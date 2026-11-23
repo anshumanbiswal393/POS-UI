@@ -59,7 +59,7 @@ export function ConfigPageShell({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <Link
-            to={outlet.id ? `/pos/management/configuration/outlet?outletId=${encodeURIComponent(outlet.id)}` : "/pos/management/configuration/outlet"}
+            to={(outlet.id ? `/pos/management/configuration/outlet?outletId=${encodeURIComponent(outlet.id)}` : "/pos/management/configuration/outlet") as any}
             className="inline-flex items-center gap-1 text-[12px] font-semibold text-teal-700 hover:underline"
           >
             <ArrowLeft className="h-3.5 w-3.5" />

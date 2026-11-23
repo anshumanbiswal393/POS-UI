@@ -38,13 +38,13 @@ export function OnlineItemLogsView() {
       const data = await posManagementService.getManagementLogs(activeOutlet.id, "ONLINE_ITEMS");
       const mapped: ItemLogEntry[] = data.map((log: POSManagementLogDto) => {
         const isOff = (log.details?.status as string)?.toLowerCase().includes("out") ||
-          log.event_title.toLowerCase().includes("unavailable") ||
-          log.event_title.toLowerCase().includes("inactive");
+          log.event_title?.toLowerCase().includes("unavailable") ||
+          log.event_title?.toLowerCase().includes("inactive");
 
         return {
           id: log.id,
           timestamp: formatDateTimeIndian(log.created_at),
-          itemName: (log.details?.itemName as string) || log.event_title.split(" ")[0] || "Menu Item",
+          itemName: (log.details?.itemName as string) || log.event_title?.split(" ")[0] || "Menu Item",
           category: (log.details?.category as string) || "Food Menu",
           channels: [(log.details?.platform as string) || "Retrod Store"],
           action: isOff ? "TURNED_OFF" : "TURNED_ON",

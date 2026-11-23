@@ -488,7 +488,7 @@ export function MainOtherReportsView() {
 
     if (selectedOutlet !== "ALL") {
       rows = rows.filter((r) => {
-        const out = r.outlet || r.outletName || r.outlet_name || "";
+        const out = String(r.outlet || r.outletName || r.outlet_name || "");
         return !out || out.toLowerCase().includes(selectedOutlet.toLowerCase()) || selectedOutlet.toLowerCase().includes(out.toLowerCase());
       });
     }
@@ -560,7 +560,7 @@ export function MainOtherReportsView() {
 
     const rows = reportDataset.map((row) => {
       return activeColumns.map((col) => {
-        const val = col.getValue ? col.getValue(row) : row[col.id];
+        const val = col.getValue ? col.getValue(row) : (row as any)[col.id || ""];
         return val === null || val === undefined ? "" : val;
       });
     });
@@ -854,8 +854,8 @@ export function MainOtherReportsView() {
 
                 {/* Screen Paginated Body */}
                 <tbody className="divide-y divide-slate-300 border-b border-slate-300 print:hidden">
-                  {paginatedReportData.map((row) => (
-                    <tr key={row.id} className="hover:bg-slate-50 transition border-b border-slate-300">
+                  {paginatedReportData.map((row, idx) => (
+                    <tr key={String(row.id || row.code || idx)} className="hover:bg-slate-50 transition border-b border-slate-300">
                       {activeColumns.map((col) => (
                         <td
                           key={col.id}
@@ -877,7 +877,7 @@ export function MainOtherReportsView() {
                 {/* Print Full Report Body (All records printed without pagination cutting) */}
                 <tbody className="hidden print:table-row-group divide-y divide-black">
                   {reportDataset.map((row, rIdx) => (
-                    <tr key={row.id || rIdx} className="print:border-b print:border-black">
+                    <tr key={String(row.id || rIdx)} className="print:border-b print:border-black">
                       {activeColumns.map((col) => (
                         <td
                           key={col.id}

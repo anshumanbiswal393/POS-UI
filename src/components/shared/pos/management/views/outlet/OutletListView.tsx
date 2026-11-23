@@ -116,14 +116,14 @@ export function OutletListView() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           <Link
-                            to={`/pos/management/configuration/outlet/details?outletId=${encodeURIComponent(row.id)}`}
+                            to={`/pos/management/configuration/outlet/details?outletId=${encodeURIComponent(row.id)}` as any}
                             className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 transition cursor-pointer shadow-2xs"
                             title="Edit Details"
                           >
                             <ColorActionEdit className="h-4 w-4" />
                           </Link>
                           <Link
-                            to={`/pos/management/configuration/outlet?outletId=${encodeURIComponent(row.id)}`}
+                            to={`/pos/management/configuration/outlet?outletId=${encodeURIComponent(row.id)}` as any}
                             className="inline-flex items-center gap-1 rounded-md border border-teal-300 bg-teal-50 px-2.5 py-1 text-[11px] font-bold text-teal-800 hover:bg-teal-100 transition cursor-pointer"
                           >
                             Setup Hub

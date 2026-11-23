@@ -183,11 +183,12 @@ export function AddCommissionModal({
         <>
           <PosCreateCancelButton onClick={onClose} />
           <PosCreateSubmitButton
-            label={bulkMutation.isPending ? "Saving..." : "Save Commission"}
             icon={Check}
             disabled={bulkMutation.isPending || targetItemIds.length === 0 || numVal <= 0}
             isSubmitting={bulkMutation.isPending}
-          />
+          >
+            {bulkMutation.isPending ? "Saving..." : "Save Commission"}
+          </PosCreateSubmitButton>
         </>
       }
     >

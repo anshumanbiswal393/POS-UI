@@ -210,12 +210,36 @@ export function matchQueryAgainstStrings(
 
 /**
  * Tests if an item matches a search query using multi-field fuzzy matching.
+ * Overloaded to support both:
+ * 1) fuzzyMatch(query, candidateStringsArray)
+ * 2) fuzzyMatch(item, query, fieldGetters)
  */
 export function fuzzyMatch(
-  item: any,
-  query: string,
+  queryOrItem: any,
+  candidatesOrQuery: any,
   fieldGetters?: Array<(item: any) => any>,
 ): boolean {
+  // Case A: fuzzyMatch(query: string, candidatesArray: any[])
+  if (typeof queryOrItem === "string" && Array.isArray(candidatesOrQuery)) {
+    const query = queryOrItem;
+    const candidates = candidatesOrQuery;
+    if (!query || !query.trim()) return true;
+    const searchable = extractSearchableFields(candidates);
+    return matchQueryAgainstStrings(query, searchable).matched;
+  }
+
+  // Case B: fuzzyMatch(candidatesArray: any[], query: string)
+  if (Array.isArray(queryOrItem) && typeof candidatesOrQuery === "string") {
+    const candidates = queryOrItem;
+    const query = candidatesOrQuery;
+    if (!query || !query.trim()) return true;
+    const searchable = extractSearchableFields(candidates);
+    return matchQueryAgainstStrings(query, searchable).matched;
+  }
+
+  // Case C: Standard fuzzyMatch(item, query, fieldGetters)
+  const item = queryOrItem;
+  const query = typeof candidatesOrQuery === "string" ? candidatesOrQuery : "";
   if (!query || !query.trim()) return true;
 
   let searchable: string[];
