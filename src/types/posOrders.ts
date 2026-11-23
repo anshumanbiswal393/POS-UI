@@ -62,6 +62,14 @@ export interface AllOrderItem {
   placedAt?: string;
   preparedAt?: string;
   settledAt?: string;
+  orderType?: string;
+  myAmount?: number;
+  subtotal?: number;
+  taxAmount?: number;
+  discountAmount?: number;
+  grandTotal?: number;
+  totalAmount?: number;
+  amount?: number;
   myAmountFormatted: string;
   taxAmountFormatted: string;
   discountAmountFormatted: string;
@@ -101,6 +109,8 @@ export interface OnlineOrderItem {
   customerPhone: string;
   otp: string;
   dateTime: string;
+  totalAmount?: number;
+  grandTotal?: number;
   totalAmountFormatted: string;
   status: "placed" | "accepted" | "in_kitchen" | "food_ready" | "out_for_delivery" | "delivered" | "cancelled";
   statusDisplay: string;

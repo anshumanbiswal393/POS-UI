@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   Table2,
   Printer,
+  RefreshCw,
 } from "lucide-react";
 import { ColorActionPrint, ColorActionEdit, ColorActionView } from "@/components/common/ColorActionIcons";
 import { PageHeader, KpiCard } from "@/components/ui/Primitives";
@@ -167,7 +168,7 @@ export function PosAllOrdersManager() {
     }),
     [appliedFilters.startDate, appliedFilters.endDate, appliedFilters.status]
   );
-  const { data } = useAllOrders(queryFilters);
+  const { data, refetch, isFetching } = useAllOrders(queryFilters);
   const { activeOutlet } = useOutletContext();
   const liveOutlet = isBackendOutletId(activeOutlet?.id);
 
@@ -227,37 +228,40 @@ export function PosAllOrdersManager() {
 
       // Order ID & Global Multi-Field Fuzzy Search across guest, table, item, phone, amount
       if (appliedFilters.orderId) {
-        const matches = fuzzyMatch(appliedFilters.orderId, [
-          r.orderNo,
-          r.customerName,
-          r.customerPhone || "",
-          r.tableNo || "",
-          r.itemsSummary,
-          r.assignTo,
-          r.paymentMode,
-          r.status,
-          r.orderTypeDisplay,
-          r.grandTotalFormatted,
-          r.createdAt,
-        ]);
+        const matches = fuzzyMatch(
+          [
+            r.orderNo,
+            r.customerName,
+            r.customerPhone || "",
+            r.tableNo || "",
+            r.itemsSummary,
+            r.assignTo,
+            r.paymentMode,
+            r.status,
+            r.orderTypeDisplay,
+            r.grandTotalFormatted,
+            r.createdAt,
+          ],
+          appliedFilters.orderId
+        );
         if (!matches) return false;
       }
 
       // Customer Name Fuzzy Search
       if (appliedFilters.customerName) {
-        const matches = fuzzyMatch(appliedFilters.customerName, [r.customerName, r.customerPhone || ""]);
+        const matches = fuzzyMatch([r.customerName, r.customerPhone || ""], appliedFilters.customerName);
         if (!matches) return false;
       }
 
       // Customer Phone Search
       if (appliedFilters.customerPhone) {
-        const matches = fuzzyMatch(appliedFilters.customerPhone, [r.customerPhone || "", r.customerName]);
+        const matches = fuzzyMatch([r.customerPhone || "", r.customerName], appliedFilters.customerPhone);
         if (!matches) return false;
       }
 
       // Table No Search
       if (appliedFilters.tableNo) {
-        const matches = fuzzyMatch(appliedFilters.tableNo, [r.tableNo || "", r.orderTypeDisplay]);
+        const matches = fuzzyMatch([r.tableNo || "", r.orderTypeDisplay], appliedFilters.tableNo);
         if (!matches) return false;
       }
 
@@ -367,19 +371,19 @@ export function PosAllOrdersManager() {
 
     const reportRows = filteredRecords.map((r) => [
       r.orderNo,
-      r.orderTypeDisplay || r.orderType,
+      r.orderTypeDisplay || r.orderType || "Dine In",
       r.customerName || "Walk-in Guest",
       r.assignTo || "—",
       r.itemsSummary || "—",
-      Number(r.myAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
-      Number(r.taxAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
-      Number(r.grandTotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      Number(r.myAmount ?? r.subtotal ?? (Number(String(r.myAmountFormatted || "0").replace(/[^0-9.-]+/g, "")) || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      Number(r.taxAmount ?? (Number(String(r.taxAmountFormatted || "0").replace(/[^0-9.-]+/g, "")) || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      Number(r.grandTotal ?? r.totalAmount ?? (Number(String(r.grandTotalFormatted || "0").replace(/[^0-9.-]+/g, "")) || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
       r.paymentMode || "CASH",
       (r.status || "COMPLETED").toUpperCase(),
       r.createdAt ? formatDateIndian(r.createdAt) : "—",
     ]);
 
-    const totalGrand = filteredRecords.reduce((s, r) => s + Number(r.grandTotal || 0), 0);
+    const totalGrand = filteredRecords.reduce((s, r) => s + Number(r.grandTotal ?? r.totalAmount ?? (Number(String(r.grandTotalFormatted || "0").replace(/[^0-9.-]+/g, "")) || 0)), 0);
 
     openPrintReportTable({
       title: "ORDER HISTORY MASTER REPORT",
@@ -683,6 +687,20 @@ export function PosAllOrdersManager() {
               disabled={filteredRecords.length === 0}
               title="Print Orders Master Report"
             />
+            <button
+              type="button"
+              onClick={() => {
+                refetch();
+                toast.success("Orders refreshed");
+              }}
+              disabled={isFetching}
+              title="Refresh Orders"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface text-text-primary hover:bg-surface-2 shadow-2xs transition cursor-pointer"
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 text-text-secondary ${isFetching ? "animate-spin text-primary" : ""}`}
+              />
+            </button>
           </div>
         }
       />

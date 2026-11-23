@@ -130,10 +130,18 @@ export function mapAllOrdersDto(dto: AllOrdersApiResponse): AllOrdersData {
     })),
     records: dto.records.map((r) => ({
       ...r,
-      myAmountFormatted: formatINR(r.myAmount),
-      taxAmountFormatted: formatINR(r.taxAmount),
-      discountAmountFormatted: r.discountAmount > 0 ? `(${formatINR(r.discountAmount)})` : "(0.00)",
-      grandTotalFormatted: formatINR(r.grandTotal),
+      orderType: (r as any).orderType || (r as any).type || "Dine In",
+      myAmount: r.myAmount ?? (r as any).subtotal ?? 0,
+      subtotal: (r as any).subtotal ?? r.myAmount ?? 0,
+      taxAmount: r.taxAmount ?? 0,
+      discountAmount: r.discountAmount ?? 0,
+      grandTotal: r.grandTotal ?? (r as any).totalAmount ?? 0,
+      totalAmount: (r as any).totalAmount ?? r.grandTotal ?? 0,
+      amount: (r as any).amount ?? r.grandTotal ?? 0,
+      myAmountFormatted: formatINR(r.myAmount ?? (r as any).subtotal ?? 0),
+      taxAmountFormatted: formatINR(r.taxAmount ?? 0),
+      discountAmountFormatted: (r.discountAmount ?? 0) > 0 ? `(${formatINR(r.discountAmount)})` : "(0.00)",
+      grandTotalFormatted: formatINR(r.grandTotal ?? (r as any).totalAmount ?? 0),
     })),
     totalCount: dto.totalCount,
     page: dto.page,
@@ -184,7 +192,9 @@ export function mapOnlineOrdersDto(dto: OnlineOrdersApiResponse): OnlineOrdersDa
       customerPhone: r.customerPhone,
       otp: r.otp,
       dateTime: r.dateTime,
-      totalAmountFormatted: formatINR(r.totalAmount),
+      totalAmount: Number(r.totalAmount ?? (r as any).grandTotal ?? 0),
+      grandTotal: Number((r as any).grandTotal ?? r.totalAmount ?? 0),
+      totalAmountFormatted: formatINR(Number(r.totalAmount ?? (r as any).grandTotal ?? 0)),
       status: r.status,
       statusDisplay: r.statusDisplay,
       items: r.items.map((it) => ({
@@ -622,6 +632,7 @@ export interface DueBill {
   itemsSummary?: string;
   totalAmount: number;
   paidAmount: number;
+  depositAmount?: number;
   dueAmount: number;
   dueDate: string;
   daysOverdue: number;
@@ -695,6 +706,7 @@ export async function getDueBills(outletId?: string): Promise<DueBill[]> {
           itemsSummary: ord.itemsSummary,
           totalAmount: total,
           paidAmount: paid,
+          depositAmount: deposit,
           dueAmount: due,
           dueDate: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
           daysOverdue: 0,

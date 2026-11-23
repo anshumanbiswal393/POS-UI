@@ -94,18 +94,21 @@ export function PosOnlineOrdersManager() {
       }
 
       if (searchOrderNo.trim()) {
-        const matches = fuzzyMatch(searchOrderNo, [
-          r.orderNo,
-          r.customerName,
-          r.customerPhone || "",
-          r.otp,
-          r.platform,
-          r.riderDetails || "",
-          r.statusDisplay || "",
-          r.itemsText || "",
-          r.dateTime || "",
-          String(r.grandTotal || ""),
-        ]);
+        const matches = fuzzyMatch(
+          [
+            r.orderNo,
+            r.customerName,
+            r.customerPhone || "",
+            r.otp,
+            r.platform,
+            r.riderDetails || "",
+            r.statusDisplay || "",
+            r.itemsText || "",
+            r.dateTime || "",
+            String(r.grandTotal || r.totalAmount || ""),
+          ],
+          searchOrderNo,
+        );
         if (!matches) return false;
       }
 
@@ -276,11 +279,14 @@ export function PosOnlineOrdersManager() {
       r.customerPhone || "—",
       r.otp || "—",
       formatDateIndian(r.dateTime) || r.dateTime,
-      Number(r.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      Number(r.totalAmount || r.grandTotal || (Number(String(r.totalAmountFormatted || "0").replace(/[^0-9.-]+/g, "")) || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
       (r.statusDisplay || r.status).toUpperCase(),
     ]);
 
-    const totalAmount = filteredRecords.reduce((s, r) => s + Number(r.totalAmount || 0), 0);
+    const totalAmount = filteredRecords.reduce(
+      (s, r) => s + Number(r.totalAmount || r.grandTotal || (Number(String(r.totalAmountFormatted || "0").replace(/[^0-9.-]+/g, "")) || 0)),
+      0,
+    );
 
     openPrintReportTable({
       title: "ONLINE AGGREGATOR ORDERS REPORT",

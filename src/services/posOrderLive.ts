@@ -297,12 +297,17 @@ export async function liveGetHistory(outletId?: string, filters?: Record<string,
     assignTo: r.waiterName || r.assignTo || "Captain",
     itemsSummary: r.itemsSummary || "",
     items: r.items || [],
+    myAmount: Number(r.myAmount ?? r.subtotal ?? 0),
+    subtotal: Number(r.subtotal ?? r.myAmount ?? 0),
+    taxAmount: Number(r.taxAmount ?? 0),
+    discountAmount: Number(r.discountAmount ?? 0),
+    grandTotal: Number(r.grandTotal ?? r.amount ?? r.totalAmount ?? 0),
+    totalAmount: Number(r.totalAmount ?? r.grandTotal ?? r.amount ?? 0),
+    amount: Number(r.amount ?? r.grandTotal ?? 0),
     myAmountFormatted: formatINR(Number(r.myAmount ?? r.subtotal ?? 0)),
     taxAmountFormatted: formatINR(Number(r.taxAmount ?? 0)),
     discountAmountFormatted: formatINR(Number(r.discountAmount ?? 0)),
     grandTotalFormatted: formatINR(Number(r.grandTotal ?? r.amount ?? 0)),
-    grandTotal: Number(r.grandTotal ?? r.amount ?? 0),
-    amount: Number(r.amount ?? r.grandTotal ?? 0),
     paymentMode: r.paymentMode || r.payment_mode || "Cash",
     payment_mode: r.payment_mode || r.paymentMode || "CASH",
     status: r.status || "Settled",
@@ -336,7 +341,7 @@ export async function liveGetHistory(outletId?: string, filters?: Record<string,
       formattedAmount: formatINR(p.amount),
     })),
     records,
-    totalCount: Number(data.totalCount ?? data.count ?? records.length),
+    totalCount: Number(data.totalCount ?? (data as any).count ?? records.length),
     page: Number(data.page || 1),
     pageSize: Number(data.pageSize || records.length || 10),
   };
@@ -346,12 +351,25 @@ export async function liveGetKot(outletId?: string, filters?: Record<string, any
   const scope = orderScope(outletId);
   if (!scope) return { records: [], totalCount: 0 };
   const params = { ...scope, ...(filters || {}) };
+  // Explicitly remove includeSettled filter so closed/settled orders never leak into KDS
+  delete (params as any).includeSettled;
   const res = await httpClient.get<KotApiResponse & { kots?: KotRecordApiDto[] }>(API_ENDPOINTS.ORDERS.KOT, {
     params,
   });
   const rows = (res.data?.records || res.data?.kots || []) as any[];
-  const records = rows.map(mapLiveKotRecord);
-  return { records, totalCount: Number(res.data?.totalCount ?? res.data?.count ?? records.length) };
+  const records = rows
+    .map(mapLiveKotRecord)
+    .filter(
+      (k) =>
+        k &&
+        k.status !== "Served" &&
+        k.status !== "Prepared" &&
+        (k as any).status !== "Ready" &&
+        (k as any).status !== "Cancelled" &&
+        (k as any).status !== "Settled" &&
+        (k as any).status !== "settled",
+    );
+  return { records, totalCount: Number(res.data?.totalCount ?? (res.data as any)?.count ?? records.length) };
 }
 
 export function compactTableNumber(table?: string): string | undefined {
@@ -424,7 +442,7 @@ function toOrderWriteBody(payload: Partial<LiveOrderPayload>) {
     mark_settled: payload.markSettled,
     paymentMode: payload.paymentMode,
     payment_mode: payload.paymentMode,
-    items: undefined,
+    items: undefined as any,
   });
   if (payload.items) {
     body.items = payload.items.map((item) =>
@@ -510,7 +528,7 @@ export async function liveKotServed(ticketId: string) {
   return res.data;
 }
 
-export async function liveGetDueBills(outletId?: string) {
+export async function liveGetDueBills(outletId?: string, options?: { includeSettled?: boolean }) {
   const params = orderScope(outletId);
   if (!params) return [];
   const res = await httpClient.get(API_ENDPOINTS.ORDERS.DUE_SETTLEMENT, { params });
@@ -562,7 +580,7 @@ export async function liveGetDueBills(outletId?: string) {
     };
   });
 
-  if (!params?.includeSettled) {
+  if (!options?.includeSettled) {
     return processed.filter((b) => b.dueAmount > 0 && b.status !== "Settled");
   }
 
