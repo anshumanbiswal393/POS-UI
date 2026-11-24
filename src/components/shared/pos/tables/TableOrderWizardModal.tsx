@@ -377,11 +377,7 @@ export function TableOrderWizardModal({
       return;
     }
 
-    const mergeNote =
-      orderedSelected.length > 1
-        ? `Merged tables: ${tableLabel} (${selectedCapacity} seats) for ${pax} pax.`
-        : undefined;
-    const billingNotes = [notes.trim() || undefined, mergeNote].filter(Boolean).join(" ");
+    const billingNotes = notes.trim() || undefined;
 
     onClose();
     navigate({
@@ -453,10 +449,7 @@ export function TableOrderWizardModal({
       pax,
       guestName: guestName.trim() || undefined,
       guestPhone: guestPhone.trim() || undefined,
-      notes:
-        [notes.trim() || undefined, orderedSelected.length > 1 ? `Merged: ${tableLabel}` : undefined]
-          .filter(Boolean)
-          .join(" ") || undefined,
+      notes: notes.trim() || undefined,
       items: payloadItems,
       subtotal,
       grandTotal,

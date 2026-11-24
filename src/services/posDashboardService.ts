@@ -387,8 +387,17 @@ export async function getPosDashboardData(
       if (isNaN(amt) || amt <= 0) return;
 
       const mode = String(h.paymentMode || h.payment_mode || h.paymentMethod || "").trim().toLowerCase();
+      const orderType = String(h.orderType || h.type || "").trim().toLowerCase();
+      const isRoomOrder =
+        mode.includes("room") ||
+        mode.includes("folio") ||
+        orderType.includes("room") ||
+        Boolean(h.roomNumber || h.room_number);
 
-      if (mode.includes("cash")) {
+      if (isRoomOrder) {
+        // Room order payments show in payment summary under Other category
+        otherSum += amt;
+      } else if (mode.includes("cash")) {
         cashSum += amt;
       } else if (
         mode.includes("card") ||

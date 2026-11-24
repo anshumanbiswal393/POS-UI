@@ -104,4 +104,45 @@ describe("posDashboardService", () => {
     expect(dashboardModel.operations.avgPrepTimeMinutes).toBe(18);
     expect(dashboardModel.operations.successfulCount).toBe(1);
   });
+
+  it("allocates room order and room charge payments under other category in payment summary", () => {
+    const mockApiResponse: PosDashboardApiResponse = {
+      success: true,
+      outletId: "8f7e6d5c-4b3a-210f-9e8d-7c6b5a4f3e2d",
+      outletName: "Anshu Suite Restaurant",
+      date: "17 Nov 2026",
+      currency: "INR",
+      stats: {
+        totalCollections: 1200,
+        totalOrders: 1,
+        activeTablesCount: 0,
+        totalTablesCount: 7,
+        unpaidBillsAmount: 0,
+        unpaidBillsCount: 0,
+        roomChargesAmount: 1200,
+        roomChargesCount: 1,
+      },
+      salesGraph: [],
+      orderTypes: [
+        { type: "room_service", label: "Room service", count: 1, percentage: 100, color: "#94a3b8" },
+      ],
+      liveOrders: [],
+      paymentSummary: {
+        cash: { amount: 0, percentage: 0 },
+        card: { amount: 0, percentage: 0 },
+        upiWallets: { amount: 0, percentage: 0 },
+        other: { amount: 1200, percentage: 100 },
+        total: 1200,
+      },
+      tables: [],
+      topSellingItems: [],
+      attentionAlerts: [],
+      operationalMetrics: [],
+    };
+
+    const dashboardModel = mapDtoToDashboardModel(mockApiResponse, false);
+    expect(dashboardModel.paymentSummary.other.amount).toBe(1200);
+    expect(dashboardModel.paymentSummary.other.percentage).toBe(100);
+    expect(dashboardModel.paymentSummary.other.formatted).toBe("₹1,200");
+  });
 });

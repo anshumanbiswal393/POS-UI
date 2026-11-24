@@ -3,7 +3,7 @@ import { ChefHat, Clock, CheckCircle2, Flame, Printer, History, UtensilsCrossed,
 import { useKotOrders, useMarkKotPreparedMutation } from "@/hooks/queries/usePosOrders";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { printKotTicket } from "@/utils/printKotTicket";
+import { printKotTicket, extractAndSanitizeMergeTable } from "@/utils/printKotTicket";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { kotStartMs, pushKotReadyNotice } from "@/lib/posReadyNotifications";
 import { KotHistoryTableView } from "./KotHistoryTableView";
@@ -16,6 +16,8 @@ type KdsTicket = {
   orderNumber?: string;
   status?: string;
   orderType: string;
+  tableOrRoom?: string;
+  waiterName?: string;
   customerName: string;
   itemsText: string;
   items?: Array<{ name: string; quantity: number; notes?: string }>;
@@ -28,13 +30,18 @@ type KdsTicket = {
 };
 
 function getKotSpecialNote(kot: KdsTicket): string | undefined {
-  if (kot.notes && kot.notes.trim()) return kot.notes.trim();
-  if (kot.orderNote && kot.orderNote.trim()) return kot.orderNote.trim();
-  const noteMatch = (kot.itemsText || "").match(/(?:^|,\s*)Note:\s*(.+)$/i);
-  if (noteMatch) {
-    return noteMatch[1].trim();
+  let raw: string | undefined = undefined;
+  if (kot.notes && kot.notes.trim()) raw = kot.notes.trim();
+  else if (kot.orderNote && kot.orderNote.trim()) raw = kot.orderNote.trim();
+  else {
+    const noteMatch = (kot.itemsText || "").match(/(?:^|,\s*)Note:\s*(.+)$/i);
+    if (noteMatch) {
+      raw = noteMatch[1].trim();
+    }
   }
-  return undefined;
+  if (!raw) return undefined;
+  const { cleanSpecialNote } = extractAndSanitizeMergeTable(raw, kot.tableOrRoom, kot.orderType);
+  return cleanSpecialNote;
 }
 
 function parseItemLines(kot: KdsTicket): Array<{ name: string; quantity: number; notes?: string }> {
@@ -113,6 +120,8 @@ export function PosKotManager() {
         orderNumber: k?.orderNumber,
         status: k?.status || "In Kitchen",
         orderType: k?.orderType || "",
+        tableOrRoom: (k as any)?.tableOrRoom || (k as any)?.tableNumber || undefined,
+        waiterName: (k as any)?.waiterName || (k as any)?.waiter_name || undefined,
         customerName: k?.customerName || "--",
         itemsText: k?.itemsText || "",
         items: k?.items,
@@ -171,7 +180,10 @@ export function PosKotManager() {
     try {
       printKotTicket({
         kotId: kot.kotId,
+        orderNumber: kot.orderNumber,
         orderType: kot.orderType,
+        tableOrRoom: kot.tableOrRoom,
+        waiterName: kot.waiterName,
         customerName: kot.customerName,
         createdTimestamp: kot.createdTimestamp,
         createdAt: kot.createdAt,
@@ -315,7 +327,9 @@ function KdsOrderCard({
             ) : null}
           </div>
           <p className="mt-1 truncate text-[11.5px] font-semibold text-text-secondary">
-            {kot.orderType}
+            {kot.tableOrRoom && kot.tableOrRoom.includes("+")
+              ? `Merged: ${kot.tableOrRoom}`
+              : kot.tableOrRoom || kot.orderType}
             {kot.customerName && kot.customerName !== "--" ? ` · ${kot.customerName}` : ""}
           </p>
         </div>

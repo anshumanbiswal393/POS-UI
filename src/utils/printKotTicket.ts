@@ -48,7 +48,90 @@ function formatOrderTime(payload: KotPrintPayload) {
   });
 }
 
+export function extractAndSanitizeMergeTable(
+  specialNote?: string,
+  tableOrRoom?: string,
+  orderType?: string,
+): { cleanSpecialNote?: string; displayTableOrRoom?: string } {
+  let note = specialNote?.trim() || "";
+  let mergedTablesText: string | undefined = undefined;
+
+  // Extract merge table phrases:
+  // 1. With seats/pax: "Merged tables: Table #1 + Table #2 (6 seats) for 4 pax."
+  const fullMergeMatch = note.match(
+    /(?:Merged\s+tables?|Merge\s+tables?|Merged)\s*:\s*(.+?)\s*\(\d+\s*seats?\)\s*(?:for\s*\d+\s*pax)?\.?/i,
+  );
+  if (fullMergeMatch) {
+    mergedTablesText = fullMergeMatch[1].trim();
+    note = note.replace(fullMergeMatch[0], "").trim();
+  } else {
+    // 2. Simple merge: "Merged tables: Table 1 + Table 2." or "Merged: T1, T2"
+    const simpleMergeMatch = note.match(
+      /(?:Merged\s+tables?|Merge\s+tables?|Merged)\s*:\s*([^.\n\r]+)\.?/i,
+    );
+    if (simpleMergeMatch) {
+      mergedTablesText = simpleMergeMatch[1].trim();
+      note = note.replace(simpleMergeMatch[0], "").trim();
+    }
+  }
+
+  // Extract "Merged with Table 2"
+  const mergedWithMatch = note.match(/Merged\s+with\s+([^.\n\r]+?)(?:\.|$)/i);
+  if (mergedWithMatch) {
+    const withTable = mergedWithMatch[1].trim();
+    if (!mergedTablesText) {
+      mergedTablesText = tableOrRoom ? `${tableOrRoom} + ${withTable}` : withTable;
+    }
+    note = note.replace(mergedWithMatch[0], "").trim();
+  }
+
+  // Strip any remaining merge prefixes/fragments from cooking instructions
+  note = note
+    .replace(/(?:^|[.,\s]+)(?:Merged\s+tables?|Merge\s+tables?|Merged)\s*:[^.,\n\r]+/gi, "")
+    .replace(/^\s*[.,;:\s]+/, "")
+    .replace(/[,;:\s]+$/, "")
+    .trim();
+
+  if (/^[.,;:\s]*$/.test(note)) {
+    note = "";
+  }
+
+  const cleanSpecialNote = note.length > 0 ? note : undefined;
+
+  let displayTableOrRoom = tableOrRoom?.trim() || "";
+  const tableHasMultiple =
+    displayTableOrRoom.includes("+") ||
+    (displayTableOrRoom.includes(",") && /table|t\d/i.test(displayTableOrRoom));
+  const tableHasMergedPrefix = /merged/i.test(displayTableOrRoom);
+
+  if (tableHasMultiple) {
+    const clean = displayTableOrRoom.replace(/^(?:merged\s+tables?|merged)\s*:\s*/i, "").trim();
+    displayTableOrRoom = `MERGED TABLES: ${clean}`;
+  } else if (tableHasMergedPrefix) {
+    const clean = displayTableOrRoom.replace(/^(?:merged\s+tables?|merged)\s*:\s*/i, "").trim();
+    displayTableOrRoom = `MERGED TABLES: ${clean}`;
+  } else if (mergedTablesText) {
+    const cleanMerged = mergedTablesText.replace(/^(?:merged\s+tables?|merged)\s*:\s*/i, "").trim();
+    displayTableOrRoom = `MERGED TABLES: ${cleanMerged}`;
+  } else if (orderType && orderType.includes("+")) {
+    const m = orderType.match(/\(([^)]+)\)/);
+    if (m && m[1]) {
+      displayTableOrRoom = `MERGED TABLES: ${m[1].trim()}`;
+    }
+  }
+
+  return {
+    cleanSpecialNote,
+    displayTableOrRoom: displayTableOrRoom || undefined,
+  };
+}
+
 function buildKotHtml(payload: KotPrintPayload) {
+  const { cleanSpecialNote, displayTableOrRoom } = extractAndSanitizeMergeTable(
+    payload.specialNote,
+    payload.tableOrRoom,
+    payload.orderType,
+  );
   const itemsHtml = payload.items
     .map(
       (line, idx) => `
@@ -234,8 +317,8 @@ function buildKotHtml(payload: KotPrintPayload) {
       </div>
 
       ${
-        payload.tableOrRoom
-          ? `<div class="loc-highlight">${escapeHtml(payload.tableOrRoom)}</div>`
+        displayTableOrRoom
+          ? `<div class="loc-highlight">${escapeHtml(displayTableOrRoom)}</div>`
           : ""
       }
 
@@ -289,10 +372,10 @@ function buildKotHtml(payload: KotPrintPayload) {
     </table>
 
     ${
-      payload.specialNote
+      cleanSpecialNote
         ? `<div class="special-note-box">
         <div class="special-note-header">★ Special Cooking Instructions:</div>
-        <div class="special-note-body">${escapeHtml(payload.specialNote)}</div>
+        <div class="special-note-body">${escapeHtml(cleanSpecialNote)}</div>
       </div>`
         : ""
     }
