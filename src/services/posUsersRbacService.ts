@@ -158,6 +158,15 @@ export const DEFAULT_POS_PERMISSIONS: POSPermission[] = [
     screenName: "Reservations",
     screenPath: "/pos/reservations",
   },
+  {
+    id: "perm-pos-notifications-waiter",
+    code: "pos.notifications.waiter",
+    category: "Floor Plan & Orders",
+    name: "Waiter Food Ready Notifications",
+    description: "Access dedicated Order Ready notification dashboard in sidebar with live pickup queue and served history.",
+    screenName: "Order Ready Notifications",
+    screenPath: "/pos/notifications",
+  },
 
   // 3. Kitchen Display System (KDS)
   {
@@ -736,7 +745,7 @@ export const posUsersRbacService = {
           });
         });
 
-      // 4. Waiter has billing view & create, floor order view, take, KOT, and reservations
+      // 4. Waiter has billing view & create, floor order view, take, KOT, reservations, and ready notifications
       const waiterCodes = new Set([
         "pos.billing.view",
         "pos.billing.create",
@@ -744,6 +753,7 @@ export const posUsersRbacService = {
         "pos.orders.take",
         "pos.orders.kot",
         "pos.reservations.manage",
+        "pos.notifications.waiter",
       ]);
       allPerms
         .filter((p) => waiterCodes.has(p.code))

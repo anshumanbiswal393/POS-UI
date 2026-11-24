@@ -15,7 +15,7 @@ describe("Waiter Role UI & Permissions Full Walkthrough", () => {
     localStorage.clear();
   });
 
-  it("Step 1: Retrieves configured Waiter role with 6 operational permissions", async () => {
+  it("Step 1: Retrieves configured Waiter role with 7 operational permissions", async () => {
     const roles = await posUsersRbacService.getRoles();
     const waiterRole = roles.find((r) => r.code === "pos_waiter" || r.name.toLowerCase().includes("waiter"));
     expect(waiterRole).toBeDefined();
@@ -31,9 +31,10 @@ describe("Waiter Role UI & Permissions Full Walkthrough", () => {
     expect(permCodes).toContain("pos.orders.take");
     expect(permCodes).toContain("pos.orders.kot");
     expect(permCodes).toContain("pos.reservations.manage");
+    expect(permCodes).toContain("pos.notifications.waiter");
 
-    // Total permissions = 6 out of 19
-    expect(permCodes.length).toBe(6);
+    // Total permissions = 7 out of 20
+    expect(permCodes.length).toBe(7);
 
     // Strictly forbidden permissions:
     expect(permCodes).not.toContain("pos.kot.view");
@@ -96,13 +97,14 @@ describe("Waiter Role UI & Permissions Full Walkthrough", () => {
         "pos.orders.create",
         "pos.orders.kot",
         "pos.reservations.manage",
+        "pos.notifications.waiter",
       ]);
 
       const filterNav = (items: typeof POS_NAV_ITEMS): typeof POS_NAV_ITEMS => {
         return items
           .filter((item) => {
             if (isWaiter) {
-              const allowedIds = new Set(["take-order", "billing", "daily", "reservations"]);
+              const allowedIds = new Set(["take-order", "billing", "daily", "reservations", "notifications"]);
               if (!allowedIds.has(item.id)) return false;
             }
             if (item.permission && !waiterPerms.has(item.permission)) return false;
@@ -125,7 +127,7 @@ describe("Waiter Role UI & Permissions Full Walkthrough", () => {
 
     const waiterSidebar = simulateWaiterSidebar("pos_waiter");
     const visibleIds = waiterSidebar.map((i) => i.id);
-    expect(visibleIds).toEqual(["take-order", "billing", "daily", "reservations"]);
+    expect(visibleIds).toEqual(["take-order", "billing", "daily", "reservations", "notifications"]);
 
     // Orders (daily) has Current Orders and Order History, but NOT KOT or Pending Payments (settlement)
     const dailyItem = waiterSidebar.find((i) => i.id === "daily");
@@ -214,6 +216,63 @@ describe("Waiter Role UI & Permissions Full Walkthrough", () => {
     expect(reservations.length).toBe(1);
     expect(reservations[0].customerName).toBe("Aarav Sharma");
     expect(reservations[0].tableNumber).toBe(created.tableNumber);
+  });
+
+  it("Step 8: Verifies Waiter Order Ready Notifications Hub - Active queue, Serve action, and History transition", async () => {
+    const { posWaiterNotificationService } = await import("@/services/posWaiterNotificationService");
+
+    // 1. Initially no active ready notices
+    expect(posWaiterNotificationService.getActiveReadyNotices()).toEqual([]);
+
+    // 2. Kitchen marks an order ready
+    const notice = posWaiterNotificationService.dispatchTestReadyNotice({
+      orderNumber: "ORD-901",
+      tableNumber: "Table #7",
+      itemsText: "2x Chicken Biryani, 1x Raita",
+      customerName: "Vikram Seth",
+      orderType: "Dine In",
+    });
+
+    const activeList = posWaiterNotificationService.getActiveReadyNotices();
+    expect(activeList.length).toBe(1);
+    expect(activeList[0].orderNumber).toBe("ORD-901");
+    expect(activeList[0].tableNumber).toBe("Table #7");
+    expect(activeList[0].itemsText).toContain("Biryani");
+
+    // 3. Waiter Raju clicks "Serve"
+    const servedRecord = await posWaiterNotificationService.markServed(
+      notice.id,
+      "Raju waiter",
+    );
+
+    expect(servedRecord.status).toBe("completed");
+    expect(servedRecord.stewardName).toBe("Raju waiter");
+    expect(servedRecord.orderNumber).toBe("ORD-901");
+    expect(servedRecord.tableNumber).toBe("Table #7");
+
+    // 4. Active list is now empty (removed from current notifications)
+    expect(posWaiterNotificationService.getActiveReadyNotices().length).toBe(0);
+
+    // 5. Appears in Notification History in tabular form with steward name & completed status
+    const todayStr = new Date().toISOString().split("T")[0];
+    const history = posWaiterNotificationService.getServedHistory({
+      startDate: todayStr,
+      endDate: todayStr,
+    });
+
+    expect(history.length).toBeGreaterThanOrEqual(1);
+    const found = history.find((h) => h.orderNumber === "ORD-901");
+    expect(found).toBeDefined();
+    expect(found?.stewardName).toBe("Raju waiter");
+    expect(found?.status).toBe("completed");
+    expect(found?.tableNumber).toBe("Table #7");
+
+    // 6. Omnibar search filter works by steward or order number
+    const searched = posWaiterNotificationService.getServedHistory({
+      search: "ORD-901",
+    });
+    expect(searched.length).toBe(1);
+    expect(searched[0].stewardName).toBe("Raju waiter");
   });
 });
 

@@ -20,6 +20,7 @@ import { Route as PosRoomServiceRouteImport } from './routes/pos.room-service'
 import { Route as PosReservationsRouteImport } from './routes/pos.reservations'
 import { Route as PosReportsRouteImport } from './routes/pos.reports'
 import { Route as PosOrdersRouteImport } from './routes/pos.orders'
+import { Route as PosNotificationsRouteImport } from './routes/pos.notifications'
 import { Route as PosMenuRouteImport } from './routes/pos.menu'
 import { Route as PosManagementRouteImport } from './routes/pos.management'
 import { Route as PosKotRouteImport } from './routes/pos.kot'
@@ -170,6 +171,11 @@ const PosReportsRoute = PosReportsRouteImport.update({
 const PosOrdersRoute = PosOrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
+  getParentRoute: () => PosRoute,
+} as any)
+const PosNotificationsRoute = PosNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => PosRoute,
 } as any)
 const PosMenuRoute = PosMenuRouteImport.update({
@@ -729,6 +735,7 @@ export interface FileRoutesByFullPath {
   '/pos/kot': typeof PosKotRoute
   '/pos/management': typeof PosManagementRouteWithChildren
   '/pos/menu': typeof PosMenuRouteWithChildren
+  '/pos/notifications': typeof PosNotificationsRoute
   '/pos/orders': typeof PosOrdersRouteWithChildren
   '/pos/reports': typeof PosReportsRouteWithChildren
   '/pos/reservations': typeof PosReservationsRoute
@@ -838,6 +845,7 @@ export interface FileRoutesByTo {
   '/pos/kot': typeof PosKotRoute
   '/pos/management': typeof PosManagementRouteWithChildren
   '/pos/menu': typeof PosMenuRouteWithChildren
+  '/pos/notifications': typeof PosNotificationsRoute
   '/pos/orders': typeof PosOrdersRouteWithChildren
   '/pos/reports': typeof PosReportsRouteWithChildren
   '/pos/reservations': typeof PosReservationsRoute
@@ -948,6 +956,7 @@ export interface FileRoutesById {
   '/pos/kot': typeof PosKotRoute
   '/pos/management': typeof PosManagementRouteWithChildren
   '/pos/menu': typeof PosMenuRouteWithChildren
+  '/pos/notifications': typeof PosNotificationsRoute
   '/pos/orders': typeof PosOrdersRouteWithChildren
   '/pos/reports': typeof PosReportsRouteWithChildren
   '/pos/reservations': typeof PosReservationsRoute
@@ -1059,6 +1068,7 @@ export interface FileRouteTypes {
     | '/pos/kot'
     | '/pos/management'
     | '/pos/menu'
+    | '/pos/notifications'
     | '/pos/orders'
     | '/pos/reports'
     | '/pos/reservations'
@@ -1168,6 +1178,7 @@ export interface FileRouteTypes {
     | '/pos/kot'
     | '/pos/management'
     | '/pos/menu'
+    | '/pos/notifications'
     | '/pos/orders'
     | '/pos/reports'
     | '/pos/reservations'
@@ -1277,6 +1288,7 @@ export interface FileRouteTypes {
     | '/pos/kot'
     | '/pos/management'
     | '/pos/menu'
+    | '/pos/notifications'
     | '/pos/orders'
     | '/pos/reports'
     | '/pos/reservations'
@@ -1460,6 +1472,13 @@ declare module '@tanstack/react-router' {
       path: '/orders'
       fullPath: '/pos/orders'
       preLoaderRoute: typeof PosOrdersRouteImport
+      parentRoute: typeof PosRoute
+    }
+    '/pos/notifications': {
+      id: '/pos/notifications'
+      path: '/notifications'
+      fullPath: '/pos/notifications'
+      preLoaderRoute: typeof PosNotificationsRouteImport
       parentRoute: typeof PosRoute
     }
     '/pos/menu': {
@@ -2448,6 +2467,7 @@ interface PosRouteChildren {
   PosKotRoute: typeof PosKotRoute
   PosManagementRoute: typeof PosManagementRouteWithChildren
   PosMenuRoute: typeof PosMenuRouteWithChildren
+  PosNotificationsRoute: typeof PosNotificationsRoute
   PosOrdersRoute: typeof PosOrdersRouteWithChildren
   PosReportsRoute: typeof PosReportsRouteWithChildren
   PosReservationsRoute: typeof PosReservationsRoute
@@ -2465,6 +2485,7 @@ const PosRouteChildren: PosRouteChildren = {
   PosKotRoute: PosKotRoute,
   PosManagementRoute: PosManagementRouteWithChildren,
   PosMenuRoute: PosMenuRouteWithChildren,
+  PosNotificationsRoute: PosNotificationsRoute,
   PosOrdersRoute: PosOrdersRouteWithChildren,
   PosReportsRoute: PosReportsRouteWithChildren,
   PosReservationsRoute: PosReservationsRoute,

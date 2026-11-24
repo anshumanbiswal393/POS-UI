@@ -5,7 +5,14 @@ export type KotReadyNotice = {
   createdAt: number;
   outletId?: string;
   kotId?: number;
+  ticketId?: string;
   orderNumber?: string;
+  tableNumber?: string;
+  itemsText?: string;
+  items?: string[];
+  customerName?: string;
+  orderType?: string;
+  notes?: string;
 };
 
 const STORAGE_KEY = "retrod:pos:kot-ready-notices:v1";

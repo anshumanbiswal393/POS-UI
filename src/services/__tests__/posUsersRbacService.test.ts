@@ -152,6 +152,7 @@ describe("posUsersRbacService - Seed Accounts & CRUD Operations", () => {
     expect(permCodes).toContain("pos.orders.take");
     expect(permCodes).toContain("pos.orders.kot");
     expect(permCodes).toContain("pos.reservations.manage");
+    expect(permCodes).toContain("pos.notifications.waiter");
 
     // Restricted from KOT view, settlements, inventory and admin settings
     expect(permCodes).not.toContain("pos.kot.view");

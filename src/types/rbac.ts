@@ -111,6 +111,7 @@ export type Permission =
   | "pos.reports.export"
   | "pos.settings.manage"
   | "pos.users.manage"
+  | "pos.notifications.waiter"
   // DRF backend parity (colon notation)
   | "pos_orders:view"
   | "pos_orders:create"

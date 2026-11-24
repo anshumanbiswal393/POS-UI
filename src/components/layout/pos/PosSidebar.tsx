@@ -33,6 +33,8 @@ import { cn } from "@/lib/utils";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { isDiningOutlet } from "@/utils/outletKind";
 import { deduplicateOutlets } from "@/utils/outletId";
+import { listKotReadyNotices, KOT_READY_EVENT } from "@/lib/posReadyNotifications";
+import { WAITER_SERVED_EVENT } from "@/services/posWaiterNotificationService";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,6 +107,24 @@ export function PosSidebar({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeLinkRef = useRef<HTMLAnchorElement | null>(null);
   const { activeOutlet, outlets, setActiveOutlet } = useOutletContext();
+  const [readyNoticeCount, setReadyNoticeCount] = useState<number>(() => {
+    return listKotReadyNotices().length;
+  });
+
+  useEffect(() => {
+    const updateCount = () => {
+      setReadyNoticeCount(listKotReadyNotices(activeOutlet?.id).length);
+    };
+    updateCount();
+    if (typeof window !== "undefined") {
+      window.addEventListener(KOT_READY_EVENT, updateCount);
+      window.addEventListener(WAITER_SERVED_EVENT, updateCount);
+      return () => {
+        window.removeEventListener(KOT_READY_EVENT, updateCount);
+        window.removeEventListener(WAITER_SERVED_EVENT, updateCount);
+      };
+    }
+  }, [activeOutlet?.id]);
   const availableOutlets = useMemo(
     () => deduplicateOutlets(outlets, activeOutlet?.id),
     [outlets, activeOutlet?.id],
@@ -217,6 +237,7 @@ export function PosSidebar({
       if (node.id === "live-orders" || node.to === "/pos/orders") return true;
       if (node.id === "all-orders" || node.to === "/pos/orders/all") return true;
       if (node.id === "reservations" || node.to === "/pos/reservations") return true;
+      if (node.id === "notifications" || node.to === "/pos/notifications") return true;
       if (node.id === "settings" || node.to === "/pos/settings") return true;
       if (node.id === "help" || node.to === "/pos/help") return true;
       return false;
@@ -333,7 +354,7 @@ export function PosSidebar({
       return items;
     }
 
-    const allowedWaiterIds = new Set(["take-order", "billing", "daily", "reservations"]);
+    const allowedWaiterIds = new Set(["take-order", "billing", "daily", "reservations", "notifications"]);
     const candidateItems = isWaiter
       ? POS_NAV_ITEMS.filter((item) => allowedWaiterIds.has(item.id))
       : POS_NAV_ITEMS;
@@ -795,13 +816,18 @@ export function PosSidebar({
                 onClick={onNavigate}
                 title={item.label}
                 className={cn(
-                  "flex items-center justify-center rounded-md px-2 py-2.5 transition-colors",
+                  "relative flex items-center justify-center rounded-md px-2 py-2.5 transition-colors",
                   collapsedActive
                     ? "bg-primary text-primary-foreground"
                     : "text-sidebar-foreground hover:bg-sidebar-hover",
                 )}
               >
-                <Icon className="h-[18px] w-[18px] shrink-0 stroke-[1.5]" />
+                <div className="relative">
+                  <Icon className="h-[18px] w-[18px] shrink-0 stroke-[1.5]" />
+                  {item.id === "notifications" && readyNoticeCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-background animate-pulse" />
+                  )}
+                </div>
               </Link>
             );
           }
@@ -860,6 +886,16 @@ export function PosSidebar({
                   )}
                 />
                 <span className="truncate">{item.label}</span>
+                {item.id === "notifications" && readyNoticeCount > 0 && (
+                  <span
+                    className={cn(
+                      "ml-auto rounded-full px-1.5 py-0.2 text-[10px] font-bold transition-all animate-pulse",
+                      activeLeaf ? "bg-amber-400 text-amber-950" : "bg-amber-500 text-white"
+                    )}
+                  >
+                    {readyNoticeCount}
+                  </span>
+                )}
               </Link>
               {!collapsed && (
                 <button

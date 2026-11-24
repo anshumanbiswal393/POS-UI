@@ -40,6 +40,7 @@ import {
   FolderTree,
   ShieldCheck,
   Trash2,
+  BellRing,
 } from "lucide-react";
 import type { Permission } from "@/types/rbac";
 
@@ -107,6 +108,13 @@ export const POS_NAV_ITEMS: PosNavItem[] = [
     to: "/pos/reservations",
     icon: CalendarCheck2,
     anyPermissions: ["pos.reservations.manage", "pos.orders.view"],
+  },
+  {
+    id: "notifications",
+    label: "Notifications",
+    to: "/pos/notifications",
+    icon: BellRing,
+    permission: "pos.notifications.waiter",
   },
   {
     id: "menu",
