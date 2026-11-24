@@ -240,7 +240,7 @@ export function LoginPageFeature() {
           active: true,
           lastActive: "Now",
           initials: foundInRbac.name ? foundInRbac.name.slice(0, 2).toUpperCase() : "ST",
-          property: foundInRbac.outlet_name || "Anshu Suite Restaurant · Main Outlet",
+          property: foundInRbac.outlet_name || "Main Restaurant · Main Outlet",
           permissions: foundInRbac.permissions || [],
         };
       }
@@ -257,7 +257,7 @@ export function LoginPageFeature() {
         active: true,
         lastActive: "Now",
         initials: cleanContact.slice(0, 2).toUpperCase(),
-        property: "Anshu Suite Restaurant · Main Outlet",
+        property: "Main Restaurant · Main Outlet",
         permissions: [],
       };
     }

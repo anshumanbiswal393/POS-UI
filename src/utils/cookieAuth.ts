@@ -75,15 +75,45 @@ export function removeDomainCookie(name: string): void {
 }
 
 /**
- * Retrieves the active access token, checking localStorage first then shared cookies.
+ * Retrieves the active access token, synchronizing with master domain cookie on retrod.in.
  */
 export function getStoredAccessToken(): string | null {
   if (typeof window === "undefined") return null;
+
+  const isRetrod = window.location.hostname.endsWith("retrod.in");
+  const domainToken = getDomainCookie(COOKIE_ACCESS_TOKEN);
+
+  if (isRetrod) {
+    // Live domain check: Domain cookie on .retrod.in is the master session truth.
+    // 1. If domain cookie is gone, user logged out in PMS -> clear stale POS storage
+    if (!domainToken) {
+      try {
+        const local = localStorage.getItem(LS_ACCESS_TOKEN);
+        if (local) {
+          clearAuthSession();
+        }
+      } catch {}
+      return null;
+    }
+
+    // 2. If domain cookie changed to a different hotelier/account -> clear previous hotelier storage
+    try {
+      const local = localStorage.getItem(LS_ACCESS_TOKEN);
+      if (local && local !== domainToken) {
+        clearAuthSession();
+        localStorage.setItem(LS_ACCESS_TOKEN, domainToken);
+      }
+    } catch {}
+
+    return domainToken;
+  }
+
+  // Localhost / offline development fallback: check localStorage first, then cookie
   try {
     const ls = localStorage.getItem(LS_ACCESS_TOKEN);
     if (ls) return ls;
   } catch {}
-  return getDomainCookie(COOKIE_ACCESS_TOKEN);
+  return domainToken;
 }
 
 /**
@@ -91,11 +121,14 @@ export function getStoredAccessToken(): string | null {
  */
 export function getStoredRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
+  const isRetrod = window.location.hostname.endsWith("retrod.in");
+  const domainRefresh = getDomainCookie(COOKIE_REFRESH_TOKEN);
+  if (isRetrod && domainRefresh) return domainRefresh;
   try {
     const ls = localStorage.getItem(LS_REFRESH_TOKEN);
     if (ls) return ls;
   } catch {}
-  return getDomainCookie(COOKIE_REFRESH_TOKEN);
+  return domainRefresh;
 }
 
 /**
@@ -185,8 +218,18 @@ export function clearAuthSession(): void {
     localStorage.removeItem(LS_ACCESS_TOKEN);
     localStorage.removeItem(LS_REFRESH_TOKEN);
     localStorage.removeItem(LS_USER);
+    localStorage.removeItem(LS_USERS);
     localStorage.removeItem(LS_SUBDOMAIN);
     localStorage.removeItem(LS_PROPERTY_ID);
+    localStorage.removeItem("retrod:active-property-id");
+    localStorage.removeItem("retrod:active-tenant-id");
+    localStorage.removeItem("retrod:active-subdomain");
+    localStorage.removeItem("retrod:access-token");
+    localStorage.removeItem("retrod_property_id");
+    localStorage.removeItem("retrod_pos_active_outlet_id");
+    localStorage.removeItem("retrod_pos_custom_outlets");
+    localStorage.removeItem("retrod:pos:users:list");
+    localStorage.removeItem(LS_AUDIT_EVENTS);
   } catch {}
 
   removeDomainCookie(COOKIE_ACCESS_TOKEN);
@@ -217,7 +260,23 @@ export function parseSsoFromUrl(): {
   const propertyId = url.searchParams.get("sso_property_id") || url.searchParams.get("property_id");
 
   if (token) {
+    try {
+      const existingToken = localStorage.getItem(LS_ACCESS_TOKEN) || getDomainCookie(COOKIE_ACCESS_TOKEN);
+      if (existingToken && existingToken !== token) {
+        // Clear all previous hotelier's state when new SSO token arrives
+        clearAuthSession();
+      }
+    } catch {}
+
     syncAuthSession({ access: token, refresh }, undefined, tenant || undefined, propertyId || undefined);
+
+    if (propertyId) {
+      try {
+        localStorage.setItem("retrod:active-property-id", propertyId);
+        localStorage.setItem("retrod_property_id", propertyId);
+        setDomainCookie("retrod_property_id", propertyId);
+      } catch {}
+    }
 
     // Clean URL query parameters without reloading
     url.searchParams.delete("sso_token");

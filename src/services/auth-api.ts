@@ -75,7 +75,7 @@ export function mapBackendUserToAppUser(
     assignedOutletName ||
     (mappedProperties[0]?.name ? `${mappedProperties[0].name} Restaurant` : undefined) ||
     backendUser?.property ||
-    "Anshu Suite Restaurant · Main Outlet";
+    "Main Restaurant · Main Outlet";
 
   if (mappedProperties.length > 0) {
     let storedPropId =
@@ -84,9 +84,8 @@ export function mapBackendUserToAppUser(
           localStorage.getItem("retrod_property_id")
         : null;
 
-    const anshuProp = mappedProperties.find((p) => p.name.toLowerCase().includes("anshu"));
-    if (anshuProp && (!storedPropId || !mappedProperties.some((p) => p.id === storedPropId))) {
-      storedPropId = anshuProp.id;
+    if (storedPropId && !mappedProperties.some((p) => p.id === storedPropId)) {
+      storedPropId = mappedProperties[0].id;
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem("retrod:active-property-id", storedPropId);

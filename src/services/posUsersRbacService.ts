@@ -303,7 +303,7 @@ export const DEFAULT_SEED_USERS: POSUser[] = [
     role: "pos_admin",
     role_name: "POS Administrator",
     role_code: "pos_admin",
-    outlet_name: "Anshu Suite Restaurant",
+    outlet_name: "Main Restaurant",
     user_code: "ADM-SAMPRITA",
     pin: "9988",
     is_active: true,
@@ -333,7 +333,7 @@ export const DEFAULT_SEED_USERS: POSUser[] = [
     role: "pos_staff",
     role_name: "Arnav Staff Role",
     role_code: "pos_staff",
-    outlet_name: "Anshu Suite Restaurant",
+    outlet_name: "Main Restaurant",
     user_code: "STF-ARNAV",
     pin: "3344",
     is_active: true,
@@ -348,7 +348,7 @@ export const DEFAULT_SEED_USERS: POSUser[] = [
     role: "pos_waiter",
     role_name: "Waiter",
     role_code: "pos_waiter",
-    outlet_name: "Anshu Suite Restaurant",
+    outlet_name: "Main Restaurant",
     user_code: "WTR-01",
     pin: "5566",
     is_active: true,
@@ -491,7 +491,7 @@ export const posUsersRbacService = {
           active: savedUser.is_active !== false,
           lastActive: "Now",
           initials: savedUser.name ? savedUser.name.slice(0, 2).toUpperCase() : "ST",
-          property: savedUser.outlet_name || "Anshu Suite Restaurant",
+          property: savedUser.outlet_name || "Main Restaurant",
         };
         const nextList = [appUser, ...cachedList.filter((u: any) => u.id !== savedUser!.id && u.email?.toLowerCase() !== savedUser!.email?.toLowerCase())];
         localStorage.setItem("retrod:users", JSON.stringify(nextList));

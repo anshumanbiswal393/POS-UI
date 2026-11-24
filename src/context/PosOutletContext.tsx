@@ -137,21 +137,18 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
   });
 
   const getActivePropertyInfo = useCallback(() => {
-    const anshuUserProp = user?.properties?.find((p) => p.name.toLowerCase().includes("anshu"));
-
     let storedPropId =
       (typeof window !== "undefined"
         ? localStorage.getItem("retrod:active-property-id") ||
           localStorage.getItem("retrod_property_id") ||
           getDomainCookie("retrod_property_id")
         : null) ||
-      anshuUserProp?.id ||
       user?.properties?.[0]?.id ||
       null;
 
-    if (anshuUserProp && (!storedPropId || storedPropId.includes("strict") || !user?.properties?.some((p) => p.id === storedPropId))) {
-      storedPropId = anshuUserProp.id;
-      if (typeof window !== "undefined" && storedPropId) {
+    if (storedPropId && user?.properties && user.properties.length > 0 && !user.properties.some((p) => p.id === storedPropId)) {
+      storedPropId = user.properties[0].id;
+      if (typeof window !== "undefined") {
         try {
           localStorage.setItem("retrod:active-property-id", storedPropId);
           localStorage.setItem("retrod_property_id", storedPropId);
@@ -168,10 +165,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
     }
 
     const matchedProp = user?.properties?.find((p) => p.id === storedPropId);
-    let propName = matchedProp?.name || anshuUserProp?.name || user?.property || "Anshu Suite Restaurant";
-    if (propName.toLowerCase().includes("bistro") && (user?.property?.toLowerCase().includes("anshu") || !matchedProp)) {
-      propName = "Anshu Suite Restaurant";
-    }
+    const propName = matchedProp?.name || user?.property || "Main Restaurant";
 
     return { propId: storedPropId, propName };
   }, [user]);
@@ -291,10 +285,10 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // Priority 3: Anshu Suite Restaurant
-        const anshuOutlet = finalOutlets.find((o) => o.name?.toLowerCase().includes("anshu"));
+        // Priority 3: Primary physical outlet or first backend outlet
+        const primaryOutlet = finalOutlets.find((o) => o.outletKind === "PRIMARY" && isBackendOutletId(o.id));
         const chosen =
-          anshuOutlet ||
+          primaryOutlet ||
           finalOutlets.find((o) => isBackendOutletId(o.id) && !o.name.toLowerCase().includes("strict")) ||
           finalOutlets.find((o) => isBackendOutletId(o.id)) ||
           finalOutlets[0];

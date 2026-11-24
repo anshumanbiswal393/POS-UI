@@ -85,5 +85,9 @@ export default defineConfig(async ({ command }) => {
       },
     },
     plugins,
+    test: {
+      environment: "jsdom",
+      globals: true,
+    },
   };
 });
