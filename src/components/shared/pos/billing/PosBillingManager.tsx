@@ -430,12 +430,13 @@ export function PosBillingManager() {
       .map((item) => {
         const primaryImg =
           item.images?.find((img) => img?.isPrimary)?.url || item.images?.[0]?.url;
+        const rawType = String(item.itemType || (item as any)?.item_type || (item as any)?.diet || "").trim().toLowerCase();
         const catLower = String(item.category || "").toLowerCase();
         const diet: "veg" | "non_veg" | "egg" | "drinks" =
-          item.itemType === "Veg"
-            ? "veg"
-            : item.itemType === "Egg"
-              ? "egg"
+          rawType === "egg" || catLower.includes("egg")
+            ? "egg"
+            : rawType === "veg" || rawType === "vegetarian"
+              ? "veg"
               : catLower.includes("bev") ||
                 catLower.includes("cocktail") ||
                 catLower.includes("vodka") ||
@@ -1144,7 +1145,14 @@ export function PosBillingManager() {
 
   // Hold Check — persisted in the database so it survives refresh
   const handleHoldBill = useCallback(() => {
-    if (cartItems.length === 0) return;
+    if (cartItems.length === 0) {
+      if (heldBills.length > 0) {
+        setIsHeldDrawerOpen((prev) => !prev);
+      } else {
+        toast.info("Cart is empty — add items to hold order");
+      }
+      return;
+    }
 
     const {
       orderItems,
@@ -1428,7 +1436,10 @@ export function PosBillingManager() {
 
   // Print / Update KOT → Preparing (new check) or incremental KOT (edit existing)
   const handlePrintKot = useCallback(() => {
-    if (cartItems.length === 0) return;
+    if (cartItems.length === 0) {
+      toast.info("Cart is empty — add items to send KOT");
+      return;
+    }
 
     const { orderItems, subtotal, grandTotal, tableLabel, cgst, sgst, serviceCharge, discountAmount } =
       buildOrderPayload();
@@ -1944,7 +1955,7 @@ export function PosBillingManager() {
     handleNewBill,
   ]);
 
-  // Keyboard Shortcuts (F2, F4, F8, F9, F10)
+  // Keyboard Shortcuts (F2, F4, F8, F9, F10, Escape)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "F2") {
@@ -1963,25 +1974,57 @@ export function PosBillingManager() {
         } else {
           toast.info("Cart is empty — add items to settle bill");
         }
+      } else if (e.key === "Escape") {
+        if (isPayNowOpen) {
+          setIsPayNowOpen(false);
+        } else if (isHeldDrawerOpen) {
+          setIsHeldDrawerOpen(false);
+        } else if (isPreviousOrdersOpen) {
+          setIsPreviousOrdersOpen(false);
+        }
       }
     };
 
+    const handleCustomHold = () => handleHoldBill();
     const handleCustomKot = () => handlePrintKot();
     const handleCustomPay = () => {
       if (cartItems.length > 0) {
         setIsPayNowOpen(true);
+      } else {
+        toast.info("Cart is empty — add items to settle bill");
+      }
+    };
+    const handleCustomDismiss = () => {
+      if (isPayNowOpen) {
+        setIsPayNowOpen(false);
+      } else if (isHeldDrawerOpen) {
+        setIsHeldDrawerOpen(false);
+      } else if (isPreviousOrdersOpen) {
+        setIsPreviousOrdersOpen(false);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("pos:hold-order", handleCustomHold);
     window.addEventListener("pos:send-kot", handleCustomKot);
     window.addEventListener("pos:pay-settle", handleCustomPay);
+    window.addEventListener("pos:escape-dismiss", handleCustomDismiss);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("pos:hold-order", handleCustomHold);
       window.removeEventListener("pos:send-kot", handleCustomKot);
       window.removeEventListener("pos:pay-settle", handleCustomPay);
+      window.removeEventListener("pos:escape-dismiss", handleCustomDismiss);
     };
-  }, [handleNewBill, handleHoldBill, handlePrintKot, cartItems.length]);
+  }, [
+    handleNewBill,
+    handleHoldBill,
+    handlePrintKot,
+    cartItems.length,
+    isPayNowOpen,
+    isHeldDrawerOpen,
+    isPreviousOrdersOpen,
+  ]);
 
   const mobileCartQty = useMemo(
     () => cartItems.reduce((sum, item) => sum + item.quantity, 0),

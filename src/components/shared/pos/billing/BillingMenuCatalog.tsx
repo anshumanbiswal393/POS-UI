@@ -47,7 +47,13 @@ export function BillingMenuCatalog({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "/" && document.activeElement !== searchInputRef.current) {
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isInput =
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.isContentEditable);
+      if (e.key === "/" && !isInput && document.activeElement !== searchInputRef.current) {
         e.preventDefault();
         searchInputRef.current?.focus();
         searchInputRef.current?.select();
@@ -205,8 +211,10 @@ export function BillingMenuCatalog({
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary/70" />
             <input
               ref={searchInputRef}
+              id="pos-billing-search"
+              data-pos-catalog-search="true"
               type="text"
-              placeholder="Search items by name or code..."
+              placeholder="Search items by name or code... (F3 or /)"
               value={effectiveQuery}
               onChange={(e) => handleSearchInput(e.target.value)}
               className="h-9 w-full rounded-xl border border-border bg-surface pl-9 pr-9 text-[12.5px] font-medium text-text-primary shadow-2xs placeholder:text-text-secondary/55 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -227,6 +235,7 @@ export function BillingMenuCatalog({
               [
                 { id: "all" as const, label: "All", icon: false },
                 { id: "veg" as const, label: "Veg", icon: true },
+                { id: "egg" as const, label: "Egg", icon: true },
                 { id: "non_veg" as const, label: "Non-Veg", icon: true },
               ] as const
             ).map((opt) => {
@@ -240,11 +249,12 @@ export function BillingMenuCatalog({
                     "inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11.5px] font-bold transition cursor-pointer",
                     active && opt.id === "all" && "bg-slate-900 text-white shadow-xs",
                     active && opt.id === "veg" && "bg-emerald-700 text-white shadow-xs",
+                    active && opt.id === "egg" && "bg-amber-600 text-white shadow-xs",
                     active && opt.id === "non_veg" && "bg-rose-700 text-white shadow-xs",
                     !active && "text-text-secondary hover:bg-surface-2 hover:text-text-primary",
                   )}
                 >
-                  {opt.icon ? <FoodTypeIcon type={opt.id === "veg" ? "veg" : "non_veg"} size="sm" /> : null}
+                  {opt.icon ? <FoodTypeIcon type={opt.id} size="sm" /> : null}
                   {opt.label}
                 </button>
               );

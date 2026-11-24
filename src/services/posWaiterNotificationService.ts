@@ -83,7 +83,18 @@ function getStoredHistory(): WaiterServedRecord[] {
     const raw = localStorage.getItem(STORAGE_SERVED_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    // Purge any legacy dummy/seed sample records so user only sees real data
+    const cleaned = parsed.filter(
+      (r) =>
+        r &&
+        typeof r === "object" &&
+        !String(r.id || "").startsWith("srv-seed-"),
+    );
+    if (cleaned.length !== parsed.length) {
+      writeStoredHistory(cleaned);
+    }
+    return cleaned;
   } catch {
     return [];
   }
@@ -191,55 +202,6 @@ export const posWaiterNotificationService = {
     outletId?: string;
   }): WaiterServedRecord[] => {
     let list = getStoredHistory();
-
-    // If completely empty, provide initial realistic seed data so history table looks authentic
-    if (list.length === 0) {
-      const today = new Date();
-      const todayMs = today.getTime();
-      const sampleRecords: WaiterServedRecord[] = [
-        {
-          id: "srv-seed-1",
-          orderNumber: "ORD-20261124-001",
-          tableNumber: "Table #2",
-          itemsText: "1x Paneer Tikka, 2x Garlic Naan",
-          orderType: "Dine In",
-          customerName: "Rahul Sen",
-          readyAt: todayMs - 15 * 60 * 1000,
-          servedAt: todayMs - 12 * 60 * 1000,
-          stewardName: "Raju waiter",
-          status: "completed",
-          turnaroundSeconds: 180,
-        },
-        {
-          id: "srv-seed-2",
-          orderNumber: "ORD-20261124-002",
-          tableNumber: "Table #4",
-          itemsText: "1x Dal Makhani, 2x Tandoori Roti",
-          orderType: "Dine In",
-          customerName: "Pooja Verma",
-          readyAt: todayMs - 45 * 60 * 1000,
-          servedAt: todayMs - 41 * 60 * 1000,
-          stewardName: "Raju waiter",
-          status: "completed",
-          turnaroundSeconds: 240,
-        },
-        {
-          id: "srv-seed-3",
-          orderNumber: "ORD-20261123-015",
-          tableNumber: "Room 204",
-          itemsText: "1x Club Sandwich, 1x Cold Coffee",
-          orderType: "Room Service",
-          customerName: "Amit Malhotra",
-          readyAt: todayMs - 24 * 3600 * 1000 - 30 * 60 * 1000,
-          servedAt: todayMs - 24 * 3600 * 1000 - 25 * 60 * 1000,
-          stewardName: "Rohan Kumar",
-          status: "completed",
-          turnaroundSeconds: 300,
-        },
-      ];
-      writeStoredHistory(sampleRecords);
-      list = sampleRecords;
-    }
 
     // Filter by outlet if provided
     if (filters?.outletId) {

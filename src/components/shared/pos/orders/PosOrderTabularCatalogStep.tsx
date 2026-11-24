@@ -86,15 +86,17 @@ export function PosOrderTabularCatalogStep({
       .map((item) => {
         const primaryImg =
           item.images?.find((img) => img.isPrimary)?.url || item.images?.[0]?.url;
+        const rawType = String(item.itemType || (item as any)?.item_type || (item as any)?.diet || "").trim().toLowerCase();
+        const catLower = String(item.category || "").toLowerCase();
         const diet: "veg" | "non_veg" | "egg" | "drinks" =
-          item.itemType === "Veg"
-            ? "veg"
-            : item.itemType === "Egg"
-              ? "egg"
-              : item.category.toLowerCase().includes("bev") ||
-                item.category.toLowerCase().includes("cocktail") ||
-                item.category.toLowerCase().includes("vodka") ||
-                item.category.toLowerCase().includes("whisky")
+          rawType === "egg" || catLower.includes("egg")
+            ? "egg"
+            : rawType === "veg" || rawType === "vegetarian"
+              ? "veg"
+              : catLower.includes("bev") ||
+                catLower.includes("cocktail") ||
+                catLower.includes("vodka") ||
+                catLower.includes("whisky")
                 ? "drinks"
                 : "non_veg";
 
@@ -123,7 +125,7 @@ export function PosOrderTabularCatalogStep({
   }, [catalogItems]);
 
   const [selectedCategory, setSelectedCategory] = useState<BillingCategory>("All Items");
-  const [dietFilter, setDietFilter] = useState<"all" | "veg" | "non_veg">("all");
+  const [dietFilter, setDietFilter] = useState<"all" | "veg" | "non_veg" | "egg">("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -260,6 +262,18 @@ export function PosOrderTabularCatalogStep({
             >
               <FoodTypeIcon type="veg" size="sm" />
               Veg
+            </button>
+            <button
+              type="button"
+              onClick={() => setDietFilter("egg")}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition cursor-pointer ${
+                dietFilter === "egg"
+                  ? "bg-amber-600 text-white shadow-xs font-bold"
+                  : "text-amber-700 hover:bg-amber-50"
+              }`}
+            >
+              <FoodTypeIcon type="egg" size="sm" />
+              Egg
             </button>
             <button
               type="button"

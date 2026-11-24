@@ -827,6 +827,9 @@ export function BillingCartRegister({
           >
             <PauseCircle className="h-3.5 w-3.5" />
             <span>{busyAction === "hold" ? "Holding…" : "HOLD"}</span>
+            <kbd className="hidden sm:inline-block ml-0.5 rounded bg-orange-400/50 px-1 text-[9.5px] text-orange-950 font-mono font-bold">
+              F4
+            </kbd>
           </button>
 
           <button
@@ -838,6 +841,9 @@ export function BillingCartRegister({
           >
             <Printer className="h-3.5 w-3.5" />
             <span>{busyAction === "kot" ? "Sending…" : "KOT"}</span>
+            <kbd className="hidden sm:inline-block ml-0.5 rounded bg-black/20 px-1 text-[9.5px] text-white font-mono font-bold">
+              F8
+            </kbd>
           </button>
 
           {canSettle && (
@@ -849,6 +855,9 @@ export function BillingCartRegister({
             >
               <IndianRupee className="h-3.5 w-3.5" />
               <span>{busyAction === "pay" ? "Paying…" : "PAY NOW"}</span>
+              <kbd className="hidden sm:inline-block ml-0.5 rounded bg-teal-950/40 px-1 text-[9.5px] text-teal-100 font-mono font-bold">
+                F9
+              </kbd>
             </button>
           )}
         </div>
