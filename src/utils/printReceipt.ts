@@ -875,7 +875,11 @@ export function settlementRecordToInvoicePayload(
 
   const tableOrRoom =
     record.orderType === "dine_in"
-      ? (record.tableNumber ? `Table ${record.tableNumber}` : "Dine-In Table")
+      ? (record.tableNumber
+          ? (record.tableNumber.trim().toLowerCase().startsWith("table")
+              ? record.tableNumber.trim()
+              : `Table ${record.tableNumber.trim()}`)
+          : "Dine-In Table")
       : record.orderType === "room_service"
         ? (record.roomNumber ? `Room ${record.roomNumber}` : "Room Guest")
         : (record.orderType === "takeaway" ? "Takeaway Counter" : "Home Delivery");

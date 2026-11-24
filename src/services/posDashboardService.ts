@@ -678,8 +678,12 @@ export async function getPosDashboardData(
         totalTablesCount,
         unpaidBillsAmount,
         unpaidBillsCount,
-        roomChargesAmount: 0,
-        roomChargesCount: 0,
+        roomChargesAmount: paymentSummary.other.amount,
+        roomChargesCount: operationalSettled.filter(
+          (h: any) =>
+            String(h.paymentMode || h.payment_mode || "").toLowerCase().includes("room") ||
+            String(h.orderType || h.type || "").toLowerCase().includes("room"),
+        ).length,
       },
       salesGraph: [
         { hour: "12 AM", todaySales: 0, yesterdaySales: 0 },
