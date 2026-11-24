@@ -1,11 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
-import { ChefHat, Clock, CheckCircle2, Flame, Printer } from "lucide-react";
+import { ChefHat, Clock, CheckCircle2, Flame, Printer, History, UtensilsCrossed, RefreshCw } from "lucide-react";
 import { useKotOrders, useMarkKotPreparedMutation } from "@/hooks/queries/usePosOrders";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { printKotTicket } from "@/utils/printKotTicket";
+import { printKotTicket, extractAndSanitizeMergeTable } from "@/utils/printKotTicket";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { kotStartMs, pushKotReadyNotice } from "@/lib/posReadyNotifications";
+import { KotHistoryTableView } from "./KotHistoryTableView";
+import { PageHeader } from "@/components/ui/Primitives";
 
 type KdsTicket = {
   id: string;
@@ -14,6 +16,8 @@ type KdsTicket = {
   orderNumber?: string;
   status?: string;
   orderType: string;
+  tableOrRoom?: string;
+  waiterName?: string;
   customerName: string;
   itemsText: string;
   items?: Array<{ name: string; quantity: number; notes?: string }>;
@@ -26,13 +30,18 @@ type KdsTicket = {
 };
 
 function getKotSpecialNote(kot: KdsTicket): string | undefined {
-  if (kot.notes && kot.notes.trim()) return kot.notes.trim();
-  if (kot.orderNote && kot.orderNote.trim()) return kot.orderNote.trim();
-  const noteMatch = (kot.itemsText || "").match(/(?:^|,\s*)Note:\s*(.+)$/i);
-  if (noteMatch) {
-    return noteMatch[1].trim();
+  let raw: string | undefined = undefined;
+  if (kot.notes && kot.notes.trim()) raw = kot.notes.trim();
+  else if (kot.orderNote && kot.orderNote.trim()) raw = kot.orderNote.trim();
+  else {
+    const noteMatch = (kot.itemsText || "").match(/(?:^|,\s*)Note:\s*(.+)$/i);
+    if (noteMatch) {
+      raw = noteMatch[1].trim();
+    }
   }
-  return undefined;
+  if (!raw) return undefined;
+  const { cleanSpecialNote } = extractAndSanitizeMergeTable(raw, kot.tableOrRoom, kot.orderType);
+  return cleanSpecialNote;
 }
 
 function parseItemLines(kot: KdsTicket): Array<{ name: string; quantity: number; notes?: string }> {
@@ -72,6 +81,7 @@ function timerTone(elapsedMs: number) {
 
 export function PosKotManager() {
   const { activeOutlet } = useOutletContext();
+  const [activeTab, setActiveTab] = useState<"orders" | "history">("orders");
   const [now, setNow] = useState(() => Date.now());
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   useEffect(() => {
@@ -79,40 +89,48 @@ export function PosKotManager() {
     return () => clearInterval(timer);
   }, []);
 
-  const { data: kotData, refetch } = useKotOrders();
+  const { data: kotData, refetch, isFetching } = useKotOrders();
   const markPreparedMutation = useMarkKotPreparedMutation();
 
-  useEffect(() => {
-    const id = setInterval(() => refetch(), 4000);
-    return () => clearInterval(id);
-  }, [refetch]);
+  const handleManualSync = async () => {
+    try {
+      await refetch();
+      toast.success("Kitchen orders refreshed");
+    } catch {
+      toast.error("Failed to refresh kitchen orders");
+    }
+  };
 
   // Kitchen queue: Ready removes the ticket immediately (and from the API cook queue)
   const tickets: KdsTicket[] = useMemo(() => {
     return (kotData?.records || [])
       .filter(
         (k) =>
+          k &&
           !dismissedIds.has(k.id) &&
           k.status !== "Served" &&
           k.status !== "Prepared" &&
+          (k as any).status !== "Ready" &&
           (k as any).status !== "Cancelled",
       )
       .map((k) => ({
-        id: k.id,
-        kotId: k.kotId,
-        orderId: k.orderId,
-        orderNumber: k.orderNumber,
-        status: k.status,
-        orderType: k.orderType,
-        customerName: k.customerName,
-        itemsText: k.itemsText,
-        items: k.items,
-        itemCount: k.itemCount,
-        notes: (k as any).notes || (k as any).orderNote || undefined,
-        orderNote: (k as any).orderNote || undefined,
-        createdAt: k.createdAt,
-        createdTimestamp: kotStartMs(k.createdTimestamp, k.createdAt),
-        isModified: k.isModified,
+        id: k?.id || "",
+        kotId: k?.kotId || 0,
+        orderId: k?.orderId,
+        orderNumber: k?.orderNumber,
+        status: k?.status || "In Kitchen",
+        orderType: k?.orderType || "",
+        tableOrRoom: (k as any)?.tableOrRoom || (k as any)?.tableNumber || undefined,
+        waiterName: (k as any)?.waiterName || (k as any)?.waiter_name || undefined,
+        customerName: k?.customerName || "--",
+        itemsText: k?.itemsText || "",
+        items: k?.items,
+        itemCount: k?.itemCount || 0,
+        notes: (k as any)?.notes || (k as any)?.orderNote || undefined,
+        orderNote: (k as any)?.orderNote || undefined,
+        createdAt: k?.createdAt || "",
+        createdTimestamp: kotStartMs(k?.createdTimestamp, k?.createdAt),
+        isModified: k?.isModified,
       }))
       .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
   }, [kotData, dismissedIds]);
@@ -124,7 +142,13 @@ export function PosKotManager() {
       id: `kot-ready-${kot.id}`,
       outletId: activeOutlet?.id,
       kotId: kot.kotId,
+      ticketId: kot.id,
       orderNumber: kot.orderNumber,
+      tableNumber: kot.tableOrRoom,
+      itemsText: kot.itemsText,
+      customerName: kot.customerName,
+      orderType: kot.orderType,
+      notes: kot.notes,
       title: `${orderRef} is ready`,
       message: `${kot.orderType}${kot.customerName && kot.customerName !== "--" ? ` · ${kot.customerName}` : ""} · ${kot.itemsText || "items"} ready to serve.`,
       createdAt: Date.now(),
@@ -162,7 +186,10 @@ export function PosKotManager() {
     try {
       printKotTicket({
         kotId: kot.kotId,
+        orderNumber: kot.orderNumber,
         orderType: kot.orderType,
+        tableOrRoom: kot.tableOrRoom,
+        waiterName: kot.waiterName,
         customerName: kot.customerName,
         createdTimestamp: kot.createdTimestamp,
         createdAt: kot.createdAt,
@@ -177,58 +204,89 @@ export function PosKotManager() {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden bg-slate-50/50">
-      {/* 1. Top Header Row - Flush with TopBar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8.5 w-8.5 items-center justify-center rounded-lg bg-teal-50 border border-teal-300 text-teal-700">
-            <ChefHat className="h-4.5 w-4.5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">
-                Kitchen Display
-              </h1>
-              <span className="inline-flex items-center gap-1 rounded-md bg-primary-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary border border-primary/20">
-                <Flame className="h-3 w-3" />
-                Live
-              </span>
+    <div className="flex flex-col flex-1 min-h-0 w-full lg:overflow-hidden bg-background">
+      {/* 1. Top Header Row - PMS Standard PageHeader */}
+      <PageHeader
+        title="Kitchen Orders"
+        eyebrow="FCFS Live Preparation Monitoring · Kitchen Order System"
+        actions={
+          <div className="flex items-center gap-2">
+            {/* Tab Switcher: Kitchen Orders vs Kitchen History */}
+            <div className="flex items-center rounded-lg border border-border bg-surface p-0.5 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setActiveTab("orders")}
+                className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-[12px] font-bold transition cursor-pointer ${
+                  activeTab === "orders"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-2"
+                }`}
+              >
+                <UtensilsCrossed className="h-3.5 w-3.5" />
+                <span>Kitchen Orders</span>
+                <span
+                  className={`ml-1 inline-flex min-w-[1.25rem] justify-center rounded-md px-1.5 py-0.2 text-[10.5px] tabular-nums ${
+                    activeTab === "orders" ? "bg-white text-primary" : "bg-primary text-white"
+                  }`}
+                >
+                  {tickets.length}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("history")}
+                className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-[12px] font-bold transition cursor-pointer ${
+                  activeTab === "history"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-2"
+                }`}
+              >
+                <History className="h-3.5 w-3.5" />
+                <span>Kitchen History</span>
+              </button>
             </div>
-            <p className="text-[11px] text-slate-500">
-              FCFS · timer orange at 10m · red at 15m · Ready leaves KOT and notifies waiter
-            </p>
-          </div>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-bold text-slate-800 shadow-2xs">
-          Open orders{" "}
-          <span className="ml-1 inline-flex min-w-[1.4rem] justify-center rounded-md bg-primary px-1.5 py-0.5 text-white tabular-nums">
-            {tickets.length}
-          </span>
-        </div>
-      </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto responsive-page-x py-4 sm:py-5">
-        {tickets.length === 0 ? (
-          <div className="flex h-[min(50vh,22rem)] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-surface-2/50 text-center">
-            <ChefHat className="h-8 w-8 text-text-secondary/50" />
-            <p className="text-[14px] font-semibold text-text-secondary">No open kitchen tickets</p>
-            <p className="text-[12px] text-text-secondary/80">Send KOT from Billing to appear here</p>
+            <button
+              type="button"
+              onClick={handleManualSync}
+              disabled={isFetching}
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[12px] font-semibold text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer shadow-2xs disabled:opacity-50"
+              title="Refresh kitchen orders"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
+              <span>Sync</span>
+            </button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 content-start">
-            {tickets.map((kot) => (
-              <KdsOrderCard
-                key={kot.id}
-                kot={kot}
-                now={now}
-                onReady={() => handleMarkReady(kot)}
-                onPrint={() => handlePrintKot(kot)}
-                isBusy={markPreparedMutation.isPending}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+        }
+      />
+
+      {/* Main Tab Content */}
+      {activeTab === "orders" ? (
+        <div className="flex-1 min-h-0 overflow-y-auto responsive-page-x py-4 sm:py-5">
+          {tickets.length === 0 ? (
+            <div className="flex h-[min(50vh,22rem)] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-surface-2/50 text-center">
+              <ChefHat className="h-8 w-8 text-text-secondary/50" />
+              <p className="text-[14px] font-semibold text-text-secondary">No open kitchen tickets</p>
+              <p className="text-[12px] text-text-secondary/80">Send KOT from Billing to appear here</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 content-start">
+              {tickets.map((kot) => (
+                <KdsOrderCard
+                  key={kot.id}
+                  kot={kot}
+                  now={now}
+                  onReady={() => handleMarkReady(kot)}
+                  onPrint={() => handlePrintKot(kot)}
+                  isBusy={markPreparedMutation.isPending}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <KotHistoryTableView outletName={activeOutlet?.name} />
+      )}
     </div>
   );
 }
@@ -275,7 +333,9 @@ function KdsOrderCard({
             ) : null}
           </div>
           <p className="mt-1 truncate text-[11.5px] font-semibold text-text-secondary">
-            {kot.orderType}
+            {kot.tableOrRoom && kot.tableOrRoom.includes("+")
+              ? `Merged: ${kot.tableOrRoom}`
+              : kot.tableOrRoom || kot.orderType}
             {kot.customerName && kot.customerName !== "--" ? ` · ${kot.customerName}` : ""}
           </p>
         </div>

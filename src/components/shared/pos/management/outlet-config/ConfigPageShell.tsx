@@ -54,12 +54,13 @@ export function ConfigPageShell({
   };
 
   return (
-    <div className="space-y-4 pb-10">
+    <div className="pos-page-container space-y-4 pb-10">
       {/* 1. Top Header with Back Link & Title */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <Link
-            to={outlet.id ? `/pos/management/configuration/outlet?outletId=${encodeURIComponent(outlet.id)}` : "/pos/management/configuration/outlet"}
+            to="/pos/management/configuration/outlet"
+            search={outlet.id ? ({ outletId: outlet.id } as any) : undefined}
             className="inline-flex items-center gap-1 text-[12px] font-semibold text-teal-700 hover:underline"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
@@ -155,8 +156,8 @@ export function ConfigPageShell({
         </div>
       </div>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
-        <div className="p-6">{children}</div>
-        <div className="flex justify-end border-t border-slate-100 bg-slate-50/50 p-4">
+        <div className="p-3.5 sm:p-6">{children}</div>
+        <div className="flex justify-end border-t border-slate-100 bg-slate-50/50 p-3.5 sm:p-4">
           <button
             type="button"
             onClick={() => void handleSave()}

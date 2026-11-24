@@ -10,9 +10,13 @@ export type StockPurchaseLine = {
 export type StockPurchaseRecord = {
   id: string;
   invoiceNo: string;
+  vendorId?: string | null;
   vendorName: string;
   purchaseDate: string;
   invoiceDate: string;
+  subtotal?: number;
+  discountAmount?: number;
+  taxableAmount?: number;
   totalAmount: number;
   taxAmount: number;
   itemCount: number;
@@ -56,9 +60,9 @@ export type InventoryVendor = {
 };
 
 export type StockSubCategory = {
-  id: string;
+  id?: string;
   name: string;
-  unit: string;
+  unit?: string;
 };
 
 export type StockCategory = {
@@ -76,10 +80,21 @@ export type StockItem = {
   rawMaterial: string;
   category: string;
   subCategory?: string;
+  sub_category?: string;
   unit: string;
   availableStock: number;
   closingStock: number;
   quantityOnHand?: number;
+  quantity_on_hand?: number;
+  openingBalance?: number;
+  openingStock?: number;
+  purchaseQty?: number;
+  consumedQty?: number;
+  wastageQty?: number;
+  currentStock?: number;
+  unitPrice?: number;
+  purchasePrice?: number;
+  itemCode?: string;
   parLevel?: number;
   reorderLevel?: number;
   minThreshold?: number;

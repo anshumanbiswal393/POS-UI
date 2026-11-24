@@ -16,50 +16,76 @@ import type {
 
 const initialVendors: InventoryVendor[] = [];
 
-const STOCK_STORE_KEY = "retrod_pos_stock_items_v1";
+export const STOCK_STORE_KEY = "retrod_pos_stock_items_v1";
 const MOVEMENT_STORE_KEY = "retrod_pos_stock_movements_v1";
-const CATEGORY_STORE_KEY = "retrod_pos_stock_categories_v1";
+export const CATEGORY_STORE_KEY = "retrod_pos_stock_categories_v1";
+const DELETED_CATEGORY_STORE_KEY = "retrod_pos_deleted_stock_categories_v1";
 
-const DEFAULT_CATEGORIES: StockCategory[] = [
-  {
-    id: "cat-dairy",
-    name: "Dairy",
-    subCategories: [
-      { id: "sub-milk", name: "Cow Milk", unit: "Ltr" },
-      { id: "sub-cheese", name: "Cheese", unit: "Kg" },
-      { id: "sub-butter", name: "Butter", unit: "Kg" },
-      { id: "sub-paneer", name: "Paneer", unit: "Kg" },
-    ],
-  },
-  {
-    id: "cat-groceries",
-    name: "Groceries",
-    subCategories: [
-      { id: "sub-rice", name: "Rice", unit: "Kg" },
-      { id: "sub-flour", name: "Flour / Atta", unit: "Kg" },
-      { id: "sub-oil", name: "Cooking Oil", unit: "Ltr" },
-      { id: "sub-spices", name: "Whole Spices", unit: "Gm" },
-    ],
-  },
-  {
-    id: "cat-meat",
-    name: "Meat & Poultry",
-    subCategories: [
-      { id: "sub-chicken", name: "Chicken", unit: "Kg" },
-      { id: "sub-mutton", name: "Mutton", unit: "Kg" },
-      { id: "sub-fish", name: "Fish / Seafood", unit: "Kg" },
-    ],
-  },
-  {
-    id: "cat-beverages",
-    name: "Beverages",
-    subCategories: [
-      { id: "sub-syrup", name: "Drink Syrup", unit: "Bottle" },
-      { id: "sub-coffee", name: "Coffee Beans", unit: "Kg" },
-      { id: "sub-tea", name: "Tea Leaves", unit: "Kg" },
-    ],
-  },
-];
+const DEFAULT_CATEGORIES: StockCategory[] = [];
+
+function getDeletedCategoryStoreKey(outletId?: string) {
+  return outletId ? `${DELETED_CATEGORY_STORE_KEY}_${outletId}` : DELETED_CATEGORY_STORE_KEY;
+}
+
+export function getDeletedCategoryNames(outletId?: string): string[] {
+  const list = readJson<string[]>(getDeletedCategoryStoreKey(outletId), []);
+  return Array.isArray(list) ? list : [];
+}
+
+export function extractCategoriesFromStock(
+  items: StockItem[],
+  customCategories: StockCategory[] = [],
+  deletedCategoryNames: string[] = [],
+): StockCategory[] {
+  const deletedSet = new Set(
+    (deletedCategoryNames || []).map((n) => n.trim().toLowerCase()).filter(Boolean),
+  );
+  const map = new Map<string, StockCategory>();
+
+  // 1. Existing custom/saved categories
+  for (const cat of customCategories) {
+    if (!cat?.name?.trim()) continue;
+    const key = cat.name.trim().toLowerCase();
+    if (deletedSet.has(key)) continue;
+    map.set(key, {
+      id: cat.id || `cat-${key.replace(/\s+/g, "-")}`,
+      name: cat.name.trim(),
+      subCategories: cat.subCategories ? [...cat.subCategories] : [],
+      updatedAt: cat.updatedAt,
+    });
+  }
+
+  // 2. Discover from actual stock items (raw materials)
+  for (const it of items) {
+    const rawCat = (it.category || "").trim();
+    if (!rawCat) continue;
+    const key = rawCat.toLowerCase();
+    if (deletedSet.has(key)) continue;
+    if (!map.has(key)) {
+      map.set(key, {
+        id: `cat-${key.replace(/\s+/g, "-")}`,
+        name: rawCat,
+        subCategories: [],
+      });
+    }
+    const target = map.get(key)!;
+    const rawSub = (it.subCategory || (it as any).sub_category || "").trim();
+    if (rawSub) {
+      const subExists = target.subCategories.some(
+        (s) => s.name.trim().toLowerCase() === rawSub.toLowerCase(),
+      );
+      if (!subExists) {
+        target.subCategories.push({
+          id: `sub-${target.subCategories.length}-${rawSub.toLowerCase().replace(/\s+/g, "-")}`,
+          name: rawSub,
+          unit: it.unit || "Kg",
+        });
+      }
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -87,7 +113,7 @@ let purchaseOrdersStore: PurchaseOrderRecord[] = [];
 let purchaseReturnsStore: PurchaseReturnRecord[] = [];
 let vendorsStore: InventoryVendor[] = [...initialVendors];
 let stockStore: StockItem[] = readJson<StockItem[]>(STOCK_STORE_KEY, []);
-let categoriesStore: StockCategory[] = readJson<StockCategory[]>(CATEGORY_STORE_KEY, DEFAULT_CATEGORIES);
+let categoriesStore: StockCategory[] = readJson<StockCategory[]>(CATEGORY_STORE_KEY, []);
 let mockMovements: StockOverview["movements"] = readJson<StockOverview["movements"]>(
   MOVEMENT_STORE_KEY,
   [],
@@ -108,7 +134,7 @@ function adjustMockStock(
 ) {
   const sku = stockStore.find((item) => item.id === stockItemId);
   if (!sku) return;
-  const next = Math.max(0, Number(sku.availableStock || 0) + signedQty);
+  const next = Math.max(0, Number(sku.availableStock ?? sku.quantityOnHand ?? 0) + signedQty);
   const reorder = sku.reorderLevel ?? sku.minThreshold ?? 0;
   stockStore = stockStore.map((item) =>
     item.id === stockItemId
@@ -116,6 +142,7 @@ function adjustMockStock(
           ...item,
           availableStock: next,
           closingStock: next,
+          quantityOnHand: next,
           isLow: reorder > 0 ? next < reorder : next === 0,
           unitCost: extra?.unitCost ?? item.unitCost,
         }
@@ -144,19 +171,28 @@ function scopeParams(outletId?: string) {
 
 function mapStock(raw: Partial<StockItem> & { id: string }): StockItem {
   const name = raw.rawMaterial || raw.name || "";
-  const qty = raw.availableStock ?? raw.quantityOnHand ?? raw.closingStock ?? 0;
+  const qty = Number(
+    raw.availableStock ??
+      raw.quantityOnHand ??
+      (raw as any).quantity_on_hand ??
+      (raw as any).currentStock ??
+      raw.closingStock ??
+      0,
+  );
   const alertQty = raw.alertQuantity ?? raw.reorderLevel ?? raw.minThreshold ?? 0;
-  const unitCost = raw.unitCost ?? raw.pricePerUnit ?? 0;
+  const unitCost = raw.unitCost ?? raw.pricePerUnit ?? (raw as any).unitPrice ?? (raw as any).purchasePrice ?? 0;
   return {
     ...raw,
     rawMaterial: name,
     name,
-    category: raw.category || "",
-    subCategory: raw.subCategory || (raw as any).sub_category || "",
+    category: (raw.category || "").trim(),
+    subCategory: (raw.subCategory || (raw as any).sub_category || "").trim(),
+    sub_category: (raw.subCategory || (raw as any).sub_category || "").trim(),
     unit: raw.unit || "Kg",
     availableStock: qty,
     closingStock: raw.closingStock ?? qty,
     quantityOnHand: qty,
+    quantity_on_hand: qty,
     parLevel: raw.parLevel ?? 0,
     reorderLevel: alertQty,
     minThreshold: alertQty,
@@ -198,7 +234,11 @@ export const posInventoryService = {
           "/api/pos/stock/purchases/",
           { params: scopeParams(outletId) },
         );
-        return res.data.purchases || [];
+        const purchases = res.data.purchases || [];
+        return purchases.map((p: any) => ({
+          ...p,
+          vendorId: p.vendorId ?? p.vendor_id ?? p.vendor ?? null,
+        }));
       } catch {
         return [];
       }
@@ -210,12 +250,38 @@ export const posInventoryService = {
     outletId?: string,
   ): Promise<StockPurchaseRecord> => {
     if (isBackendOutletId(outletId)) {
-      const res = await httpClient.post<StockPurchaseRecord>("/api/pos/stock/purchases/", data, {
-        params: scopeParams(outletId),
-      });
-      return res.data;
+      const res = await httpClient.post<StockPurchaseRecord>(
+        "/api/pos/stock/purchases/",
+        {
+          ...data,
+          vendorId: data.vendorId ?? (data as any).vendor_id ?? null,
+          vendor_id: data.vendorId ?? (data as any).vendor_id ?? null,
+        },
+        {
+          params: scopeParams(outletId),
+        },
+      );
+      for (const line of data.items || []) {
+        if (!line.stockItemId) continue;
+        await posInventoryService.adjustStock(
+          line.stockItemId,
+          Number(line.quantity) || 0,
+          "PURCHASE_IN",
+          data.invoiceNo || "PUR",
+          outletId,
+          { unitCost: line.unitPrice },
+        );
+      }
+      return {
+        ...res.data,
+        vendorId: res.data?.vendorId ?? (res.data as any)?.vendor_id ?? data.vendorId ?? null,
+      };
     }
-    const newPurchase: StockPurchaseRecord = { ...data, id: `pur-${Date.now()}` };
+    const newPurchase: StockPurchaseRecord = {
+      ...data,
+      id: `pur-${Date.now()}`,
+      vendorId: data.vendorId ?? (data as any).vendor_id ?? null,
+    };
     purchasesStore = [newPurchase, ...purchasesStore];
     for (const line of data.items || []) {
       if (!line.stockItemId) continue;
@@ -314,6 +380,9 @@ export const posInventoryService = {
 
   getCategories: async (outletId?: string): Promise<StockCategory[]> => {
     const storeKey = getCategoryStoreKey(outletId);
+    const deletedList = getDeletedCategoryNames(outletId);
+    const deletedSet = new Set(deletedList.map((x) => x.toLowerCase()));
+
     if (isBackendOutletId(outletId)) {
       try {
         const res = await httpClient.get<{ success: boolean; categories?: StockCategory[] }>(
@@ -321,8 +390,11 @@ export const posInventoryService = {
           { params: scopeParams(outletId) },
         );
         if (res.data && Array.isArray(res.data.categories)) {
-          writeJson(storeKey, res.data.categories);
-          return res.data.categories;
+          const filtered = res.data.categories.filter(
+            (c) => !deletedSet.has(c.name.trim().toLowerCase()),
+          );
+          writeJson(storeKey, filtered);
+          return filtered;
         }
       } catch {
         // Fallback to local store
@@ -330,20 +402,22 @@ export const posInventoryService = {
     }
     const cached = readJson<StockCategory[] | null>(storeKey, null);
     if (cached !== null) {
-      return cached;
+      return extractCategoriesFromStock(stockStore, cached, deletedList);
     }
     if (!outletId) {
-      return [...categoriesStore];
+      return extractCategoriesFromStock(stockStore, categoriesStore, deletedList);
     }
-    const legacy = readJson<StockCategory[]>(CATEGORY_STORE_KEY, DEFAULT_CATEGORIES);
-    writeJson(storeKey, legacy);
-    return legacy;
+    const legacy = readJson<StockCategory[]>(CATEGORY_STORE_KEY, []);
+    const merged = extractCategoriesFromStock(stockStore, legacy, deletedList);
+    writeJson(storeKey, merged);
+    return merged;
   },
 
   upsertCategory: async (
-    category: Partial<StockCategory> & { name: string },
+    category: Partial<StockCategory> & { name: string; oldName?: string },
     outletId?: string,
   ): Promise<StockCategory> => {
+    const trimmedName = category.name.trim();
     const id = category.id || `cat-${Date.now()}`;
     const subCategories = (category.subCategories || []).map((sub, idx) => ({
       id: sub.id || `sub-${Date.now()}-${idx}`,
@@ -352,16 +426,39 @@ export const posInventoryService = {
     }));
     const newCategory: StockCategory = {
       id,
-      name: category.name.trim(),
+      name: trimmedName,
       subCategories,
       updatedAt: new Date().toISOString(),
     };
 
+    // Remove from deleted tombstones if previously deleted
+    const delKey = getDeletedCategoryStoreKey(outletId);
+    let delList = readJson<string[]>(delKey, []);
+    const catNameLower = trimmedName.toLowerCase();
+    if (delList.some((x) => x.toLowerCase() === catNameLower)) {
+      delList = delList.filter((x) => x.toLowerCase() !== catNameLower);
+      writeJson(delKey, delList);
+    }
+
     if (isBackendOutletId(outletId)) {
       try {
-        await httpClient.post("/api/pos/stock/categories/", newCategory, {
-          params: scopeParams(outletId),
-        });
+        const res = await httpClient.post<{ success: boolean; category?: StockCategory }>(
+          "/api/pos/stock/categories/",
+          { ...newCategory, old_name: category.oldName },
+          { params: scopeParams(outletId) },
+        );
+        if (res.data?.category) {
+          const saved = res.data.category;
+          const storeKey = getCategoryStoreKey(outletId);
+          let local = readJson<StockCategory[]>(storeKey, []);
+          const idx = local.findIndex(
+            (c) => c.name.toLowerCase() === saved.name.toLowerCase() || c.id === saved.id,
+          );
+          if (idx >= 0) local[idx] = saved;
+          else local.unshift(saved);
+          writeJson(storeKey, local);
+          return saved;
+        }
       } catch {
         // Fallback to local store
       }
@@ -372,7 +469,9 @@ export const posInventoryService = {
     if (!localCategories) {
       localCategories = outletId ? [] : [...categoriesStore];
     }
-    const idx = localCategories.findIndex((c) => c.id === id);
+    const idx = localCategories.findIndex(
+      (c) => c.id === id || c.name.toLowerCase() === newCategory.name.toLowerCase(),
+    );
     if (idx >= 0) {
       localCategories[idx] = newCategory;
     } else {
@@ -386,27 +485,59 @@ export const posInventoryService = {
     return newCategory;
   },
 
-  deleteCategory: async (id: string, outletId?: string): Promise<boolean> => {
+  deleteCategory: async (id: string, outletId?: string, categoryName?: string): Promise<boolean> => {
+    const storeKey = getCategoryStoreKey(outletId);
+    let localCategories = readJson<StockCategory[] | null>(storeKey, null);
+    if (!localCategories) {
+      localCategories = outletId ? [] : [...categoriesStore];
+    }
+    const found = localCategories.find((c) => c.id === id);
+    const targetName = (
+      categoryName ||
+      found?.name ||
+      id.replace(/^cat-/, "").replace(/-/g, " ")
+    ).trim();
+
     if (isBackendOutletId(outletId)) {
       try {
-        await httpClient.delete(`/api/pos/stock/categories/${id}/`, {
+        await httpClient.delete(`/api/pos/stock/categories/${encodeURIComponent(id)}/`, {
           params: scopeParams(outletId),
         });
       } catch {
         // Fallback to local store
       }
     }
-    const storeKey = getCategoryStoreKey(outletId);
-    let localCategories = readJson<StockCategory[] | null>(storeKey, null);
-    if (!localCategories) {
-      localCategories = outletId ? [] : [...categoriesStore];
+
+    // Record tombstone so extractCategoriesFromStock and getCategories never re-add it
+    if (targetName) {
+      const delKey = getDeletedCategoryStoreKey(outletId);
+      const delList = readJson<string[]>(delKey, []);
+      const targetLower = targetName.toLowerCase();
+      if (!delList.map((x) => x.toLowerCase()).includes(targetLower)) {
+        delList.push(targetLower);
+        writeJson(delKey, delList);
+      }
     }
-    localCategories = localCategories.filter((c) => c.id !== id);
+
+    // Remove from local categories
+    localCategories = localCategories.filter(
+      (c) => c.id !== id && c.name.toLowerCase() !== targetName.toLowerCase(),
+    );
     writeJson(storeKey, localCategories);
     if (!outletId) {
       categoriesStore = localCategories;
       persistMockLedger();
     }
+
+    // Clear deleted category from stockStore items
+    stockStore = stockStore.map((it) => {
+      if (it.category && it.category.trim().toLowerCase() === targetName.toLowerCase()) {
+        return { ...it, category: "", subCategory: "" };
+      }
+      return it;
+    });
+    persistMockLedger();
+
     return true;
   },
 
@@ -440,8 +571,9 @@ export const posInventoryService = {
             code: skuCode,
             name: data.name || data.rawMaterial,
             rawMaterial: data.rawMaterial || data.name,
-            category: data.category,
-            subCategory: data.subCategory,
+            category: data.category?.trim() || "",
+            subCategory: (data.subCategory || (data as any).sub_category || "").trim(),
+            sub_category: (data.subCategory || (data as any).sub_category || "").trim(),
             unit: data.unit,
             availableStock: data.availableStock,
             parLevel: data.parLevel,
@@ -464,8 +596,9 @@ export const posInventoryService = {
           code: skuCode,
           name: data.name || data.rawMaterial,
           rawMaterial: data.rawMaterial || data.name,
-          category: data.category,
-          subCategory: data.subCategory,
+          category: data.category?.trim() || "",
+          subCategory: (data.subCategory || (data as any).sub_category || "").trim(),
+          sub_category: (data.subCategory || (data as any).sub_category || "").trim(),
           unit: data.unit,
           availableStock: data.availableStock,
           parLevel: data.parLevel,
@@ -492,8 +625,9 @@ export const posInventoryService = {
       sku: skuCode,
       rawMaterial: data.rawMaterial || data.name || "",
       name: data.name || data.rawMaterial || "",
-      category: data.category || "",
-      subCategory: data.subCategory || "",
+      category: data.category?.trim() || "",
+      subCategory: (data.subCategory || (data as any).sub_category || "").trim(),
+      sub_category: (data.subCategory || (data as any).sub_category || "").trim(),
       unit: data.unit || "Kg",
       availableStock: qty,
       closingStock: qty,
@@ -569,6 +703,41 @@ export const posInventoryService = {
     });
     persistMockLedger();
     return stockStore.find((i) => i.id === id);
+  },
+
+  adjustStock: async (
+    stockItemId: string,
+    deltaQty: number,
+    type = "ADJUST",
+    notes = "",
+    outletId?: string,
+    extra?: { unitCost?: number },
+  ) => {
+    adjustMockStock(stockItemId, deltaQty, type, notes, extra);
+    if (isBackendOutletId(outletId)) {
+      try {
+        await httpClient.post(`/api/pos/stock/items/${stockItemId}/adjust/`, {
+          quantity: deltaQty,
+          movementType: type,
+          notes,
+        });
+      } catch {
+        try {
+          const res = await httpClient.get<any>(`/api/pos/stock/items/${stockItemId}/`, {
+            params: scopeParams(outletId),
+          });
+          const currentStock = Number(res?.data?.availableStock ?? res?.data?.quantityOnHand ?? 0);
+          const nextStock = Math.max(0, currentStock + deltaQty);
+          await httpClient.patch(
+            `/api/pos/stock/items/${stockItemId}/`,
+            { availableStock: nextStock, quantityOnHand: nextStock },
+            { params: scopeParams(outletId) },
+          );
+        } catch {
+          // ignore
+        }
+      }
+    }
   },
 
   saveClosingStock: async (
@@ -725,16 +894,21 @@ export const posInventoryService = {
     },
     outletId?: string,
   ) => {
+    adjustMockStock(data.stockItemId, -Number(data.quantity || 0), "WASTAGE", data.reason);
     if (!isBackendOutletId(outletId)) {
-      adjustMockStock(data.stockItemId, -Number(data.quantity || 0), "WASTAGE", data.reason);
       return { id: `wst-${Date.now()}`, ...data };
     }
     const res = await httpClient.post("/api/pos/stock/wastage/", data, { params: scopeParams(outletId) });
     return res.data;
   },
 
-  deleteWastage: async (id: string) => {
-    await httpClient.delete(`/api/pos/stock/wastage/${id}/`);
+  deleteWastage: async (id: string, outletId?: string, extra?: { stockItemId?: string; quantity?: number }) => {
+    if (extra?.stockItemId && extra.quantity) {
+      adjustMockStock(extra.stockItemId, Number(extra.quantity), "REVERSE_WASTAGE", "Wastage deleted");
+    }
+    if (isBackendOutletId(outletId)) {
+      await httpClient.delete(`/api/pos/stock/wastage/${id}/`);
+    }
     return true;
   },
 

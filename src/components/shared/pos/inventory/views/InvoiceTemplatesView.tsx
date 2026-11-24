@@ -223,9 +223,6 @@ export function InvoiceTemplatesView() {
             <Receipt className="h-5 w-5 text-teal-600" />
             Stock & Inventory Invoice Format Studio
           </h2>
-          <p className="text-[12px] text-slate-500 mt-0.5">
-            Configure, preview, and customize printable invoice formats for Purchase, Orders, Sales, and Stock Transfers.
-          </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -570,7 +567,7 @@ export function InvoiceTemplatesView() {
         </div>
 
         {/* Right Column: Live Printable Sheet Preview (8 Cols) */}
-        <div className="lg:col-span-8 flex flex-col items-center">
+        <div className="lg:col-span-8 w-full min-w-0 overflow-x-auto pb-2 flex flex-col items-center print:overflow-visible print:pb-0">
           <div
             id="printable-invoice-area"
             style={{
@@ -588,7 +585,7 @@ export function InvoiceTemplatesView() {
               <div className="border-b-2 border-slate-800 pb-4 mb-4">
                 <div className="bg-slate-900 text-white p-4 rounded-t-lg flex justify-between items-center">
                   <div>
-                    <h1 className="font-serif text-[18px] font-extrabold uppercase tracking-wider">{companyName}</h1>
+                    <h1 className="text-[18px] font-extrabold uppercase tracking-wider">{companyName}</h1>
                     <p className="text-[10.5px] opacity-80 mt-0.5">{address}</p>
                   </div>
                   <div className="text-right">
@@ -625,18 +622,18 @@ export function InvoiceTemplatesView() {
               <div className="border-b-2 border-amber-800/60 pb-3.5 mb-3.5 space-y-1.5">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h1 className="text-[20px] font-serif font-extrabold text-amber-950 uppercase">{companyName}</h1>
+                    <h1 className="text-[20px] font-extrabold text-amber-950 uppercase">{companyName}</h1>
                     <p className="text-[11px] text-amber-900/80">{address}</p>
                     <p className="text-[10.5px] text-amber-900/70">GSTIN: {gstin} • FSSAI: {fssaiNo}</p>
                   </div>
                   <div className="text-right">
-                    <span className="rounded bg-amber-100 text-amber-900 px-2.5 py-0.5 font-serif font-bold text-[11px] uppercase">
+                    <span className="rounded bg-amber-100 text-amber-900 px-2.5 py-0.5 font-bold text-[11px] uppercase">
                       GUEST FOLIO / BILL
                     </span>
                     <p className="text-[11.5px] font-mono font-bold mt-1">#FOL-2026-981</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-4 gap-2 pt-2 text-[10.5px] border-t border-amber-200 bg-amber-50/50 p-2 rounded-lg">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-[10.5px] border-t border-amber-200 bg-amber-50/50 p-2 rounded-lg">
                   <div><span className="text-amber-800">Table:</span> <strong>T-08 (Indoor)</strong></div>
                   <div><span className="text-amber-800">Captain:</span> <strong>Rajesh K.</strong></div>
                   <div><span className="text-amber-800">Guests:</span> <strong>4 Pax</strong></div>
@@ -652,7 +649,7 @@ export function InvoiceTemplatesView() {
                       <div className="h-7 w-7 rounded-md bg-teal-600 text-white flex items-center justify-center font-bold text-[12px]">
                         R
                       </div>
-                      <h1 className="font-serif text-[18px] font-extrabold text-slate-900">{companyName}</h1>
+                      <h1 className="text-[18px] font-extrabold text-slate-900">{companyName}</h1>
                     </div>
                     <p className="text-[11px] text-slate-500">{address}</p>
                     <p className="text-[11px] text-slate-500">

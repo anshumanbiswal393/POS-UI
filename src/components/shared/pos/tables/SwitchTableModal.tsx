@@ -13,22 +13,28 @@ import type { RestaurantTable, ReservationItem } from "@/types/posTables";
 interface SwitchTableModalProps {
   isOpen: boolean;
   onClose: () => void;
-  reservation: ReservationItem | null;
+  reservation?: ReservationItem | null;
+  table?: RestaurantTable | null;
   tables: RestaurantTable[];
-  onConfirmSwitch: (reservationId: string, newTableId: string) => void;
+  onConfirmSwitch?: (reservationId: string, newTableId: string) => void;
+  onConfirmSwitchTable?: (fromTableId: string, toTableId: string) => void;
   isPending?: boolean;
 }
 
 export function SwitchTableModal({
   isOpen,
   onClose,
-  reservation,
+  reservation = null,
+  table = null,
   tables = [],
   onConfirmSwitch,
+  onConfirmSwitchTable,
   isPending = false,
 }: SwitchTableModalProps) {
   const [selectedTableId, setSelectedTableId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const isTableMode = Boolean(table && !reservation);
 
   useEffect(() => {
     if (isOpen) {
@@ -37,14 +43,16 @@ export function SwitchTableModal({
     }
   }, [isOpen]);
 
+  const currentTableId = isTableMode ? table?.id : reservation?.tableId;
+  const currentTable = tables.find((t) => t.id === currentTableId) || table;
+
   const candidateTables = useMemo(() => {
-    if (!reservation) return [];
     const safeTables = Array.isArray(tables) ? tables : [];
     return safeTables.filter((t) => {
       if (!t) return false;
       // Exclude current table
-      if (t.id === reservation.tableId) return false;
-      if (reservation.mergedTableIds?.includes(t.id)) return false;
+      if (t.id === currentTableId) return false;
+      if (reservation?.mergedTableIds?.includes(t.id)) return false;
 
       // Filter by search query if any
       if (searchQuery.trim()) {
@@ -56,17 +64,26 @@ export function SwitchTableModal({
 
       return true;
     });
-  }, [tables, reservation, searchQuery]);
+  }, [tables, currentTableId, reservation, searchQuery]);
 
-  if (!reservation) return null;
+  if (!isOpen || (!reservation && !table)) return null;
 
-  const currentTable = tables.find((t) => t.id === reservation.tableId);
   const selectedTable = tables.find((t) => t.id === selectedTableId);
+  const requiredSeats = isTableMode
+    ? (table?.currentGuests || table?.capacity || 2)
+    : (reservation?.guests || 2);
 
   const handleConfirm = () => {
-    if (!selectedTableId || !reservation) return;
-    onConfirmSwitch(reservation.id, selectedTableId);
-    onClose();
+    if (!selectedTableId) return;
+    if (isTableMode && table && onConfirmSwitchTable) {
+      onConfirmSwitchTable(table.id, selectedTableId);
+      onClose();
+      return;
+    }
+    if (reservation && onConfirmSwitch) {
+      onConfirmSwitch(reservation.id, selectedTableId);
+      onClose();
+    }
   };
 
   return (
@@ -79,35 +96,60 @@ export function SwitchTableModal({
             </div>
             <div>
               <DialogTitle className="text-base font-bold text-slate-900 leading-tight">
-                Switch Reservation Table
+                {isTableMode ? "Switch Dine-In Table" : "Switch Reservation Table"}
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500 mt-0.5">
-                Reassign this booking to another available table.
+                {isTableMode
+                  ? `Reassign active dine-in order and guests from ${currentTable?.tableNumber || "table"} to another table.`
+                  : "Reassign this booking to another available table."}
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
         <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto">
-          {/* Reservation Summary */}
-          <div className="p-3.5 rounded-xl bg-teal-50/70 border border-teal-200/80 text-xs">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="font-bold text-teal-950 text-sm">{reservation.customerName}</span>
-                <div className="text-teal-700 font-medium text-[11.5px] mt-0.5">
-                  {reservation.guests} Guests • {reservation.reservationDate} at {reservation.reservationTime}
+          {/* Summary Banner */}
+          {isTableMode && table ? (
+            <div className="p-3.5 rounded-xl bg-orange-50/70 border border-orange-200/80 text-xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-bold text-orange-950 text-sm">
+                    {table.activeOrder?.guestName || table.activeReservation?.customerName || "Dine-in Guests"}
+                  </span>
+                  <div className="text-orange-800 font-medium text-[11.5px] mt-0.5">
+                    {table.activeOrder?.orderNumber ? `Order #${table.activeOrder.orderNumber}` : "Active Order"} • ₹{Math.round(table.activeOrder?.totalAmount || 0).toLocaleString("en-IN")}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider text-orange-700 block">
+                    Current Table
+                  </span>
+                  <span className="font-extrabold text-orange-950 text-sm">
+                    {table.tableNumber}
+                  </span>
                 </div>
               </div>
-              <div className="text-right">
-                <span className="text-[10.5px] font-bold uppercase tracking-wider text-teal-600 block">
-                  Current Table
-                </span>
-                <span className="font-extrabold text-teal-900 text-sm">
-                  {reservation.tableNumber || currentTable?.tableNumber || "Table"}
-                </span>
+            </div>
+          ) : reservation ? (
+            <div className="p-3.5 rounded-xl bg-teal-50/70 border border-teal-200/80 text-xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-bold text-teal-950 text-sm">{reservation.customerName}</span>
+                  <div className="text-teal-700 font-medium text-[11.5px] mt-0.5">
+                    {reservation.guests} Guests • {reservation.reservationDate} at {reservation.reservationTime}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider text-teal-600 block">
+                    Current Table
+                  </span>
+                  <span className="font-extrabold text-teal-900 text-sm">
+                    {reservation.tableNumber || currentTable?.tableNumber || "Table"}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          ) : null}
 
           {/* Search Table */}
           <div className="relative">
@@ -133,51 +175,60 @@ export function SwitchTableModal({
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2.5">
-                {candidateTables.map((table) => {
-                  const isSelected = selectedTableId === table.id;
-                  const isVacant = table.status === "vacant";
-                  const fitsParty = table.capacity >= reservation.guests;
+                {candidateTables.map((t) => {
+                  const isSelected = selectedTableId === t.id;
+                  const isOccupied = t.status === "occupied";
+                  const fitsParty = t.capacity >= requiredSeats;
 
                   return (
                     <button
-                      key={table.id}
+                      key={t.id}
                       type="button"
-                      onClick={() => setSelectedTableId(table.id)}
+                      disabled={isOccupied}
+                      onClick={() => setSelectedTableId(t.id)}
                       className={`relative p-3 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
                         isSelected
                           ? "bg-primary/5 border-primary ring-2 ring-primary/20 shadow-xs"
-                          : "bg-white hover:bg-slate-50 border-slate-200"
+                          : isOccupied
+                            ? "bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed"
+                            : "bg-white hover:bg-slate-50 border-slate-200"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-1 w-full">
                         <div>
                           <div className="font-bold text-xs text-slate-900 truncate">
-                            {table.tableNumber}
+                            {t.tableNumber}
                           </div>
                           <div className="flex items-center gap-1 text-[10.5px] text-slate-500 mt-0.5">
                             <MapPin className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                            <span className="truncate">{table.area || "Dining Area"}</span>
+                            <span className="truncate">{t.area || "Dining Area"}</span>
                           </div>
                         </div>
                         {isSelected ? (
                           <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
                             <Check className="w-3 h-3" />
                           </div>
+                        ) : isOccupied ? (
+                          <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-rose-100 text-rose-800">
+                            Occupied
+                          </span>
                         ) : null}
                       </div>
 
                       <div className="mt-2.5 flex items-center justify-between text-[10.5px]">
                         <span className="inline-flex items-center gap-1 font-semibold text-slate-600">
                           <Users className="w-3 h-3 text-slate-400" />
-                          <span>{table.capacity} Seats</span>
+                          <span>{t.capacity} Seats</span>
                         </span>
-                        {fitsParty ? (
+                        {isOccupied ? (
+                          <span className="text-slate-400 font-medium text-[9.5px]">Busy</span>
+                        ) : fitsParty ? (
                           <span className="px-1.5 py-0.2 rounded font-bold bg-emerald-100 text-emerald-800 text-[9.5px]">
                             Fits
                           </span>
                         ) : (
                           <span className="text-amber-600 font-medium text-[9.5px]">
-                            Needs {reservation.guests - table.capacity}+
+                            Needs {requiredSeats - t.capacity}+
                           </span>
                         )}
                       </div>

@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import { useOutletContext } from "@/context/PosOutletContext";
 import posManagementService, { type POSManagementLogDto } from "@/services/posManagementService";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 interface ItemLogEntry {
   id: string;
@@ -37,13 +38,13 @@ export function OnlineItemLogsView() {
       const data = await posManagementService.getManagementLogs(activeOutlet.id, "ONLINE_ITEMS");
       const mapped: ItemLogEntry[] = data.map((log: POSManagementLogDto) => {
         const isOff = (log.details?.status as string)?.toLowerCase().includes("out") ||
-          log.event_title.toLowerCase().includes("unavailable") ||
-          log.event_title.toLowerCase().includes("inactive");
+          log.event_title?.toLowerCase().includes("unavailable") ||
+          log.event_title?.toLowerCase().includes("inactive");
 
         return {
           id: log.id,
-          timestamp: log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "",
-          itemName: (log.details?.itemName as string) || log.event_title.split(" ")[0] || "Menu Item",
+          timestamp: formatDateTimeIndian(log.created_at),
+          itemName: (log.details?.itemName as string) || log.event_title?.split(" ")[0] || "Menu Item",
           category: (log.details?.category as string) || "Food Menu",
           channels: [(log.details?.platform as string) || "Retrod Store"],
           action: isOff ? "TURNED_OFF" : "TURNED_ON",
@@ -170,7 +171,7 @@ export function OnlineItemLogsView() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             <UtensilsCrossed className="h-5 w-5 text-teal-600" />
             Online Item On / Off Availability Logs
           </h2>

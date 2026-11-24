@@ -26,6 +26,8 @@ import {
 } from "@/services/posUsersRbacService";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { Button } from "@/components/ui/button";
+import { fuzzyFilter } from "@/utils/fuzzySearch";
+import { formatDateIndian } from "@/utils/dateUtils";
 import {
   Dialog,
   DialogContent,
@@ -223,30 +225,39 @@ export function PosUsersView() {
     document.body.removeChild(link);
   };
 
-  // Filtered List
+  // Filtered List with multi-field fuzzy search
   const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        !q ||
-        u.name.toLowerCase().includes(q) ||
-        u.username.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
-        (u.phone && u.phone.toLowerCase().includes(q));
+    let result = users;
 
-      const matchesRole =
-        roleFilter === "all" ||
-        u.role === roleFilter ||
-        u.role_code === roleFilter ||
-        u.role_name?.toLowerCase() === roleFilter.toLowerCase();
+    if (roleFilter !== "all") {
+      result = result.filter(
+        (u) =>
+          u.role === roleFilter ||
+          u.role_code === roleFilter ||
+          u.role_name?.toLowerCase() === roleFilter.toLowerCase()
+      );
+    }
 
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && u.is_active) ||
-        (statusFilter === "inactive" && !u.is_active);
+    if (statusFilter !== "all") {
+      result = result.filter((u) =>
+        statusFilter === "active" ? u.is_active : !u.is_active
+      );
+    }
 
-      return matchesSearch && matchesRole && matchesStatus;
-    });
+    if (searchQuery.trim()) {
+      result = fuzzyFilter(result, searchQuery, [
+        (u) => u.name,
+        (u) => u.username,
+        (u) => u.email,
+        (u) => u.phone || "",
+        (u) => u.role_name || u.role,
+        (u) => u.outlet_name || "",
+        (u) => (u.is_active ? "Active" : "Inactive"),
+        (u) => u.created_at || "",
+      ]);
+    }
+
+    return result;
   }, [users, searchQuery, roleFilter, statusFilter]);
 
   return (
@@ -254,12 +265,9 @@ export function PosUsersView() {
       {/* 1. Page Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-white border-b border-slate-200 shrink-0">
         <div>
-          <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">
+          <h1 className="text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">
             Users
           </h1>
-          <p className="text-[11px] text-slate-500">
-            Manage POS staff accounts, assign operational roles, and set terminal PINs.
-          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -342,7 +350,7 @@ export function PosUsersView() {
             <div className="h-12 w-12 rounded-full bg-teal-50 text-teal-800 flex items-center justify-center mb-3">
               <UsersIcon className="h-6 w-6" />
             </div>
-            <h3 className="font-serif text-[16px] font-bold text-slate-900 mb-1">
+            <h3 className="text-[16px] font-bold text-slate-900 mb-1">
               No staff users found
             </h3>
             <p className="text-[12px] text-slate-500 max-w-sm mb-4">
@@ -483,14 +491,8 @@ export function PosUsersView() {
                         </td>
 
                         {/* 6. Created Date */}
-                        <td className="px-4 py-3 text-slate-500 text-[11px]">
-                          {u.created_at
-                            ? new Date(u.created_at).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
-                            : "—"}
+                        <td className="px-4 py-3 text-foreground/70 text-[11px]">
+                          {u.created_at ? formatDateIndian(u.created_at) : "—"}
                         </td>
 
                         {/* 7. Actions */}
@@ -540,7 +542,7 @@ export function PosUsersView() {
         <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden">
           <form onSubmit={handleSaveUser}>
             <DialogHeader className="px-6 pt-5 pb-3 border-b border-slate-100 bg-slate-50/70">
-              <DialogTitle className="font-serif text-[18px] font-bold text-slate-900">
+              <DialogTitle className="text-[18px] font-bold text-slate-900">
                 {editingUser ? "Edit Staff User" : "Add New Staff User"}
               </DialogTitle>
               <p className="text-[11px] text-slate-500">
@@ -706,7 +708,7 @@ export function PosUsersView() {
       <Dialog open={!!pinTargetUser} onOpenChange={(open) => !open && setPinTargetUser(null)}>
         <DialogContent className="sm:max-w-[360px]">
           <DialogHeader>
-            <DialogTitle className="font-serif text-[16px] font-bold text-slate-900">
+            <DialogTitle className="text-[16px] font-bold text-slate-900">
               Reset Terminal PIN
             </DialogTitle>
             <p className="text-[11px] text-slate-500">
@@ -755,7 +757,7 @@ export function PosUsersView() {
       <Dialog open={!!deleteTargetUser} onOpenChange={(open) => !open && setDeleteTargetUser(null)}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle className="font-serif text-[16px] font-bold text-slate-900">
+            <DialogTitle className="text-[16px] font-bold text-slate-900">
               Remove Staff User
             </DialogTitle>
             <p className="text-[12px] text-slate-500 leading-relaxed pt-1">

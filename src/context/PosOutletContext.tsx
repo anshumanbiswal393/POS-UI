@@ -137,21 +137,18 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
   });
 
   const getActivePropertyInfo = useCallback(() => {
-    const anshuUserProp = user?.properties?.find((p) => p.name.toLowerCase().includes("anshu"));
-
     let storedPropId =
       (typeof window !== "undefined"
         ? localStorage.getItem("retrod:active-property-id") ||
           localStorage.getItem("retrod_property_id") ||
           getDomainCookie("retrod_property_id")
         : null) ||
-      anshuUserProp?.id ||
       user?.properties?.[0]?.id ||
       null;
 
-    if (anshuUserProp && (!storedPropId || storedPropId.includes("strict") || !user?.properties?.some((p) => p.id === storedPropId))) {
-      storedPropId = anshuUserProp.id;
-      if (typeof window !== "undefined" && storedPropId) {
+    if (storedPropId && user?.properties && user.properties.length > 0 && !user.properties.some((p) => p.id === storedPropId)) {
+      storedPropId = user.properties[0].id;
+      if (typeof window !== "undefined") {
         try {
           localStorage.setItem("retrod:active-property-id", storedPropId);
           localStorage.setItem("retrod_property_id", storedPropId);
@@ -168,10 +165,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
     }
 
     const matchedProp = user?.properties?.find((p) => p.id === storedPropId);
-    let propName = matchedProp?.name || anshuUserProp?.name || user?.property || "Anshu Suite Restaurant";
-    if (propName.toLowerCase().includes("bistro") && (user?.property?.toLowerCase().includes("anshu") || !matchedProp)) {
-      propName = "Anshu Suite Restaurant";
-    }
+    const propName = matchedProp?.name || user?.property || "Main Restaurant";
 
     return { propId: storedPropId, propName };
   }, [user]);
@@ -181,17 +175,10 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
     try {
       const { propId, propName } = getActivePropertyInfo();
 
-      // 1. Fetch outlets for the tenant without restricting to a potentially empty property
-      let remote = await posOutletsService.listOutlets({
-        tenantId: user?.tenant_subdomain || undefined,
-      });
+      // 1. Fetch outlets for the tenant in a single direct call
+      let remote = await posOutletsService.listOutlets();
 
-      // 2. If nothing returned, query all accessible outlets
-      if (remote.length === 0) {
-        remote = await posOutletsService.listOutlets();
-      }
-
-      // 3. If still nothing and propId is provided, try property-scoped query
+      // 2. If nothing returned and propId is provided, try property-scoped query
       if (remote.length === 0 && propId) {
         remote = await posOutletsService.listOutlets({
           propertyId: propId,
@@ -277,21 +264,31 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
           return userAssignedId;
         }
 
-        // Priority 2: Stored previous active outlet (if it's not a strict dummy and still in list)
-        if (prevId && isBackendOutletId(prevId) && finalOutlets.some((o) => o.id === prevId)) {
-          const prevOutlet = finalOutlets.find((o) => o.id === prevId);
-          if (!prevOutlet?.name.toLowerCase().includes("strict")) {
+        // Priority 2: Stored previous active outlet (preserve existing backend outlet ID across users)
+        const storedActive =
+          typeof window !== "undefined"
+            ? localStorage.getItem(STORAGE_KEY_ACTIVE_ID)
+            : null;
+        const candidateId = prevId || storedActive;
+        if (
+          candidateId &&
+          isBackendOutletId(candidateId) &&
+          !KNOWN_DUMMY_IDS.has(candidateId) &&
+          !DEMO_OUTLET_IDS.has(candidateId)
+        ) {
+          const matchedOutlet = finalOutlets.find((o) => o.id === candidateId);
+          if (!matchedOutlet || !matchedOutlet.name.toLowerCase().includes("strict")) {
             try {
-              localStorage.setItem(STORAGE_KEY_ACTIVE_ID, prevId);
+              localStorage.setItem(STORAGE_KEY_ACTIVE_ID, candidateId);
             } catch {}
-            return prevId;
+            return candidateId;
           }
         }
 
-        // Priority 3: Anshu Suite Restaurant
-        const anshuOutlet = finalOutlets.find((o) => o.name?.toLowerCase().includes("anshu"));
+        // Priority 3: Primary physical outlet or first backend outlet
+        const primaryOutlet = finalOutlets.find((o) => o.outletKind === "PRIMARY" && isBackendOutletId(o.id));
         const chosen =
-          anshuOutlet ||
+          primaryOutlet ||
           finalOutlets.find((o) => isBackendOutletId(o.id) && !o.name.toLowerCase().includes("strict")) ||
           finalOutlets.find((o) => isBackendOutletId(o.id)) ||
           finalOutlets[0];
@@ -312,8 +309,19 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
       });
     } catch {
       const { propId, propName } = getActivePropertyInfo();
+      const storedActive =
+        typeof window !== "undefined"
+          ? localStorage.getItem(STORAGE_KEY_ACTIVE_ID)
+          : null;
+      const validStoredId =
+        storedActive &&
+        isBackendOutletId(storedActive) &&
+        !KNOWN_DUMMY_IDS.has(storedActive) &&
+        !DEMO_OUTLET_IDS.has(storedActive)
+          ? storedActive
+          : null;
       const dynamicDefault: PosOutlet = {
-        id: propId ? `outlet-${propId}` : "outlet-default",
+        id: validStoredId || (propId ? `outlet-${propId}` : "outlet-default"),
         name: `${propName} Restaurant`,
         code: "MAIN-01",
         type: "Primary Outlet",
@@ -407,6 +415,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
       phone: data.contact,
       address: data.address,
       additionalInfo: data.description,
+      orderTypes: data.orderTypes,
       formType: "Kitchen",
       parentOutletId: parentId,
       is_active: data.status !== "Inactive",
@@ -423,6 +432,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         email: data.email,
         phone: data.contact,
         address: data.address,
+        orderTypes: data.orderTypes,
         status: data.status,
       });
     } catch {

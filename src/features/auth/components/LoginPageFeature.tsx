@@ -240,7 +240,7 @@ export function LoginPageFeature() {
           active: true,
           lastActive: "Now",
           initials: foundInRbac.name ? foundInRbac.name.slice(0, 2).toUpperCase() : "ST",
-          property: foundInRbac.outlet_name || "Anshu Suite Restaurant · Main Outlet",
+          property: foundInRbac.outlet_name || "Main Restaurant · Main Outlet",
           permissions: foundInRbac.permissions || [],
         };
       }
@@ -257,7 +257,7 @@ export function LoginPageFeature() {
         active: true,
         lastActive: "Now",
         initials: cleanContact.slice(0, 2).toUpperCase(),
-        property: "Anshu Suite Restaurant · Main Outlet",
+        property: "Main Restaurant · Main Outlet",
         permissions: [],
       };
     }
@@ -290,11 +290,11 @@ export function LoginPageFeature() {
           __html: `
         .pms-login-container {
             --text-dark: #1a202c;
-            --text-muted: #64748b;
+            --text-muted: #1a202c;
             --green-dark: #2a3d34;
             --gold-gradient: linear-gradient(90deg, #b08d55, #d4af37);
             --gold-btn: linear-gradient(135deg, #c5a059, #a67c33);
-            font-family: 'Inter', sans-serif;
+            font-family: 'DM Sans', sans-serif;
             color: var(--text-dark);
             height: 100vh;
             height: 100dvh;
@@ -362,7 +362,9 @@ export function LoginPageFeature() {
         .pms-login-container .content-layer {
             position: relative;
             width: 100%;
-            height: 100%;
+            max-width: 1680px;
+            margin: 0 auto;
+            height: auto;
             min-height: 100%;
             display: flex;
             z-index: 10;
@@ -518,7 +520,7 @@ export function LoginPageFeature() {
         .pms-login-container .input-wrap input {
             width: 100%;
             padding: 16px 48px;
-            border: 1.5px solid #e2e8f0;
+            border: 1.5px solid #2a3d34;
             border-radius: 12px;
             font-size: 15px;
             font-weight: 600;
@@ -534,9 +536,9 @@ export function LoginPageFeature() {
         }
 
         .pms-login-container .input-wrap input:disabled {
-            background: #f8fafc;
+            background: #ffffff;
             cursor: not-allowed;
-            color: #94a3b8;
+            color: #1a202c;
         }
 
         .pms-login-container .input-label {

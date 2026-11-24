@@ -16,6 +16,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
 import {
   DataTableHeader,
   DataTableFooter,
@@ -444,22 +445,22 @@ export function ExpenseManagementView() {
         align: "right" as const,
         width: 100,
         render: (_: any, item: ListingItem) => (
-          <div className="inline-flex items-center gap-1 text-slate-400">
+          <div className="inline-flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => openEditEntryModal(item)}
-              className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-teal-600 transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 shadow-2xs transition cursor-pointer"
               title="Edit Entry"
             >
-              <Edit2 className="h-3.5 w-3.5" />
+              <ColorActionEdit className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => handleDeleteListing(item.id)}
-              className="rounded-lg p-1.5 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
               title="Delete Entry"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <ColorActionDelete className="h-4 w-4" />
             </button>
           </div>
         ),
@@ -523,22 +524,22 @@ export function ExpenseManagementView() {
         align: "right" as const,
         width: 110,
         render: (_: any, m: MasterItem) => (
-          <div className="inline-flex items-center gap-1 text-slate-400">
+          <div className="inline-flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => openEditMasterModal(m)}
-              className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-teal-600 transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 shadow-2xs transition cursor-pointer"
               title="Edit Master"
             >
-              <Edit2 className="h-3.5 w-3.5" />
+              <ColorActionEdit className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => handleDeleteMaster(m.id)}
-              className="rounded-lg p-1.5 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
               title="Delete Master"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <ColorActionDelete className="h-4 w-4" />
             </button>
           </div>
         ),
@@ -565,7 +566,7 @@ export function ExpenseManagementView() {
       {/* 1. Top Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">
+          <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
             Petty Cash, Expenses & Withdrawals
           </h2>
           <p className="text-[12.5px] text-slate-500 mt-0.5">
@@ -858,10 +859,14 @@ export function ExpenseManagementView() {
                 </label>
                 <input
                   type="date"
+                  max={new Date().toISOString().slice(0, 10)}
                   value={formDate}
                   onBlur={() => markEntryTouched("date")}
                   onChange={(e) => {
-                    setFormDate(e.target.value);
+                    const val = e.target.value;
+                    const todayIso = new Date().toISOString().slice(0, 10);
+                    if (val && val > todayIso) return;
+                    setFormDate(val);
                     markEntryTouched("date");
                   }}
                   className={`w-full rounded-xl border px-3.5 py-2 text-[13px] text-slate-800 focus:outline-none transition shadow-2xs ${

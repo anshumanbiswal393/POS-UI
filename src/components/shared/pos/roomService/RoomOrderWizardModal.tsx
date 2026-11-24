@@ -347,7 +347,7 @@ export function RoomOrderWizardModal({
             {/* 1. Pax / Party Size */}
             <div>
               <label className="block text-[11px] font-bold text-slate-900 tracking-wider uppercase mb-1.5">
-                Number of Guests / Pax <span className="text-slate-400 font-normal">(Optional)</span>
+                Pax <span className="text-slate-400 font-normal">(Optional)</span>
               </label>
               <div className="flex items-center gap-1.5">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (

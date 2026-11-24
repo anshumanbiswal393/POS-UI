@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { Layers } from "lucide-react";
 import {
   usePosTables,
   useDiningAreas,
@@ -14,9 +15,11 @@ import {
   useUpdateAreaMutation,
   useDeleteAreaMutation,
   useAddTableMutation,
+  useUpdateTableMutation,
   useDeleteTableMutation,
   useCreateTableOrderMutation,
   useUpdateTableOrderMutation,
+  useSwitchOccupiedTableMutation,
 } from "@/hooks/queries/usePosTables";
 import {
   useRoomServiceOrders,
@@ -29,6 +32,7 @@ import {
 import { TableFloorPlan } from "./tables/TableFloorPlan";
 import { AddTableModal } from "./tables/AddTableModal";
 import { AddAreaModal } from "./tables/AddAreaModal";
+import { FloorTableDirectoryDrawer } from "./tables/FloorTableDirectoryDrawer";
 import { AssignGuestModal } from "./tables/AssignGuestModal";
 import { TableOrderWizardModal } from "./tables/TableOrderWizardModal";
 import { TableOrderEditModal } from "./tables/TableOrderEditModal";
@@ -65,10 +69,12 @@ export function PosTakeOrderManager() {
   const [isAssignGuestOpen, setIsAssignGuestOpen] = useState(false);
   const [isTakeOrderWizardOpen, setIsTakeOrderWizardOpen] = useState(false);
   const [isEditOrderOpen, setIsEditOrderOpen] = useState(false);
+  const [isFloorTableListOpen, setIsFloorTableListOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<RestaurantTable | null>(null);
   const [wizardTableId, setWizardTableId] = useState<string | undefined>(undefined);
   const [bookingTableId, setBookingTableId] = useState<string | undefined>(undefined);
   const [switchModalReservation, setSwitchModalReservation] = useState<ReservationItem | null>(null);
+  const [switchModalTable, setSwitchModalTable] = useState<RestaurantTable | null>(null);
 
   // Table queries & mutations
   const { data: diningAreas = [] } = useDiningAreas();
@@ -86,9 +92,11 @@ export function PosTakeOrderManager() {
   const updateAreaMutation = useUpdateAreaMutation();
   const deleteAreaMutation = useDeleteAreaMutation();
   const addTableMutation = useAddTableMutation();
+  const updateTableMutation = useUpdateTableMutation();
   const deleteTableMutation = useDeleteTableMutation();
   const createTableOrderMutation = useCreateTableOrderMutation();
   const updateTableOrderMutation = useUpdateTableOrderMutation();
+  const switchOccupiedTableMutation = useSwitchOccupiedTableMutation();
 
   // ===================== ROOM SERVICE STATE =====================
   const [selectedRoomOrder, setSelectedRoomOrder] = useState<RoomServiceOrder | null>(null);
@@ -123,6 +131,7 @@ export function PosTakeOrderManager() {
         Boolean(table.activeOrder?.orderId) &&
         !table.activeOrder?.orderId.startsWith("ord-") &&
         (Number(table.activeOrder?.itemsCount || 0) > 0 ||
+          Number(table.activeOrder?.totalAmount || 0) > 0 ||
           (Array.isArray(table.activeOrder?.items) && table.activeOrder.items.length > 0));
 
       navigate({
@@ -135,7 +144,7 @@ export function PosTakeOrderManager() {
             ? {
                 orderId: table.activeOrder?.orderId,
                 orderNumber: table.activeOrder?.orderNumber || undefined,
-                editOrder: "1",
+                extraOrder: "1",
               }
             : {}),
           guests: table.currentGuests || table.activeReservation?.guests || table.capacity,
@@ -345,9 +354,9 @@ export function PosTakeOrderManager() {
   };
 
   return (
-    <div className="flex flex-col flex-1 h-[calc(100dvh-3.5rem)] min-h-[520px] w-full overflow-hidden bg-slate-100 font-sans">
+    <div className="flex flex-col flex-1 min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100dvh-3.5rem)] w-full lg:overflow-hidden bg-background font-sans">
       {/* Top Header Switcher: Restaurant vs Room */}
-      <div className="flex items-center justify-between px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-2">
           {/* Pill Toggle Buttons with Dynamic Theme styling */}
           <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200/70 shadow-2xs">
@@ -376,15 +385,25 @@ export function PosTakeOrderManager() {
           </div>
         </div>
 
-        <div className="text-xs text-slate-500 font-medium hidden sm:block">
-          {activeSlide === "restaurant"
-            ? "Restaurant Seating & Table Ordering"
-            : "In-House Guest Room Orders"}
-        </div>
+        {activeSlide === "restaurant" ? (
+          <button
+            type="button"
+            onClick={() => setIsFloorTableListOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-black bg-white hover:bg-black/5 text-[12.5px] font-bold text-black shadow-2xs transition cursor-pointer"
+            title="List of floors and tables"
+          >
+            <Layers className="h-4 w-4 text-emerald-700" />
+            <span>List of Floors &amp; Tables</span>
+          </button>
+        ) : (
+          <div className="text-xs text-slate-700 font-bold hidden sm:block">
+            In-House Guest Room Orders
+          </div>
+        )}
       </div>
 
       {/* Main Slide Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex min-h-0 lg:overflow-hidden">
         {activeSlide === "restaurant" ? (
           // RESTAURANT (TABLE) SLIDE
           <TableFloorPlan
@@ -408,10 +427,24 @@ export function PosTakeOrderManager() {
               setIsTakeOrderWizardOpen(true);
             }}
             onSwitchTable={(res) => setSwitchModalReservation(res)}
+            onSwitchOccupiedTable={(tbl) => setSwitchModalTable(tbl)}
             onSeatReservation={(tableId, resId) => {
+              const matchedRes = reservations.find((r) => r.id === resId) || reservations.find((r) => r.tableId === tableId);
+              const matchedTable = tables.find((t) => t.id === tableId) || (matchedRes ? tables.find((t) => t.tableNumber === matchedRes.tableNumber) : undefined);
               seatGuestsMutation.mutate({ tableId, reservationId: resId });
-              setWizardTableId(tableId);
-              setIsTakeOrderWizardOpen(true);
+              navigate({
+                to: "/pos/billing",
+                search: {
+                  orderType: "dine_in",
+                  table: matchedTable?.tableNumber || matchedRes?.tableNumber || undefined,
+                  tableId: matchedTable?.id || tableId,
+                  reservationId: resId,
+                  guests: matchedRes?.guests || matchedTable?.capacity || 2,
+                  pax: matchedRes?.guests || matchedTable?.capacity || 2,
+                  guestName: matchedRes?.customerName || undefined,
+                  guestPhone: matchedRes?.customerPhone || undefined,
+                },
+              });
             }}
             stats={stats}
             onRefresh={() => {
@@ -470,11 +503,37 @@ export function PosTakeOrderManager() {
       {/* 2. Add Table Modal */}
       <AddTableModal
         isOpen={isAddTableOpen}
-        onClose={() => setIsAddTableOpen(false)}
+        onClose={() => {
+          setIsAddTableOpen(false);
+          setEditingTable(null);
+        }}
         areas={diningAreas}
         defaultArea={activeArea}
         onAddTable={handleAddTable}
+        editingTable={editingTable}
+        onUpdateTable={(tblId, data) => updateTableMutation.mutate({ tableId: tblId, data })}
         nextTableNumberHint={allTables.length + 1}
+      />
+
+      {/* 2.1 List of Floors & Tables Directory Drawer */}
+      <FloorTableDirectoryDrawer
+        isOpen={isFloorTableListOpen}
+        onClose={() => setIsFloorTableListOpen(false)}
+        areas={diningAreas}
+        tables={allTables}
+        onOpenAddArea={() => setIsAddAreaOpen(true)}
+        onOpenAddTable={(defaultArea) => {
+          if (defaultArea) setActiveArea(defaultArea);
+          setEditingTable(null);
+          setIsAddTableOpen(true);
+        }}
+        onEditTable={(tbl) => {
+          setEditingTable(tbl);
+          setIsAddTableOpen(true);
+        }}
+        onDeleteTable={(tblId) => deleteTableMutation.mutate(tblId)}
+        onRenameArea={handleRenameArea}
+        onDeleteArea={handleDeleteArea}
       />
 
       {/* 3. Assign Guest to Table Modal */}
@@ -493,13 +552,27 @@ export function PosTakeOrderManager() {
         selectedReservation={selectedReservation}
         tables={allTables}
         onSeatGuests={(tableId, resId) => {
+          const effectiveResId = resId || selectedReservation?.id;
+          const matchedRes = (effectiveResId ? reservations.find((r) => r.id === effectiveResId) : undefined) || selectedReservation || reservations.find((r) => r.tableId === tableId);
+          const matchedTable = tables.find((t) => t.id === tableId) || selectedTable || (matchedRes ? tables.find((t) => t.tableNumber === matchedRes.tableNumber) : undefined);
           seatGuestsMutation.mutate({
             tableId,
-            reservationId: resId || selectedReservation?.id,
+            reservationId: effectiveResId,
           });
           setIsDetailSlideOpen(false);
-          setWizardTableId(tableId);
-          setIsTakeOrderWizardOpen(true);
+          navigate({
+            to: "/pos/billing",
+            search: {
+              orderType: "dine_in",
+              table: matchedTable?.tableNumber || matchedRes?.tableNumber || undefined,
+              tableId: matchedTable?.id || tableId,
+              reservationId: effectiveResId,
+              guests: matchedRes?.guests || matchedTable?.capacity || 2,
+              pax: matchedRes?.guests || matchedTable?.capacity || 2,
+              guestName: matchedRes?.customerName || undefined,
+              guestPhone: matchedRes?.customerPhone || undefined,
+            },
+          });
         }}
         onSwitchTable={(rId, nId) =>
           switchTableMutation.mutate({ reservationId: rId, newTableId: nId })
@@ -542,6 +615,20 @@ export function PosTakeOrderManager() {
         />
       )}
 
+      {/* Switch Occupied Dine-in Table Modal */}
+      {switchModalTable && (
+        <SwitchTableModal
+          isOpen={!!switchModalTable}
+          onClose={() => setSwitchModalTable(null)}
+          table={switchModalTable}
+          tables={allTables}
+          isPending={switchOccupiedTableMutation.isPending}
+          onConfirmSwitchTable={(fromTableId, toTableId) =>
+            switchOccupiedTableMutation.mutate({ fromTableId, toTableId })
+          }
+        />
+      )}
+
       {/* 5. New Reservation Modal */}
       <NewReservationModal
         isOpen={isNewReservationOpen}
@@ -549,6 +636,7 @@ export function PosTakeOrderManager() {
         tables={allTables}
         preselectedTableId={bookingTableId}
         onSaveReservation={(data) => addReservationMutation.mutate(data)}
+        onSuccess={() => setIsNewReservationOpen(false)}
       />
 
       {/* 6. Room Order Detail Slide */}

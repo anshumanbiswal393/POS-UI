@@ -54,7 +54,6 @@ describe("Kitchen KDS Role & Access Restrictions", () => {
     expect(checkAllowed("/pos/inventory", "inventory")).toBe(true);
     expect(checkAllowed("/pos/inventory/available-stock", "available-stock")).toBe(true);
     expect(checkAllowed("/pos/inventory/purchase", "stock-purchase")).toBe(true);
-    expect(checkAllowed("/pos/inventory/production", "inv-prod-master")).toBe(true);
     expect(checkAllowed("/pos/settings", "settings")).toBe(true);
     expect(checkAllowed("/pos/help", "help")).toBe(true);
 

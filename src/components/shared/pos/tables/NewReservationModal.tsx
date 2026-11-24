@@ -25,6 +25,7 @@ interface NewReservationModalProps {
   tables?: RestaurantTable[];
   preselectedTableId?: string;
   onSaveReservation?: (data: Omit<ReservationItem, "id" | "createdAt" | "status">) => void;
+  onSuccess?: () => void;
 }
 
 const PAX_PRESETS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16] as const;
@@ -74,6 +75,7 @@ export function NewReservationModal({
   tables = [],
   preselectedTableId,
   onSaveReservation,
+  onSuccess,
 }: NewReservationModalProps) {
   const safeTables = useMemo(() => (Array.isArray(tables) ? tables : []), [tables]);
 
@@ -194,7 +196,7 @@ export function NewReservationModal({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!customerName.trim() || !customerPhone.trim()) {
-      toast.error("Customer name and phone are required.");
+      toast.error("Guest name and phone are required.");
       return;
     }
     if (!reservationDate) {
@@ -261,7 +263,7 @@ export function NewReservationModal({
         ? `Advance deposit of ₹${finalDeposit} collected via ${paymentMode} (Payment Confirmed).`
         : "Booked without advance payment (₹0 deposit).";
 
-    onSaveReservation({
+    onSaveReservation?.({
       tableId: primary.id,
       tableNumber: tableLabel,
       mergedTableIds: ordered.map((t) => t.id),
@@ -307,6 +309,7 @@ export function NewReservationModal({
     setDepositAmountStr("0");
     setPaymentMode("UPI");
     setIsPaymentDone(false);
+    onSuccess?.();
     onClose();
   }
 
@@ -398,10 +401,10 @@ export function NewReservationModal({
             </div>
           </div>
 
-          {/* Customer */}
+          {/* Guest */}
           <div>
             <label className="block text-[12px] font-semibold text-text-primary mb-1">
-              Customer Name *
+              Guest Name *
             </label>
             <div className="relative">
               <User className="w-4 h-4 text-text-disabled absolute left-3 top-1/2 -translate-y-1/2" />

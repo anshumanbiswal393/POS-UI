@@ -137,12 +137,19 @@ export interface POSGstSettingDto {
 export interface POSVirtualWalletDto {
   id: string;
   outlet: string;
+  outlet_name?: string;
   customer_name: string;
-  customer_phone: string;
+  customer_phone?: string;
+  customer_mobile?: string;
   customer_email?: string;
-  balance: string;
-  credit_limit: string;
+  balance: string | number;
+  credit_limit?: string | number;
+  total_credited?: string | number;
+  total_debited?: string | number;
+  last_transaction_at?: string;
   is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
   transactions?: Array<{
     id: string;
     transaction_type: string;
@@ -233,6 +240,7 @@ export interface POSSupportTicketDto {
   description: string;
   priority: string;
   status: string;
+  contact_phone?: string;
   response_notes?: string;
   created_at: string;
 }
@@ -265,6 +273,38 @@ export interface POSAuditTrailDto {
   metadata?: Record<string, any>;
   timestamp?: string;
   created_at: string;
+}
+
+export interface POSPaymentGatewayConfigDto {
+  id: string;
+  outlet: string;
+  outlet_name?: string;
+  provider: string;
+  terminal_merchant_id: string;
+  api_key?: string;
+  api_secret?: string;
+  settlement_cycle?: string;
+  mdr_rate_pct?: string | number;
+  is_active: boolean;
+  metadata?: Record<string, any>;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface POSKycDocumentDto {
+  id: string;
+  outlet: string;
+  outlet_name?: string;
+  doc_type: string;
+  document_name: string;
+  document_number: string;
+  valid_from?: string;
+  valid_to?: string;
+  file_url?: string;
+  status: string;
+  remarks?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // ==========================================
@@ -430,7 +470,7 @@ export const posManagementService = {
     return res.data;
   },
 
-  async approveExpense(id: string, approvedByName: string): Promise<POSExpenseDto> {
+  async approveExpense(id: string, approvedByName: string = "Store Manager"): Promise<POSExpenseDto> {
     const res = await httpClient.post(`/api/pos/management/accounting/expenses/${id}/approve/`, {
       approved_by_name: approvedByName,
     });
@@ -455,13 +495,83 @@ export const posManagementService = {
     return res.data;
   },
 
+  // ── 9b. Accounting: Payment Gateway & Transactions ─────────
+  async getPaymentGatewayConfigs(outletId: string): Promise<POSPaymentGatewayConfigDto[]> {
+    const res = await httpClient.get(`/api/pos/management/accounting/payments-info/?outlet_id=${outletId}`);
+    return Array.isArray(res.data) ? res.data : res.data.results || [];
+  },
+
+  async createPaymentGatewayConfig(outletId: string, payload: Partial<POSPaymentGatewayConfigDto>): Promise<POSPaymentGatewayConfigDto> {
+    const res = await httpClient.post(`/api/pos/management/accounting/payments-info/?outlet_id=${outletId}`, {
+      ...payload,
+      outlet: outletId,
+    });
+    return res.data;
+  },
+
+  async updatePaymentGatewayConfig(id: string, payload: Partial<POSPaymentGatewayConfigDto>): Promise<POSPaymentGatewayConfigDto> {
+    const res = await httpClient.put(`/api/pos/management/accounting/payments-info/${id}/`, payload);
+    return res.data;
+  },
+
+  async deletePaymentGatewayConfig(id: string): Promise<void> {
+    await httpClient.delete(`/api/pos/management/accounting/payments-info/${id}/`);
+  },
+
+  async getPaymentTransactions(outletId: string, params?: Record<string, string>): Promise<any[]> {
+    const query = new URLSearchParams({ outlet_id: outletId, ...(params || {}) }).toString();
+    const res = await httpClient.get(`/api/pos/management/accounting/payments-info/transactions/?${query}`);
+    return Array.isArray(res.data) ? res.data : res.data.results || [];
+  },
+
+  async recordPaymentTransaction(outletId: string, payload: any): Promise<any> {
+    const res = await httpClient.post(`/api/pos/management/accounting/payments-info/record-payment/?outlet_id=${outletId}`, payload);
+    return res.data;
+  },
+
+  // ── 9c. Accounting: KYC Documents ───────────────────────────
+  async getKycDocuments(outletId: string): Promise<POSKycDocumentDto[]> {
+    const res = await httpClient.get(`/api/pos/management/accounting/kyc/?outlet_id=${outletId}`);
+    return Array.isArray(res.data) ? res.data : res.data.results || [];
+  },
+
+  async createKycDocument(outletId: string, payload: Partial<POSKycDocumentDto>): Promise<POSKycDocumentDto> {
+    const res = await httpClient.post(`/api/pos/management/accounting/kyc/?outlet_id=${outletId}`, {
+      ...payload,
+      outlet: outletId,
+    });
+    return res.data;
+  },
+
+  async deleteKycDocument(id: string): Promise<void> {
+    await httpClient.delete(`/api/pos/management/accounting/kyc/${id}/`);
+  },
+
   // ── 10. Accounting: Virtual Wallets ───────────────────────
   async getWallets(outletId: string, search?: string): Promise<POSVirtualWalletDto[]> {
     const url = search
       ? `/api/pos/management/accounting/wallets/?outlet_id=${outletId}&search=${encodeURIComponent(search)}`
       : `/api/pos/management/accounting/wallets/?outlet_id=${outletId}`;
     const res = await httpClient.get(url);
-    return Array.isArray(res.data) ? res.data : res.data.results || [];
+    const rawList: any[] = Array.isArray(res.data) ? res.data : res.data.results || [];
+    return rawList.map((w) => {
+      const txs = Array.isArray(w.transactions) ? w.transactions : [];
+      const computedCredited = txs
+        .filter((t: any) => t.transaction_type === "credit")
+        .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0);
+      const computedDebited = txs
+        .filter((t: any) => t.transaction_type === "debit")
+        .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0);
+      return {
+        ...w,
+        customer_phone: w.customer_phone || w.customer_mobile || "",
+        customer_mobile: w.customer_mobile || w.customer_phone || "",
+        total_credited: w.total_credited !== undefined ? String(w.total_credited) : String(computedCredited),
+        total_debited: w.total_debited !== undefined ? String(w.total_debited) : String(computedDebited),
+        balance: String(w.balance ?? 0),
+        last_transaction_at: w.last_transaction_at || (txs.length ? txs[txs.length - 1].created_at : w.updated_at || w.created_at),
+      };
+    });
   },
 
   async createWallet(outletId: string, payload: Partial<POSVirtualWalletDto>): Promise<POSVirtualWalletDto> {
@@ -645,6 +755,7 @@ export const posManagementService = {
     const res = await httpClient.post(`/api/pos/management/support-tickets/?outlet_id=${outletId}`, {
       ...payload,
       outlet: outletId,
+      contact_phone: payload.contact_phone || undefined,
     });
     return res.data;
   },

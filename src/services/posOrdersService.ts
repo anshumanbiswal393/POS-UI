@@ -1,4 +1,5 @@
 import httpClient from "@/utils/httpClient";
+import { API_ENDPOINTS } from "@/config/apiEndpoints";
 import { formatINR } from "./posDashboardService";
 import { isBackendOutletId } from "@/utils/outletId";
 import {
@@ -9,6 +10,7 @@ import {
   liveGetDueBills,
   liveAdvanceOrder,
   liveKotReady,
+  liveKotCancel,
   liveKotServed,
   liveSettleDue,
   liveSettleOrder,
@@ -129,10 +131,18 @@ export function mapAllOrdersDto(dto: AllOrdersApiResponse): AllOrdersData {
     })),
     records: dto.records.map((r) => ({
       ...r,
-      myAmountFormatted: formatINR(r.myAmount),
-      taxAmountFormatted: formatINR(r.taxAmount),
-      discountAmountFormatted: r.discountAmount > 0 ? `(${formatINR(r.discountAmount)})` : "(0.00)",
-      grandTotalFormatted: formatINR(r.grandTotal),
+      orderType: (r as any).orderType || (r as any).type || "Dine In",
+      myAmount: r.myAmount ?? (r as any).subtotal ?? 0,
+      subtotal: (r as any).subtotal ?? r.myAmount ?? 0,
+      taxAmount: r.taxAmount ?? 0,
+      discountAmount: r.discountAmount ?? 0,
+      grandTotal: r.grandTotal ?? (r as any).totalAmount ?? 0,
+      totalAmount: (r as any).totalAmount ?? r.grandTotal ?? 0,
+      amount: (r as any).amount ?? r.grandTotal ?? 0,
+      myAmountFormatted: formatINR(r.myAmount ?? (r as any).subtotal ?? 0),
+      taxAmountFormatted: formatINR(r.taxAmount ?? 0),
+      discountAmountFormatted: (r.discountAmount ?? 0) > 0 ? `(${formatINR(r.discountAmount)})` : "(0.00)",
+      grandTotalFormatted: formatINR(r.grandTotal ?? (r as any).totalAmount ?? 0),
     })),
     totalCount: dto.totalCount,
     page: dto.page,
@@ -183,7 +193,9 @@ export function mapOnlineOrdersDto(dto: OnlineOrdersApiResponse): OnlineOrdersDa
       customerPhone: r.customerPhone,
       otp: r.otp,
       dateTime: r.dateTime,
-      totalAmountFormatted: formatINR(r.totalAmount),
+      totalAmount: Number(r.totalAmount ?? (r as any).grandTotal ?? 0),
+      grandTotal: Number((r as any).grandTotal ?? r.totalAmount ?? 0),
+      totalAmountFormatted: formatINR(Number(r.totalAmount ?? (r as any).grandTotal ?? 0)),
       status: r.status,
       statusDisplay: r.statusDisplay,
       items: r.items.map((it) => ({
@@ -199,11 +211,18 @@ export function getInitialOnlineOrdersData(): OnlineOrdersData {
   return mapOnlineOrdersDto(onlineOrdersStore);
 }
 
-export async function getOnlineOrders(filters?: Record<string, any>): Promise<OnlineOrdersData> {
+export async function getOnlineOrders(filters?: Record<string, any> & { channel?: string | string[] }): Promise<OnlineOrdersData> {
   if (typeof window === "undefined") return getInitialOnlineOrdersData();
+  const normalizedFilters = filters
+    ? {
+        ...filters,
+        channel: Array.isArray(filters.channel) ? filters.channel.join(",") : filters.channel,
+        status: Array.isArray(filters.status) ? filters.status.join(",") : filters.status,
+      }
+    : undefined;
   try {
     const res = await httpClient.get<OnlineOrdersApiResponse>("/api/pos/orders/online", {
-      params: filters,
+      params: normalizedFilters,
     });
     if (res.data && res.data.success) return mapOnlineOrdersDto(res.data);
     return mapOnlineOrdersDto(onlineOrdersStore);
@@ -393,11 +412,11 @@ export function getInitialKotData(): KotData {
 
 export async function getKotOrders(filters?: Record<string, any>, outletId?: string): Promise<KotData> {
   if (isBackendOutletId(outletId)) {
-    return liveGetKot(outletId);
+    return liveGetKot(outletId, filters);
   }
   if (typeof window === "undefined") return getInitialKotData();
   try {
-    const res = await httpClient.get<KotApiResponse>("/api/pos/kot", { params: filters });
+    const res = await httpClient.get<KotApiResponse>(API_ENDPOINTS.ORDERS.KOT, { params: filters });
     if (res.data && res.data.success && res.data.records) return mapKotDto(res.data);
     return getInitialKotData();
   } catch {
@@ -440,6 +459,8 @@ export interface CurrentOrderRecord {
   pax?: number;
   itemsSummary: string;
   amount: number;
+  totalAmount?: number;
+  grandTotal?: number;
   amountFormatted: string;
   startTime: string;
   createdTimestamp: number;
@@ -621,26 +642,68 @@ export interface DueBill {
   itemsSummary?: string;
   totalAmount: number;
   paidAmount: number;
+  depositAmount?: number;
   dueAmount: number;
   dueDate: string;
   daysOverdue: number;
   status: "Pending" | "Partial" | "Settled";
+  orderStatus?: "Ongoing" | "Paid";
   settlementMode?: "Cash" | "Card" | "UPI" | "Room Charge" | "Split";
   agingBucket: "0-15" | "16-30" | "30+";
   createdAt?: string;
 }
 
-let dueBillsStore: DueBill[] = [];
+export let dueBillsStore: DueBill[] = [];
 
 export async function getDueBills(outletId?: string): Promise<DueBill[]> {
   if (isBackendOutletId(outletId)) {
     return liveGetDueBills(outletId);
   }
+  // Check local/active reservations to ensure any reservation deposit reduces the due amount
+  const localReservations =
+    typeof window !== "undefined"
+      ? (() => {
+          try {
+            const effective =
+              outletId ||
+              localStorage.getItem("retrod_pos_active_outlet_id") ||
+              "default";
+            const raw = localStorage.getItem(`retrod_pos_reservations_${effective}`);
+            return raw ? JSON.parse(raw) : [];
+          } catch {
+            return [];
+          }
+        })()
+      : [];
+
   // Sync open current orders into due bills store for mock/local mode
   for (const ord of currentOrdersStore) {
     if (ord.currentStage !== "settled") {
       const billNo = `BILL-${ord.orderNumber.replace(/^ORD-/i, "")}`;
       if (!dueBillsStore.some((b) => b.billNo === billNo || b.id === `due-${ord.id}`)) {
+        let deposit = 0;
+        const match = localReservations.find((r: any) => {
+          if (!r.depositAmount || Number(r.depositAmount) <= 0) return false;
+          if (r.status !== "seated" && r.status !== "reserved") return false;
+          if (
+            ord.customerPhone &&
+            r.customerPhone &&
+            ord.customerPhone.replace(/\D/g, "") === r.customerPhone.replace(/\D/g, "")
+          ) {
+            return true;
+          }
+          const ordTable = String(ord.tableOrRoom || "").replace(/\D/g, "");
+          const rTable = String(r.tableNumber || "").replace(/\D/g, "");
+          return ordTable && rTable && ordTable === rTable;
+        });
+        if (match && Number(match.depositAmount) > 0) {
+          deposit = Number(match.depositAmount);
+        }
+
+        const total = ord.amount;
+        const paid = deposit;
+        const due = Math.max(0, total - paid);
+
         dueBillsStore.push({
           id: `due-${ord.id}`,
           billNo,
@@ -651,12 +714,14 @@ export async function getDueBills(outletId?: string): Promise<DueBill[]> {
           customerPhone: ord.customerPhone || "--",
           waiterName: ord.waiterName || "Captain",
           itemsSummary: ord.itemsSummary,
-          totalAmount: ord.amount,
-          paidAmount: 0,
-          dueAmount: ord.amount,
+          totalAmount: total,
+          paidAmount: paid,
+          depositAmount: deposit,
+          dueAmount: due,
           dueDate: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
           daysOverdue: 0,
-          status: "Pending",
+          status: due === 0 ? "Settled" : paid > 0 ? "Partial" : "Pending",
+          orderStatus: due === 0 ? "Paid" : "Ongoing",
           agingBucket: "0-15",
           createdAt: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
         });
@@ -674,8 +739,31 @@ export async function markKotReadyLive(ticketId: string) {
   return liveKotReady(ticketId);
 }
 
+export async function cancelKotLive(ticketId: string, note?: string) {
+  return liveKotCancel(ticketId, note);
+}
+
 export async function markKotServedLive(ticketId: string) {
   return liveKotServed(ticketId);
+}
+
+export function cancelKotLocal(kotId: number, note = "Cancelled"): any {
+  let targetKot: any = null;
+  kotOrdersStore = {
+    ...kotOrdersStore,
+    records: kotOrdersStore.records.map((r) => {
+      if (r.kotId === kotId) {
+        targetKot = {
+          ...r,
+          status: "Cancelled" as const,
+          notes: note,
+        };
+        return targetKot;
+      }
+      return r;
+    }),
+  };
+  return targetKot;
 }
 
 export function markKotPrepared(kotId: number): { kot: any; bill: DueBill | null } {
@@ -802,6 +890,7 @@ export async function settleDueBillLive(
   paymentMode: "Cash" | "Card" | "UPI" | "Room Charge" | "Split",
   paidAmount?: number,
   orderId?: string,
+  depositAmount?: number,
 ) {
   const mode = paymentMode.toUpperCase().replace(" ", "_");
   if (mode === "ROOM_CHARGE" && orderId && /^[0-9a-f-]{36}$/i.test(orderId)) {
@@ -817,7 +906,7 @@ export async function settleDueBillLive(
   }
   if (/^[0-9a-f-]{36}$/i.test(billId) || billId.startsWith("BILL-") || billId.startsWith("due-")) {
     try {
-      const raw = await liveSettleDue(billId, mode, paidAmount || 0);
+      const raw = await liveSettleDue(billId, mode, paidAmount || 0, depositAmount);
       const settledBill = raw?.settledBill || raw;
       return {
         settledBill,
@@ -825,27 +914,36 @@ export async function settleDueBillLive(
       };
     } catch (e) {
       if (!isBackendOutletId(billId)) {
-        return settleDueBill(billId, paymentMode, paidAmount);
+        return settleDueBill(billId, paymentMode, paidAmount, depositAmount);
       }
       throw e;
     }
   }
-  return settleDueBill(billId, paymentMode, paidAmount);
+  return settleDueBill(billId, paymentMode, paidAmount, depositAmount);
 }
 
 export function settleDueBill(
   billId: string,
   paymentMode: "Cash" | "Card" | "UPI" | "Room Charge" | "Split",
-  paidAmount?: number
+  paidAmount?: number,
+  depositAmount?: number,
 ): { settledBill: DueBill; archivedOrder: any } {
   let settledBill!: DueBill;
 
   dueBillsStore = dueBillsStore.map((b) => {
     if (b.id === billId || b.billNo === billId) {
-      // Full settlement of balance due → Order History (remove from pending)
+      const deposit = depositAmount ?? b.depositAmount ?? 0;
       const payNow = paidAmount !== undefined ? paidAmount : b.dueAmount;
-      const newPaid = Math.min(b.totalAmount, b.paidAmount + Math.max(0, payNow));
-      const newDue = Math.max(0, b.totalAmount - newPaid);
+      const isFullSettle =
+        payNow + deposit >= b.dueAmount ||
+        b.paidAmount + payNow + deposit >= b.totalAmount ||
+        b.totalAmount - (b.paidAmount + payNow) <= deposit;
+
+      const newPaid = isFullSettle
+        ? b.totalAmount
+        : Math.min(b.totalAmount, b.paidAmount + Math.max(0, payNow) + (b.paidAmount === 0 ? deposit : 0));
+      const newDue = isFullSettle ? 0 : Math.max(0, b.totalAmount - newPaid);
+
       settledBill = {
         ...b,
         paidAmount: newPaid,

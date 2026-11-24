@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { IndianRupee, ShoppingBag, Utensils, ReceiptText } from "lucide-react";
 import type { PosDashboardStats } from "@/types/posDashboard";
 
 interface DashboardKpiCardsProps {
@@ -7,89 +6,71 @@ interface DashboardKpiCardsProps {
 }
 
 export function DashboardKpiCards({ stats }: DashboardKpiCardsProps) {
+  const cards = [
+    {
+      label: "TOTAL COLLECTIONS",
+      value: stats.totalCollectionsFormatted,
+      subtitle: "Paid today",
+      accent: "#006a4e",
+      href: undefined,
+    },
+    {
+      label: "TOTAL ORDERS",
+      value: String(stats.totalOrders),
+      subtitle: "Placed today",
+      accent: "#2563eb",
+      href: undefined,
+    },
+    {
+      label: "ACTIVE TABLES",
+      value: `${stats.activeTablesCount}/${stats.totalTablesCount}`,
+      subtitle: `${stats.occupancyPercentage}% occupied`,
+      accent: "#d97706",
+      href: "/pos/tables",
+    },
+    {
+      label: "UNPAID DUES",
+      value: stats.unpaidBillsFormatted,
+      subtitle: "Pending settlement →",
+      accent: "#dc2626",
+      href: "/pos/settlement",
+    },
+  ];
+
   return (
-    <div className="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-      {/* 1. Total collections */}
-      <div className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-2xs">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/30 text-primary">
-          <IndianRupee className="h-4.5 w-4.5" />
-        </div>
-        <div className="min-w-0">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-            Total collections
-          </div>
-          <div className="text-[16px] font-black text-slate-900 leading-tight">
-            {stats.totalCollectionsFormatted}
-          </div>
-          <div className="text-[10.5px] text-primary font-medium">Paid today</div>
-        </div>
-      </div>
-
-      {/* 2. Total orders */}
-      <div className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-2xs">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 border border-slate-300 text-slate-700">
-          <ShoppingBag className="h-4.5 w-4.5" />
-        </div>
-        <div className="min-w-0">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-            Total orders
-          </div>
-          <div className="text-[16px] font-black text-slate-900 leading-tight">
-            {stats.totalOrders}
-          </div>
-          <div className="text-[10.5px] text-slate-500 font-medium">Today</div>
-        </div>
-      </div>
-
-      {/* 3. Active tables */}
-      <div className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-2xs">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 border border-slate-300 text-slate-700">
-          <Utensils className="h-4.5 w-4.5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-            Active tables
-          </div>
-          <div className="text-[16px] font-black text-slate-900 leading-tight">
-            {stats.activeTablesCount}{" "}
-            <span className="text-[12px] font-normal text-slate-400">
-              / {stats.totalTablesCount}
-            </span>
-          </div>
-          <div className="mt-0.5 flex items-center gap-1.5">
-            <div className="h-1.5 w-14 overflow-hidden rounded-full bg-slate-200">
-              <div
-                className="h-full rounded-full bg-primary"
-                style={{ width: `${stats.occupancyPercentage}%` }}
-              />
+    <div className="grid shrink-0 grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5">
+      {cards.map((c) => {
+        const CardBody = (
+          <div className="relative flex flex-col justify-between rounded-xl border border-slate-400/80 bg-white px-3 py-1.5 sm:px-3.5 sm:py-2 shadow-2xs hover:shadow-xs transition min-w-0">
+            <div
+              className="absolute left-0 top-1.5 bottom-1.5 w-[3.5px] rounded-r"
+              style={{ background: c.accent }}
+            />
+            <div className="text-[10px] sm:text-[10.5px] font-bold tracking-wider text-slate-500 uppercase truncate">
+              {c.label}
             </div>
-            <span className="text-[10.5px] text-primary font-medium">
-              {stats.occupancyPercentage}% occupied
-            </span>
+            <div className="my-0.5 font-mono text-[19px] sm:text-[21px] font-bold leading-tight tracking-tight text-slate-900 truncate">
+              {c.value}
+            </div>
+            <div className="text-[10.5px] leading-tight text-slate-500 truncate">
+              {c.subtitle}
+            </div>
           </div>
-        </div>
-      </div>
+        );
 
-      {/* 4. Unpaid bills */}
-      <div className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-2xs">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 border border-slate-300 text-slate-700">
-          <ReceiptText className="h-4.5 w-4.5" />
-        </div>
-        <div className="min-w-0">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-            Unpaid bills
+        if (c.href) {
+          return (
+            <Link key={c.label} to={c.href} className="block min-w-0">
+              {CardBody}
+            </Link>
+          );
+        }
+        return (
+          <div key={c.label} className="min-w-0">
+            {CardBody}
           </div>
-          <div className="text-[16px] font-black text-slate-900 leading-tight">
-            {stats.unpaidBillsFormatted}
-          </div>
-          <Link
-            to="/pos/settlement"
-            className="text-[10.5px] font-bold text-primary hover:underline"
-          >
-            Review dues →
-          </Link>
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 }

@@ -404,7 +404,7 @@ export function UtilityBillsView() {
       {/* 1. Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">Utility Bills & Recurring Invoices</h2>
+          <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">Utility Bills & Recurring Invoices</h2>
           <p className="text-[12.5px] text-slate-500 mt-0.5">
             Log and track hotel & restaurant electricity, commercial LPG, water, and broadband expenses.
           </p>
@@ -802,10 +802,14 @@ export function UtilityBillsView() {
                     </label>
                     <input
                       type="date"
+                      max={new Date().toISOString().slice(0, 10)}
                       value={formPaidDate}
                       onBlur={() => markTouched("paidDate")}
                       onChange={(e) => {
-                        setFormPaidDate(e.target.value);
+                        const val = e.target.value;
+                        const todayIso = new Date().toISOString().slice(0, 10);
+                        if (val && val > todayIso) return;
+                        setFormPaidDate(val);
                         markTouched("paidDate");
                       }}
                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] text-slate-800 focus:outline-none"

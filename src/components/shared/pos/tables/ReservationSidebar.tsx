@@ -156,12 +156,12 @@ export function ReservationSidebar({
           </button>
         </div>
 
-        {/* 3. Search Customer Input */}
+        {/* 3. Search Guest Input */}
         <div className="mt-3 relative">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search customers, tables..."
+            placeholder="Search guests, tables..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-8 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all placeholder:text-slate-400"

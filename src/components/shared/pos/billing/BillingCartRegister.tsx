@@ -14,6 +14,7 @@ import {
   Search,
   Check,
   X,
+  Utensils,
 } from "lucide-react";
 import type {
   BillingCartItem,
@@ -27,6 +28,23 @@ import { AddCustomerDrawer } from "./AddCustomerDrawer";
 import { useSpecialNotes } from "@/hooks/queries/usePosMenu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FoodTypeIcon } from "@/components/ui/FoodTypeIcon";
+import { getPosTaxSettings, POS_TAX_SETTINGS_EVENT } from "@/lib/posTaxSettings";
+
+export type RunningOrderSummary = {
+  id: string;
+  orderNumber: string;
+  tableNumber?: string;
+  guestName?: string;
+  itemsCount: number;
+  amount: number;
+  items?: Array<{
+    name: string;
+    quantity: number;
+    price: number;
+    variant?: string;
+  }>;
+};
 
 type BillingCartRegisterProps = {
   cartItems: BillingCartItem[];
@@ -37,6 +55,9 @@ type BillingCartRegisterProps = {
   billNumber: string;
   captainName: string;
   specialNote: string;
+  runningOrder?: RunningOrderSummary | null;
+  onViewPreviousOrders?: () => void;
+  onSettleRunningOrder?: () => void;
   onSpecialNoteChange: (note: string) => void;
   onUpdateCartQty: (cartId: string, newQty: number) => void;
   onRemoveCartItem: (cartId: string) => void;
@@ -55,6 +76,7 @@ type BillingCartRegisterProps = {
   taxType?: "percent" | "flat";
   taxValue?: number;
   onTaxChange?: (type: "percent" | "flat", val: number) => void;
+  depositAmount?: number;
 };
 
 export function BillingCartRegister({
@@ -78,12 +100,16 @@ export function BillingCartRegister({
   busyAction = null,
   selectedCustomer,
   onSelectCustomer,
+  runningOrder,
+  onViewPreviousOrders,
+  onSettleRunningOrder,
   discountType: propDiscountType,
   discountValue: propDiscountValue,
   onDiscountChange,
   taxType: propTaxType,
   taxValue: propTaxValue,
   onTaxChange,
+  depositAmount = 0,
 }: BillingCartRegisterProps) {
   const { can, user } = useAuth();
   const isMaster =
@@ -169,13 +195,22 @@ export function BillingCartRegister({
     String(propDiscountValue ?? 0)
   );
 
-  // Tax (Percentage or Flat Amount) - default 5%
-  const [taxType, setTaxType] = useState<"percent" | "flat">(
-    propTaxType ?? "percent"
-  );
-  const [taxInput, setTaxInput] = useState<string>(
-    String(propTaxValue ?? 5)
-  );
+  // Tax settings from Receipts (percentage only)
+  const [taxSettings, setTaxSettings] = useState(() => getPosTaxSettings());
+  const [taxInput, setTaxInput] = useState<string>(() => {
+    if (propTaxValue !== undefined) return String(propTaxValue);
+    const s = getPosTaxSettings();
+    const sum = (s.cgstPercent || 0) + (s.sgstPercent || 0);
+    return String(sum > 0 ? sum : 5);
+  });
+
+  useEffect(() => {
+    const onTaxSettingsChanged = () => {
+      setTaxSettings(getPosTaxSettings());
+    };
+    window.addEventListener(POS_TAX_SETTINGS_EVENT, onTaxSettingsChanged);
+    return () => window.removeEventListener(POS_TAX_SETTINGS_EVENT, onTaxSettingsChanged);
+  }, []);
 
   useEffect(() => {
     if (propDiscountType !== undefined) setDiscountType(propDiscountType);
@@ -184,10 +219,6 @@ export function BillingCartRegister({
   useEffect(() => {
     if (propDiscountValue !== undefined) setDiscountInput(String(propDiscountValue));
   }, [propDiscountValue]);
-
-  useEffect(() => {
-    if (propTaxType !== undefined) setTaxType(propTaxType);
-  }, [propTaxType]);
 
   useEffect(() => {
     if (propTaxValue !== undefined) setTaxInput(String(propTaxValue));
@@ -205,16 +236,10 @@ export function BillingCartRegister({
     onDiscountChange?.(discountType, num);
   };
 
-  const handleTaxTypeChange = (type: "percent" | "flat") => {
-    setTaxType(type);
-    const num = Math.max(0, parseFloat(taxInput) || 0);
-    onTaxChange?.(type, num);
-  };
-
   const handleTaxInputChange = (val: string) => {
     setTaxInput(val);
     const num = Math.max(0, parseFloat(val) || 0);
-    onTaxChange?.(taxType, num);
+    onTaxChange?.("percent", num);
   };
 
   // Calculations
@@ -242,15 +267,13 @@ export function BillingCartRegister({
   const taxNumber = Math.max(0, parseFloat(taxInput) || 0);
   const calculatedTax = useMemo(() => {
     if (taxableAmount <= 0 || taxNumber <= 0) return 0;
-    if (taxType === "percent") {
-      return Math.round((taxableAmount * taxNumber) / 100);
-    }
-    return Math.round(taxNumber);
-  }, [taxableAmount, taxType, taxNumber]);
+    return Math.round((taxableAmount * taxNumber) / 100);
+  }, [taxableAmount, taxNumber]);
 
   const rawTotal = taxableAmount + calculatedTax;
   const grandTotal = Math.round(rawTotal);
   const roundOff = Number((grandTotal - rawTotal).toFixed(2));
+  const netPayable = Math.max(0, grandTotal - (depositAmount || 0));
 
   const actionsDisabled = cartItems.length === 0 || Boolean(busyAction);
   const showRoomFolio = orderType === "room_service" && Boolean(onAddToRoomFolio);
@@ -260,7 +283,7 @@ export function BillingCartRegister({
       {/* 1. Register Header & Table Ticket Badge (Compact) */}
       <div className="px-3 py-2 bg-slate-900 text-white flex items-center justify-between gap-2 border-b border-slate-800 shrink-0">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-xs text-primary">
+          <span className="font-extrabold text-xs text-white">
             {orderType === "dine_in"
               ? tableNumber || "Select Table"
               : orderType === "room_service"
@@ -270,11 +293,11 @@ export function BillingCartRegister({
                   : "Takeaway"}
           </span>
           {orderType === "dine_in" && (
-            <span className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.2 rounded font-medium">
+            <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded font-bold border border-white/40">
               {guestCount} PAX
             </span>
           )}
-          <span className="text-[10.5px] text-slate-400 font-mono hidden sm:inline">
+          <span className="text-[10.5px] text-white/90 font-mono hidden sm:inline">
             · {billNumber}
           </span>
         </div>
@@ -285,7 +308,7 @@ export function BillingCartRegister({
               type="button"
               onClick={onClearCart}
               title="Clear all items"
-              className="text-[10.5px] font-semibold text-rose-300 hover:text-white hover:bg-rose-900/60 px-1.5 py-0.5 rounded transition cursor-pointer"
+              className="px-2.5 py-0.5 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold shadow-xs transition cursor-pointer"
             >
               Clear
             </button>
@@ -322,8 +345,8 @@ export function BillingCartRegister({
                     )}
                   </div>
                 ) : (
-                  <span className="truncate text-slate-400 font-normal">
-                    Choose Customer (Walk-in)...
+                  <span className="truncate text-slate-800 font-semibold">
+                    Walk-in Guest (Default)
                   </span>
                 )}
               </div>
@@ -351,7 +374,7 @@ export function BillingCartRegister({
                   className="fixed inset-0 z-40"
                   onClick={() => setIsCustomerSelectOpen(false)}
                 />
-                <div className="absolute left-0 top-full mt-1 w-[280px] sm:w-[320px] bg-white rounded-lg shadow-xl border border-slate-200 z-50 overflow-hidden flex flex-col max-h-[260px] animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute left-0 top-full mt-1 w-[min(320px,calc(100vw-2rem))] bg-white rounded-lg shadow-xl border border-slate-200 z-50 overflow-hidden flex flex-col max-h-[260px] animate-in fade-in zoom-in-95 duration-150">
                   <div className="p-2 border-b border-slate-100 bg-slate-50 flex items-center gap-1.5">
                     <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                     <input
@@ -374,7 +397,7 @@ export function BillingCartRegister({
                       }}
                       className="w-full px-2.5 py-1.5 text-left text-xs rounded hover:bg-slate-100 flex items-center justify-between text-slate-700 transition cursor-pointer"
                     >
-                      <span className="font-medium">Walk-in Customer (Default)</span>
+                      <span className="font-semibold text-slate-800">Walk-in Guest (Default)</span>
                       {!selectedCustomer && <Check className="h-3.5 w-3.5 text-primary" />}
                     </button>
 
@@ -420,7 +443,7 @@ export function BillingCartRegister({
 
                     {filteredCustomers.length === 0 && (
                       <div className="p-3 text-center text-xs text-slate-400">
-                        No customer found. Click + to add new.
+                        No guest found. Click + to add new.
                       </div>
                     )}
                   </div>
@@ -429,146 +452,181 @@ export function BillingCartRegister({
             )}
           </div>
 
-          {/* (+) Button for Add Customer with Right-Side Sidebar Drawer */}
+          {/* (+) Button for Add Guest with Right-Side Sidebar Drawer */}
           <button
             type="button"
             onClick={() => setIsAddCustomerOpen(true)}
-            title="Add Customer"
+            title="Add Guest"
             className="h-8 w-8 shrink-0 flex items-center justify-center rounded-md bg-primary text-white hover:bg-primary/90 transition cursor-pointer shadow-2xs"
-            aria-label="Add Customer"
+            aria-label="Add Guest"
           >
             <Plus className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      {/* 3. Cart Line Items List (Compact, Tight, Stretchable without extra gaps) */}
-      <div className="flex-1 min-h-[75px] overflow-y-auto px-2 py-1.5 space-y-1">
+      {/* Running Order Status Banner (When occupied table check is linked) */}
+      {runningOrder && (
+        <div className="mx-2.5 my-1.5 p-2 rounded-lg bg-emerald-50/90 border border-emerald-200/90 text-xs text-emerald-950 flex flex-col gap-1 shadow-2xs shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 font-bold">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="truncate">Running Check #{runningOrder.orderNumber}</span>
+            </div>
+            <span className="font-black text-emerald-900 font-mono">
+              ₹{Number(runningOrder.amount || 0).toLocaleString("en-IN")}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-emerald-700">
+            <span>{runningOrder.itemsCount} previously served/active items</span>
+            <div className="flex items-center gap-1.5">
+              {onViewPreviousOrders && (
+                <button
+                  type="button"
+                  onClick={onViewPreviousOrders}
+                  className="text-[10.5px] font-bold text-emerald-800 underline hover:text-emerald-950 cursor-pointer"
+                >
+                  View Items
+                </button>
+              )}
+              {onSettleRunningOrder && (
+                <button
+                  type="button"
+                  onClick={onSettleRunningOrder}
+                  className="px-2 py-0.5 rounded bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10.5px] transition shadow-2xs cursor-pointer"
+                >
+                  Settle Bill
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Cart Line Items Table in Excel Format */}
+      <div className="flex-1 min-h-[75px] overflow-y-auto px-2 py-1.5">
         {cartItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 text-center text-slate-400">
             <FileText className="h-6 w-6 mb-1 stroke-1 text-slate-300" />
-            <p className="text-xs font-semibold text-slate-600">No items in check</p>
+            <p className="text-xs font-semibold text-slate-700">
+              {runningOrder ? "Blank check ready for extra order" : "No items in check"}
+            </p>
             <p className="text-[10.5px] text-slate-400">
-              Click items from the catalog on the left to add
+              {runningOrder
+                ? "Click menu items to add extra items, then tap KOT to send to kitchen."
+                : "Click items from the catalog on the left to add"}
             </p>
           </div>
         ) : (
-          cartItems.map((cartItem) => {
-            const basePrice = cartItem.selectedVariant
-              ? cartItem.selectedVariant.price
-              : cartItem.item.price;
-            const modifiersPrice = cartItem.selectedModifiers.reduce((sum, m) => sum + m.price, 0);
-            const unitPrice = basePrice + modifiersPrice;
-            const lineTotal = cartItem.isComplimentary ? 0 : unitPrice * cartItem.quantity;
+          <div className="space-y-1.5">
+            {cartItems.map((cartItem) => {
+              const basePrice = cartItem.selectedVariant
+                ? cartItem.selectedVariant.price
+                : cartItem.item.price;
+              const modifiersPrice = cartItem.selectedModifiers.reduce((sum, m) => sum + m.price, 0);
+              const unitPrice = basePrice + modifiersPrice;
+              const lineTotal = cartItem.isComplimentary ? 0 : unitPrice * cartItem.quantity;
 
-            return (
-              <div
-                key={cartItem.cartId}
-                className={`group rounded-lg border px-2 py-1.5 transition-all text-xs flex items-center justify-between gap-2 ${
-                  cartItem.isComplimentary
-                    ? "bg-purple-50/70 border-purple-200"
-                    : "bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/70"
-                }`}
-              >
-                {/* Left: Diet Dot + Item Name + Variant Tags */}
-                <div className="flex-1 min-w-0 pr-1">
-                  <div className="flex items-center gap-1.5">
-                    {cartItem.item.diet === "veg" && (
-                      <span className="flex h-3 w-3 shrink-0 items-center justify-center border border-emerald-600 p-0.2 rounded-[2px] bg-white">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+              return (
+                <div
+                  key={cartItem.cartId}
+                  className={cn(
+                    "group rounded-lg border px-2.5 py-2 transition-all text-xs flex items-center justify-between gap-2 shadow-2xs",
+                    cartItem.isComplimentary
+                      ? "bg-purple-50/70 border-purple-200"
+                      : "bg-white border-border hover:border-slate-300"
+                  )}
+                >
+                  {/* Left: Food Type Icon + Item Name + Variant Tags */}
+                  <div className="flex-1 min-w-0 pr-1">
+                    <div className="flex items-center gap-1.5">
+                      <FoodTypeIcon type={cartItem.item.diet} size="sm" />
+                      <span className="font-bold text-[12px] text-slate-900 truncate">
+                        {cartItem.item.name}
                       </span>
-                    )}
-                    {cartItem.item.diet === "non_veg" && (
-                      <span className="flex h-3 w-3 shrink-0 items-center justify-center border border-rose-600 p-0.2 rounded-[2px] bg-white">
-                        <span className="h-1.5 w-1.5 rounded-full bg-rose-600" />
-                      </span>
-                    )}
-                    {cartItem.item.diet === "egg" && (
-                      <span className="flex h-3 w-3 shrink-0 items-center justify-center border border-amber-600 p-0.2 rounded-[2px] bg-white">
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-600" />
-                      </span>
-                    )}
-
-                    <span className="font-bold text-[12px] text-slate-900 truncate">
-                      {cartItem.item.name}
-                    </span>
-
-                    {cartItem.selectedVariant && (
-                      <span className="text-[9.5px] bg-slate-200 text-slate-700 px-1 py-0.2 rounded font-medium shrink-0">
-                        {cartItem.selectedVariant.name}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Subline: Modifiers & instructions if any */}
-                  {(cartItem.selectedModifiers.length > 0 || cartItem.specialInstructions) && (
-                    <div className="text-[10px] text-slate-500 truncate pl-4.5 mt-0.5">
-                      {cartItem.selectedModifiers.map((m) => m.optionName).join(", ")}
-                      {cartItem.specialInstructions ? ` · ★ ${cartItem.specialInstructions}` : ""}
+                      {cartItem.selectedVariant && (
+                        <span className="text-[9.5px] bg-slate-100 text-slate-700 border border-border px-1.5 py-0.2 rounded font-medium shrink-0">
+                          {cartItem.selectedVariant.name}
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Right Controls: Stepper, Price, Complimentary, Delete */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Stepper */}
-                  <div className="flex items-center gap-0.5 bg-white border border-slate-300 rounded-md p-0.5 shadow-2xs">
-                    <button
-                      type="button"
-                      onClick={() => onUpdateCartQty(cartItem.cartId, cartItem.quantity - 1)}
-                      className="h-4.5 w-4.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px] cursor-pointer"
-                    >
-                      <Minus className="h-2 w-2" />
-                    </button>
-                    <span className="w-4 text-center font-bold text-[11px] text-slate-900">
-                      {cartItem.quantity}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => onUpdateCartQty(cartItem.cartId, cartItem.quantity + 1)}
-                      className="h-4.5 w-4.5 rounded bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center font-bold text-[10px] cursor-pointer"
-                    >
-                      <Plus className="h-2 w-2" />
-                    </button>
-                  </div>
-
-                  {/* Line Total */}
-                  <div className="font-bold text-slate-900 text-xs min-w-[50px] text-right font-mono">
-                    {cartItem.isComplimentary ? (
-                      <span className="text-purple-700 font-bold text-[10px]">FREE</span>
-                    ) : (
-                      `₹${lineTotal.toLocaleString()}`
+                    {/* Subline: Modifiers & special instructions */}
+                    {(cartItem.selectedModifiers.length > 0 || cartItem.specialInstructions) && (
+                      <div className="text-[10px] text-slate-500 truncate pl-4 mt-0.5">
+                        {cartItem.selectedModifiers.map((m) => m.optionName).join(", ")}
+                        {cartItem.specialInstructions ? ` · ★ ${cartItem.specialInstructions}` : ""}
+                      </div>
                     )}
                   </div>
 
-                  {/* Quick Complimentary Toggle */}
-                  {canDiscount && (
-                    <button
-                      type="button"
-                      onClick={() => onToggleComplimentary(cartItem.cartId)}
-                      title={cartItem.isComplimentary ? "Remove Complimentary" : "Make Complimentary"}
-                      className={`p-1 rounded transition cursor-pointer ${
-                        cartItem.isComplimentary
-                          ? "text-purple-700 bg-purple-100"
-                          : "text-slate-300 hover:text-purple-600 hover:bg-purple-50"
-                      }`}
-                    >
-                      <Gift className="h-3 w-3" />
-                    </button>
-                  )}
+                  {/* Right Controls: Stepper, Price, Complimentary, Delete */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* Stepper */}
+                    <div className="flex items-center gap-0.5 bg-white border border-border rounded-md p-0.5 shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => onUpdateCartQty(cartItem.cartId, cartItem.quantity - 1)}
+                        className="h-4.5 w-4.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px] cursor-pointer"
+                      >
+                        <Minus className="h-2.5 w-2.5" />
+                      </button>
+                      <span className="w-4 text-center font-bold text-[11px] text-slate-900">
+                        {cartItem.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateCartQty(cartItem.cartId, cartItem.quantity + 1)}
+                        className="h-4.5 w-4.5 rounded bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center font-bold text-[10px] cursor-pointer"
+                      >
+                        <Plus className="h-2.5 w-2.5" />
+                      </button>
+                    </div>
 
-                  {/* Delete Item */}
-                  <button
-                    type="button"
-                    onClick={() => onRemoveCartItem(cartItem.cartId)}
-                    className="text-slate-300 hover:text-rose-600 p-1 transition cursor-pointer"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                    {/* Rate & Line Total */}
+                    <div className="text-right min-w-[50px]">
+                      {cartItem.isComplimentary ? (
+                        <span className="text-purple-700 font-extrabold text-[10px] bg-purple-100 px-1.5 py-0.5 rounded border border-purple-300">
+                          FREE
+                        </span>
+                      ) : (
+                        <span className="font-extrabold text-[12px] font-mono text-slate-900">
+                          ₹{lineTotal.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Actions: Free & Delete */}
+                    <div className="flex items-center gap-1">
+                      {canDiscount && (
+                        <button
+                          type="button"
+                          onClick={() => onToggleComplimentary(cartItem.cartId)}
+                          title={cartItem.isComplimentary ? "Remove Free" : "Make Free"}
+                          className={cn(
+                            "p-1 rounded cursor-pointer transition",
+                            cartItem.isComplimentary
+                              ? "text-purple-700 bg-purple-100"
+                              : "text-slate-400 hover:text-purple-700 hover:bg-purple-50"
+                          )}
+                        >
+                          <Gift className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => onRemoveCartItem(cartItem.cartId)}
+                        title="Delete item"
+                        className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-1 rounded transition cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </div>
 
@@ -666,33 +724,36 @@ export function BillingCartRegister({
           </div>
         </div>
 
-        {/* Tax Control Row: Dropdown (% / ₹) + Input + Display */}
+        {/* Tax Control Row: Dropdown (% preset values from Settings) + % Input + Display */}
         <div className="flex items-center justify-between gap-2 text-slate-700 py-0.5">
-          <span className="font-medium text-[11.5px]">Tax</span>
-          <div className="flex items-center gap-1.5">
-            {/* Dropdown: % or ₹ */}
+          <div className="flex items-center gap-1 min-w-0">
+            <span className="font-medium text-[11.5px]">Tax</span>
+            {taxNumber > 0 && (
+              <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap">
+                (CGST {(taxNumber / 2).toFixed(1)}% + SGST {(taxNumber / 2).toFixed(1)}%)
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Dropdown: Tax % options setup in Settings */}
             <div className="relative">
               <select
-                value={taxType}
-                onChange={(e) => handleTaxTypeChange(e.target.value as "percent" | "flat")}
-                className="h-7 pl-2 pr-5 text-[11px] font-bold bg-white border border-slate-200 rounded-md text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer appearance-none shadow-2xs"
-                title="Tax Type"
+                value={String(taxNumber)}
+                onChange={(e) => handleTaxInputChange(e.target.value)}
+                className="h-7 pl-2 pr-6 text-[11px] font-bold bg-white border border-slate-200 rounded-md text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer appearance-none shadow-2xs"
+                title="Select Tax % Rate"
               >
-                <option value="percent">% (Percentage)</option>
-                <option value="flat">₹ (Flat)</option>
+                {(taxSettings.taxRates || [0, 5, 12, 18, 28]).map((rate) => (
+                  <option key={rate} value={String(rate)}>
+                    {rate}%
+                  </option>
+                ))}
+                {!(taxSettings.taxRates || [0, 5, 12, 18, 28]).includes(taxNumber) && (
+                  <option value={String(taxNumber)}>{taxNumber}%</option>
+                )}
               </select>
               <ChevronDown className="h-3 w-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
-
-            {/* Input value */}
-            <input
-              type="number"
-              min="0"
-              value={taxInput}
-              onChange={(e) => handleTaxInputChange(e.target.value)}
-              placeholder="0"
-              className="h-7 w-16 px-2 text-[11.5px] font-semibold text-right bg-white border border-slate-200 rounded-md text-slate-900 focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            />
 
             {/* Computed display */}
             <span className="font-bold text-slate-900 min-w-[55px] text-right font-mono text-[11.5px]">
@@ -700,14 +761,6 @@ export function BillingCartRegister({
             </span>
           </div>
         </div>
-
-        {/* Tax Breakdown Hint (if percentage tax active) */}
-        {taxType === "percent" && taxNumber > 0 && calculatedTax > 0 && (
-          <div className="flex items-center justify-between text-[10px] text-slate-400 pl-1 font-mono">
-            <span>CGST ({(taxNumber / 2).toFixed(1)}%) + SGST ({(taxNumber / 2).toFixed(1)}%)</span>
-            <span>₹{Math.round(calculatedTax / 2).toLocaleString()} + ₹{Math.round(calculatedTax / 2).toLocaleString()}</span>
-          </div>
-        )}
 
         {/* Round Off (if any) */}
         {roundOff !== 0 && (
@@ -717,13 +770,49 @@ export function BillingCartRegister({
           </div>
         )}
 
-        {/* Grand Total Display */}
-        <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-slate-900">
-          <span className="font-extrabold text-xs tracking-tight">Grand Total Payable</span>
-          <span className="font-black text-base text-primary font-mono tracking-tight">
-            ₹{grandTotal.toLocaleString()}
-          </span>
-        </div>
+        {/* Grand Total & Advance Reservation Deposit / Cumulative Running Order Breakdown */}
+        {runningOrder ? (
+          <div className="pt-2 border-t border-slate-200 space-y-1">
+            <div className="flex items-center justify-between text-slate-600 text-xs font-semibold">
+              <span>Previous Bill ({runningOrder.orderNumber || "Running Order"})</span>
+              <span className="font-mono font-bold text-slate-800">₹{runningOrder.amount.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600 text-xs font-semibold">
+              <span>Extra Items Total</span>
+              <span className="font-mono font-bold text-slate-800">₹{grandTotal.toLocaleString()}</span>
+            </div>
+            <div className="pt-1 border-t border-dashed border-slate-300 flex items-center justify-between text-slate-900">
+              <span className="font-extrabold text-xs tracking-tight">Cumulative Grand Total</span>
+              <span className="font-black text-base text-primary font-mono tracking-tight">
+                ₹{(runningOrder.amount + grandTotal).toLocaleString()}
+              </span>
+            </div>
+          </div>
+        ) : depositAmount > 0 ? (
+          <div className="pt-2 border-t border-slate-200 space-y-1">
+            <div className="flex items-center justify-between text-slate-700 text-xs font-semibold">
+              <span>Total Bill</span>
+              <span className="font-mono">₹{grandTotal.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center justify-between text-emerald-800 text-xs font-semibold">
+              <span>Advance Reservation Paid</span>
+              <span className="font-mono">-₹{depositAmount.toLocaleString()}</span>
+            </div>
+            <div className="pt-1 border-t border-dashed border-slate-300 flex items-center justify-between text-slate-900">
+              <span className="font-extrabold text-xs tracking-tight">Net Remaining Payable</span>
+              <span className="font-black text-base text-primary font-mono tracking-tight">
+                ₹{netPayable.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-slate-900">
+            <span className="font-extrabold text-xs tracking-tight">Grand Total Payable</span>
+            <span className="font-black text-base text-primary font-mono tracking-tight">
+              ₹{grandTotal.toLocaleString()}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 5. Action Footer */}
@@ -738,6 +827,9 @@ export function BillingCartRegister({
           >
             <PauseCircle className="h-3.5 w-3.5" />
             <span>{busyAction === "hold" ? "Holding…" : "HOLD"}</span>
+            <kbd className="hidden sm:inline-block ml-0.5 rounded bg-orange-400/50 px-1 text-[9.5px] text-orange-950 font-mono font-bold">
+              F4
+            </kbd>
           </button>
 
           <button
@@ -749,17 +841,23 @@ export function BillingCartRegister({
           >
             <Printer className="h-3.5 w-3.5" />
             <span>{busyAction === "kot" ? "Sending…" : "KOT"}</span>
+            <kbd className="hidden sm:inline-block ml-0.5 rounded bg-black/20 px-1 text-[9.5px] text-white font-mono font-bold">
+              F8
+            </kbd>
           </button>
 
           {canSettle && (
             <button
               type="button"
-              onClick={onPayNow}
-              disabled={actionsDisabled}
+              onClick={cartItems.length === 0 && runningOrder && onSettleRunningOrder ? onSettleRunningOrder : onPayNow}
+              disabled={actionsDisabled && !(cartItems.length === 0 && runningOrder && onSettleRunningOrder)}
               className="flex items-center justify-center gap-1 py-2.5 px-1 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-[11px] font-bold transition disabled:opacity-40 cursor-pointer shadow-2xs"
             >
               <IndianRupee className="h-3.5 w-3.5" />
               <span>{busyAction === "pay" ? "Paying…" : "PAY NOW"}</span>
+              <kbd className="hidden sm:inline-block ml-0.5 rounded bg-teal-950/40 px-1 text-[9.5px] text-teal-100 font-mono font-bold">
+                F9
+              </kbd>
             </button>
           )}
         </div>

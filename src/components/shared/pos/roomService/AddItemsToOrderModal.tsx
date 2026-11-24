@@ -90,7 +90,7 @@ export function AddItemsToOrderModal({
   const newItemsList: RoomOrderItem[] = [];
 
   Object.entries(selectedItems).forEach(([id, qty]) => {
-    const item = availableItems.find((m) => m.id === id);
+    const item = availableItems.find((m) => String(m.id) === String(id));
     if (item && qty > 0) {
       addedSubtotal += item.price * qty;
       newItemsList.push({

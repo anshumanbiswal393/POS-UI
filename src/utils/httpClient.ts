@@ -31,8 +31,17 @@ httpClient.interceptors.request.use(
         }
 
         const activeOutletId = localStorage.getItem("retrod_pos_active_outlet_id");
-        if (activeOutletId && !config.headers["X-Outlet-ID"]) {
-          config.headers["X-Outlet-ID"] = activeOutletId;
+        let targetOutletId = activeOutletId;
+        if (config.params && (config.params.outlet_id || config.params.outletId)) {
+          targetOutletId = config.params.outlet_id || config.params.outletId;
+        } else if (config.url) {
+          const match = config.url.match(/[?&](?:outlet_id|outletId)=([^&]+)/);
+          if (match && match[1]) {
+            targetOutletId = decodeURIComponent(match[1]);
+          }
+        }
+        if (targetOutletId && !config.headers["X-Outlet-ID"]) {
+          config.headers["X-Outlet-ID"] = targetOutletId;
         }
 
         const activePropertyId =

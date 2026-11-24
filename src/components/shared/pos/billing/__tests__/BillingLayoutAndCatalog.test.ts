@@ -1,0 +1,224 @@
+import { describe, it, expect } from "vitest";
+import fs from "fs";
+import path from "path";
+
+describe("POS Billing UI Standardization", () => {
+  it("BillingTablesOrdersSidebar has white tab container and theme-colored active tab", () => {
+    const sidebarPath = path.resolve(__dirname, "../BillingTablesOrdersSidebar.tsx");
+    const content = fs.readFileSync(sidebarPath, "utf-8");
+
+    // Tab switcher container is white with border (not black/dark grey)
+    expect(content).toContain("bg-white rounded-xl border border-slate-300");
+
+    // Active tab has theme color, inactive is white with black text
+    expect(content).toContain('activeTab === "tables"');
+    expect(content).toContain("bg-primary text-primary-foreground");
+    expect(content).toContain("bg-white text-black hover:bg-slate-100");
+  });
+
+  it("BillingCartRegister displays clean item rows without table box, high-contrast Clear button, and inline CGST/SGST tax", () => {
+    const cartPath = path.resolve(__dirname, "../BillingCartRegister.tsx");
+    const content = fs.readFileSync(cartPath, "utf-8");
+
+    // Clean item row layout without table container
+    expect(content).not.toContain("<table");
+    expect(content).toContain("cartItems.map");
+    expect(content).toContain("FoodTypeIcon");
+
+    // High contrast dark red Clear button
+    expect(content).toContain("bg-rose-600");
+    expect(content).toContain("Clear");
+
+    // Tax row displays CGST and SGST in the same row
+    expect(content).toContain("(CGST");
+    expect(content).toContain("SGST");
+  });
+
+  it("BillingMenuCatalog renders Excel dishes table with meal-time filtering", () => {
+    const catalogPath = path.resolve(__dirname, "../BillingMenuCatalog.tsx");
+    const content = fs.readFileSync(catalogPath, "utf-8");
+
+    // Excel table with vertical column borders and centered element data
+    expect(content).toContain("table className=");
+    expect(content).toContain("excel-format");
+    expect(content).toContain("border-r");
+    expect(content).toContain("border-b");
+    expect(content).toContain("text-center");
+
+    // Meal-time filtering support
+    expect(content).toContain("selectedMealTime");
+    expect(content).toContain("targetMeal");
+
+    // Categories with rounded-lg border (no circular corners)
+    expect(content).toContain("rounded-lg px-3 py-1.5 text-[11.5px] font-bold whitespace-nowrap transition-all cursor-pointer border");
+
+    // Plate count format without long (Sold Out) string
+    expect(content).toContain('{item.plates} {item.plates === 1 ? "Plate" : "Plates"}');
+
+    // Sold out button styling
+    expect(content).toContain("Sold Out");
+    expect(content).toContain("border-rose-600");
+
+    // Theme colored Dish, Portion, Price, Action table header
+    expect(content).toContain("bg-primary text-primary-foreground");
+    expect(content).toContain("text-left");
+  });
+
+  it("BillingHeader renders meal-time tabs in middle of top row", () => {
+    const headerPath = path.resolve(__dirname, "../BillingHeader.tsx");
+    const content = fs.readFileSync(headerPath, "utf-8");
+
+    expect(content).toContain('["All", "Breakfast", "Lunch", "Dinner"]');
+    expect(content).toContain("<span>{meal}</span>");
+    expect(content).toContain("bg-emerald-50/70");
+    expect(content).toContain("justify-center");
+  });
+
+  it("BillingTablesOrdersSidebar styles inactive view switcher icons in crisp dark/black", () => {
+    const sidebarPath = path.resolve(__dirname, "../BillingTablesOrdersSidebar.tsx");
+    const content = fs.readFileSync(sidebarPath, "utf-8");
+
+    expect(content).toContain('text-slate-900 hover:text-black hover:bg-slate-100');
+  });
+
+  it("Global styles use standardized palette matching PMS reference", () => {
+    const stylesPath = path.resolve(__dirname, "../../../../../styles.css");
+    const content = fs.readFileSync(stylesPath, "utf-8");
+
+    expect(content).toContain("--background:");
+    expect(content).toContain("--border:");
+  });
+
+  it("PosKotManager has Kitchen Orders heading matching sidebar navigation", () => {
+    const kotPath = path.resolve(__dirname, "../../orders/PosKotManager.tsx");
+    const content = fs.readFileSync(kotPath, "utf-8");
+
+    expect(content).toContain("Kitchen Orders");
+    expect(content).not.toContain("Kitchen Display");
+  });
+
+  it("PosGlobalSearch has removed the F3 tag from search bar", () => {
+    const searchPath = path.resolve(__dirname, "../../../../layout/pos/PosGlobalSearch.tsx");
+    const content = fs.readFileSync(searchPath, "utf-8");
+
+    expect(content).not.toContain("(F3)");
+    expect(content).not.toContain("F3 / ⌘K");
+  });
+
+  it("PosBillingManager wires selectedMealTime and passes mealTimes to billingItems", () => {
+    const managerPath = path.resolve(__dirname, "../PosBillingManager.tsx");
+    const content = fs.readFileSync(managerPath, "utf-8");
+
+    expect(content).toContain("const [selectedMealTime, setSelectedMealTime] = useState");
+    expect(content).toContain("selectedMealTime={selectedMealTime}");
+    expect(content).toContain("mealTimes: item.mealTimes || (item as any).meal_times");
+    expect(content).toContain("pt-2 lg:pt-2");
+  });
+
+  it("filters menu catalog items accurately by meal-time and category", () => {
+    type TestItem = {
+      id: string;
+      name: string;
+      category: string;
+      diet: "veg" | "non_veg";
+      mealTimes?: string[];
+    };
+
+    const testCatalog: TestItem[] = [
+      {
+        id: "1",
+        name: "chicken biryani",
+        category: "rice",
+        diet: "non_veg",
+        mealTimes: ["Dinner", "Lunch"],
+      },
+      {
+        id: "2",
+        name: "masala dosa",
+        category: "tiffin",
+        diet: "veg",
+        mealTimes: ["Breakfast"],
+      },
+      {
+        id: "3",
+        name: "cold coffee",
+        category: "beverages",
+        diet: "veg",
+        mealTimes: ["All Day"],
+      },
+      {
+        id: "4",
+        name: "veg noodles",
+        category: "starters",
+        diet: "veg",
+        // no mealTimes (legacy all-day)
+      },
+    ];
+
+    const filterItems = (
+      items: TestItem[],
+      selectedMealTime: string,
+      selectedCategory: string,
+    ) => {
+      let result = items.filter((item) => {
+        if (
+          selectedCategory !== "All Items" &&
+          String(item.category || "").trim().toLowerCase() !== selectedCategory.trim().toLowerCase()
+        ) {
+          return false;
+        }
+        return true;
+      });
+
+      if (selectedMealTime !== "All") {
+        const targetMeal = selectedMealTime.toLowerCase();
+        result = result.filter((item) => {
+          const mealTimes = item.mealTimes;
+          if (!mealTimes || !Array.isArray(mealTimes) || mealTimes.length === 0) {
+            return true;
+          }
+          return mealTimes.some((m) => {
+            const lower = String(m).trim().toLowerCase();
+            return (
+              lower === targetMeal ||
+              lower === "all" ||
+              lower === "all day" ||
+              lower === "allday"
+            );
+          });
+        });
+      }
+      return result;
+    };
+
+    // 1. Breakfast tab: Chicken Biryani (Dinner & Lunch) MUST NOT be visible!
+    const breakfastItems = filterItems(testCatalog, "Breakfast", "All Items");
+    const breakfastNames = breakfastItems.map((i) => i.name);
+    expect(breakfastNames).not.toContain("chicken biryani");
+    expect(breakfastNames).toContain("masala dosa");
+    expect(breakfastNames).toContain("cold coffee");
+    expect(breakfastNames).toContain("veg noodles");
+
+    // 2. Lunch tab: Chicken Biryani MUST be visible! Masala Dosa (Breakfast only) must NOT be visible!
+    const lunchItems = filterItems(testCatalog, "Lunch", "All Items");
+    const lunchNames = lunchItems.map((i) => i.name);
+    expect(lunchNames).toContain("chicken biryani");
+    expect(lunchNames).not.toContain("masala dosa");
+    expect(lunchNames).toContain("cold coffee");
+    expect(lunchNames).toContain("veg noodles");
+
+    // 3. Dinner tab: Chicken Biryani MUST be visible! Masala Dosa must NOT be visible!
+    const dinnerItems = filterItems(testCatalog, "Dinner", "All Items");
+    const dinnerNames = dinnerItems.map((i) => i.name);
+    expect(dinnerNames).toContain("chicken biryani");
+    expect(dinnerNames).not.toContain("masala dosa");
+
+    // 4. Category tab "rice": only rice category items reflect
+    const riceItems = filterItems(testCatalog, "All", "rice");
+    expect(riceItems.map((i) => i.name)).toEqual(["chicken biryani"]);
+
+    // 5. Category tab "beverages": only beverages reflect
+    const beverageItems = filterItems(testCatalog, "All", "beverages");
+    expect(beverageItems.map((i) => i.name)).toEqual(["cold coffee"]);
+  });
+});

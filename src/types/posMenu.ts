@@ -18,6 +18,15 @@ export type MenuItemImage = {
 
 export type MenuItemType = "Veg" | "Non-Veg" | "Egg";
 
+export type MealTime = "Breakfast" | "Lunch" | "Dinner" | "All Day";
+
+export type MenuItemIngredient = {
+  rawMaterialId: string;
+  rawMaterialName: string;
+  quantity: number;
+  unit: string;
+};
+
 export type MenuItem = {
   id: string;
   outletId: string;
@@ -26,6 +35,7 @@ export type MenuItem = {
   onlineDisplayName: string;
   category: string;
   categoryId?: string | null;
+  subCategory?: string;
   itemType: MenuItemType;
   price: number;
   taxRate: number; // in percentage e.g. 5, 12, 18
@@ -44,6 +54,11 @@ export type MenuItem = {
   updatedAt: string;
   commissionType?: MenuItemCommission["commissionType"];
   commissionValue?: number | null;
+  // Plates & Raw Materials Recipe tracking
+  plates?: number;
+  rawMaterials?: MenuItemIngredient[];
+  // Serving availability during meal times (Breakfast, Lunch, Dinner, All Day)
+  mealTimes?: MealTime[] | string[];
 };
 
 export type SpecialNote = {
@@ -119,6 +134,9 @@ export type PosOutlet = {
   orderTypes: string[];
   status: "Active" | "Inactive";
   menuCount: number;
+  gstin?: string;
+  gstNumber?: string;
+  taxId?: string;
   city?: string;
   email?: string;
   /** Parent physical/HO outlet id for virtual / cloud brands */

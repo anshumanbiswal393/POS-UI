@@ -127,7 +127,7 @@ export function PurchaseBillPaymentsView() {
     <div className="space-y-4">
       {/* 1. Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">
+        <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
           Purchase Bill Payments
         </h2>
       </div>
@@ -159,8 +159,14 @@ export function PurchaseBillPaymentsView() {
             <div className="relative">
               <input
                 type="date"
+                max={new Date().toISOString().slice(0, 10)}
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const todayIso = new Date().toISOString().slice(0, 10);
+                  if (val && val > todayIso) return;
+                  setStartDate(val);
+                }}
                 className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
               />
             </div>
@@ -172,8 +178,14 @@ export function PurchaseBillPaymentsView() {
             <div className="relative">
               <input
                 type="date"
+                max={new Date().toISOString().slice(0, 10)}
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const todayIso = new Date().toISOString().slice(0, 10);
+                  if (val && val > todayIso) return;
+                  setEndDate(val);
+                }}
                 className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
               />
             </div>

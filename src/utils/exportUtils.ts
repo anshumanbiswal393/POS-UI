@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { getActivePropertyFallback } from "./printReceipt";
 
 /**
  * Universal Excel Export Engine for Retrod POS
@@ -91,7 +92,8 @@ function buildHtmlSpreadsheet(options: ExportToExcelOptions): string {
   const rows = options.rows || [];
   const sheetName = options.sheetName || "POS Report";
   const title = options.title || options.filename || "Report Export";
-  const propertyName = options.propertyName || "RETROD LUXURY POS";
+  const rawPropName = options.propertyName || getActivePropertyFallback().name || "Anshu Suite Restaurant";
+  const propertyName = rawPropName.toLowerCase().includes("retrod") ? "Anshu Suite Restaurant" : rawPropName;
   const summaryFooter = options.summaryFooter;
   const colCount = Math.max(columns.length, 1);
 
@@ -188,7 +190,7 @@ function buildHtmlSpreadsheet(options: ExportToExcelOptions): string {
     text-align: center;
     height: 24pt;
     vertical-align: middle;
-    border: 1px solid #CBD5E1;
+    border: 1px solid #0D9488;
   }
   th.col-header {
     background-color: #0F766E;
@@ -203,7 +205,7 @@ function buildHtmlSpreadsheet(options: ExportToExcelOptions): string {
     white-space: normal;
   }
   td.cell-text {
-    border: 1px solid #CBD5E1;
+    border: 1px solid #0D9488;
     font-size: 10.5pt;
     padding: 6px 10px;
     vertical-align: middle;
@@ -211,7 +213,7 @@ function buildHtmlSpreadsheet(options: ExportToExcelOptions): string {
     mso-number-format: '\\@';
   }
   td.cell-date {
-    border: 1px solid #CBD5E1;
+    border: 1px solid #0D9488;
     font-size: 10.5pt;
     padding: 6px 10px;
     vertical-align: middle;
@@ -219,7 +221,7 @@ function buildHtmlSpreadsheet(options: ExportToExcelOptions): string {
     mso-number-format: '\\@';
   }
   td.cell-num {
-    border: 1px solid #CBD5E1;
+    border: 1px solid #0D9488;
     font-size: 10.5pt;
     padding: 6px 10px;
     vertical-align: middle;
@@ -227,7 +229,7 @@ function buildHtmlSpreadsheet(options: ExportToExcelOptions): string {
     mso-number-format: '#,##0';
   }
   td.cell-curr {
-    border: 1px solid #CBD5E1;
+    border: 1px solid #0D9488;
     font-size: 10.5pt;
     font-weight: bold;
     color: #0F766E;
@@ -237,7 +239,7 @@ function buildHtmlSpreadsheet(options: ExportToExcelOptions): string {
     mso-number-format: '₹\\ #,##0.00';
   }
   .row-alt {
-    background-color: #F8FAFC;
+    background-color: #FFFFFF;
   }
   .summary-row td {
     background-color: #CCFBF1;
@@ -467,3 +469,6 @@ export function exportTableData(options: ExportToExcelOptions): void {
 export function exportToCsv(data: Record<string, any>[], filename = "Export") {
   exportToExcel(data, filename);
 }
+
+export { openPrintReportTable, generateReportPrintHtml } from "./printReportTable";
+export type { PrintReportOptions, PrintReportColumn } from "./printReportTable";

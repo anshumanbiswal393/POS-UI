@@ -51,7 +51,7 @@ export interface PaymentSummaryData {
 
 export interface TableStatusItem {
   tableNumber: string;
-  status: "available" | "occupied" | "reserved";
+  status: "available" | "occupied" | "reserved" | "billed";
 }
 
 export interface TopDishItem {
@@ -87,6 +87,7 @@ export interface PosDashboardData {
   orderTypes: OrderTypeMixItem[];
   totalOrderTypesCount: number;
   liveOrders: LiveOrderItem[];
+  liveOrdersCount?: number;
   paymentSummary: PaymentSummaryData;
   tables: TableStatusItem[];
   topSellingItems: TopDishItem[];

@@ -33,10 +33,6 @@ export function ReportNotificationView() {
           <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
             Report Notification
           </h2>
-          <p className="text-[12.5px] text-slate-500 mt-0.5">
-            Configure automated daily sales & closing summaries sent directly via Email and
-            WhatsApp.
-          </p>
         </div>
 
         <button

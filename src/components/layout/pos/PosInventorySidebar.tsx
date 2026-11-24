@@ -34,7 +34,6 @@ export function PosInventorySidebar({
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     purchase: true,
     manageStock: true,
-    production: false,
     reports: false,
     masters: false,
   });
@@ -94,64 +93,23 @@ export function PosInventorySidebar({
           </Link>
         </div>
 
-        {/* Purchase Group matching Screenshot */}
-        <div className="space-y-1">
-          <button
-            type="button"
-            onClick={() => toggleSection("purchase")}
-            className="flex w-full items-center justify-between rounded-lg px-3 py-2 font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5">
-              <ShoppingCart className="h-4 w-4 text-slate-500" />
-              <span>Purchase</span>
-            </div>
-            {openSections.purchase ? (
-              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-            ) : (
-              <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+        {/* Purchase */}
+        <div>
+          <Link
+            to="/pos/inventory/purchase"
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-2.5 rounded-lg px-3 py-2 font-bold transition",
+              isExact("/pos/inventory/purchase")
+                ? "bg-teal-50 text-teal-600"
+                : "text-slate-700 hover:bg-slate-50 hover:text-slate-900",
             )}
-          </button>
-
-          {openSections.purchase && (
-            <div className="ml-4 space-y-0.5 border-l border-slate-200 pl-3 py-1">
-              <Link
-                to="/pos/inventory/purchase"
-                onClick={onNavigate}
-                className={cn(
-                  "block rounded-md px-2.5 py-1.5 text-[12px] font-medium transition",
-                  isExact("/pos/inventory/purchase")
-                    ? "text-teal-600 font-bold bg-teal-50/70"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50",
-                )}
-              >
-                Purchase Entry
-              </Link>
-              <Link
-                to="/pos/inventory/order"
-                onClick={onNavigate}
-                className={cn(
-                  "block rounded-md px-2.5 py-1.5 text-[12px] font-medium transition",
-                  isExact("/pos/inventory/order")
-                    ? "text-teal-600 font-bold bg-teal-50/70"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50",
-                )}
-              >
-                Purchase Order
-              </Link>
-              <Link
-                to="/pos/inventory/return"
-                onClick={onNavigate}
-                className={cn(
-                  "block rounded-md px-2.5 py-1.5 text-[12px] font-medium transition",
-                  isExact("/pos/inventory/return")
-                    ? "text-teal-600 font-bold bg-teal-50/70"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50",
-                )}
-              >
-                Purchase Return
-              </Link>
-            </div>
-          )}
+          >
+            <ShoppingCart
+              className={cn("h-4 w-4", isExact("/pos/inventory/purchase") ? "text-teal-600" : "text-slate-500")}
+            />
+            <span>Purchases</span>
+          </Link>
         </div>
 
         {/* Manage Stock Group matching Screenshot */}
@@ -187,76 +145,35 @@ export function PosInventorySidebar({
                 Available Stock
               </Link>
               <Link
-                to="/pos/inventory/closing-stock"
+                to="/pos/inventory/production"
                 onClick={onNavigate}
                 className={cn(
                   "block rounded-md px-2.5 py-1.5 text-[12px] font-medium transition",
-                  isExact("/pos/inventory/closing-stock")
+                  isExact("/pos/inventory/production")
                     ? "text-teal-600 font-bold bg-teal-50/70"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-50",
                 )}
               >
-                Closing Stock
+                Daily Preparation
+              </Link>
+              <Link
+                to="/pos/inventory/wastage"
+                onClick={onNavigate}
+                className={cn(
+                  "block rounded-md px-2.5 py-1.5 text-[12px] font-medium transition",
+                  isExact("/pos/inventory/wastage")
+                    ? "text-teal-600 font-bold bg-teal-50/70"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50",
+                )}
+              >
+                Stock Wastage
               </Link>
             </div>
           )}
         </div>
 
-        {/* Consumption Group Header matching Screenshot */}
-        <div className="pt-2">
-          <div className="px-3 pb-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-            Consumption
-          </div>
-          <div className="space-y-0.5">
-            <Link
-              to="/pos/inventory/sales"
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium transition",
-                isExact("/pos/inventory/sales")
-                  ? "text-teal-600 font-bold bg-teal-50"
-                  : "text-slate-700 hover:bg-slate-50 hover:text-slate-900",
-              )}
-            >
-              <Utensils className="h-4 w-4 text-slate-500" />
-              <span>Sales</span>
-            </Link>
-
-            <Link
-              to="/pos/inventory/wastage"
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium transition",
-                isExact("/pos/inventory/wastage")
-                  ? "text-teal-600 font-bold bg-teal-50"
-                  : "text-slate-700 hover:bg-slate-50 hover:text-slate-900",
-              )}
-            >
-              <Trash2 className="h-4 w-4 text-slate-500" />
-              <span>Wastage</span>
-            </Link>
-          </div>
-        </div>
-
         {/* Other Sections matching Screenshot */}
         <div className="space-y-1 pt-1">
-          <Link
-            to="/pos/inventory/production"
-            onClick={onNavigate}
-            className={cn(
-              "flex items-center justify-between rounded-lg px-3 py-2 font-medium transition",
-              isExact("/pos/inventory/production")
-                ? "text-teal-600 font-bold bg-teal-50"
-                : "text-slate-700 hover:bg-slate-50 hover:text-slate-900",
-            )}
-          >
-            <div className="flex items-center gap-2.5">
-              <Factory className="h-4 w-4 text-slate-500" />
-              <span>Production</span>
-            </div>
-            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-          </Link>
-
           <Link
             to="/pos/inventory/masters"
             onClick={onNavigate}

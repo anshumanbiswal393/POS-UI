@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import { useOutletContext } from "@/context/PosOutletContext";
 import posManagementService, { type POSManagementLogDto } from "@/services/posManagementService";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 interface AutoAcceptLogEntry {
   id: string;
@@ -40,7 +41,7 @@ export function AutoAcceptLogsView() {
       const data = await posManagementService.getManagementLogs(activeOutlet.id, "AUTO_ACCEPT");
       const mapped: AutoAcceptLogEntry[] = data.map((log: POSManagementLogDto) => ({
         id: log.id,
-        timestamp: log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "",
+        timestamp: formatDateTimeIndian(log.created_at),
         platform: (log.details?.platform as string) || "Retrod Online Store",
         previousState: Boolean(log.details?.previousState),
         newState: Boolean(log.details?.newState ?? log.details?.autoAccept ?? true),
@@ -143,7 +144,7 @@ export function AutoAcceptLogsView() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             <SlidersHorizontal className="h-5 w-5 text-teal-600" />
             Aggregator Auto-Accept Logs
           </h2>

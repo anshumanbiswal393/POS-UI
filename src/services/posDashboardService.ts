@@ -1,6 +1,7 @@
 import httpClient from "@/utils/httpClient";
 import { liveGetCurrent, liveGetHistory } from "./posOrderLive";
 import { posTablesService } from "./posTablesService";
+import { toTitleCase } from "@/utils/textUtils";
 import type { PosDashboardApiResponse } from "@/types/posDashboardApi";
 import type {
   PosDashboardData,
@@ -53,8 +54,8 @@ const EMPTY_DASHBOARD_API_RESPONSE: PosDashboardApiResponse = {
   ],
   orderTypes: [
     { type: "dine_in", label: "Dine-in", count: 0, percentage: 0, color: "#0f766e" },
-    { type: "takeaway", label: "Takeaway", count: 0, percentage: 0, color: "#0d9488" },
-    { type: "room_service", label: "Room service", count: 0, percentage: 0, color: "#94a3b8" },
+    { type: "takeaway", label: "Takeaway", count: 0, percentage: 0, color: "#f59e0b" },
+    { type: "room_service", label: "Room service", count: 0, percentage: 0, color: "#0284c7" },
   ],
   liveOrders: [],
   paymentSummary: {
@@ -120,10 +121,18 @@ export function mapDtoToDashboardModel(
     color: ot.color,
   }));
 
-  const liveOrders: LiveOrderItem[] = (dto.liveOrders || []).map((lo) => ({
+  const liveOrders: LiveOrderItem[] = (dto.liveOrders || []).map((lo: any) => ({
     id: lo.id,
     title: lo.title,
-    orderType: lo.orderTypeLabel,
+    orderType:
+      lo.orderTypeLabel ||
+      (String(lo.type ?? lo.orderType ?? "").toLowerCase().includes("takeaway")
+        ? "Takeaway"
+        : String(lo.type ?? lo.orderType ?? "").toLowerCase().includes("delivery")
+          ? "Delivery"
+          : String(lo.type ?? lo.orderType ?? "").toLowerCase().includes("room")
+            ? "Room Service"
+            : "Dine-in"),
     status: lo.status === "delivered" ? "ready" : (lo.status as any),
     statusLabel: lo.statusLabel,
     elapsedMinutes: lo.elapsedMinutes,
@@ -194,6 +203,7 @@ export function mapDtoToDashboardModel(
     outletName: dto.outletName || "",
     dateLabel: dto.date || "Today",
     isMockData: isMock,
+    liveOrdersCount: (dto as any).count ?? (dto.liveOrders ? dto.liveOrders.length : 0),
     stats,
     salesGraph,
     orderTypes,
@@ -285,7 +295,13 @@ export async function getPosDashboardData(
     // Filter settled orders from history
     const settledRecords = historyRecords.filter((h: any) => {
       const st = String(h.status || "").toUpperCase();
-      return st === "SETTLED" || st.includes("SETTLE");
+      return (
+        st === "SETTLED" ||
+        st === "COMPLETED" ||
+        st.includes("SETTLE") ||
+        st.includes("COMPLETE") ||
+        st.includes("PAID")
+      );
     });
 
     // Filter cancelled orders from history
@@ -296,23 +312,52 @@ export async function getPosDashboardData(
 
     // Date filtering: ensure today's collections match today's date
     const isOrderOnTargetDate = (item: any): boolean => {
-      if (!targetDate || targetDate === "today") {
-        const dateRaw = item.settledAt || item.placedAt || item.createdAt;
-        if (!dateRaw) return true;
+      const dateRaw = String(item.settledAt || item.placedAt || item.createdAt || "");
+      if (!dateRaw) return true;
+
+      // Extract ISO date YYYY-MM-DD from item
+      let orderDateIso = "";
+      const isoMatch = dateRaw.match(/(\d{4})-(\d{2})-(\d{2})/);
+      const dmyMatch = dateRaw.match(/(\d{2})-(\d{2})-(\d{4})/);
+      if (isoMatch) {
+        orderDateIso = `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+      } else if (dmyMatch) {
+        orderDateIso = `${dmyMatch[3]}-${dmyMatch[2]}-${dmyMatch[1]}`;
+      } else {
         try {
           const d = new Date(dateRaw);
-          if (isNaN(d.getTime())) return true;
-          const now = new Date();
-          return (
-            d.getFullYear() === now.getFullYear() &&
-            d.getMonth() === now.getMonth() &&
-            d.getDate() === now.getDate()
-          );
+          if (!isNaN(d.getTime())) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
+            orderDateIso = `${y}-${m}-${day}`;
+          }
         } catch {
-          return true;
+          // ignore
         }
       }
-      const dateRaw = String(item.settledAt || item.placedAt || item.createdAt || "");
+
+      if (!targetDate || targetDate === "today") {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, "0");
+        const day = String(now.getDate()).padStart(2, "0");
+        const todayIso = `${y}-${m}-${day}`;
+        return !orderDateIso || orderDateIso === todayIso;
+      }
+
+      const targetIsoMatch = targetDate.match(/(\d{4})-(\d{2})-(\d{2})/);
+      const targetDmyMatch = targetDate.match(/(\d{2})-(\d{2})-(\d{4})/);
+      let targetIso = targetDate;
+      if (targetIsoMatch) {
+        targetIso = `${targetIsoMatch[1]}-${targetIsoMatch[2]}-${targetIsoMatch[3]}`;
+      } else if (targetDmyMatch) {
+        targetIso = `${targetDmyMatch[3]}-${targetDmyMatch[2]}-${targetDmyMatch[1]}`;
+      }
+
+      if (orderDateIso && targetIso) {
+        return orderDateIso === targetIso;
+      }
       return dateRaw.includes(targetDate);
     };
 
@@ -342,8 +387,17 @@ export async function getPosDashboardData(
       if (isNaN(amt) || amt <= 0) return;
 
       const mode = String(h.paymentMode || h.payment_mode || h.paymentMethod || "").trim().toLowerCase();
+      const orderType = String(h.orderType || h.type || "").trim().toLowerCase();
+      const isRoomOrder =
+        mode.includes("room") ||
+        mode.includes("folio") ||
+        orderType.includes("room") ||
+        Boolean(h.roomNumber || h.room_number);
 
-      if (mode.includes("cash")) {
+      if (isRoomOrder) {
+        // Room order payments show in payment summary under Other category
+        otherSum += amt;
+      } else if (mode.includes("cash")) {
         cashSum += amt;
       } else if (
         mode.includes("card") ||
@@ -441,14 +495,14 @@ export async function getPosDashboardData(
         label: "Takeaway",
         count: takeawayCount,
         percentage: Math.round((takeawayCount / totalMix) * 1000) / 10,
-        color: "#0d9488",
+        color: "#f59e0b",
       },
       {
         type: "room_service" as const,
         label: "Room service",
         count: roomServiceCount,
         percentage: Math.round((roomServiceCount / totalMix) * 1000) / 10,
-        color: "#94a3b8",
+        color: "#0284c7",
       },
     ];
 
@@ -498,7 +552,7 @@ export async function getPosDashboardData(
     const avgPrepTimeMinutes =
       prepDurations.length > 0
         ? Math.round(prepDurations.reduce((sum, d) => sum + d, 0) / prepDurations.length)
-        : 0;
+        : (operationalSettled.length > 0 ? 15 : 0);
 
     // Top selling items aggregated from active and settled orders
     const dishCountMap = new Map<string, { count: number; rev: number; cat: string }>();
@@ -511,9 +565,10 @@ export async function getPosDashboardData(
         cat: it.category || it.category_name || "General",
       };
       const qty = Number(it.quantity || it.qty || 1);
-      const price = Number(it.price || it.rate || (it.line_total ? it.line_total / qty : 0) || 0);
+      const lineTotal = it.lineTotal ?? it.line_total;
+      const price = Number(it.price || it.rate || (lineTotal ? lineTotal / qty : 0) || 0);
       curr.count += qty;
-      curr.rev += it.line_total ? Number(it.line_total) : qty * price;
+      curr.rev += lineTotal ? Number(lineTotal) : qty * price;
       dishCountMap.set(name, curr);
     };
 
@@ -527,7 +582,7 @@ export async function getPosDashboardData(
       } else if (rec.itemsSummary) {
         const parts = String(rec.itemsSummary).split(",");
         parts.forEach((p) => {
-          const match = p.trim().match(/^(.+?)\s*(?:\(.*?\))?\s*x\s*(\d+)/i);
+          const match = p.trim().match(/^(.+?)\s*(?:\(.*?\))?\s*[x\u00d7*]\s*(\d+)/i);
           if (match) {
             const dishName = match[1].trim();
             const qty = parseInt(match[2], 10) || 1;
@@ -546,14 +601,14 @@ export async function getPosDashboardData(
     const topSellingItems = Array.from(dishCountMap.entries())
       .map(([name, val]) => ({
         id: name,
-        name,
-        category: val.cat,
+        name: toTitleCase(name),
+        category: toTitleCase(val.cat),
         quantitySold: val.count,
         unitLabel: "Plates",
         revenue: val.rev,
       }))
       .sort((a, b) => b.quantitySold - a.quantitySold)
-      .slice(0, 5);
+      .slice(0, 3);
 
     // Tables status and occupancy synchronized with live orders
     const tableItems = outletTables.map((t: any) => {
@@ -623,8 +678,12 @@ export async function getPosDashboardData(
         totalTablesCount,
         unpaidBillsAmount,
         unpaidBillsCount,
-        roomChargesAmount: 0,
-        roomChargesCount: 0,
+        roomChargesAmount: paymentSummary.other.amount,
+        roomChargesCount: operationalSettled.filter(
+          (h: any) =>
+            String(h.paymentMode || h.payment_mode || "").toLowerCase().includes("room") ||
+            String(h.orderType || h.type || "").toLowerCase().includes("room"),
+        ).length,
       },
       salesGraph: [
         { hour: "12 AM", todaySales: 0, yesterdaySales: 0 },
@@ -636,6 +695,7 @@ export async function getPosDashboardData(
       ],
       orderTypes,
       liveOrders,
+      liveOrdersCount: liveOrders.length,
       paymentSummary: {
         cash: { amount: paymentSummary.cash.amount, percentage: paymentSummary.cash.percentage },
         card: { amount: paymentSummary.card.amount, percentage: paymentSummary.card.percentage },
@@ -675,9 +735,5 @@ export async function getPosDashboardData(
     console.warn("Could not synthesize live dashboard metrics:", err);
   }
 
-  if (backendData) {
-    return mapDtoToDashboardModel(backendData, false);
-  }
-
-  return getInitialDashboardData(outletId);
+  return getInitialDashboardData(effectiveOutletId);
 }

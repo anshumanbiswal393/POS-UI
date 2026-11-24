@@ -66,7 +66,7 @@ export function RoomGridFloorView({
       </div>
 
       {/* Room Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
         {rooms.map((room) => {
           const { roomNumber, roomType, isOccupied, guest, activeOrder, trayClearancePending } =
             room;
@@ -135,7 +135,8 @@ export function RoomGridFloorView({
                       )}
                     </div>
                     <span className="text-[10.5px] text-slate-400 block mt-0.5">
-                      Ext. {guest.phoneExtension} • {guest.checkInDate} - {guest.checkOutDate}
+                      {guest.phone || guest.mobile || guest.phoneExtension ? `Contact: ${guest.phone || guest.mobile || guest.phoneExtension}` : "In-house"}
+                      {guest.checkInDate && guest.checkOutDate ? ` • ${guest.checkInDate} - ${guest.checkOutDate}` : ""}
                     </span>
                   </div>
                 ) : (

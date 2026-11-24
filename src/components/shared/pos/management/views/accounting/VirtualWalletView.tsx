@@ -18,8 +18,12 @@ import {
   CreditCard,
   Phone,
   User,
+  Printer,
 } from "lucide-react";
+import { openPrintReportTable } from "@/utils/printReportTable";
 import { toast } from "sonner";
+import { ColorActionPrint, ColorActionView } from "@/components/common/ColorActionIcons";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import {
   PosCreateCancelButton,
@@ -43,6 +47,8 @@ interface WalletRecord {
   customerName: string;
   mobile: string;
   amount: number;
+  balance?: number;
+  status?: string;
   totalCredited: number;
   totalDebited: number;
   lastUsedDate: string;
@@ -68,17 +74,44 @@ export function VirtualWalletView() {
     if (!activeOutlet?.id) return;
     posManagementService.getWallets(activeOutlet.id).then((res) => {
       setRecords(
-        (res || []).map((w) => ({
-          id: w.id,
-          customerName: w.customer_name,
-          mobile: w.customer_mobile,
-          amount: parseFloat(w.balance) || 0,
-          totalCredited: parseFloat(w.total_credited) || 0,
-          totalDebited: parseFloat(w.total_debited) || 0,
-          lastUsedDate: w.last_transaction_at ? new Date(w.last_transaction_at).toLocaleString("en-IN") : "",
-          created: w.created_at ? new Date(w.created_at).toLocaleString("en-IN") : "",
-          transactions: [],
-        }))
+        (res || []).map((w: any) => {
+          const txs = Array.isArray(w.transactions) ? w.transactions : [];
+          const computedCredited = txs
+            .filter((t: any) => t.transaction_type === "credit")
+            .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0);
+          const computedDebited = txs
+            .filter((t: any) => t.transaction_type === "debit")
+            .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0);
+          const lastTx = txs[txs.length - 1];
+
+          return {
+            id: w.id,
+            customerName: w.customer_name || w.customerName || "Customer",
+            mobile: w.customer_mobile || w.customer_phone || w.mobile || "—",
+            amount: parseFloat(w.balance?.toString() || "0") || 0,
+            totalCredited:
+              parseFloat(w.total_credited?.toString() || "0") ||
+              computedCredited ||
+              0,
+            totalDebited:
+              parseFloat(w.total_debited?.toString() || "0") ||
+              computedDebited ||
+              0,
+            lastUsedDate: formatDateTimeIndian(
+              w.last_transaction_at || lastTx?.created_at || w.updated_at || w.created_at,
+            ),
+            created: formatDateTimeIndian(w.created_at),
+            transactions: txs.map((t: any) => ({
+              id: t.id,
+              type: t.transaction_type === "debit" ? "debit" : "credit",
+              amount: parseFloat(t.amount) || 0,
+              balanceAfter: parseFloat(t.balance_after) || 0,
+              reason: t.note || t.reference || "",
+              date: formatDateTimeIndian(t.created_at),
+              mode: t.reference || "UPI",
+            })),
+          };
+        })
       );
     }).catch(() => {});
   }, [activeOutlet?.id]);
@@ -104,15 +137,15 @@ export function VirtualWalletView() {
 
     const cleanMobile = formData.mobile.replace(/\D/g, "");
     if (!formData.mobile.trim()) {
-      errs.mobile = "Customer mobile number is required.";
+      errs.mobile = "Guest mobile number is required.";
     } else if (cleanMobile.length < 10 || cleanMobile.length > 12) {
       errs.mobile = "Enter a valid 10-digit mobile number.";
     }
 
     if (!formData.customerName.trim()) {
-      errs.customerName = "Customer full name is required.";
+      errs.customerName = "Guest full name is required.";
     } else if (formData.customerName.trim().length < 3) {
-      errs.customerName = "Customer name must be at least 3 characters.";
+      errs.customerName = "Guest name must be at least 3 characters.";
     }
 
     const amt = parseFloat(formData.amount);
@@ -241,7 +274,7 @@ export function VirtualWalletView() {
     () => [
       {
         id: "customerName",
-        header: "Customer Name",
+        header: "Guest Name",
         accessorKey: "customerName",
         sortable: true,
         filterable: true,
@@ -320,10 +353,10 @@ export function VirtualWalletView() {
           <button
             type="button"
             onClick={() => setStatementWallet(row)}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-teal-50 hover:text-teal-600 transition cursor-pointer inline-flex items-center justify-center"
+            className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer mx-auto"
             title="View Passbook Statement"
           >
-            <FileText className="h-4 w-4" />
+            <ColorActionView className="h-4 w-4" />
           </button>
         ),
       },
@@ -342,18 +375,74 @@ export function VirtualWalletView() {
     });
   }, [records, mobileFilter]);
 
+  const handlePrintReport = () => {
+    if (filteredRecords.length === 0) {
+      toast.info("No wallet accounts to print");
+      return;
+    }
+
+    const reportCols = [
+      { header: "GUEST NAME", align: "left" as const },
+      { header: "MOBILE", align: "left" as const },
+      { header: "WALLET BALANCE (₹)", align: "right" as const },
+      { header: "TOTAL CREDITED (₹)", align: "right" as const },
+      { header: "TOTAL DEBITED (₹)", align: "right" as const },
+      { header: "STATUS", align: "center" as const },
+      { header: "LAST ACTIVITY", align: "center" as const },
+    ];
+
+    const reportRows = filteredRecords.map((r) => [
+      r.customerName,
+      r.mobile,
+      Number(r.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      Number(r.totalCredited || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      Number(r.totalDebited || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      (r.status || "ACTIVE").toUpperCase(),
+      r.lastUsedDate || "—",
+    ]);
+
+    const totalBal = filteredRecords.reduce((s, r) => s + Number(r.balance || 0), 0);
+
+    openPrintReportTable({
+      title: "GUEST VIRTUAL WALLET MASTER REPORT",
+      hotelName: "Anshu Suite Restaurant",
+      subtitle: `Total Active Wallets: ${filteredRecords.length} • Total Float: ₹${totalBal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+      columns: reportCols,
+      rows: reportRows,
+      summaryTotals: [
+        "TOTAL",
+        `${filteredRecords.length} Wallets`,
+        totalBal.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+        "",
+        "",
+        "",
+        "",
+      ],
+    });
+  };
+
   return (
     <div className="w-full space-y-4 pb-10">
       {/* 1. Header with Add Action */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">Customer Virtual Wallet</h2>
+          <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">Guest Virtual Wallet</h2>
           <p className="text-[12px] text-slate-500 mt-0.5">
-            Manage prepaid customer deposits, loyalty store credits, and real-time passbook ledger settlements.
+            Manage prepaid guest deposits, loyalty store credits, and real-time passbook ledger settlements.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handlePrintReport}
+            disabled={filteredRecords.length === 0}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-xs disabled:opacity-50"
+            title="Print Guest Wallets Master Report"
+          >
+            <ColorActionPrint className="h-4 w-4" />
+            Print
+          </button>
           <button
             type="button"
             onClick={handleOpenAddModal}
@@ -373,7 +462,7 @@ export function VirtualWalletView() {
             <h3 className="text-xl font-bold font-mono text-slate-900 mt-1">
               ₹{totalBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">Customer balance payable</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Guest balance payable</p>
           </div>
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
             <Wallet className="h-5 w-5" />
@@ -426,11 +515,11 @@ export function VirtualWalletView() {
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1 min-w-[240px] flex-1">
-            <label className="text-[11.5px] font-semibold text-slate-600">Search Customer / Mobile</label>
+            <label className="text-[11.5px] font-semibold text-slate-600">Search Guest / Mobile</label>
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search by customer name or phone..."
+                placeholder="Search by guest name or phone..."
                 value={mobileFilter}
                 onChange={(e) => {
                   setMobileFilter(e.target.value);
@@ -446,8 +535,14 @@ export function VirtualWalletView() {
             <label className="text-[11.5px] font-semibold text-slate-600">Registered From</label>
             <input
               type="date"
+              max={new Date().toISOString().slice(0, 10)}
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                const todayIso = new Date().toISOString().slice(0, 10);
+                if (val && val > todayIso) return;
+                setStartDate(val);
+              }}
               className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
             />
           </div>
@@ -456,8 +551,14 @@ export function VirtualWalletView() {
             <label className="text-[11.5px] font-semibold text-slate-600">Registered To</label>
             <input
               type="date"
+              max={new Date().toISOString().slice(0, 10)}
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                const todayIso = new Date().toISOString().slice(0, 10);
+                if (val && val > todayIso) return;
+                setEndDate(val);
+              }}
               className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-800 shadow-2xs focus:border-teal-500 focus:outline-none cursor-pointer"
             />
           </div>
@@ -503,7 +604,7 @@ export function VirtualWalletView() {
         emptyState={
           <div className="py-12 text-center text-slate-400">
             <Wallet className="mx-auto h-8 w-8 mb-2 opacity-50 text-slate-300" />
-            <p className="text-sm font-semibold text-slate-600">No customer wallet accounts found</p>
+            <p className="text-sm font-semibold text-slate-600">No guest wallet accounts found</p>
             <p className="text-xs text-slate-400">Try adjusting your filters or issue a new wallet credit.</p>
           </div>
         }
@@ -512,8 +613,8 @@ export function VirtualWalletView() {
       <PosCreatePanel
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        title="Issue / Top-Up Customer Wallet"
-        description="Credit prepaid balance or customer loyalty float."
+        title="Issue / Top-Up Guest Wallet"
+        description="Credit prepaid balance or guest loyalty float."
         icon={Wallet}
         onSubmit={handleSubmitTopUp}
         footer={
@@ -523,10 +624,10 @@ export function VirtualWalletView() {
           </>
         }
       >
-              {/* Customer Mobile */}
+              {/* Guest Mobile */}
               <div className="space-y-1.5">
                 <label className="text-[12.5px] font-semibold text-slate-800">
-                  Customer Mobile Number <span className="text-rose-500 font-bold ml-0.5">*</span>
+                  Guest Mobile Number <span className="text-rose-500 font-bold ml-0.5">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -552,10 +653,10 @@ export function VirtualWalletView() {
                 )}
               </div>
 
-              {/* Customer Name */}
+              {/* Guest Name */}
               <div className="space-y-1.5">
                 <label className="text-[12.5px] font-semibold text-slate-800">
-                  Customer Full Name <span className="text-rose-500 font-bold ml-0.5">*</span>
+                  Guest Full Name <span className="text-rose-500 font-bold ml-0.5">*</span>
                 </label>
                 <div className="relative">
                   <input

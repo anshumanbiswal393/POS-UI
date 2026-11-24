@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useOutletContext } from "@/context/PosOutletContext";
 import {
   Save,
@@ -100,8 +100,9 @@ const TAX_SLABS: TaxSlabRecord[] = [
 
 export function GstInformationView() {
   const { activeOutlet } = useOutletContext();
+  const outletGstin = activeOutlet?.gstin || (activeOutlet as any)?.gstNumber || (activeOutlet as any)?.taxId || "";
   const [hasGst, setHasGst] = useState<"Yes" | "No">("Yes");
-  const [gstNumber, setGstNumber] = useState(activeOutlet?.gstin || "");
+  const [gstNumber, setGstNumber] = useState(outletGstin);
   const [registeredName, setRegisteredName] = useState("RETROD HOSPITALITY & RESORTS PVT LTD");
   const [registeredAddress, setRegisteredAddress] = useState(
     "PLOT NO 1977 KHATA NO 304/102, KARADAGADIA, Angul, Odisha, 759132"
@@ -109,9 +110,17 @@ export function GstInformationView() {
   const [state, setState] = useState("Odisha");
   const [city, setCity] = useState("Angul");
   const [vatNumber, setVatNumber] = useState("");
-  const [pan, setPan] = useState(activeOutlet?.gstin ? activeOutlet.gstin.slice(2, 12) : "");
+  const [pan, setPan] = useState(outletGstin ? outletGstin.slice(2, 12) : "");
   const [cin, setCin] = useState("");
   const [zipCode, setZipCode] = useState("");
+
+  useEffect(() => {
+    const val = activeOutlet?.gstin || (activeOutlet as any)?.gstNumber || (activeOutlet as any)?.taxId || "";
+    if (val && !gstNumber) {
+      setGstNumber(val);
+      setPan(val.slice(2, 12));
+    }
+  }, [activeOutlet]);
 
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
@@ -265,7 +274,7 @@ export function GstInformationView() {
       {/* 1. Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">
+          <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
             GST & Statutory Business Tax Profile
           </h2>
           <p className="text-[12px] text-slate-500 mt-0.5">

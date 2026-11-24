@@ -10,7 +10,6 @@ import {
   Users,
   Sparkles,
   LayoutGrid,
-  RotateCw,
   Plus,
   CalendarPlus,
   UserPlus,
@@ -39,6 +38,7 @@ interface TableFloorPlanProps {
   onOpenSeatGuest?: () => void;
   onOpenTakeOrder?: (tableId?: string) => void;
   onSwitchTable?: (reservation: ReservationItem) => void;
+  onSwitchOccupiedTable?: (table: RestaurantTable) => void;
   onSeatReservation?: (tableId: string, reservationId?: string) => void;
   stats?: TableManagementStats;
   onRefresh?: () => void;
@@ -62,9 +62,9 @@ export function TableFloorPlan({
   onOpenSeatGuest,
   onOpenTakeOrder,
   onSwitchTable,
+  onSwitchOccupiedTable,
   onSeatReservation,
   stats,
-  onRefresh,
   onDeleteArea,
   onDeleteTable,
 }: TableFloorPlanProps) {
@@ -135,7 +135,7 @@ export function TableFloorPlan({
       <div className="px-5 py-3.5 sm:px-6 sm:py-3.5 border-b border-slate-200/80 bg-white shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
               <span>Manage Tables</span>
               {stats && (
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
@@ -143,15 +143,12 @@ export function TableFloorPlan({
                 </span>
               )}
             </h1>
-            <p className="text-[11.5px] text-slate-500 mt-0.5">
-              Live restaurant seating layout, floor occupancy, and reservation schedule.
-            </p>
           </div>
 
           {/* Area Switcher & Actions */}
-          <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto relative">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 self-start sm:self-auto relative max-w-full">
             {/* Area Switcher with + button */}
-            <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/60 relative">
+            <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/60 relative max-w-full overflow-x-auto">
               {areas.length === 0 ? (
                 <div className="relative">
 
@@ -293,6 +290,15 @@ export function TableFloorPlan({
                 ({areas.length === 0 ? 0 : (Array.isArray(tables) ? tables : []).filter((t) => t && t.status === "occupied").length})
               </span>
             </div>
+
+            {/* Billed */}
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-300/80 text-amber-950 font-bold text-[11px]">
+              <span className="h-2 w-2 rounded-full bg-amber-500 border border-amber-600" />
+              <span>Billed</span>
+              <span className="text-[10px] text-amber-700 font-extrabold ml-0.5">
+                ({areas.length === 0 ? 0 : (Array.isArray(tables) ? tables : []).filter((t) => t && t.status === "billed").length})
+              </span>
+            </div>
           </div>
 
           {/* User Requested: Quick action buttons */}
@@ -316,17 +322,6 @@ export function TableFloorPlan({
               >
                 <CalendarPlus className="w-3.5 h-3.5 text-amber-300" />
                 <span>Book Reservation</span>
-              </button>
-            )}
-
-            {onRefresh && (
-              <button
-                type="button"
-                onClick={onRefresh}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
-                title="Refresh floor status"
-              >
-                <RotateCw className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
@@ -463,7 +458,7 @@ export function TableFloorPlan({
             )}
           </div>
         ) : (
-          <div className="w-full max-w-7xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 py-1 items-stretch">
+          <div className="w-full max-w-[1680px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 py-1 items-stretch">
             {tables.map((table) => (
               <TableCardItem
                 key={table.id}
@@ -471,6 +466,7 @@ export function TableFloorPlan({
                 onSelectReserved={onSelectReserved}
                 onSelectTable={onSelectTable}
                 onDeleteTable={onDeleteTable}
+                onSwitchOccupiedTable={onSwitchOccupiedTable}
               />
             ))}
           </div>

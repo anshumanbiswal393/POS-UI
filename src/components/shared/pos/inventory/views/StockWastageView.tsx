@@ -23,13 +23,16 @@ import {
 } from "@/components/common/DataTableHeader";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { toast } from "sonner";
+import { PageHeader, KpiCard } from "@/components/ui/Primitives";
 import {
   RecordWastageModal,
   type WastageFormValues,
 } from "@/components/shared/pos/inventory/modals/RecordWastageModal";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 
 type WastageEntry = {
   id: string;
+  stockItemId?: string;
   date: string;
   dateKey: string;
   item: string;
@@ -62,6 +65,7 @@ export function StockWastageView() {
   const [search, setSearch] = useState("");
   const [reasonFilter, setReasonFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
+  const [deleteTarget, setDeleteTarget] = useState<WastageEntry | null>(null);
   const { activeOutlet } = useOutletContext();
   const isLive = isBackendOutletId(activeOutlet.id);
   const { data: stockItems = [] } = useStockItems();
@@ -77,6 +81,7 @@ export function StockWastageView() {
         : localEntries;
   const entries: WastageEntry[] = (rawList as Array<Record<string, unknown>>).map((row) => ({
     id: String(row.id),
+    stockItemId: String(row.stockItemId || row.stock_item_id || ""),
     date: String(row.date || ""),
     dateKey: String(row.dateKey || ""),
     item: String(row.item || ""),
@@ -241,6 +246,7 @@ export function StockWastageView() {
               }, 0) + 1;
             const entry: WastageEntry = {
               id: `WST-${String(nextNum).padStart(3, "0")}`,
+              stockItemId: values.stockItemId,
               date: formatDisplayDate(values.date),
               dateKey: values.date,
               item: values.item,
@@ -266,95 +272,63 @@ export function StockWastageView() {
   };
 
   const handleDelete = (entry: WastageEntry) => {
-    if (!confirm(`Remove wastage entry ${entry.id} (${entry.item})?`)) return;
-    if (isLive) {
-      deleteWastage.mutate(entry.id, { onSuccess: () => toast.success(`${entry.id} removed`) });
-      return;
-    }
-    setLocalEntries((prev) => prev.filter((e) => e.id !== entry.id));
-    toast.success(`${entry.id} removed`);
+    const qty = parseFloat(entry.quantity) || 0;
+    deleteWastage.mutate(
+      { id: entry.id, stockItemId: entry.stockItemId, quantity: qty },
+      {
+        onSuccess: () => {
+          if (!isLive) {
+            setLocalEntries((prev) => prev.filter((e) => e.id !== entry.id));
+          }
+          toast.success(`${entry.id} removed`);
+        },
+      },
+    );
   };
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
-        <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 border border-rose-200">
-            <AlertTriangle className="h-5 w-5" />
+      {/* 1. Header (PMS Standard PageHeader) */}
+      <PageHeader
+        title="Stock Wastage & Leakage"
+        eyebrow="Inventory Shrinkage & Loss Prevention"
+        actions={
+          <div className="flex items-center gap-2">
+            <ExportToExcelButton
+              onClick={() => toast.success(`Exporting ${filtered.length} wastage rows to Excel...`)}
+            />
+            <button
+              type="button"
+              onClick={() => setIsRecordOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-2 text-[12.5px] font-semibold text-white shadow-xs hover:bg-rose-700 transition cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Record Wastage</span>
+            </button>
           </div>
-          <div>
-            <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">
-              Stock Wastage & Leakage
-            </h2>
-            <p className="text-[12.5px] text-slate-500 mt-0.5 max-w-xl">
-              Record, monitor, and investigate damaged goods, kitchen prep shrinkage, and expired
-              items.
-            </p>
-          </div>
-        </div>
+        }
+      />
 
-        <div className="flex items-center gap-2">
-          <ExportToExcelButton
-            onClick={() => toast.success(`Exporting ${filtered.length} wastage rows to Excel...`)}
-          />
-          <button
-            type="button"
-            onClick={() => setIsRecordOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-rose-600 px-4 py-2 text-[12.5px] font-semibold text-white shadow-2xs hover:bg-rose-700 transition cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            Record Wastage
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
+      {/* 2. KPI Cards (PMS Standard KpiCard Grid) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-2xl border border-rose-200 bg-linear-to-br from-rose-50 to-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11.5px] font-bold uppercase tracking-wider text-rose-700">
-              Month-To-Date Wastage Cost
-            </span>
-            <TrendingDown className="h-4 w-4 text-rose-500" />
-          </div>
-          <div className="text-[26px] font-extrabold text-rose-600 mt-1 tracking-tight">
-            {formatINR(kpis.totalCost)}
-          </div>
-          <div className="text-[11.5px] text-slate-600 mt-0.5">
-            {kpis.pct}% of gross ingredient purchases
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11.5px] font-bold uppercase tracking-wider text-slate-500">
-              Highest Wastage Category
-            </span>
-            <Layers className="h-4 w-4 text-slate-400" />
-          </div>
-          <div className="text-[22px] font-extrabold text-slate-900 mt-1 tracking-tight truncate">
-            {kpis.topCategory}
-          </div>
-          <div className="text-[11.5px] text-slate-500 mt-0.5">
-            {kpis.topCost > 0 ? `${formatINR(kpis.topCost)} lost in this category` : "No data yet"}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11.5px] font-bold uppercase tracking-wider text-slate-500">
-              Incidents Logged
-            </span>
-            <ClipboardList className="h-4 w-4 text-teal-600" />
-          </div>
-          <div className="text-[26px] font-extrabold text-slate-900 mt-1 tracking-tight">
-            {kpis.count} recorded
-          </div>
-          <div className="text-[11.5px] text-teal-700 font-semibold mt-0.5">
-            All entries require approver sign-off
-          </div>
-        </div>
+        <KpiCard
+          label="MTD Wastage Cost"
+          value={formatINR(kpis.totalCost)}
+          accent="error"
+          subtitle={`${kpis.pct}% of gross ingredient purchases`}
+        />
+        <KpiCard
+          label="Top Wastage Category"
+          value={kpis.topCategory}
+          accent="warning"
+          subtitle={kpis.topCost > 0 ? `${formatINR(kpis.topCost)} loss logged` : "No wastage recorded"}
+        />
+        <KpiCard
+          label="Incidents Logged"
+          value={`${kpis.count} recorded`}
+          accent="brand"
+          subtitle="All entries require approver sign-off"
+        />
       </div>
 
       {/* Filters + Table */}
@@ -461,7 +435,7 @@ export function StockWastageView() {
                     <td className="px-4 py-3 text-right">
                       <button
                         type="button"
-                        onClick={() => handleDelete(w)}
+                        onClick={() => setDeleteTarget(w)}
                         className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
                         title="Remove entry"
                       >
@@ -493,6 +467,30 @@ export function StockWastageView() {
         onClose={() => setIsRecordOpen(false)}
         onSave={handleRecord}
         stockItems={stockItems}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Remove Wastage Entry"
+        itemName={deleteTarget?.item}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to remove wastage entry{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.id}"</span> ({deleteTarget.item})?
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            handleDelete(deleteTarget);
+            setDeleteTarget(null);
+          }
+        }}
       />
     </div>
   );

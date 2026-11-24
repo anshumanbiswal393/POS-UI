@@ -62,11 +62,14 @@ export const SAMPRITA_ADMIN_USER: AppUser = {
   name: "Samprita Patra",
   email: "sampritapatra123@gmail.com",
   role: "pos_admin",
+  role_name: "POS Administrator",
   phone: "9937884878",
   active: true,
   lastActive: "Now",
   initials: "SP",
-  property: "Anshu Suite Restaurant · Main Outlet",
+  property: "Main Restaurant · Main Outlet",
+  outlet_name: "Main Restaurant",
+  assigned_outlet_name: "Main Restaurant",
   permissions: ["*:*"],
 };
 
@@ -79,7 +82,7 @@ export const KITCHEN_USER: AppUser = {
   active: true,
   lastActive: "Now",
   initials: "KC",
-  property: "Anshu Suite Restaurant · Main Kitchen",
+  property: "Main Restaurant · Main Kitchen",
   permissions: [
     "pos.kot.view",
     "pos.kot.status",
@@ -102,7 +105,7 @@ export const ARNAV_STAFF_USER: AppUser = {
   active: true,
   lastActive: "Now",
   initials: "AR",
-  property: "Anshu Suite Restaurant · Main Outlet",
+  property: "Main Restaurant · Main Outlet",
   permissions: [
     "pos.billing.view",
     "pos.billing.create",
@@ -121,7 +124,7 @@ export const WAITER_USER: AppUser = {
   active: true,
   lastActive: "Now",
   initials: "RW",
-  property: "Anshu Suite Restaurant · Main Outlet",
+  property: "Main Restaurant · Main Outlet",
   permissions: [
     "pos.billing.view",
     "pos.billing.create",
@@ -189,7 +192,7 @@ function loadCachedUsers(): AppUser[] {
                 active: pu.is_active ?? true,
                 lastActive: "Now",
                 initials: pu.initials || pu.name?.slice(0, 2).toUpperCase() || "US",
-                property: pu.outlet_name || "Anshu Suite Restaurant · Main Outlet",
+                property: pu.outlet_name || "Main Restaurant · Main Outlet",
                 permissions: pu.permissions || [],
               });
             }
@@ -209,6 +212,11 @@ function loadCachedUsers(): AppUser[] {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Synchronously parse SSO parameters from URL before state initialization
+  if (typeof window !== "undefined") {
+    parseSsoFromUrl();
+  }
+
   const [user, setUser] = useState<AppUser | null>(() => {
     if (typeof window === "undefined") return null;
     try {
@@ -284,10 +292,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (err: any) {
           console.warn("POS session verification background notice:", err?.message || err);
-          // If offline or network glitch, retain existing cached user
+          const errStr = String(err?.message || err).toLowerCase();
+          if (errStr.includes("401") || errStr.includes("unauthorized") || errStr.includes("token_not_valid")) {
+            authApi.clearTokens();
+            setUser(null);
+            redirectToPmsLogin();
+            return;
+          }
         }
       } else {
         // No token present
+        setUser(null);
         const isRetrod = window.location.hostname.endsWith("retrod.in");
         const isLoginPage = window.location.pathname === "/login";
         if (isRetrod && !isLoginPage) {
@@ -426,7 +441,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                       active: match.is_active ?? true,
                       lastActive: "Now",
                       initials: match.initials || match.name?.slice(0, 2).toUpperCase() || "US",
-                      property: match.outlet_name || "Anshu Suite Restaurant · Main Outlet",
+                      property: match.outlet_name || "Main Restaurant · Main Outlet",
                       permissions: match.permissions || [],
                     };
                   }
@@ -442,7 +457,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(found);
           if (typeof window !== "undefined") {
             localStorage.setItem(LS_USER, JSON.stringify(found));
-            localStorage.setItem("retrod:access-token", "pos-session-" + found.id);
+            const currentToken = getStoredAccessToken();
+            if (!currentToken || currentToken.startsWith("pos-session-")) {
+              localStorage.setItem("retrod:access-token", "pos-session-" + found.id);
+            }
           }
           addAuditEvent("User logged in", found.email, `Session started for ${found.name}.`, {
             name: found.name,
@@ -674,8 +692,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUsers((prev) => [...prev, invited]);
       },
       updateUser: (id, patch) => {
-        setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...patch } : u)));
-        if (user?.id === id) setUser((u) => (u ? { ...u, ...patch } : u));
+        setUsers((prev) => {
+          const next = prev.map((u) => (u.id === id ? { ...u, ...patch } : u));
+          try {
+            localStorage.setItem(LS_USERS, JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+        if (user?.id === id) {
+          setUser((u) => {
+            if (!u) return u;
+            const updated = { ...u, ...patch };
+            try {
+              localStorage.setItem(LS_USER, JSON.stringify(updated));
+            } catch {}
+            return updated;
+          });
+        }
       },
       deleteUser: (id) => {
         setUsers((prev) => prev.filter((u) => u.id !== id));

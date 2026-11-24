@@ -91,5 +91,42 @@ describe("POS Navigation - Stock Reports placement", () => {
     expect(hasBiller).toBe(false);
     expect(hasAdminGroup).toBe(false);
   });
+
+  it("keeps Daily Preparation only inside Manage Stock and removes duplicate from Food Menu", () => {
+    const menuSection = POS_NAV_ITEMS.find((item) => item.id === "menu");
+    expect(menuSection).toBeDefined();
+    const menuDailyPrep = (menuSection?.children || []).find(
+      (c) => c.id === "menu-daily-prep" || c.label === "Daily Preparation"
+    );
+    expect(menuDailyPrep).toBeUndefined();
+
+    const stockSection = POS_NAV_ITEMS.find((item) => item.id === "inventory");
+    const manageStockGroup = (stockSection?.children || []).find(
+      (c) => c.id === "manage-stock-group"
+    );
+    expect(manageStockGroup).toBeDefined();
+    const invDailyPrep = (manageStockGroup?.children || []).find(
+      (c) => c.id === "inv-daily-prep"
+    );
+    expect(invDailyPrep).toMatchObject({
+      id: "inv-daily-prep",
+      label: "Daily Preparation",
+      to: "/pos/inventory/production",
+    });
+  });
+
+  it("removes Purchase Returns from sidebar and maps Purchases directly to /pos/inventory/purchase", () => {
+    const stockSection = POS_NAV_ITEMS.find((item) => item.id === "inventory");
+    expect(stockSection).toBeDefined();
+
+    const stockChildren = stockSection?.children || [];
+    const purchaseReturns = stockChildren.find((c) => c.id === "purchase-return" || c.label === "Purchase Returns");
+    expect(purchaseReturns).toBeUndefined();
+
+    const purchasesItem = stockChildren.find((c) => c.id === "purchase-group" || c.id === "stock-purchase");
+    expect(purchasesItem).toBeDefined();
+    expect(purchasesItem?.to).toBe("/pos/inventory/purchase");
+    expect(purchasesItem?.children).toBeUndefined();
+  });
 });
 

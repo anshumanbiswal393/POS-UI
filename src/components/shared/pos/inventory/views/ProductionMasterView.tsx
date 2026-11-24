@@ -26,6 +26,7 @@ import {
   PosCreatePanel,
   PosCreateSubmitButton,
 } from "@/components/layout/pos/PosCreatePanel";
+import { ColorActionView, ColorActionEdit } from "@/components/common/ColorActionIcons";
 import { toast } from "sonner";
 import { exportToExcel } from "@/utils/exportUtils";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
@@ -37,6 +38,7 @@ import {
 } from "@/components/common/DataTableHeader";
 import { useNavigate } from "@tanstack/react-router";
 import { useStockItems } from "@/hooks/queries/usePosInventory";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 import {
   posProductionService,
   type ProductionRecipeDto,
@@ -48,6 +50,7 @@ export function ProductionMasterView() {
   const [recipes, setRecipes] = useState<ProductionRecipeDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<ProductionRecipeDto | null>(null);
 
   const { data: stockItems = [], isLoading: isStockLoading } = useStockItems();
 
@@ -436,7 +439,6 @@ export function ProductionMasterView() {
   };
 
   const handleDeleteRecipe = async (recipe: ProductionRecipeDto) => {
-    if (!window.confirm(`Are you sure you want to delete recipe '${recipe.name}'?`)) return;
     try {
       await posProductionService.deleteRecipe(recipe.id);
       setRecipes((prev) => prev.filter((r) => r.id !== recipe.id));
@@ -476,7 +478,7 @@ export function ProductionMasterView() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="font-serif text-[20px] font-bold text-slate-900 tracking-tight">Preparation Setup</h2>
+            <h2 className="text-[20px] font-bold text-slate-900 tracking-tight">Preparation Setup</h2>
             <span className="rounded-full bg-teal-50 border border-teal-200 px-2.5 py-0.5 text-[11px] font-semibold text-teal-700">
               BOM Recipes
             </span>
@@ -696,17 +698,17 @@ export function ProductionMasterView() {
                             type="button"
                             onClick={() => setViewingRecipe(r)}
                             title="View Recipe Details"
-                            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer"
+                            className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
                           >
-                            <Eye className="h-4 w-4" />
+                            <ColorActionView className="h-4 w-4" />
                           </button>
                           <button
                             type="button"
                             onClick={() => handleOpenEdit(r)}
                             title="Edit Recipe"
-                            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer"
+                            className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
                           >
-                            <Edit2 className="h-4 w-4" />
+                            <ColorActionEdit className="h-4 w-4" />
                           </button>
                           <button
                             type="button"
@@ -719,7 +721,7 @@ export function ProductionMasterView() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDeleteRecipe(r)}
+                            onClick={() => setDeleteTarget(r)}
                             title="Delete Recipe"
                             className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
                           >
@@ -1024,7 +1026,7 @@ export function ProductionMasterView() {
 
             <div className="flex-1 overflow-y-auto p-6 space-y-5">
               {/* Stats overview */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-2.5 sm:gap-3">
                 <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
                   <span className="text-[11px] text-slate-500 font-medium">Batch Yield</span>
                   <p className="text-[15px] font-bold text-slate-900 mt-0.5">
@@ -1110,6 +1112,30 @@ export function ProductionMasterView() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete Production Recipe"
+        itemName={deleteTarget?.name}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to permanently delete production recipe{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.name}"</span> ({deleteTarget.code})?
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            handleDeleteRecipe(deleteTarget);
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }

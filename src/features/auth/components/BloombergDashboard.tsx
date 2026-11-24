@@ -69,7 +69,7 @@ export function BloombergDashboard() {
               Restaurant Point of Sale & Operations
             </div>
 
-            <h1 className="mt-4 font-display text-[46px] leading-[1.05] tracking-tight">
+            <h1 className="mt-4 text-[46px] leading-[1.05] tracking-tight">
               Fast restaurant operations
               <br />
               start with{" "}
@@ -190,7 +190,7 @@ function KPIRow() {
           <div className="text-[10px] font-medium uppercase tracking-wider text-white/45">
             {k.label}
           </div>
-          <div className="mt-1 font-display text-[17px] font-semibold text-white">{k.value}</div>
+          <div className="mt-1 text-[17px] font-semibold text-white">{k.value}</div>
           <div className="mt-1 inline-flex items-center gap-1 text-[10px] text-emerald-300/90 font-medium">
             <TrendingUp className="h-3 w-3" />
             {k.delta}
@@ -213,7 +213,7 @@ function LiveOperationsCard() {
             Live Restaurant Velocity
           </div>
           <div className="mt-1 flex items-baseline gap-2">
-            <div className="font-display text-[19px] font-semibold text-white">
+            <div className="text-[19px] font-semibold text-white">
               184 Orders Today
             </div>
             <div className="text-[11px] text-emerald-300/90">● 98.2% on time</div>

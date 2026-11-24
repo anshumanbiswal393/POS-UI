@@ -13,19 +13,19 @@ export function CustomerConfigView() {
 
   return (
     <ConfigPageShell
-      title="Customer"
+      title="Guest"
       subtitle="Configure the billing screen and it's component."
-      onSave={() => persist({ ...config, customer: form }, "Customer settings saved", "customer")}
+      onSave={() => persist({ ...config, customer: form }, "Guest settings saved", "customer")}
       stepId="customer"
     >
-      <SettingRow label="Make customer mobile mandatory on billing?">
+      <SettingRow label="Make guest mobile mandatory on billing?">
         <YesNoRadios
           name="mandatoryMobile"
           value={form.mandatoryMobile}
           onChange={(v) => setForm((p) => ({ ...p, mandatoryMobile: v }))}
         />
       </SettingRow>
-      <SettingRow label="Make customer name mandatory?">
+      <SettingRow label="Make guest name mandatory?">
         <YesNoRadios
           name="mandatoryName"
           value={form.mandatoryName}
@@ -49,7 +49,7 @@ export function CustomerConfigView() {
           onChange={(v) => setForm((p) => ({ ...p, enableLoyalty: v }))}
         />
       </SettingRow>
-      <SettingRow label="Allow walk-in bills without a customer?">
+      <SettingRow label="Allow walk-in bills without a guest?">
         <YesNoRadios
           name="allowWalkInWithoutCustomer"
           value={form.allowWalkInWithoutCustomer}
@@ -70,21 +70,21 @@ export function CustomerConfigView() {
           onChange={(v) => setForm((p) => ({ ...p, captureBirthday: v }))}
         />
       </SettingRow>
-      <SettingRow label="Search existing customers by mobile number?">
+      <SettingRow label="Search existing guests by mobile number?">
         <YesNoRadios
           name="searchByMobile"
           value={form.searchByMobile}
           onChange={(v) => setForm((p) => ({ ...p, searchByMobile: v }))}
         />
       </SettingRow>
-      <SettingRow label="Auto-create a customer when a new number is billed?">
+      <SettingRow label="Auto-create a guest when a new number is billed?">
         <YesNoRadios
           name="autoCreateOnBill"
           value={form.autoCreateOnBill}
           onChange={(v) => setForm((p) => ({ ...p, autoCreateOnBill: v }))}
         />
       </SettingRow>
-      <SettingRow label="Show last orders for the selected customer?">
+      <SettingRow label="Show last orders for the selected guest?">
         <YesNoRadios
           name="showLastOrders"
           value={form.showLastOrders}

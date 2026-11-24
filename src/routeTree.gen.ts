@@ -20,6 +20,7 @@ import { Route as PosRoomServiceRouteImport } from './routes/pos.room-service'
 import { Route as PosReservationsRouteImport } from './routes/pos.reservations'
 import { Route as PosReportsRouteImport } from './routes/pos.reports'
 import { Route as PosOrdersRouteImport } from './routes/pos.orders'
+import { Route as PosNotificationsRouteImport } from './routes/pos.notifications'
 import { Route as PosMenuRouteImport } from './routes/pos.menu'
 import { Route as PosManagementRouteImport } from './routes/pos.management'
 import { Route as PosKotRouteImport } from './routes/pos.kot'
@@ -43,7 +44,6 @@ import { Route as PosManagementDataManagementRouteImport } from './routes/pos.ma
 import { Route as PosManagementAuditTrailRouteImport } from './routes/pos.management.audit-trail'
 import { Route as PosInventoryWastageRouteImport } from './routes/pos.inventory.wastage'
 import { Route as PosInventorySettingsRouteImport } from './routes/pos.inventory.settings'
-import { Route as PosInventorySalesRouteImport } from './routes/pos.inventory.sales'
 import { Route as PosInventoryReturnRouteImport } from './routes/pos.inventory.return'
 import { Route as PosInventoryReportsRouteImport } from './routes/pos.inventory.reports'
 import { Route as PosInventoryPurchasePaymentsRouteImport } from './routes/pos.inventory.purchase-payments'
@@ -92,7 +92,6 @@ import { Route as PosInventoryReportsStockSummaryRouteImport } from './routes/po
 import { Route as PosInventoryReportsOtherReportsRouteImport } from './routes/pos.inventory.reports.other-reports'
 import { Route as PosInventoryReportsOrderwiseConsumptionRouteImport } from './routes/pos.inventory.reports.orderwise-consumption'
 import { Route as PosInventoryProductionExecutionRouteImport } from './routes/pos.inventory.production.execution'
-import { Route as PosInventoryProductionBarcodeRouteImport } from './routes/pos.inventory.production.barcode'
 import { Route as PosInventoryMastersUnitsRouteImport } from './routes/pos.inventory.masters.units'
 import { Route as PosInventoryMastersSuppliersRouteImport } from './routes/pos.inventory.masters.suppliers'
 import { Route as PosInventoryMastersRecipesRouteImport } from './routes/pos.inventory.masters.recipes'
@@ -172,6 +171,11 @@ const PosReportsRoute = PosReportsRouteImport.update({
 const PosOrdersRoute = PosOrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
+  getParentRoute: () => PosRoute,
+} as any)
+const PosNotificationsRoute = PosNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => PosRoute,
 } as any)
 const PosMenuRoute = PosMenuRouteImport.update({
@@ -289,11 +293,6 @@ const PosInventoryWastageRoute = PosInventoryWastageRouteImport.update({
 const PosInventorySettingsRoute = PosInventorySettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => PosInventoryRoute,
-} as any)
-const PosInventorySalesRoute = PosInventorySalesRouteImport.update({
-  id: '/sales',
-  path: '/sales',
   getParentRoute: () => PosInventoryRoute,
 } as any)
 const PosInventoryReturnRoute = PosInventoryReturnRouteImport.update({
@@ -575,12 +574,6 @@ const PosInventoryProductionExecutionRoute =
     path: '/execution',
     getParentRoute: () => PosInventoryProductionRoute,
   } as any)
-const PosInventoryProductionBarcodeRoute =
-  PosInventoryProductionBarcodeRouteImport.update({
-    id: '/barcode',
-    path: '/barcode',
-    getParentRoute: () => PosInventoryProductionRoute,
-  } as any)
 const PosInventoryMastersUnitsRoute =
   PosInventoryMastersUnitsRouteImport.update({
     id: '/units',
@@ -742,6 +735,7 @@ export interface FileRoutesByFullPath {
   '/pos/kot': typeof PosKotRoute
   '/pos/management': typeof PosManagementRouteWithChildren
   '/pos/menu': typeof PosMenuRouteWithChildren
+  '/pos/notifications': typeof PosNotificationsRoute
   '/pos/orders': typeof PosOrdersRouteWithChildren
   '/pos/reports': typeof PosReportsRouteWithChildren
   '/pos/reservations': typeof PosReservationsRoute
@@ -759,7 +753,6 @@ export interface FileRoutesByFullPath {
   '/pos/inventory/purchase-payments': typeof PosInventoryPurchasePaymentsRoute
   '/pos/inventory/reports': typeof PosInventoryReportsRouteWithChildren
   '/pos/inventory/return': typeof PosInventoryReturnRoute
-  '/pos/inventory/sales': typeof PosInventorySalesRoute
   '/pos/inventory/settings': typeof PosInventorySettingsRoute
   '/pos/inventory/wastage': typeof PosInventoryWastageRoute
   '/pos/management/audit-trail': typeof PosManagementAuditTrailRoute
@@ -784,7 +777,6 @@ export interface FileRoutesByFullPath {
   '/pos/inventory/masters/recipes': typeof PosInventoryMastersRecipesRoute
   '/pos/inventory/masters/suppliers': typeof PosInventoryMastersSuppliersRoute
   '/pos/inventory/masters/units': typeof PosInventoryMastersUnitsRoute
-  '/pos/inventory/production/barcode': typeof PosInventoryProductionBarcodeRoute
   '/pos/inventory/production/execution': typeof PosInventoryProductionExecutionRoute
   '/pos/inventory/reports/orderwise-consumption': typeof PosInventoryReportsOrderwiseConsumptionRoute
   '/pos/inventory/reports/other-reports': typeof PosInventoryReportsOtherReportsRoute
@@ -853,6 +845,7 @@ export interface FileRoutesByTo {
   '/pos/kot': typeof PosKotRoute
   '/pos/management': typeof PosManagementRouteWithChildren
   '/pos/menu': typeof PosMenuRouteWithChildren
+  '/pos/notifications': typeof PosNotificationsRoute
   '/pos/orders': typeof PosOrdersRouteWithChildren
   '/pos/reports': typeof PosReportsRouteWithChildren
   '/pos/reservations': typeof PosReservationsRoute
@@ -870,7 +863,6 @@ export interface FileRoutesByTo {
   '/pos/inventory/purchase-payments': typeof PosInventoryPurchasePaymentsRoute
   '/pos/inventory/reports': typeof PosInventoryReportsRouteWithChildren
   '/pos/inventory/return': typeof PosInventoryReturnRoute
-  '/pos/inventory/sales': typeof PosInventorySalesRoute
   '/pos/inventory/settings': typeof PosInventorySettingsRoute
   '/pos/inventory/wastage': typeof PosInventoryWastageRoute
   '/pos/management/audit-trail': typeof PosManagementAuditTrailRoute
@@ -895,7 +887,6 @@ export interface FileRoutesByTo {
   '/pos/inventory/masters/recipes': typeof PosInventoryMastersRecipesRoute
   '/pos/inventory/masters/suppliers': typeof PosInventoryMastersSuppliersRoute
   '/pos/inventory/masters/units': typeof PosInventoryMastersUnitsRoute
-  '/pos/inventory/production/barcode': typeof PosInventoryProductionBarcodeRoute
   '/pos/inventory/production/execution': typeof PosInventoryProductionExecutionRoute
   '/pos/inventory/reports/orderwise-consumption': typeof PosInventoryReportsOrderwiseConsumptionRoute
   '/pos/inventory/reports/other-reports': typeof PosInventoryReportsOtherReportsRoute
@@ -965,6 +956,7 @@ export interface FileRoutesById {
   '/pos/kot': typeof PosKotRoute
   '/pos/management': typeof PosManagementRouteWithChildren
   '/pos/menu': typeof PosMenuRouteWithChildren
+  '/pos/notifications': typeof PosNotificationsRoute
   '/pos/orders': typeof PosOrdersRouteWithChildren
   '/pos/reports': typeof PosReportsRouteWithChildren
   '/pos/reservations': typeof PosReservationsRoute
@@ -982,7 +974,6 @@ export interface FileRoutesById {
   '/pos/inventory/purchase-payments': typeof PosInventoryPurchasePaymentsRoute
   '/pos/inventory/reports': typeof PosInventoryReportsRouteWithChildren
   '/pos/inventory/return': typeof PosInventoryReturnRoute
-  '/pos/inventory/sales': typeof PosInventorySalesRoute
   '/pos/inventory/settings': typeof PosInventorySettingsRoute
   '/pos/inventory/wastage': typeof PosInventoryWastageRoute
   '/pos/management/audit-trail': typeof PosManagementAuditTrailRoute
@@ -1007,7 +998,6 @@ export interface FileRoutesById {
   '/pos/inventory/masters/recipes': typeof PosInventoryMastersRecipesRoute
   '/pos/inventory/masters/suppliers': typeof PosInventoryMastersSuppliersRoute
   '/pos/inventory/masters/units': typeof PosInventoryMastersUnitsRoute
-  '/pos/inventory/production/barcode': typeof PosInventoryProductionBarcodeRoute
   '/pos/inventory/production/execution': typeof PosInventoryProductionExecutionRoute
   '/pos/inventory/reports/orderwise-consumption': typeof PosInventoryReportsOrderwiseConsumptionRoute
   '/pos/inventory/reports/other-reports': typeof PosInventoryReportsOtherReportsRoute
@@ -1078,6 +1068,7 @@ export interface FileRouteTypes {
     | '/pos/kot'
     | '/pos/management'
     | '/pos/menu'
+    | '/pos/notifications'
     | '/pos/orders'
     | '/pos/reports'
     | '/pos/reservations'
@@ -1095,7 +1086,6 @@ export interface FileRouteTypes {
     | '/pos/inventory/purchase-payments'
     | '/pos/inventory/reports'
     | '/pos/inventory/return'
-    | '/pos/inventory/sales'
     | '/pos/inventory/settings'
     | '/pos/inventory/wastage'
     | '/pos/management/audit-trail'
@@ -1120,7 +1110,6 @@ export interface FileRouteTypes {
     | '/pos/inventory/masters/recipes'
     | '/pos/inventory/masters/suppliers'
     | '/pos/inventory/masters/units'
-    | '/pos/inventory/production/barcode'
     | '/pos/inventory/production/execution'
     | '/pos/inventory/reports/orderwise-consumption'
     | '/pos/inventory/reports/other-reports'
@@ -1189,6 +1178,7 @@ export interface FileRouteTypes {
     | '/pos/kot'
     | '/pos/management'
     | '/pos/menu'
+    | '/pos/notifications'
     | '/pos/orders'
     | '/pos/reports'
     | '/pos/reservations'
@@ -1206,7 +1196,6 @@ export interface FileRouteTypes {
     | '/pos/inventory/purchase-payments'
     | '/pos/inventory/reports'
     | '/pos/inventory/return'
-    | '/pos/inventory/sales'
     | '/pos/inventory/settings'
     | '/pos/inventory/wastage'
     | '/pos/management/audit-trail'
@@ -1231,7 +1220,6 @@ export interface FileRouteTypes {
     | '/pos/inventory/masters/recipes'
     | '/pos/inventory/masters/suppliers'
     | '/pos/inventory/masters/units'
-    | '/pos/inventory/production/barcode'
     | '/pos/inventory/production/execution'
     | '/pos/inventory/reports/orderwise-consumption'
     | '/pos/inventory/reports/other-reports'
@@ -1300,6 +1288,7 @@ export interface FileRouteTypes {
     | '/pos/kot'
     | '/pos/management'
     | '/pos/menu'
+    | '/pos/notifications'
     | '/pos/orders'
     | '/pos/reports'
     | '/pos/reservations'
@@ -1317,7 +1306,6 @@ export interface FileRouteTypes {
     | '/pos/inventory/purchase-payments'
     | '/pos/inventory/reports'
     | '/pos/inventory/return'
-    | '/pos/inventory/sales'
     | '/pos/inventory/settings'
     | '/pos/inventory/wastage'
     | '/pos/management/audit-trail'
@@ -1342,7 +1330,6 @@ export interface FileRouteTypes {
     | '/pos/inventory/masters/recipes'
     | '/pos/inventory/masters/suppliers'
     | '/pos/inventory/masters/units'
-    | '/pos/inventory/production/barcode'
     | '/pos/inventory/production/execution'
     | '/pos/inventory/reports/orderwise-consumption'
     | '/pos/inventory/reports/other-reports'
@@ -1485,6 +1472,13 @@ declare module '@tanstack/react-router' {
       path: '/orders'
       fullPath: '/pos/orders'
       preLoaderRoute: typeof PosOrdersRouteImport
+      parentRoute: typeof PosRoute
+    }
+    '/pos/notifications': {
+      id: '/pos/notifications'
+      path: '/notifications'
+      fullPath: '/pos/notifications'
+      preLoaderRoute: typeof PosNotificationsRouteImport
       parentRoute: typeof PosRoute
     }
     '/pos/menu': {
@@ -1646,13 +1640,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/pos/inventory/settings'
       preLoaderRoute: typeof PosInventorySettingsRouteImport
-      parentRoute: typeof PosInventoryRoute
-    }
-    '/pos/inventory/sales': {
-      id: '/pos/inventory/sales'
-      path: '/sales'
-      fullPath: '/pos/inventory/sales'
-      preLoaderRoute: typeof PosInventorySalesRouteImport
       parentRoute: typeof PosInventoryRoute
     }
     '/pos/inventory/return': {
@@ -1991,13 +1978,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PosInventoryProductionExecutionRouteImport
       parentRoute: typeof PosInventoryProductionRoute
     }
-    '/pos/inventory/production/barcode': {
-      id: '/pos/inventory/production/barcode'
-      path: '/barcode'
-      fullPath: '/pos/inventory/production/barcode'
-      preLoaderRoute: typeof PosInventoryProductionBarcodeRouteImport
-      parentRoute: typeof PosInventoryProductionRoute
-    }
     '/pos/inventory/masters/units': {
       id: '/pos/inventory/masters/units'
       path: '/units'
@@ -2202,13 +2182,11 @@ const PosInventoryMastersRouteWithChildren =
   PosInventoryMastersRoute._addFileChildren(PosInventoryMastersRouteChildren)
 
 interface PosInventoryProductionRouteChildren {
-  PosInventoryProductionBarcodeRoute: typeof PosInventoryProductionBarcodeRoute
   PosInventoryProductionExecutionRoute: typeof PosInventoryProductionExecutionRoute
 }
 
 const PosInventoryProductionRouteChildren: PosInventoryProductionRouteChildren =
   {
-    PosInventoryProductionBarcodeRoute: PosInventoryProductionBarcodeRoute,
     PosInventoryProductionExecutionRoute: PosInventoryProductionExecutionRoute,
   }
 
@@ -2243,7 +2221,6 @@ interface PosInventoryRouteChildren {
   PosInventoryPurchasePaymentsRoute: typeof PosInventoryPurchasePaymentsRoute
   PosInventoryReportsRoute: typeof PosInventoryReportsRouteWithChildren
   PosInventoryReturnRoute: typeof PosInventoryReturnRoute
-  PosInventorySalesRoute: typeof PosInventorySalesRoute
   PosInventorySettingsRoute: typeof PosInventorySettingsRoute
   PosInventoryWastageRoute: typeof PosInventoryWastageRoute
 }
@@ -2258,7 +2235,6 @@ const PosInventoryRouteChildren: PosInventoryRouteChildren = {
   PosInventoryPurchasePaymentsRoute: PosInventoryPurchasePaymentsRoute,
   PosInventoryReportsRoute: PosInventoryReportsRouteWithChildren,
   PosInventoryReturnRoute: PosInventoryReturnRoute,
-  PosInventorySalesRoute: PosInventorySalesRoute,
   PosInventorySettingsRoute: PosInventorySettingsRoute,
   PosInventoryWastageRoute: PosInventoryWastageRoute,
 }
@@ -2491,6 +2467,7 @@ interface PosRouteChildren {
   PosKotRoute: typeof PosKotRoute
   PosManagementRoute: typeof PosManagementRouteWithChildren
   PosMenuRoute: typeof PosMenuRouteWithChildren
+  PosNotificationsRoute: typeof PosNotificationsRoute
   PosOrdersRoute: typeof PosOrdersRouteWithChildren
   PosReportsRoute: typeof PosReportsRouteWithChildren
   PosReservationsRoute: typeof PosReservationsRoute
@@ -2508,6 +2485,7 @@ const PosRouteChildren: PosRouteChildren = {
   PosKotRoute: PosKotRoute,
   PosManagementRoute: PosManagementRouteWithChildren,
   PosMenuRoute: PosMenuRouteWithChildren,
+  PosNotificationsRoute: PosNotificationsRoute,
   PosOrdersRoute: PosOrdersRouteWithChildren,
   PosReportsRoute: PosReportsRouteWithChildren,
   PosReservationsRoute: PosReservationsRoute,

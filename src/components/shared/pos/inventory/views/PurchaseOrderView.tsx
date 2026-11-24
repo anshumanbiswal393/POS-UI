@@ -14,6 +14,8 @@ import {
 } from "@/components/common/DataTableHeader";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
 import { toast } from "sonner";
+import { ColorActionView, ColorActionDelete } from "@/components/common/ColorActionIcons";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 
 export function PurchaseOrderView() {
   const { data: purchaseOrders } = usePurchaseOrders();
@@ -28,6 +30,7 @@ export function PurchaseOrderView() {
   const [poFilter, setPoFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; poNumber: string } | null>(null);
 
   const poColumns: DataTableColumn<any>[] = useMemo(
     () => [
@@ -116,7 +119,7 @@ export function PurchaseOrderView() {
     <div className="space-y-4">
       {/* 1. Header & Actions matching Screenshot 2 */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">Purchase Order List</h2>
+        <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">Purchase Order List</h2>
 
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -152,8 +155,14 @@ export function PurchaseOrderView() {
             </label>
             <input
               type="date"
+              max={new Date().toISOString().slice(0, 10)}
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                const todayIso = new Date().toISOString().slice(0, 10);
+                if (val && val > todayIso) return;
+                setStartDate(val);
+              }}
               className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] text-slate-800 focus:border-teal-500 focus:outline-none"
             />
           </div>
@@ -162,8 +171,14 @@ export function PurchaseOrderView() {
             <label className="block text-[11.5px] font-medium text-slate-600 mb-1">End Date</label>
             <input
               type="date"
+              max={new Date().toISOString().slice(0, 10)}
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                const todayIso = new Date().toISOString().slice(0, 10);
+                if (val && val > todayIso) return;
+                setEndDate(val);
+              }}
               className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-[12.5px] text-slate-800 focus:border-teal-500 focus:outline-none"
             />
           </div>
@@ -296,22 +311,19 @@ export function PurchaseOrderView() {
                           <button
                             type="button"
                             onClick={() => toast.info(`Viewing PO ${po.poNumber}`)}
-                            className="p-1 hover:text-teal-600 hover:bg-slate-100 rounded transition cursor-pointer"
+                            className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
                             title="View"
                           >
-                            <Eye className="h-4 w-4" />
+                            <ColorActionView className="h-4 w-4" />
                           </button>
                         )}
                         <button
                           type="button"
-                          onClick={() => {
-                            deleteMutation.mutate(po.id);
-                            toast.success(`Deleted PO ${po.poNumber}`);
-                          }}
-                          className="p-1 hover:text-red-600 hover:bg-slate-100 rounded transition cursor-pointer"
+                          onClick={() => setDeleteTarget({ id: po.id, poNumber: po.poNumber })}
+                          className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
                           title="Delete"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <ColorActionDelete className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
@@ -334,6 +346,31 @@ export function PurchaseOrderView() {
       </div>
 
       <CreatePurchaseOrderModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+
+      {/* Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete Purchase Order"
+        itemName={deleteTarget?.poNumber}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to delete purchase order{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.poNumber}"</span>?
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            deleteMutation.mutate(deleteTarget.id);
+            toast.success(`Deleted PO ${deleteTarget.poNumber}`);
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }

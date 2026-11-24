@@ -15,12 +15,16 @@ export interface PosCustomerRecord {
 
 const STORAGE_KEY = "retrod:pos:customers:store";
 
+let inMemoryCustomers: PosCustomerRecord[] = [];
+
 // No hardcoded customers — starts clean, populated only by real added guests
 export function getPosCustomers(outletId?: string): PosCustomerRecord[] {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined" || typeof localStorage === "undefined") {
+    return inMemoryCustomers;
+  }
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) return inMemoryCustomers;
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
       // Purge any legacy dummy mock customers
@@ -32,11 +36,12 @@ export function getPosCustomers(outletId?: string): PosCustomerRecord[] {
       if (realCustomers.length !== parsed.length) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(realCustomers));
       }
+      inMemoryCustomers = realCustomers;
       return realCustomers;
     }
-    return [];
+    return inMemoryCustomers;
   } catch {
-    return [];
+    return inMemoryCustomers;
   }
 }
 
@@ -46,6 +51,8 @@ export function savePosCustomer(
     phone: string;
     email?: string;
     tier?: "Silver" | "Gold" | "Platinum VIP";
+    loyaltyPoints?: number;
+    visitCount?: number;
     gstin?: string;
     address?: string;
     notes?: string;
@@ -53,24 +60,30 @@ export function savePosCustomer(
   outletId?: string
 ): PosCustomerRecord {
   const current = getPosCustomers(outletId);
+  const cleanPhone = input.phone.trim();
+  const existing = cleanPhone ? current.find((c) => c.phone.trim() === cleanPhone) : undefined;
+
   const newCustomer: PosCustomerRecord = {
-    id: `cust-${Date.now()}`,
+    id: existing?.id || `cust-${Date.now()}`,
     name: input.name.trim(),
-    phone: input.phone.trim(),
-    email: input.email?.trim() || undefined,
-    tier: input.tier || "Silver",
-    loyaltyPoints: 0,
-    visitCount: 1,
+    phone: cleanPhone,
+    email: input.email?.trim() || existing?.email || undefined,
+    tier: input.tier || existing?.tier || "Silver",
+    loyaltyPoints: input.loyaltyPoints !== undefined ? input.loyaltyPoints : (existing?.loyaltyPoints ?? 0),
+    visitCount: input.visitCount !== undefined ? input.visitCount : (existing ? (existing.visitCount || 0) + 1 : 1),
     lastVisit: "Today",
-    gstin: input.gstin?.trim() || undefined,
-    address: input.address?.trim() || undefined,
-    notes: input.notes?.trim() || undefined,
-    outletId: outletId || undefined,
+    gstin: input.gstin?.trim() || existing?.gstin || undefined,
+    address: input.address?.trim() || existing?.address || undefined,
+    notes: input.notes?.trim() || existing?.notes || undefined,
+    outletId: outletId || existing?.outletId || undefined,
   };
 
   const updated = [newCustomer, ...current.filter((c) => c.phone !== newCustomer.phone)];
+  inMemoryCustomers = updated;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    }
   } catch (err) {
     console.error("Failed to save customer into localStorage", err);
   }

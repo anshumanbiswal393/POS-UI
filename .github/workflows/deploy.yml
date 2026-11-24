@@ -20,37 +20,79 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.VM_SSH_KEY }}
-
-      - name: Add VM to known_hosts
+      - name: Set up SSH
+        env:
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_PORT: ${{ secrets.VM_PORT || '22' }}
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          ssh-keyscan -p ${{ secrets.VM_PORT || 22 }} -T 10 ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
-          chmod 600 ~/.ssh/known_hosts 2>/dev/null || true
+          if [ -z "$VM_SSH_KEY" ] || [ -z "$VM_HOST" ] || [ -z "$VM_USER" ]; then
+            echo "::error ::Missing VM SSH credentials (VM_SSH_KEY / VM_HOST / VM_USER) in repository secrets."
+            exit 1
+          fi
+
+          mkdir -p ~/.ssh/sockets
+          chmod 700 ~/.ssh ~/.ssh/sockets
+
+          # Normalize SSH key newlines (strip CRLF) and set secure permissions
+          printf '%s\n' "$VM_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          # Configure SSH with ControlMaster multiplexing to prevent reconnect drops and rate-limit blocks
+          cat << 'EOF' > ~/.ssh/config
+          Host remote-vm
+            HostName ${{ secrets.VM_HOST }}
+            User ${{ secrets.VM_USER }}
+            Port ${{ secrets.VM_PORT || '22' }}
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            ControlMaster auto
+            ControlPath ~/.ssh/sockets/%r@%h:%p
+            ControlPersist 15m
+            ConnectTimeout 60
+            ConnectionAttempts 5
+            ServerAliveInterval 15
+            ServerAliveCountMax 120
+            TCPKeepAlive yes
+            IPQoS throughput
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Verify SSH connectivity
+        run: |
+          for i in 1 2 3 4 5; do
+            echo "Attempt $i: Connecting to remote VM to verify SSH and ensure directory exists..."
+            if ssh remote-vm "mkdir -p /opt/retrod/POS-UI"; then
+              echo "SSH connectivity established and master socket opened successfully."
+              break
+            else
+              if [ $i -eq 5 ]; then
+                echo "Failed to connect to remote VM after 5 attempts."
+                exit 1
+              fi
+              echo "SSH connection attempt $i failed. Retrying in 15s..."
+              sleep 15
+            fi
+          done
 
       - name: Sync files to VM
-        env:
-          SSH_OPTS: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=15 -o ServerAliveCountMax=120 -o TCPKeepAlive=yes
         run: |
           rsync -avz --delete \
             --exclude='.git' --exclude='node_modules' --exclude='dist' --exclude='.output' \
             --exclude='.env' --exclude='.env.local' --exclude='.wrangler' \
-            -e "ssh -p ${{ secrets.VM_PORT }} $SSH_OPTS" \
-            ./ ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:/opt/retrod/POS-UI/
+            -e ssh \
+            ./ remote-vm:/opt/retrod/POS-UI/
 
       # Long docker builds look idle to middleboxes; keepalive + plain progress
       # prevents "client_loop: send disconnect: Broken pipe" (~10m SSH drop).
       - name: Build and restart pos-ui
-        env:
-          SSH_OPTS: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=15 -o ServerAliveCountMax=120 -o TCPKeepAlive=yes -o ConnectTimeout=15
         run: |
           for i in 1 2 3 4 5; do
-            echo "Attempt $i: Connecting to VM to build and restart pos-ui..."
-            if ssh -p ${{ secrets.VM_PORT }} $SSH_OPTS ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            echo "Attempt $i: Building and restarting pos-ui container on remote VM..."
+            if ssh remote-vm \
               'set -euo pipefail
                cd /opt/retrod/POS-UI
                (docker compose build --progress=plain pos-ui || (sleep 5 && docker compose build --progress=plain pos-ui) || (sleep 10 && docker compose build --progress=plain pos-ui))
@@ -60,13 +102,18 @@ jobs:
               break
             else
               if [ $i -eq 5 ]; then
-                echo "Failed after 5 attempts."
+                echo "Failed to build and restart after 5 attempts."
                 exit 1
               fi
-              echo "SSH command failed (attempt $i/5). Retrying in 10s..."
-              sleep 10
+              echo "Build attempt $i failed. Retrying in 15s..."
+              sleep 15
             fi
           done
+
+      - name: Close SSH master connection
+        if: always()
+        run: |
+          ssh -O exit remote-vm 2>/dev/null || true
 
       - name: Sync deploy branch to main
         if: github.ref == 'refs/heads/main'
@@ -74,4 +121,3 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:refs/heads/deploy --force
-

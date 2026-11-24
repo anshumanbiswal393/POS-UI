@@ -33,7 +33,7 @@ export function AddCustomerDrawer({
     const cleanPhone = phone.trim();
 
     if (!cleanName) {
-      toast.error("Please enter the customer full name");
+      toast.error("Please enter the guest full name");
       return;
     }
     if (!cleanPhone || cleanPhone.replace(/\D/g, "").length < 7) {
@@ -64,7 +64,7 @@ export function AddCustomerDrawer({
       lastVisit: saved.lastVisit,
     };
 
-    toast.success(`Customer "${cleanName}" added and selected`);
+    toast.success(`Guest "${cleanName}" added and selected`);
     onCustomerAdded(profile);
     onClose();
 
@@ -93,10 +93,10 @@ export function AddCustomerDrawer({
             </div>
             <div>
               <h2 id="add-customer-title" className="text-base font-bold text-slate-900">
-                Add Customer
+                Add Guest
               </h2>
               <p className="text-xs text-slate-500">
-                Save customer profile for billing &amp; loyalty rewards
+                Save guest profile for billing &amp; loyalty rewards
               </p>
             </div>
           </div>
@@ -115,7 +115,7 @@ export function AddCustomerDrawer({
           {/* Full Name */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Customer Full Name <span className="text-rose-500">*</span>
+              Guest Full Name <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"

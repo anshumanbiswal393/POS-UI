@@ -19,6 +19,8 @@ import type {
   ColumnSortState,
 } from "./types";
 import { cn } from "@/lib/utils";
+import { fuzzyFilter } from "@/utils/fuzzySearch";
+import { compareDates, formatDateIndian, formatDateTimeIndian } from "@/utils/dateUtils";
 
 export type { PosDataGridColumn };
 
@@ -111,7 +113,7 @@ export function PosDataGrid<T>({
         defaultWidth: col.width || col.defaultWidth,
         minWidth: col.minWidth,
         maxWidth: col.maxWidth,
-        align: col.align || "left",
+        align: "center", // Center aligned by default for Excel grid standard
         sortable,
         filterable,
         getValue,
@@ -261,16 +263,24 @@ export function PosDataGrid<T>({
     [keyField]
   );
 
+  // Uncontrolled selection state fallback when onSelectionChange/selectedRows are not passed
+  const [internalSelectedIds, setInternalSelectedIds] = useState<string[]>([]);
+  const isControlled = selectedRowIds !== undefined || selectedRows !== undefined;
+
+  const effectiveSelectedIds = useMemo(() => {
+    if (selectedRowIds !== undefined && Array.isArray(selectedRowIds)) {
+      return selectedRowIds;
+    }
+    if (selectedRows !== undefined && Array.isArray(selectedRows)) {
+      return selectedRows.map((r, idx) => getRowKey(r, idx));
+    }
+    return internalSelectedIds;
+  }, [selectedRowIds, selectedRows, internalSelectedIds, getRowKey]);
+
   // Selected row keys set for O(1) lookup
   const selectedKeySet = useMemo(() => {
-    const set = new Set<string>();
-    if (selectedRowIds && Array.isArray(selectedRowIds)) {
-      selectedRowIds.forEach((id) => set.add(id));
-    } else if (selectedRows && Array.isArray(selectedRows)) {
-      selectedRows.forEach((r, idx) => set.add(getRowKey(r, idx)));
-    }
-    return set;
-  }, [selectedRows, selectedRowIds, getRowKey]);
+    return new Set<string>(effectiveSelectedIds);
+  }, [effectiveSelectedIds]);
 
   // Helper to get raw cell value for a column
   const getRawCellValue = useCallback((row: T, colId: string) => {
@@ -321,20 +331,16 @@ export function PosDataGrid<T>({
     return result;
   }, [columns, columnOrder, visibleColumns]);
 
-  // 8. Filtering Logic
+  // 8. Filtering Logic (Fuzzy Multi-Field Search)
   const filteredData = useMemo(() => {
     let result = data;
 
-    // Apply Global Search if present
-    if (globalSearch.trim()) {
-      const query = globalSearch.toLowerCase().trim();
-      result = result.filter((row: any) => {
-        return columns.some((col) => {
-          if (!col.id) return false;
-          const val = getRawCellValue(row, col.id);
-          return val !== undefined && val !== null && String(val).toLowerCase().includes(query);
-        });
-      });
+    // Apply Global Search if present with multi-field fuzzy matching
+    if (globalSearch && globalSearch.trim()) {
+      const searchExtractors = columns
+        .filter((col) => Boolean(col.id))
+        .map((col) => (row: any) => getRawCellValue(row, col.id!));
+      result = fuzzyFilter(result, globalSearch, searchExtractors);
     }
 
     // Apply Column-level Filters
@@ -367,7 +373,7 @@ export function PosDataGrid<T>({
     return result;
   }, [data, globalSearch, columnFilters, columns, getRawCellValue, distinctValues]);
 
-  // 9. Sorting Logic
+  // 9. Sorting Logic (Supports accurate chronological date comparison)
   const sortedData = useMemo(() => {
     if (!sortConfig) return filteredData;
     const colId = sortConfig.colId;
@@ -384,7 +390,18 @@ export function PosDataGrid<T>({
       if (typeof valA === "number" && typeof valB === "number") {
         cmp = valA - valB;
       } else {
-        cmp = String(valA).localeCompare(String(valB), undefined, { numeric: true });
+        const isDateCol = /date|time|at|created|updated|expires|dob|timestamp/i.test(colId);
+        const isDateVal =
+          (typeof valA === "string" && /^\d{4}-\d{2}-\d{2}|^\d{2}-\d{2}-\d{4}/.test(valA)) ||
+          (typeof valB === "string" && /^\d{4}-\d{2}-\d{2}|^\d{2}-\d{2}-\d{4}/.test(valB)) ||
+          valA instanceof Date ||
+          valB instanceof Date;
+
+        if (isDateCol || isDateVal) {
+          cmp = compareDates(valA, valB);
+        } else {
+          cmp = String(valA).localeCompare(String(valB), undefined, { numeric: true });
+        }
       }
 
       return sortConfig.direction === "asc" ? cmp : -cmp;
@@ -407,60 +424,68 @@ export function PosDataGrid<T>({
     !isAllPaginatedSelected;
 
   const handleToggleSelectAll = () => {
-    if (!onSelectionChange) return;
     const usesIdArray = selectedRowIds !== undefined;
+    let nextIds: string[] = [];
+    let nextRows: T[] = [];
 
     if (isAllPaginatedSelected) {
       const paginatedKeys = new Set(paginatedData.map((r, idx) => getRowKey(r, idx)));
-      if (usesIdArray) {
-        onSelectionChange((selectedRowIds || []).filter((id) => !paginatedKeys.has(id)) as any);
-      } else {
-        onSelectionChange(selectedRows.filter((r, idx) => !paginatedKeys.has(getRowKey(r, idx))) as any);
-      }
+      nextIds = effectiveSelectedIds.filter((id) => !paginatedKeys.has(id));
+      nextRows = (selectedRows || sortedData).filter((r, idx) => !paginatedKeys.has(getRowKey(r, idx)));
     } else {
+      const existing = new Set(effectiveSelectedIds);
+      paginatedData.forEach((r, idx) => {
+        existing.add(getRowKey(r, idx));
+      });
+      nextIds = Array.from(existing);
+      const rowKeySet = new Set(nextIds);
+      nextRows = sortedData.filter((r, idx) => rowKeySet.has(getRowKey(r, idx)));
+    }
+
+    if (!isControlled) {
+      setInternalSelectedIds(nextIds);
+    }
+    if (onSelectionChange) {
       if (usesIdArray) {
-        const existing = [...(selectedRowIds || [])];
-        paginatedData.forEach((r, idx) => {
-          const k = getRowKey(r, idx);
-          if (!existing.includes(k)) existing.push(k);
-        });
-        onSelectionChange(existing as any);
+        onSelectionChange(nextIds as any);
       } else {
-        const existing = [...selectedRows];
-        paginatedData.forEach((r, idx) => {
-          const k = getRowKey(r, idx);
-          if (!selectedKeySet.has(k)) existing.push(r);
-        });
-        onSelectionChange(existing as any);
+        onSelectionChange(nextRows as any);
       }
     }
   };
 
   const handleToggleRow = (row: T, index: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!onSelectionChange) return;
     const k = getRowKey(row, index);
     const usesIdArray = selectedRowIds !== undefined;
 
-    if (usesIdArray) {
-      const current = selectedRowIds || [];
-      if (current.includes(k)) {
-        onSelectionChange(current.filter((id) => id !== k) as any);
-      } else {
-        onSelectionChange([...current, k] as any);
-      }
+    let nextIds: string[];
+    let nextRows: T[];
+    if (selectedKeySet.has(k)) {
+      nextIds = effectiveSelectedIds.filter((id) => id !== k);
+      nextRows = (selectedRows || sortedData).filter((r, idx) => getRowKey(r, idx) !== k);
     } else {
-      if (selectedKeySet.has(k)) {
-        onSelectionChange(selectedRows.filter((r, idx) => getRowKey(r, idx) !== k) as any);
+      nextIds = [...effectiveSelectedIds, k];
+      nextRows = [...(selectedRows || sortedData.filter((r, idx) => effectiveSelectedIds.includes(getRowKey(r, idx)))), row];
+    }
+
+    if (!isControlled) {
+      setInternalSelectedIds(nextIds);
+    }
+    if (onSelectionChange) {
+      if (usesIdArray) {
+        onSelectionChange(nextIds as any);
       } else {
-        onSelectionChange([...selectedRows, row] as any);
+        onSelectionChange(nextRows as any);
       }
     }
   };
 
   const handleClearSelection = () => {
-    if (!onSelectionChange) return;
-    onSelectionChange([] as any);
+    if (!isControlled) {
+      setInternalSelectedIds([]);
+    }
+    onSelectionChange?.([] as any);
   };
 
   const handleExport = () => {
@@ -547,8 +572,8 @@ export function PosDataGrid<T>({
       )}
 
       {/* Main Grid Table Container */}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-full border-collapse text-left text-[12.5px]">
+      <div className="overflow-x-auto border border-slate-300 rounded-lg pos-data-table pos-excel-grid">
+        <table className="w-full min-w-full border-collapse border border-slate-300 text-center text-[12.5px]">
           <DataTableHeader
             columns={columns}
             data={data}
@@ -572,7 +597,7 @@ export function PosDataGrid<T>({
             themeVariant={themeVariant}
           />
 
-          <tbody className="divide-y divide-border/60 bg-surface">
+          <tbody className="bg-surface">
             {isGridLoading ? (
               <tr>
                 <td
@@ -624,7 +649,7 @@ export function PosDataGrid<T>({
                     key={rowKey}
                     onClick={() => onRowClick?.(row, index)}
                     className={cn(
-                      "transition-colors group",
+                      "transition-colors group border-b border-slate-300",
                       isSelected
                         ? "bg-primary/10 hover:bg-primary/15 dark:bg-primary/20"
                         : isEven
@@ -637,7 +662,7 @@ export function PosDataGrid<T>({
                     {isSelectable && (
                       <td
                         className={cn(
-                          "w-12 px-3 py-2.5 text-center border-r border-border/80 sticky left-0 z-10 select-none",
+                          "w-12 px-3 py-2.5 text-center border-r border-b border-slate-300 sticky left-0 z-10 select-none",
                           isSelected
                             ? "bg-primary/15 dark:bg-primary/25"
                             : isEven
@@ -651,7 +676,7 @@ export function PosDataGrid<T>({
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => {}}
-                            className="h-3.5 w-3.5 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer accent-primary"
+                            className="h-3.5 w-3.5 rounded border-slate-400 text-primary focus:ring-primary cursor-pointer accent-primary"
                           />
                         </div>
                       </td>
@@ -686,6 +711,15 @@ export function PosDataGrid<T>({
                           return (rawCol.cell as any)(rawValue, row, index);
                         }
                         if (rawValue !== undefined && rawValue !== null && String(rawValue) !== "") {
+                          const isDateCol = /date|dob|timestamp|created_?at|updated_?at/i.test(colId);
+                          const isIsoDate = typeof rawValue === "string" && /^\d{4}-\d{2}-\d{2}(T|\b)/.test(rawValue);
+                          if (isDateCol || isIsoDate || rawValue instanceof Date) {
+                            const hasTime =
+                              (typeof rawValue === "string" && (rawValue.includes("T") || rawValue.includes(":"))) ||
+                              (rawValue instanceof Date && (rawValue.getHours() !== 0 || rawValue.getMinutes() !== 0));
+                            const formatted = hasTime ? formatDateTimeIndian(rawValue) : formatDateIndian(rawValue);
+                            if (formatted) return formatted;
+                          }
                           return String(rawValue);
                         }
                         return "--";
@@ -697,16 +731,13 @@ export function PosDataGrid<T>({
                           style={pin.style}
                           className={cn(
                             dense ? "py-2 px-3.5" : "py-2.5 px-3.5",
-                            "border-r border-border/60 last:border-r-0 align-middle text-foreground transition-colors",
-                            col.align === "center"
-                              ? "text-center"
-                              : col.align === "right"
-                              ? "text-right"
-                              : "text-left",
+                            "border-r border-b border-slate-300 align-middle text-center text-foreground transition-colors",
                             pin.className
                           )}
                         >
-                          {renderCell()}
+                          <div className="flex items-center justify-center text-center mx-auto w-full min-h-[26px]">
+                            {renderCell()}
+                          </div>
                         </td>
                       );
                     })}

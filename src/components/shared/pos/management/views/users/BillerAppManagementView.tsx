@@ -3,6 +3,7 @@ import { useOutletContext } from "@/context/PosOutletContext";
 import posManagementService from "@/services/posManagementService";
 import { Plus, RefreshCw, Eye, Edit2, Copy, Trash2, CheckCircle2, Download, X } from "lucide-react";
 import { toast } from "sonner";
+import { ColorActionView, ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid";
 import { AddBillerUserModal, type StaffUserFormData } from "./AddBillerUserModal";
 
@@ -258,14 +259,14 @@ export function BillerAppManagementView() {
         align: "right",
         defaultWidth: 150,
         cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-1">
+          <div className="flex items-center justify-center gap-1.5 mx-auto">
             <button
               type="button"
               onClick={() => setViewingUser(row)}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-teal-600 transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
               title="View Details"
             >
-              <Eye className="h-4 w-4" />
+              <ColorActionView className="h-4 w-4" />
             </button>
             <button
               type="button"
@@ -273,26 +274,26 @@ export function BillerAppManagementView() {
                 setEditingUser(row);
                 setIsAddModalOpen(true);
               }}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-teal-600 transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
               title="Edit Profile"
             >
-              <Edit2 className="h-4 w-4" />
+              <ColorActionEdit className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => handleCopyUser(row)}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-teal-600 transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer text-black"
               title="Copy Credentials"
             >
-              <Copy className="h-4 w-4" />
+              <Copy className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               onClick={() => handleDeleteUser(row.id, row.name)}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
               title="Delete User"
             >
-              <Trash2 className="h-4 w-4" />
+              <ColorActionDelete className="h-4 w-4" />
             </button>
           </div>
         ),
@@ -305,7 +306,7 @@ export function BillerAppManagementView() {
     <div className="space-y-4 pb-10">
       {/* 1. Dynamic Header matching Screenshots */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">{titleText}</h2>
+        <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">{titleText}</h2>
 
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Order Acceptance specific badges */}

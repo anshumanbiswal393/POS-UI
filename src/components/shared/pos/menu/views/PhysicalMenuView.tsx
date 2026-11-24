@@ -317,9 +317,14 @@ function resolveDishCategory(item: MenuItem): string {
   return rawCat.charAt(0).toUpperCase() + rawCat.slice(1);
 }
 
+const STORAGE_PREFIX = "retrod:physical-menu";
+const getPhotosStorageKey = (outletId?: string) => `${STORAGE_PREFIX}:showcase-photos:${outletId || "default"}`;
+
 export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
   const { activeOutlet } = useOutletContext();
   const { data: menuItems, isLoading } = useMenuItems(activeOutlet.id);
+
+  const photosStorageKey = getPhotosStorageKey(activeOutlet.id);
 
   // Template Selection (Defaults to Art Deco 2-Column Diner format)
   const [selectedTemplate, setSelectedTemplate] = useState<MenuTemplateId>("diner");
@@ -351,10 +356,55 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Showcase template: 2–3 large zigzag circle photos (reference card layout)
+  // Showcase template: 2–3 large zigzag circle photos with localStorage persistence across refreshes
   const [showcasePhotos, setShowcasePhotos] =
-    useState<Record<ShowcasePhotoKey, ShowcasePhotoSlot>>(EMPTY_SHOWCASE_PHOTOS);
-  const [showcaseSeeded, setShowcaseSeeded] = useState(false);
+    useState<Record<ShowcasePhotoKey, ShowcasePhotoSlot>>(() => {
+      if (typeof window !== "undefined") {
+        try {
+          const raw = localStorage.getItem(photosStorageKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === "object" && (parsed.photo1 || parsed.photo2 || parsed.photo3)) {
+              return {
+                photo1: { dishId: parsed.photo1?.dishId || "", customUrl: parsed.photo1?.customUrl || "" },
+                photo2: { dishId: parsed.photo2?.dishId || "", customUrl: parsed.photo2?.customUrl || "" },
+                photo3: { dishId: parsed.photo3?.dishId || "", customUrl: parsed.photo3?.customUrl || "" },
+              };
+            }
+          }
+        } catch {}
+      }
+      return EMPTY_SHOWCASE_PHOTOS;
+    });
+
+  const [showcaseSeeded, setShowcaseSeeded] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem(photosStorageKey);
+        if (raw) return true;
+      } catch {}
+    }
+    return false;
+  });
+
+  // Reload saved photos if outlet changes
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem(photosStorageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          setShowcasePhotos({
+            photo1: { dishId: parsed.photo1?.dishId || "", customUrl: parsed.photo1?.customUrl || "" },
+            photo2: { dishId: parsed.photo2?.dishId || "", customUrl: parsed.photo2?.customUrl || "" },
+            photo3: { dishId: parsed.photo3?.dishId || "", customUrl: parsed.photo3?.customUrl || "" },
+          });
+          setShowcaseSeeded(true);
+        }
+      }
+    } catch {}
+  }, [photosStorageKey]);
 
   // Sync outlet name when active outlet switches
   useMemo(() => {
@@ -402,6 +452,9 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
     if (showcaseSeeded || dishesWithImages.length === 0) return;
 
     setShowcasePhotos((prev) => {
+      if (prev.photo1.dishId || prev.photo2.dishId || prev.photo3.dishId) {
+        return prev;
+      }
       const keys: ShowcasePhotoKey[] = ["photo1", "photo2", "photo3"];
       const next = { ...prev };
       keys.forEach((key, idx) => {
@@ -409,11 +462,16 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
         const dish = dishesWithImages[idx % dishesWithImages.length];
         if (dish) next[key] = { dishId: dish.id, customUrl: "" };
       });
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(photosStorageKey, JSON.stringify(next));
+        } catch {}
+      }
       return next;
     });
 
     setShowcaseSeeded(true);
-  }, [dishesWithImages, showcaseSeeded]);
+  }, [dishesWithImages, showcaseSeeded, photosStorageKey]);
 
   const resolvedShowcasePhotos = useMemo(() => {
     return {
@@ -427,10 +485,18 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
     key: ShowcasePhotoKey,
     patch: Partial<ShowcasePhotoSlot>,
   ) => {
-    setShowcasePhotos((prev) => ({
-      ...prev,
-      [key]: { ...prev[key], ...patch },
-    }));
+    setShowcasePhotos((prev) => {
+      const next = {
+        ...prev,
+        [key]: { ...prev[key], ...patch },
+      };
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(photosStorageKey, JSON.stringify(next));
+        } catch {}
+      }
+      return next;
+    });
   };
 
   // Grouped Menu Items by Category (Strict Category Isolation & Culinary Ordering)
@@ -563,10 +629,6 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
             <h2 className="text-[14px] sm:text-[15px] font-bold text-slate-900 flex items-center gap-2 leading-tight">
               Live Menu Generator & Print Studio
             </h2>
-            <p className="text-[11.5px] text-slate-500 leading-tight mt-0.5">
-              Auto-format and print physical menus for{" "}
-              <span className="font-semibold text-slate-800">{activeOutlet.name}</span>
-            </p>
           </div>
         </div>
 
@@ -1018,6 +1080,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
               </div>
 
               {/* Printable Menu Pages Stack */}
+              <div className="w-full overflow-x-auto pb-2 print:overflow-visible print:pb-0">
               <div
                 id="printable-menu-area"
                 style={{
@@ -1052,12 +1115,12 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                           <span>Sheet {page.pageNumber} of {menuPages.length}</span>
                         </div>
 
-                        {/* Individual A4 Page Sheet (Strict A4 Length & Ratio) */}
+                        {/* Individual A4 Page Sheet (Strict A4 Length & Ratio on Tablet/Desktop/Print) */}
                         <div
-                          className={`a4-page-sheet w-full max-w-[760px] h-[1075px] min-h-[1075px] max-h-[1075px] rounded-2xl shadow-xl transition-all flex flex-col relative overflow-hidden select-none print:m-0 print:w-full print:max-w-none print:shadow-none print:rounded-none ${
+                          className={`a4-page-sheet w-full max-w-[760px] min-h-[720px] sm:h-[1075px] sm:min-h-[1075px] sm:max-h-[1075px] print:h-[1075px] print:min-h-[1075px] print:max-h-[1075px] rounded-2xl shadow-xl transition-all flex flex-col relative overflow-hidden select-none print:m-0 print:w-full print:max-w-none print:shadow-none print:rounded-none ${
                             selectedTemplate === "showcase"
-                              ? "justify-start p-6 sm:p-7"
-                              : "justify-between p-6 sm:p-8"
+                              ? "justify-start p-4 sm:p-7"
+                              : "justify-between p-4 sm:p-8"
                           } ${
                             selectedTemplate === "diner"
                               ? "bg-[#fcfbf7] text-slate-900 border-4 border-[#0f766e]"
@@ -1082,16 +1145,16 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                     <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-stone-500">
                                       {restaurantName}
                                     </div>
-                                    <h1 className="mt-1 font-serif text-[38px] font-bold leading-none tracking-wide text-stone-900">
+                                    <h1 className="mt-1 text-[38px] font-bold leading-none tracking-wide text-stone-900">
                                       MENU
                                     </h1>
-                                    <p className="mt-1 font-serif text-[12px] italic text-stone-500">
+                                    <p className="mt-1 text-[12px] italic text-stone-500">
                                       {tagline ? `Made with love · ${tagline}` : "Made with love"}
                                     </p>
                                   </>
                                 ) : (
                                   <div className="flex items-center justify-between border-b border-stone-300/70 pb-2">
-                                    <span className="font-serif text-[14px] font-bold uppercase tracking-[0.18em] text-stone-800">
+                                    <span className="text-[14px] font-bold uppercase tracking-[0.18em] text-stone-800">
                                       {restaurantName}
                                     </span>
                                     <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-400">
@@ -1182,7 +1245,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
 
                               {/* Compact footer directly under menu — no large empty band */}
                               <div className="mt-3 shrink-0 space-y-1 border-t border-stone-300/80 pt-2.5 text-center">
-                                <p className="font-serif text-[11.5px] font-semibold uppercase tracking-[0.14em] text-stone-700">
+                                <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-stone-700">
                                   Thank you for dining with us!
                                 </p>
                                 {isLastPage && footerNote && (
@@ -1223,14 +1286,14 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                             /* First Page: Full Header */
                             selectedTemplate === "diner" ? (
                               <div className="text-center pb-2.5 pt-1 space-y-0.5 shrink-0 relative z-10 px-6">
-                                <div className="flex items-center justify-center gap-2 text-[#0f766e] text-[11px] font-serif italic tracking-widest">
+                                <div className="flex items-center justify-center gap-2 text-[#0f766e] text-[11px] italic tracking-widest">
                                   <span>❖ ❖ ❖ ❖</span>
                                   <span className="font-semibold text-slate-700 not-italic text-[12px] uppercase tracking-wider">
                                     ~ {tagline || "Authentic Kitchen & Lounge"} ~
                                   </span>
                                   <span>❖ ❖ ❖ ❖</span>
                                 </div>
-                                <h1 className="text-[26px] sm:text-[30px] font-black uppercase tracking-wider text-slate-900 font-serif leading-none py-1">
+                                <h1 className="text-[26px] sm:text-[30px] font-black uppercase tracking-wider text-slate-900 leading-none py-1">
                                   {restaurantName}
                                 </h1>
                                 <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] text-slate-600 font-medium">
@@ -1250,9 +1313,9 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                 <h1
                                   className={`text-[20px] sm:text-[23px] font-extrabold tracking-tight uppercase leading-tight ${
                                     selectedTemplate === "royal"
-                                      ? "font-serif text-[#78350f]"
+                                      ? "text-[#78350f]"
                                       : selectedTemplate === "lounge"
-                                        ? "text-[#fbbf24] tracking-widest font-serif"
+                                        ? "text-[#fbbf24] tracking-widest "
                                         : "font-sans text-slate-900"
                                   }`}
                                 >
@@ -1282,11 +1345,11 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                               <span
                                 className={`font-bold tracking-wider uppercase text-[11px] ${
                                   selectedTemplate === "diner"
-                                    ? "font-serif text-[#0f766e] font-black"
+                                    ? "text-[#0f766e] font-black"
                                     : selectedTemplate === "royal"
-                                      ? "font-serif text-[#92400e]"
+                                      ? "text-[#92400e]"
                                       : selectedTemplate === "lounge"
-                                        ? "text-[#fbbf24] font-serif"
+                                        ? "text-[#fbbf24] "
                                         : "text-slate-800"
                                 }`}
                               >
@@ -1314,7 +1377,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                       <div className="flex-1 border-t-2 border-[#0f766e] border-b border-[#0f766e]/40 h-[3px]" />
                                       <span className="text-[#0f766e] font-mono text-[9px] select-none">⧖</span>
                                     </div>
-                                    <h3 className="font-serif font-black uppercase tracking-[0.25em] text-[#0f766e] text-[12.5px] px-2 text-center">
+                                    <h3 className="font-black uppercase tracking-[0.25em] text-[#0f766e] text-[12.5px] px-2 text-center">
                                       {catGroup.category} {catGroup.isContinuation ? "(Cont.)" : ""}
                                     </h3>
                                     <div className="flex-1 flex items-center">
@@ -1338,11 +1401,11 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                     <h3
                                       className={`text-[12px] sm:text-[12.5px] font-bold uppercase tracking-wider ${
                                         selectedTemplate === "royal"
-                                          ? "font-serif text-[#92400e]"
+                                          ? "text-[#92400e]"
                                           : selectedTemplate === "modern"
                                             ? "text-primary"
                                             : selectedTemplate === "lounge"
-                                              ? "font-serif text-[#fbbf24]"
+                                              ? "text-[#fbbf24]"
                                               : "text-slate-800"
                                       }`}
                                     >
@@ -1370,9 +1433,9 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                               <span
                                                 className={`text-[12px] font-bold truncate ${
                                                   selectedTemplate === "diner"
-                                                    ? "font-serif uppercase font-black text-slate-900"
+                                                    ? "uppercase font-black text-slate-900"
                                                     : selectedTemplate === "royal"
-                                                      ? "font-serif text-[#2c1d11]"
+                                                      ? "text-[#2c1d11]"
                                                       : selectedTemplate === "lounge"
                                                         ? "text-amber-100"
                                                         : "text-slate-900"
@@ -1417,7 +1480,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                                             <p
                                               className={`text-[9.5px] leading-tight opacity-75 mt-0.5 ${
                                                 selectedTemplate === "diner"
-                                                  ? "italic text-slate-600 font-serif"
+                                                  ? "italic text-slate-600 "
                                                   : selectedTemplate === "royal"
                                                     ? "italic"
                                                     : ""
@@ -1456,6 +1519,7 @@ export function PhysicalMenuView({ onBack }: { onBack?: () => void }) {
                     );
                   })
                 )}
+              </div>
               </div>
 
               {/* Interactive Pagination Footer Bar: < 1 2 > */}

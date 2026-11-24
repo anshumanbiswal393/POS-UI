@@ -180,6 +180,12 @@ export function OutletsManagementView() {
                           <span>{outlet.contact}</span>
                         </div>
                       )}
+                      {(outlet.gstin || (outlet as any).gstNumber || (outlet as any).taxId) && (
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-slate-500">GSTIN:</span>
+                          <span className="font-mono text-slate-700">{outlet.gstin || (outlet as any).gstNumber || (outlet as any).taxId}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">

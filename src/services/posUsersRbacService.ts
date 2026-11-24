@@ -158,6 +158,15 @@ export const DEFAULT_POS_PERMISSIONS: POSPermission[] = [
     screenName: "Reservations",
     screenPath: "/pos/reservations",
   },
+  {
+    id: "perm-pos-notifications-waiter",
+    code: "pos.notifications.waiter",
+    category: "Floor Plan & Orders",
+    name: "Waiter Food Ready Notifications",
+    description: "Access dedicated Order Ready notification dashboard in sidebar with live pickup queue and served history.",
+    screenName: "Order Ready Notifications",
+    screenPath: "/pos/notifications",
+  },
 
   // 3. Kitchen Display System (KDS)
   {
@@ -294,7 +303,7 @@ export const DEFAULT_SEED_USERS: POSUser[] = [
     role: "pos_admin",
     role_name: "POS Administrator",
     role_code: "pos_admin",
-    outlet_name: "Anshu Suite Restaurant",
+    outlet_name: "Main Restaurant",
     user_code: "ADM-SAMPRITA",
     pin: "9988",
     is_active: true,
@@ -324,7 +333,7 @@ export const DEFAULT_SEED_USERS: POSUser[] = [
     role: "pos_staff",
     role_name: "Arnav Staff Role",
     role_code: "pos_staff",
-    outlet_name: "Anshu Suite Restaurant",
+    outlet_name: "Main Restaurant",
     user_code: "STF-ARNAV",
     pin: "3344",
     is_active: true,
@@ -339,7 +348,7 @@ export const DEFAULT_SEED_USERS: POSUser[] = [
     role: "pos_waiter",
     role_name: "Waiter",
     role_code: "pos_waiter",
-    outlet_name: "Anshu Suite Restaurant",
+    outlet_name: "Main Restaurant",
     user_code: "WTR-01",
     pin: "5566",
     is_active: true,
@@ -352,7 +361,8 @@ export const posUsersRbacService = {
   getUsers: async (): Promise<POSUser[]> => {
     try {
       const res = await httpClient.get<any>("/api/users/");
-      const rawList = Array.isArray(res) ? res : res?.results || [];
+      const data = res?.data;
+      const rawList = Array.isArray(data) ? data : data?.results || [];
       if (rawList.length > 0) {
         const mapped: POSUser[] = rawList.map((u: any) => ({
           id: String(u.id),
@@ -408,21 +418,22 @@ export const posUsersRbacService = {
     let savedUser: POSUser | null = null;
     try {
       const res = await httpClient.post<any>("/api/users/", payload);
-      if (res && res.id) {
+      const data = res?.data;
+      if (data && (data.id || data.uuid)) {
         savedUser = {
-          id: String(res.id),
-          name: res.name || payload.name,
-          username: res.username || payload.username,
-          email: res.email || payload.email,
-          phone: res.phone || payload.phone,
-          role: res.role || payload.role,
-          role_name: res.role_name || payload.role,
-          outlet_id: payload.outlet_id || (res.outlet_id ? String(res.outlet_id) : undefined),
-          outlet_name: payload.outlet_name || res.outlet_name,
+          id: String(data.id || data.uuid),
+          name: data.name || payload.name,
+          username: data.username || payload.username,
+          email: data.email || payload.email,
+          phone: data.phone || payload.phone,
+          role: data.role || payload.role,
+          role_name: data.role_name || payload.role,
+          outlet_id: payload.outlet_id || (data.outlet_id ? String(data.outlet_id) : undefined),
+          outlet_name: payload.outlet_name || data.outlet_name,
           user_code: payload.user_code,
           pin: payload.pin,
           is_active: payload.is_active !== false,
-          created_at: res.created_at || new Date().toISOString(),
+          created_at: data.created_at || new Date().toISOString(),
         };
       }
     } catch {
@@ -480,7 +491,7 @@ export const posUsersRbacService = {
           active: savedUser.is_active !== false,
           lastActive: "Now",
           initials: savedUser.name ? savedUser.name.slice(0, 2).toUpperCase() : "ST",
-          property: savedUser.outlet_name || "Anshu Suite Restaurant",
+          property: savedUser.outlet_name || "Main Restaurant",
         };
         const nextList = [appUser, ...cachedList.filter((u: any) => u.id !== savedUser!.id && u.email?.toLowerCase() !== savedUser!.email?.toLowerCase())];
         localStorage.setItem("retrod:users", JSON.stringify(nextList));
@@ -565,7 +576,8 @@ export const posUsersRbacService = {
 
     try {
       const res = await httpClient.get<any>("/api/roles/");
-      const rawList = Array.isArray(res) ? res : res?.results || [];
+      const data = res?.data;
+      const rawList = Array.isArray(data) ? data : data?.results || [];
       if (rawList.length > 0) {
         const mapped: POSRole[] = rawList.map((r: any) => ({
           id: String(r.id),
@@ -616,8 +628,9 @@ export const posUsersRbacService = {
 
     try {
       const res = await httpClient.post<any>("/api/roles/", role);
-      if (res && res.id) {
-        newRole.id = String(res.id);
+      const data = res?.data;
+      if (data && (data.id || data.uuid)) {
+        newRole.id = String(data.id || data.uuid);
       }
     } catch {
       // Local fallback
@@ -649,7 +662,8 @@ export const posUsersRbacService = {
   getPermissions: async (): Promise<POSPermission[]> => {
     try {
       const res = await httpClient.get<any>("/api/permissions/");
-      const rawList = Array.isArray(res) ? res : res?.results || [];
+      const data = res?.data;
+      const rawList = Array.isArray(data) ? data : data?.results || [];
       if (rawList.length > 0) {
         const mapped: POSPermission[] = rawList.map((p: any) => ({
           id: String(p.id),
@@ -731,7 +745,7 @@ export const posUsersRbacService = {
           });
         });
 
-      // 4. Waiter has billing view & create, floor order view, take, KOT, and reservations
+      // 4. Waiter has billing view & create, floor order view, take, KOT, reservations, and ready notifications
       const waiterCodes = new Set([
         "pos.billing.view",
         "pos.billing.create",
@@ -739,6 +753,7 @@ export const posUsersRbacService = {
         "pos.orders.take",
         "pos.orders.kot",
         "pos.reservations.manage",
+        "pos.notifications.waiter",
       ]);
       allPerms
         .filter((p) => waiterCodes.has(p.code))
@@ -774,7 +789,8 @@ export const posUsersRbacService = {
     try {
       const url = roleId ? `/api/role-permissions/?role=${roleId}` : "/api/role-permissions/";
       const res = await httpClient.get<any>(url);
-      const rawList = Array.isArray(res) ? res : res?.results || [];
+      const data = res?.data;
+      const rawList = Array.isArray(data) ? data : data?.results || [];
       if (rawList.length > 0) {
         return rawList.map((rp: any) => ({
           id: String(rp.id),

@@ -41,6 +41,35 @@ export interface AllOrderItem {
   customerPhone?: string;
   assignTo: string;
   itemsSummary: string;
+  items?: Array<{
+    id?: string;
+    name?: string;
+    item_name?: string;
+    quantity?: number;
+    price?: number;
+    unit_price?: number;
+    unitPrice?: number;
+    line_total?: number;
+    lineTotal?: number;
+    selectedVariantName?: string;
+    variant_name?: string;
+    variantName?: string;
+    notes?: string;
+    code?: string;
+  }>;
+  pax?: number;
+  guestCount?: number;
+  placedAt?: string;
+  preparedAt?: string;
+  settledAt?: string;
+  orderType?: string;
+  myAmount?: number;
+  subtotal?: number;
+  taxAmount?: number;
+  discountAmount?: number;
+  grandTotal?: number;
+  totalAmount?: number;
+  amount?: number;
   myAmountFormatted: string;
   taxAmountFormatted: string;
   discountAmountFormatted: string;
@@ -80,6 +109,8 @@ export interface OnlineOrderItem {
   customerPhone: string;
   otp: string;
   dateTime: string;
+  totalAmount?: number;
+  grandTotal?: number;
   totalAmountFormatted: string;
   status: "placed" | "accepted" | "in_kitchen" | "food_ready" | "out_for_delivery" | "delivered" | "cancelled";
   statusDisplay: string;
@@ -96,9 +127,12 @@ export interface OnlineOrdersData {
 export interface KotItem {
   id: string;
   kotId: number;
+  kotNumber?: string;
   orderId?: string;
   orderNumber?: string;
   orderType: string;
+  tableOrRoom?: string;
+  waiterName?: string;
   customerName: string;
   customerPhone: string;
   itemCount: number;
@@ -106,7 +140,7 @@ export interface KotItem {
   items?: Array<{ name: string; quantity: number; notes?: string }>;
   notes?: string;
   orderNote?: string;
-  status: "Not Prepared" | "In Kitchen" | "Prepared" | "Served";
+  status: "Not Prepared" | "In Kitchen" | "Prepared" | "Served" | "Ready" | "Cancelled";
   billPrintDate: string;
   completeDuration: string;
   createdAt: string;

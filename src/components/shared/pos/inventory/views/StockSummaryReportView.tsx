@@ -3,7 +3,12 @@ import { Clock, BarChart3, Package } from "lucide-react";
 import { toast } from "sonner";
 import { PosDataGrid } from "@/components/ui/data-grid";
 import type { DataGridColumn } from "@/components/ui/data-grid/types";
-import { useStockItems } from "@/hooks/queries/usePosInventory";
+import {
+  useStockItems,
+  useStockPurchases,
+  useWastageEntries,
+  useStockMovements,
+} from "@/hooks/queries/usePosInventory";
 import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 
 interface StockSummaryRow {
@@ -244,21 +249,78 @@ const CURRENT_BALANCES_COLUMNS: DataGridColumn<any>[] = [
 ];
 
 export function StockSummaryReportView() {
-  const [activeTab, setActiveTab] = useState<"summary" | "current">("summary");
   const today = new Date().toISOString().slice(0, 10);
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
   const { data: stockItems = [], isLoading } = useStockItems();
+  const { data: purchases = [] } = useStockPurchases();
+  const { data: wastageList = [] } = useWastageEntries();
+  const { data: movements = [] } = useStockMovements({ from: fromDate, to: toDate });
 
   const rows: StockSummaryRow[] = useMemo(() => {
     return stockItems.map((item) => {
-      const opening = Number(item.openingBalance ?? item.availableStock ?? 0);
-      const purchase = Number(item.purchaseQty ?? 0);
+      // 1. Calculate purchase quantity for this item
+      const itemPurchases = purchases.reduce((acc: number, p: any) => {
+        const matchingLines = (p.items || []).filter(
+          (line: any) =>
+            line.stockItemId === item.id ||
+            line.name === item.rawMaterial ||
+            line.name === item.name,
+        );
+        return (
+          acc +
+          matchingLines.reduce(
+            (sum: number, l: any) => sum + Number(l.quantity || 0),
+            0,
+          )
+        );
+      }, 0);
+
+      // 2. Calculate wastage quantity for this item
+      const itemWastage = wastageList.reduce((acc: number, w: any) => {
+        if (
+          w.stockItemId === item.id ||
+          w.rawMaterialId === item.id ||
+          w.itemName === item.rawMaterial ||
+          w.itemName === item.name
+        ) {
+          return acc + Number(w.quantity || 0);
+        }
+        return acc;
+      }, 0);
+
+      // 3. Calculate consumption quantity from movements
+      const itemConsumed = movements.reduce((acc: number, m: any) => {
+        if (
+          (m.stockItemId === item.id ||
+            m.name === item.rawMaterial ||
+            m.name === item.name) &&
+          (m.type === "SETTLE_DEDUCT" ||
+            m.type === "CONSUMPTION" ||
+            m.type === "USAGE")
+        ) {
+          return acc + Math.abs(Number(m.signedQty ?? m.quantity ?? 0));
+        }
+        return acc;
+      }, 0);
+
+      const purchase = Number(
+        item.purchaseQty ?? (itemPurchases > 0 ? itemPurchases : 0),
+      );
+      const wastage = Number(
+        item.wastageQty ?? (itemWastage > 0 ? itemWastage : 0),
+      );
+      const consumed = Number(
+        item.consumedQty ?? (itemConsumed > 0 ? itemConsumed : 0),
+      );
+      const closing = Number(item.closingStock ?? item.availableStock ?? 0);
+      const opening = Number(
+        item.openingBalance ??
+          item.openingStock ??
+          Math.max(0, closing - purchase + consumed + wastage),
+      );
       const totalIn = opening + purchase;
-      const consumed = Number(item.consumedQty ?? 0);
-      const wastage = Number(item.wastageQty ?? 0);
       const totalOut = consumed + wastage;
-      const closing = Number(item.availableStock ?? 0);
       const variance = Number(item.variance ?? 0);
 
       return {
@@ -280,121 +342,53 @@ export function StockSummaryReportView() {
         difference: variance.toFixed(3),
       };
     });
-  }, [stockItems]);
+  }, [stockItems, purchases, wastageList, movements]);
 
   return (
     <div className="space-y-4">
-      {/* 1. Top Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* 1. Single Top Header with Date Period filter placed in same row */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
         <div>
-          <h2 className="font-serif text-lg font-bold text-foreground tracking-tight">
+          <h2 className="text-lg font-bold text-foreground tracking-tight">
             Stock Summary
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Real-time balances, ingredient categories, and full reconciliation of opening stock, purchases, consumption, and closing variance.
-          </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Segmented View Switcher */}
-          <div className="flex items-center rounded-xl border border-border bg-surface p-1 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setActiveTab("summary")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                activeTab === "summary"
-                  ? "bg-teal-700 text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
-              }`}
-            >
-              <BarChart3 className="h-3.5 w-3.5" />
-              <span>Summary Ledger</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("current")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                activeTab === "current"
-                  ? "bg-teal-700 text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
-              }`}
-            >
-              <Package className="h-3.5 w-3.5" />
-              <span>Current Balances</span>
-            </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="w-[200px] sm:w-[220px]">
+            <PosDateRangePicker
+              from={fromDate}
+              to={toDate}
+              onSelect={({ from, to }) => {
+                setFromDate(from);
+                setToDate(to);
+              }}
+              size="sm"
+            />
           </div>
 
           <button
             type="button"
-            onClick={() => toast.info("Automated daily report scheduling opened")}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-bold text-primary hover:bg-primary/15 transition cursor-pointer"
+            onClick={() => toast.info("Period updated")}
+            className="rounded-xl border border-border bg-surface hover:bg-surface-2 px-3 py-1.5 text-xs font-semibold text-foreground transition cursor-pointer"
           >
-            <Clock className="h-3.5 w-3.5 text-primary" />
-            <span>Schedule Daily Report</span>
+            Apply Period
           </button>
         </div>
       </div>
 
-      {activeTab === "summary" ? (
-        <>
-          {/* 2. Date Filter Bar for Ledger */}
-          <div className="rounded-xl border border-border bg-surface p-3.5 shadow-xs">
-            <div className="flex flex-wrap items-end gap-3">
-              <div>
-                <label className="block text-[11.5px] font-semibold text-muted-foreground mb-1">
-                  Stock Period
-                </label>
-                <PosDateRangePicker
-                  from={fromDate}
-                  to={toDate}
-                  onSelect={({ from, to }) => {
-                    setFromDate(from);
-                    setToDate(to);
-                  }}
-                  size="sm"
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => toast.info("Filters applied")}
-                className="rounded-lg border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-foreground hover:bg-surface-2 transition cursor-pointer"
-              >
-                Apply Period
-              </button>
-            </div>
-          </div>
-
-          {/* 3. Interactive Data Grid */}
-          <PosDataGrid
-            data={rows}
-            columns={SUMMARY_COLUMNS}
-            keyField="name"
-            title="Stock Summary Ledger"
-            subtitle={isLoading ? "Loading live ledger records..." : "Multi-column ledger balance and reconciliation report"}
-            showToolbar
-            selectable
-            storageKey="pos-stock-summary-report"
-            themeVariant="primary"
-            pageSize={10}
-          />
-        </>
-      ) : (
-        /* Current Balances & Status Data Grid */
-        <PosDataGrid
-          data={stockItems}
-          columns={CURRENT_BALANCES_COLUMNS}
-          keyField="id"
-          title="Current Stock Balances"
-          subtitle="Real-time balances, categories, and stock status radar"
-          showToolbar
-          selectable
-          loading={isLoading}
-          storageKey="pos-current-stock-balances"
-          themeVariant="primary"
-          pageSize={10}
-        />
-      )}
+      {/* 2. Unified Ledger & Real-Time Stock Balance Table */}
+      <PosDataGrid
+        data={rows}
+        columns={SUMMARY_COLUMNS}
+        keyField="name"
+        showToolbar
+        selectable
+        loading={isLoading}
+        storageKey="pos-stock-summary-unified"
+        themeVariant="primary"
+        pageSize={10}
+      />
     </div>
   );
 }

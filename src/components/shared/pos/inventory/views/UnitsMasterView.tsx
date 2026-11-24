@@ -13,6 +13,8 @@ import {
   type DataTableColumn,
 } from "@/components/common/DataTableHeader";
 import { toast } from "sonner";
+import { ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 
 const DEMO_UNITS = [
     {
@@ -72,6 +74,7 @@ export function UnitsMasterView() {
   const saveUnit = useSaveUnit();
   const deleteUnit = useDeleteUnit();
   const [localUnits, setLocalUnits] = useState(DEMO_UNITS);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const units = isLive
     ? (apiUnits as Array<Record<string, unknown>>).map((u) => ({
         id: String(u.id),
@@ -176,12 +179,9 @@ export function UnitsMasterView() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">
+          <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
             Units of Measurement
           </h2>
-          <p className="text-[12.5px] text-slate-500 mt-0.5">
-            Standardize inventory purchase and consumption conversion ratios across raw materials.
-          </p>
         </div>
 
         <button
@@ -217,29 +217,22 @@ export function UnitsMasterView() {
                     <td className="px-4 py-3 text-slate-600">{u.type}</td>
                     <td className="px-4 py-3 font-mono text-slate-700 text-[12.5px]">{u.ratio}</td>
                     <td className="px-4 py-3 text-right">
-                      <div className="inline-flex items-center gap-1 text-slate-400">
+                      <div className="inline-flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => toast.info(`Editing ${u.name}`)}
-                          className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
+                          className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 shadow-2xs transition cursor-pointer"
+                          title="Edit Unit"
                         >
-                          <Edit2 className="h-4 w-4" />
+                          <ColorActionEdit className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (isLive) {
-                              deleteUnit.mutate(u.id, {
-                                onSuccess: () => toast.success(`Deleted unit ${u.name}`),
-                              });
-                            } else {
-                              setLocalUnits(units.filter((x) => x.id !== u.id));
-                              toast.success(`Deleted unit ${u.name}`);
-                            }
-                          }}
-                          className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-rose-600 transition cursor-pointer"
+                          onClick={() => setDeleteTarget({ id: u.id, name: u.name })}
+                          className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
+                          title="Delete Unit"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <ColorActionDelete className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
@@ -300,6 +293,37 @@ export function UnitsMasterView() {
           />
         </div>
       </PosCreatePanel>
+
+      {/* Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete Measurement Unit"
+        itemName={deleteTarget?.name}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to permanently delete measurement unit{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.name}"</span>?
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            if (isLive) {
+              deleteUnit.mutate(deleteTarget.id, {
+                onSuccess: () => toast.success(`Deleted unit ${deleteTarget.name}`),
+              });
+            } else {
+              setLocalUnits(units.filter((x) => x.id !== deleteTarget.id));
+              toast.success(`Deleted unit ${deleteTarget.name}`);
+            }
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }

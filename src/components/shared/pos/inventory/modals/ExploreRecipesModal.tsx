@@ -155,7 +155,7 @@ export function ExploreRecipesModal({
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="fixed inset-0" onClick={onClose} />
-      <div className="relative z-10 w-full sm:w-[560px] md:w-[42%] lg:w-[35%] xl:w-[30%] min-w-[380px] h-full flex flex-col bg-white shadow-2xl border-l border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300">
+      <div className="relative z-10 w-full sm:w-[560px] md:w-[42%] lg:w-[35%] xl:w-[30%] sm:min-w-[380px] max-w-full h-full flex flex-col bg-white shadow-2xl border-l border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 bg-linear-to-r from-blue-50 to-teal-50 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-600 text-white">

@@ -21,35 +21,35 @@ export function TableStatusCard({ tables }: TableStatusCardProps) {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
+    <div className="flex h-full min-h-[175px] flex-col rounded-xl border border-slate-400/80 bg-white p-2.5 sm:p-3 shadow-2xs">
       <div className="flex shrink-0 items-center justify-between">
-        <h2 className="text-[14px] font-bold text-slate-900">Table status</h2>
+        <h2 className="text-[13.5px] font-bold text-slate-900">Table status</h2>
         <Link
           to="/pos/tables"
-          className="text-[12px] font-semibold text-primary hover:underline"
+          className="text-[11.5px] font-semibold text-primary hover:underline"
         >
           View floor plan →
         </Link>
       </div>
 
       {tables.length === 0 ? (
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center p-3 text-slate-400">
-          <Utensils className="h-6 w-6 stroke-[1.5] mb-1.5 opacity-40 text-slate-400" />
-          <p className="text-[12px] font-medium text-slate-600">No tables configured</p>
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center p-2 text-slate-400">
+          <Utensils className="h-5 w-5 stroke-[1.5] mb-1 opacity-40 text-slate-400" />
+          <p className="text-[11.5px] font-medium text-slate-600">No tables configured</p>
           <Link
             to="/pos/tables"
-            className="text-[11px] font-semibold text-primary hover:underline mt-0.5"
+            className="text-[10.5px] font-semibold text-primary hover:underline mt-0.5"
           >
             Add tables in Floor Plan →
           </Link>
         </div>
       ) : (
-        /* Grid of 18 Tables (6 columns x 3 rows) */
-        <div className="mt-2 grid min-h-0 flex-1 grid-cols-6 grid-rows-3 gap-1.5">
+        /* Grid of 18 Tables (responsive columns, compact height) */
+        <div className="mt-1.5 grid min-h-0 flex-1 content-start grid-cols-4 sm:grid-cols-6 auto-rows-[28px] sm:auto-rows-[30px] gap-1.5 overflow-hidden">
           {tables.slice(0, 18).map((t) => (
             <div
               key={t.tableNumber}
-              className={`flex min-h-0 items-center justify-center rounded-lg border text-[12px] font-semibold transition-all cursor-pointer shadow-xs ${getTableStyle(
+              className={`flex items-center justify-center rounded-lg border text-[11px] font-semibold transition-all cursor-pointer shadow-xs ${getTableStyle(
                 t.status,
               )}`}
               title={`Table ${t.tableNumber} - ${t.status}`}
@@ -61,17 +61,17 @@ export function TableStatusCard({ tables }: TableStatusCardProps) {
       )}
 
       {/* Legend */}
-      <div className="mt-2 flex shrink-0 items-center justify-center gap-4 border-t border-slate-100 pt-2 text-[11px]">
-        <div className="flex items-center gap-1.5 font-medium text-slate-600">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+      <div className="mt-1 flex shrink-0 items-center justify-center gap-3 border-t border-slate-200 pt-1 text-[10.5px]">
+        <div className="flex items-center gap-1 font-medium text-slate-600">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
           <span>Available</span>
         </div>
-        <div className="flex items-center gap-1.5 font-medium text-slate-600">
-          <span className="h-2 w-2 rounded-full bg-amber-500" />
+        <div className="flex items-center gap-1 font-medium text-slate-600">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
           <span>Occupied</span>
         </div>
-        <div className="flex items-center gap-1.5 font-medium text-slate-600">
-          <span className="h-2 w-2 rounded-full bg-slate-300" />
+        <div className="flex items-center gap-1 font-medium text-slate-600">
+          <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
           <span>Reserved</span>
         </div>
       </div>

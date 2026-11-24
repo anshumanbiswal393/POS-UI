@@ -21,11 +21,18 @@ export function PosDateCalendarPopover() {
 
   const [open, setOpen] = useState(false);
 
+  const [todayY, todayM, todayD] = realTodayStr.split("-").map(Number);
+
   // Month & year for browsing inside the popover
   const [viewDate, setViewDate] = useState(() => {
     const [y, m, d] = selectedDateStr.split("-").map(Number);
     return new Date(y, m - 1, d || 1);
   });
+
+  // Future check for month navigation: cannot go past current month/year
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const isNextMonthDisabled = year > todayY || (year === todayY && month >= todayM - 1);
 
   // Keep viewDate in sync when popover opens
   const handleOpenChange = (nextOpen: boolean) => {
@@ -41,33 +48,34 @@ export function PosDateCalendarPopover() {
   };
 
   const handleNextMonth = () => {
+    if (isNextMonthDisabled) return;
     setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
 
   const handleSelectDay = (day: number) => {
-    const year = viewDate.getFullYear();
-    const month = String(viewDate.getMonth() + 1).padStart(2, "0");
     const dStr = String(day).padStart(2, "0");
-    const newDateStr = `${year}-${month}-${dStr}`;
+    const mStr = String(month + 1).padStart(2, "0");
+    const newDateStr = `${year}-${mStr}-${dStr}`;
+    if (newDateStr > realTodayStr) return;
     setSelectedDate(newDateStr);
     setOpen(false);
   };
 
   const handleQuickSelect = (offsetDays: number) => {
+    if (offsetDays > 0) return; // Future days disabled
     const d = new Date();
     d.setDate(d.getDate() + offsetDays);
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");
     const newDateStr = `${y}-${m}-${day}`;
+    if (newDateStr > realTodayStr) return;
     setSelectedDate(newDateStr);
     setViewDate(new Date(y, d.getMonth(), d.getDate()));
     setOpen(false);
   };
 
   // Calendar calculations
-  const year = viewDate.getFullYear();
-  const month = viewDate.getMonth();
   const monthName = viewDate.toLocaleDateString("en-US", { month: "long" });
 
   const firstDayOfWeek = new Date(year, month, 1).getDay(); // 0 is Sunday
@@ -78,7 +86,6 @@ export function PosDateCalendarPopover() {
 
   // Selected date breakdown
   const [selY, selM, selD] = selectedDateStr.split("-").map(Number);
-  const [todayY, todayM, todayD] = realTodayStr.split("-").map(Number);
 
   // Check which quick preset is active
   const isYesterday = (() => {
@@ -90,21 +97,19 @@ export function PosDateCalendarPopover() {
     return selectedDateStr === `${y}-${m}-${day}`;
   })();
 
-  const isTomorrow = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return selectedDateStr === `${y}-${m}-${day}`;
-  })();
+  const compactDateLabel = isToday
+    ? "Today"
+    : new Date(`${selectedDateStr}T00:00:00`).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={`hidden md:flex h-9 items-center gap-2 rounded-xl border px-3 text-[12.5px] font-medium transition cursor-pointer select-none shadow-2xs ${
+          className={`flex h-8 sm:h-9 items-center gap-1 sm:gap-2 rounded-xl border px-2 sm:px-3 text-[11.5px] sm:text-[12.5px] font-medium transition cursor-pointer select-none shadow-2xs shrink-0 ${
             !isToday
               ? "border-emerald-500 bg-emerald-50 text-emerald-950 ring-2 ring-emerald-500/20 font-bold"
               : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"
@@ -112,21 +117,22 @@ export function PosDateCalendarPopover() {
           title="Click to select operational date for POS dashboard & operations"
         >
           <CalendarIcon
-            className={`h-4 w-4 shrink-0 ${
+            className={`h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 ${
               !isToday ? "text-emerald-700" : "text-teal-600"
             }`}
           />
-          <span className="truncate max-w-[200px]">
+          <span className="xl:hidden font-semibold whitespace-nowrap">{compactDateLabel}</span>
+          <span className="hidden xl:inline truncate max-w-[200px]">
             {isToday ? `Today · ${formattedDate}` : formattedDate}
           </span>
-          <ChevronDown className="h-3.5 w-3.5 opacity-60 ml-0.5 shrink-0" />
+          <ChevronDown className="h-3 w-3 sm:h-3.5 sm:w-3.5 opacity-60 ml-0.5 shrink-0" />
         </button>
       </PopoverTrigger>
 
       <PopoverContent
         align="end"
         sideOffset={6}
-        className="w-[320px] p-3.5 rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-2xl z-50 animate-in fade-in zoom-in-95"
+        className="w-[min(320px,calc(100vw-1rem))] max-h-[85dvh] overflow-y-auto p-3.5 rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-2xl z-50 animate-in fade-in zoom-in-95"
       >
         {/* Header & Quick Options */}
         <div className="space-y-3 pb-3 border-b border-slate-100">
@@ -149,8 +155,8 @@ export function PosDateCalendarPopover() {
             )}
           </div>
 
-          {/* Quick Select Buttons: Yesterday | Today | Tomorrow */}
-          <div className="grid grid-cols-3 gap-2">
+          {/* Quick Select Buttons: Yesterday | Today (Future disabled) */}
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => handleQuickSelect(-1)}
@@ -173,17 +179,6 @@ export function PosDateCalendarPopover() {
             >
               Today
             </button>
-            <button
-              type="button"
-              onClick={() => handleQuickSelect(1)}
-              className={`py-1.5 px-2 rounded-xl text-xs font-semibold transition text-center cursor-pointer ${
-                isTomorrow
-                  ? "bg-[#064E3B] text-white shadow-xs"
-                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              Tomorrow
-            </button>
           </div>
         </div>
 
@@ -203,8 +198,13 @@ export function PosDateCalendarPopover() {
           <button
             type="button"
             onClick={handleNextMonth}
-            className="p-1 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition cursor-pointer"
-            title="Next Month"
+            disabled={isNextMonthDisabled}
+            className={`p-1 rounded-lg transition ${
+              isNextMonthDisabled
+                ? "text-slate-300 opacity-40 cursor-not-allowed"
+                : "hover:bg-slate-100 text-slate-500 hover:text-slate-800 cursor-pointer"
+            }`}
+            title={isNextMonthDisabled ? "Future months disabled" : "Next Month"}
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -235,6 +235,24 @@ export function PosDateCalendarPopover() {
               selY === year && selM === month + 1 && selD === dayNum;
             const isCurrentToday =
               todayY === year && todayM === month + 1 && todayD === dayNum;
+            const isFutureDay =
+              year > todayY ||
+              (year === todayY && month + 1 > todayM) ||
+              (year === todayY && month + 1 === todayM && dayNum > todayD);
+
+            if (isFutureDay) {
+              return (
+                <button
+                  key={dayNum}
+                  type="button"
+                  disabled={true}
+                  className="h-8 w-8 rounded-lg text-xs font-normal flex items-center justify-center text-slate-300 opacity-35 cursor-not-allowed select-none"
+                  title="Future dates cannot be selected"
+                >
+                  {dayNum}
+                </button>
+              );
+            }
 
             return (
               <button
@@ -265,11 +283,14 @@ export function PosDateCalendarPopover() {
           </label>
           <input
             type="date"
+            max={realTodayStr}
             value={selectedDateStr}
             onChange={(e) => {
-              if (e.target.value) {
-                setSelectedDate(e.target.value);
-                const [y, m, d] = e.target.value.split("-").map(Number);
+              const val = e.target.value;
+              if (val) {
+                if (val > realTodayStr) return;
+                setSelectedDate(val);
+                const [y, m, d] = val.split("-").map(Number);
                 setViewDate(new Date(y, m - 1, d || 1));
                 setOpen(false);
               }

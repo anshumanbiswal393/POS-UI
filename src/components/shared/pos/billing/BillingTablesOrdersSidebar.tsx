@@ -29,6 +29,9 @@ import { useCurrentOrdersTimeline } from "@/hooks/queries/usePosOrders";
 import type { RestaurantTable, ReservationItem } from "@/types/posTables";
 import type { CurrentOrderRecord } from "@/services/posOrdersService";
 import { NewReservationModal } from "../tables/NewReservationModal";
+import { fuzzyFilter } from "@/utils/fuzzySearch";
+import { formatDateIndian } from "@/utils/dateUtils";
+import { usePosDate, getTodayIso } from "@/hooks/usePosDate";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,43 +97,65 @@ export function filterActivePosOrders(
       String(ord.currentStage || "").toLowerCase() !== "settled" &&
       String((ord as CurrentOrderRecord & { status?: string }).status || "").toLowerCase() !== "cancelled",
   );
-  const q = searchQuery.trim().toLowerCase();
-  if (!q) return safeOrders;
-  return safeOrders.filter(
-    (ord) =>
-      (ord.orderNumber || "").toLowerCase().includes(q) ||
-      (ord.customerName || "").toLowerCase().includes(q) ||
-      (ord.tableOrRoom && ord.tableOrRoom.toLowerCase().includes(q)),
-  );
+  if (!searchQuery.trim()) return safeOrders;
+  return fuzzyFilter(safeOrders, searchQuery, [
+    (ord) => ord.orderNumber || "",
+    (ord) => ord.customerName || "",
+    (ord) => ord.tableOrRoom || "",
+    (ord) => ord.waiterName || "",
+    (ord) => ord.currentStage || "",
+    (ord) => String(ord.amount || ord.amountFormatted || ""),
+  ]);
 }
 
 /**
- * Exclude completed or cancelled reservations from the POS billing Bookings tab.
+ * Exclude completed, seated, cancelled, or no-show reservations from the POS billing Bookings tab.
+ * Only that particular day's upcoming reservations are displayed.
+ * Seated and completed reservations belong in the full /pos/reservations list.
  */
 export function filterActivePosReservations(
   reservations: ReservationItem[],
   statusFilter = "all",
   searchQuery = "",
+  targetDateIso?: string,
+  realTodayIso?: string,
 ): ReservationItem[] {
-  const safeRes = (Array.isArray(reservations) ? reservations : []).filter(
-    (res) => res && res.status !== "completed" && res.status !== "cancelled",
+  let safeRes = (Array.isArray(reservations) ? reservations : []).filter(
+    (res) =>
+      res &&
+      res.status !== "completed" &&
+      res.status !== "cancelled" &&
+      res.status !== "no_show" &&
+      res.status !== "seated",
   );
-  return safeRes.filter((res) => {
-    if (
-      statusFilter !== "all" &&
-      (res.status || "").toLowerCase() !== statusFilter.toLowerCase()
-    ) {
-      return false;
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchName = (res.customerName || "").toLowerCase().includes(q);
-      const matchPhone = (res.customerPhone || "").toLowerCase().includes(q);
-      const matchTable = (res.tableNumber || "").toLowerCase().includes(q);
-      return matchName || matchPhone || matchTable;
-    }
-    return true;
-  });
+
+  // If a target date is specified, filter to only that particular day's upcoming bookings
+  if (targetDateIso) {
+    const formattedTarget = formatDateIndian(targetDateIso, "");
+    safeRes = safeRes.filter((res) => {
+      if (!res.reservationDate) return true;
+      if (res.reservationDate.toLowerCase() === "today") {
+        return !realTodayIso || targetDateIso === realTodayIso;
+      }
+      const formattedRes = formatDateIndian(res.reservationDate, "");
+      return !formattedRes || formattedRes === formattedTarget;
+    });
+  }
+
+  if (statusFilter !== "all") {
+    safeRes = safeRes.filter(
+      (res) => (res.status || "").toLowerCase() === statusFilter.toLowerCase(),
+    );
+  }
+  if (!searchQuery.trim()) return safeRes;
+  return fuzzyFilter(safeRes, searchQuery, [
+    (res) => res.customerName || "",
+    (res) => res.customerPhone || "",
+    (res) => res.tableNumber || "",
+    (res) => res.notes || "",
+    (res) => res.reservationDate || "",
+    (res) => res.reservationTime || "",
+  ]);
 }
 
 export function BillingTablesOrdersSidebar({
@@ -165,7 +190,7 @@ export function BillingTablesOrdersSidebar({
     const fromAreas = safeAreas.filter((a) => a && a !== "All Areas" && a !== "All Zones");
     const fromTables = Array.from(new Set(safeTables.map((t) => t?.area).filter(Boolean)));
     const merged = Array.from(new Set([...fromAreas, ...fromTables]));
-    return ["All Zones", ...(merged.length > 0 ? merged : ["Outdoor", "Indoor", "Terrace"])];
+    return ["All Zones", ...merged];
   }, [areasData, tables]);
 
   // Reset selectedZone if it is not in the active zones list
@@ -204,20 +229,26 @@ export function BillingTablesOrdersSidebar({
     [currentOrders, orderSearchQuery],
   );
 
+  const { selectedDateStr } = usePosDate();
+  const realTodayIso = getTodayIso();
+  const targetDateIso = selectedDateStr || realTodayIso;
+
   const activeReservations = useMemo(
-    () => filterActivePosReservations(reservations),
-    [reservations],
+    () => filterActivePosReservations(reservations, "all", "", targetDateIso, realTodayIso),
+    [reservations, targetDateIso, realTodayIso],
   );
 
-  // Filtered Reservations (active bookings only — completed/cancelled stay in /pos/reservations)
+  // Filtered Reservations (active upcoming bookings for that particular day only)
   const filteredReservations = useMemo(
     () =>
       filterActivePosReservations(
         reservations,
         reservationStatusFilter,
         reservationSearchQuery,
+        targetDateIso,
+        realTodayIso,
       ),
-    [reservations, reservationStatusFilter, reservationSearchQuery],
+    [reservations, reservationStatusFilter, reservationSearchQuery, targetDateIso, realTodayIso],
   );
 
   // Format table display ID (e.g. T01, T02)
@@ -231,6 +262,14 @@ export function BillingTablesOrdersSidebar({
 
   // Status config mapping using theme patterns
   const getTableStatusConfig = (table: RestaurantTable) => {
+    if (table.status === "billed") {
+      return {
+        label: "Billed",
+        dotColor: "bg-amber-500",
+        badgeBg: "bg-amber-100 text-amber-800 border border-amber-300",
+        cardBg: "bg-amber-50/80 border-amber-300 hover:border-amber-400",
+      };
+    }
     if (table.status === "occupied") {
       return {
         label: "Occupied",
@@ -288,11 +327,10 @@ export function BillingTablesOrdersSidebar({
               if (onToggleCollapse) onToggleCollapse();
             }}
             title="Tables View"
-            className={`h-10 w-10 rounded-lg flex items-center justify-center transition cursor-pointer ${
-              activeTab === "tables"
-                ? "bg-primary text-primary-foreground shadow-xs font-bold"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
-            }`}
+            className={`h-10 w-10 rounded-lg flex items-center justify-center transition cursor-pointer ${activeTab === "tables"
+              ? "bg-primary text-primary-foreground shadow-xs font-bold"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+              }`}
           >
             <Armchair className="h-4.5 w-4.5" />
           </button>
@@ -303,11 +341,10 @@ export function BillingTablesOrdersSidebar({
               if (onToggleCollapse) onToggleCollapse();
             }}
             title="Orders View"
-            className={`h-10 w-10 rounded-lg flex items-center justify-center transition cursor-pointer relative ${
-              activeTab === "orders"
-                ? "bg-primary text-primary-foreground shadow-xs font-bold"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
-            }`}
+            className={`h-10 w-10 rounded-lg flex items-center justify-center transition cursor-pointer relative ${activeTab === "orders"
+              ? "bg-primary text-primary-foreground shadow-xs font-bold"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+              }`}
           >
             <ClipboardList className="h-4.5 w-4.5" />
             {currentOrders.length > 0 && (
@@ -321,11 +358,10 @@ export function BillingTablesOrdersSidebar({
               if (onToggleCollapse) onToggleCollapse();
             }}
             title="Reservations View"
-            className={`h-10 w-10 rounded-lg flex items-center justify-center transition cursor-pointer relative ${
-              activeTab === "reservations"
-                ? "bg-primary text-primary-foreground shadow-xs font-bold"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
-            }`}
+            className={`h-10 w-10 rounded-lg flex items-center justify-center transition cursor-pointer relative ${activeTab === "reservations"
+              ? "bg-primary text-primary-foreground shadow-xs font-bold"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+              }`}
           >
             <CalendarCheck2 className="h-4.5 w-4.5" />
             {reservations.length > 0 && (
@@ -343,19 +379,18 @@ export function BillingTablesOrdersSidebar({
       className={`bg-white rounded-xl border border-slate-200/90 shadow-2xs flex flex-col h-full max-h-full overflow-hidden w-full select-none ${className}`}
     >
       {/* 1. Header Tabs: [ Tables ] & [ Orders ] & [ Reservations ] with Theme Colors */}
-      <div className="p-2 border-b border-slate-100 bg-slate-50/60 shrink-0">
+      <div className="p-2 border-b border-slate-200 bg-white shrink-0">
         <div className="flex items-center gap-2">
-          {/* Tabs Container */}
-          <div className="flex-1 grid grid-cols-3 gap-1 p-1 bg-slate-200/60 rounded-xl">
+          {/* Tabs Container — Clean White with refined border */}
+          <div className="flex-1 grid grid-cols-3 gap-1 p-1 bg-white rounded-xl border border-slate-300 shadow-2xs">
             {/* Tables Tab */}
             <button
               type="button"
               onClick={() => setActiveTab("tables")}
-              className={`py-2 px-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
-                activeTab === "tables"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-              }`}
+              className={`py-2 px-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${activeTab === "tables"
+                ? "bg-primary text-primary-foreground shadow-xs border border-primary"
+                : "bg-white text-black hover:bg-slate-100 border border-transparent"
+                }`}
             >
               <Armchair className="h-3.5 w-3.5" />
               <span>Tables</span>
@@ -365,19 +400,17 @@ export function BillingTablesOrdersSidebar({
             <button
               type="button"
               onClick={() => setActiveTab("orders")}
-              className={`py-2 px-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer relative ${
-                activeTab === "orders"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-              }`}
+              className={`py-2 px-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer relative ${activeTab === "orders"
+                ? "bg-primary text-primary-foreground shadow-xs border border-primary"
+                : "bg-white text-black hover:bg-slate-100 border border-transparent"
+                }`}
             >
               <ClipboardList className="h-3.5 w-3.5" />
               <span>Orders</span>
               {activeOrders.length > 0 && (
                 <span
-                  className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 ${
-                    activeTab === "orders" ? "bg-white text-primary" : "bg-primary text-white"
-                  }`}
+                  className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 border border-slate-200 ${activeTab === "orders" ? "bg-white text-primary" : "bg-primary text-white"
+                    }`}
                 >
                   {activeOrders.length}
                 </span>
@@ -388,19 +421,17 @@ export function BillingTablesOrdersSidebar({
             <button
               type="button"
               onClick={() => setActiveTab("reservations")}
-              className={`py-2 px-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer relative ${
-                activeTab === "reservations"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-              }`}
+              className={`py-2 px-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer relative ${activeTab === "reservations"
+                ? "bg-primary text-primary-foreground shadow-xs border border-primary"
+                : "bg-white text-black hover:bg-slate-100 border border-transparent"
+                }`}
             >
               <CalendarCheck2 className="h-3.5 w-3.5" />
               <span>Bookings</span>
               {activeReservations.length > 0 && (
                 <span
-                  className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 ${
-                    activeTab === "reservations" ? "bg-white text-primary" : "bg-primary text-white"
-                  }`}
+                  className={`text-[9.5px] px-1 py-0.2 rounded-full font-bold ml-0.5 border border-slate-200 ${activeTab === "reservations" ? "bg-white text-primary" : "bg-primary text-white"
+                    }`}
                 >
                   {activeReservations.length}
                 </span>
@@ -414,7 +445,7 @@ export function BillingTablesOrdersSidebar({
               type="button"
               onClick={onToggleCollapse}
               title="Collapse Tables & Orders Panel"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/10 transition cursor-pointer shrink-0"
+              className="p-1.5 rounded-lg text-slate-800 hover:text-black hover:bg-primary/10 transition cursor-pointer shrink-0"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -430,11 +461,11 @@ export function BillingTablesOrdersSidebar({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="h-8 px-2.5 py-1 text-xs font-semibold bg-white border border-slate-200 rounded-lg text-slate-700 hover:border-slate-300 flex items-center gap-1.5 shadow-2xs transition cursor-pointer max-w-[150px] truncate"
+                className="h-8 px-2.5 py-1 text-xs font-semibold bg-white border border-slate-200 rounded-lg text-slate-800 hover:border-slate-300 flex items-center gap-1.5 shadow-2xs transition cursor-pointer max-w-[150px] truncate"
               >
-                <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                <MapPin className="h-3.5 w-3.5 text-slate-800 shrink-0" />
                 <span className="truncate">{selectedZone === "All Zones" ? "Zones" : selectedZone}</span>
-                <ChevronDown className="h-3 w-3 text-slate-400 shrink-0 ml-auto" />
+                <ChevronDown className="h-3 w-3 text-slate-800 shrink-0 ml-auto" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-44 text-xs font-medium">
@@ -458,11 +489,10 @@ export function BillingTablesOrdersSidebar({
                 <button
                   type="button"
                   title="Filter Tables by Status"
-                  className={`p-1.5 rounded-lg transition cursor-pointer ${
-                    statusFilter !== "all"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-primary/10 hover:bg-primary/20 text-primary"
-                  }`}
+                  className={`p-1.5 rounded-lg transition cursor-pointer ${statusFilter !== "all"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-primary/10 hover:bg-primary/20 text-primary"
+                    }`}
                 >
                   <SlidersHorizontal className="h-3.5 w-3.5" />
                 </button>
@@ -506,11 +536,10 @@ export function BillingTablesOrdersSidebar({
               type="button"
               onClick={() => setViewMode("grid")}
               title="Grid View"
-              className={`p-1.5 rounded-lg transition cursor-pointer ${
-                viewMode === "grid"
-                  ? "bg-primary text-primary-foreground shadow-2xs"
-                  : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-              }`}
+              className={`p-1.5 rounded-lg transition cursor-pointer ${viewMode === "grid"
+                ? "bg-primary text-primary-foreground shadow-2xs"
+                : "text-slate-900 hover:text-black hover:bg-slate-100"
+                }`}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
             </button>
@@ -520,11 +549,10 @@ export function BillingTablesOrdersSidebar({
               type="button"
               onClick={() => setViewMode("list")}
               title="List View"
-              className={`p-1.5 rounded-lg transition cursor-pointer ${
-                viewMode === "list"
-                  ? "bg-primary text-primary-foreground shadow-2xs"
-                  : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-              }`}
+              className={`p-1.5 rounded-lg transition cursor-pointer ${viewMode === "list"
+                ? "bg-primary text-primary-foreground shadow-2xs"
+                : "text-slate-900 hover:text-black hover:bg-slate-100"
+                }`}
             >
               <List className="h-3.5 w-3.5" />
             </button>
@@ -534,16 +562,15 @@ export function BillingTablesOrdersSidebar({
         <div className="px-3 py-2 border-b border-slate-100 bg-white shrink-0 space-y-2">
           <div className="flex items-center justify-between gap-1">
             <div className="flex items-center gap-1">
-              {(["all", "reserved", "seated"] as const).map((st) => (
+              {(["all", "reserved"] as const).map((st) => (
                 <button
                   key={st}
                   type="button"
                   onClick={() => setReservationStatusFilter(st)}
-                  className={`px-2 py-1 text-[11px] font-bold rounded-md transition cursor-pointer capitalize ${
-                    reservationStatusFilter === st
-                      ? "bg-primary text-primary-foreground shadow-2xs"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
+                  className={`px-2 py-1 text-[11px] font-bold rounded-md transition cursor-pointer capitalize ${reservationStatusFilter === st
+                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
                 >
                   {st === "all" ? "All" : st}
                 </button>
@@ -581,7 +608,7 @@ export function BillingTablesOrdersSidebar({
               type="text"
               value={orderSearchQuery}
               onChange={(e) => setOrderSearchQuery(e.target.value)}
-              placeholder="Search by order number or customer..."
+              placeholder="Search by order number or guest..."
               className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white transition"
             />
           </div>
@@ -612,7 +639,8 @@ export function BillingTablesOrdersSidebar({
                   activeTable === table.tableNumber ||
                   activeTable === code ||
                   activeTable === `Table #${table.tableNumberRaw}` ||
-                  (activeTable.includes("+") &&
+                  (!!activeTable &&
+                    activeTable.includes("+") &&
                     activeTable.split("+").some((p) => {
                       const t = p.trim();
                       return (
@@ -622,27 +650,24 @@ export function BillingTablesOrdersSidebar({
                         t.replace(/\D/g, "") === String(table.tableNumberRaw)
                       );
                     }));
-                const floorSubtitle = `${table.area || "Outdoor"} · Floor 1`;
+                const floorSubtitle = table.area ? `${table.area} · Floor 1` : "Floor 1";
 
                 return (
                   <button
                     key={table.id}
                     type="button"
                     onClick={() => onSelectTable(table)}
-                    className={`rounded-xl border p-2.5 flex flex-col items-center justify-center text-center transition cursor-pointer relative shadow-2xs hover:scale-[1.02] ${
-                      statusCfg.cardBg
-                    } ${
-                      isSelected
+                    className={`rounded-xl border p-2.5 flex flex-col items-center justify-center text-center transition cursor-pointer relative shadow-2xs hover:scale-[1.02] ${statusCfg.cardBg
+                      } ${isSelected
                         ? "!border-primary ring-2 ring-primary/40 shadow-sm bg-primary/5"
                         : ""
-                    }`}
+                      }`}
                   >
                     {/* Table + Chairs SVG Icon */}
                     <div className="mb-1.5 flex items-center justify-center">
                       <TableChairsIcon
-                        className={`h-9 w-12 ${
-                          isSelected ? "text-primary" : "text-slate-500"
-                        }`}
+                        className={`h-9 w-12 ${isSelected ? "text-primary" : "text-slate-500"
+                          }`}
                       />
                     </div>
 
@@ -651,9 +676,11 @@ export function BillingTablesOrdersSidebar({
                       {code}
                     </div>
 
-                    {/* Zone & Floor Subtitle */}
+                    {/* Zone & Floor Subtitle OR Guest Name if Occupied */}
                     <div className="text-[10px] text-slate-500 font-medium truncate max-w-full my-1">
-                      {floorSubtitle}
+                      {table.status === "occupied" && (table.activeReservation?.customerName || table.activeOrder?.guestName)
+                        ? (table.activeReservation?.customerName || table.activeOrder?.guestName)
+                        : floorSubtitle}
                     </div>
 
                     {/* Status Pill */}
@@ -677,7 +704,8 @@ export function BillingTablesOrdersSidebar({
                   activeTable === table.tableNumber ||
                   activeTable === code ||
                   activeTable === `Table #${table.tableNumberRaw}` ||
-                  (activeTable.includes("+") &&
+                  (!!activeTable &&
+                    activeTable.includes("+") &&
                     activeTable.split("+").some((p) => {
                       const t = p.trim();
                       return (
@@ -693,16 +721,16 @@ export function BillingTablesOrdersSidebar({
                     key={table.id}
                     type="button"
                     onClick={() => onSelectTable(table)}
-                    className={`w-full px-3 py-2 rounded-lg border text-left flex items-center justify-between transition cursor-pointer ${
-                      statusCfg.cardBg
-                    } ${
-                      isSelected ? "!border-primary ring-2 ring-primary/40 bg-primary/5" : ""
-                    }`}
+                    className={`w-full px-3 py-2 rounded-lg border text-left flex items-center justify-between transition cursor-pointer ${statusCfg.cardBg
+                      } ${isSelected ? "!border-primary ring-2 ring-primary/40 bg-primary/5" : ""
+                      }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="font-extrabold text-sm text-slate-900">{code}</div>
                       <div className="text-xs text-slate-500 truncate">
-                        {table.area || "Dining Area"} · {table.capacity || 4} seats
+                        {table.status === "occupied" && (table.activeReservation?.customerName || table.activeOrder?.guestName)
+                          ? `${table.activeReservation?.customerName || table.activeOrder?.guestName} · ${table.capacity || 4} seats`
+                          : `${table.area || "Dining Area"} · ${table.capacity || 4} seats`}
                       </div>
                     </div>
                     <div
@@ -757,13 +785,12 @@ export function BillingTablesOrdersSidebar({
                         </span>
                       </div>
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          ord.currentStage === "settled"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : ord.currentStage === "prepared"
-                              ? "bg-sky-100 text-sky-800"
-                              : "bg-amber-100 text-amber-800"
-                        }`}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ord.currentStage === "settled"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : ord.currentStage === "prepared"
+                            ? "bg-sky-100 text-sky-800"
+                            : "bg-amber-100 text-amber-800"
+                          }`}
                       >
                         {ord.stageLabel || "In Progress"}
                       </span>
@@ -870,11 +897,10 @@ export function BillingTablesOrdersSidebar({
                         </span>
                       </div>
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize shrink-0 ${
-                          isSeated
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-amber-100 text-amber-800"
-                        }`}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize shrink-0 ${isSeated
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-amber-100 text-amber-800"
+                          }`}
                       >
                         {res.status}
                       </span>
@@ -911,9 +937,9 @@ export function BillingTablesOrdersSidebar({
                     )}
 
                     {/* Bottom Action: Seat & Take Order */}
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                      <span className="text-[10px] text-slate-400">
-                        {res.reservationDate || "Today"}
+                    <div className="flex items-center justify-between pt-1 border-t border-border">
+                      <span className="text-[10px] text-foreground/70">
+                        {res.reservationDate ? formatDateIndian(res.reservationDate) : "Today"}
                       </span>
                       <button
                         type="button"

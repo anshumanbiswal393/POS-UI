@@ -1,12 +1,29 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { posMenuService } from "@/services/posMenuService";
+import { posMenuService, getStoredItemPlates, getStoredItemMealTimes } from "@/services/posMenuService";
 import { liveGetBillingMenu } from "@/services/posOrderLive";
 import { isBackendOutletId } from "@/utils/outletId";
 import type { MenuItem, MenuItemImage } from "@/types/posMenu";
 import { calculateEffectivePrice } from "@/utils/commissionUtils";
 
+function createHybridQueryKey<const T extends readonly string[]>(prefix: T) {
+  const fn: any = (outletId?: string) => [...prefix, outletId || "all"] as const;
+  for (let i = 0; i < prefix.length; i++) {
+    fn[i] = prefix[i];
+  }
+  fn.all = prefix;
+  fn[Symbol.iterator] = function* () {
+    for (const part of prefix) yield part;
+  };
+  return fn as unknown as T & ((outletId?: string) => readonly [...T, string]) & { all: T };
+}
+
+const itemsProxy = createHybridQueryKey(["pos", "menu", "items"] as const);
+const billingProxy = createHybridQueryKey(["pos", "billing", "menu"] as const);
+
 export const MENU_QUERY_KEYS = {
-  menuItems: (outletId?: string) => ["pos", "menu", "items", outletId || "all"] as const,
+  items: itemsProxy,
+  menuItems: itemsProxy,
+  billingMenu: billingProxy,
   categories: (outletId?: string) => ["pos", "menu", "categories", outletId || "all"] as const,
   specialNotes: (outletId?: string) =>
     ["pos", "menu", "special-notes", outletId || "all"] as const,
@@ -14,6 +31,12 @@ export const MENU_QUERY_KEYS = {
   stockItems: (outletId?: string) => ["pos", "menu", "stock-items", outletId || "all"] as const,
   schedules: ["pos", "menu", "schedules"] as const,
   physicalMenus: ["pos", "menu", "physical-menus"] as const,
+};
+
+export const queryKeys = {
+  ...MENU_QUERY_KEYS,
+  items: itemsProxy,
+  billingMenu: billingProxy,
 };
 
 // 1. Menu Items
@@ -43,7 +66,18 @@ export function useBillingMenuItems(outletId?: string) {
       } else if (effectiveOutletId) {
         raw = await posMenuService.getMenuItems(effectiveOutletId);
       }
+      const platesMap = getStoredItemPlates(effectiveOutletId);
+      const mealTimesMap = getStoredItemMealTimes(effectiveOutletId);
       return (raw || []).map((item) => {
+        const rawItem = item as any;
+        const apiMealTimes =
+          Array.isArray(rawItem.mealTimes) && rawItem.mealTimes.length > 0
+            ? (rawItem.mealTimes as string[])
+            : Array.isArray(rawItem.meal_times) && rawItem.meal_times.length > 0
+              ? (rawItem.meal_times as string[])
+              : mealTimesMap[item.id] && mealTimesMap[item.id].length > 0
+                ? mealTimesMap[item.id]
+                : ["All Day"];
         const basePrice = (item as any).originalPrice ?? item.price;
         const effectivePrice =
           (item as any).originalPrice !== undefined
@@ -53,8 +87,17 @@ export function useBillingMenuItems(outletId?: string) {
                 item.commissionType,
                 item.commissionValue,
               );
+        const storedQty = platesMap[item.id];
+        const plates =
+          storedQty !== undefined && storedQty > 0
+            ? storedQty
+            : item.plates !== undefined && item.plates !== null && Number(item.plates) > 0
+              ? Number(item.plates)
+              : undefined;
         return {
           ...item,
+          mealTimes: apiMealTimes,
+          plates,
           originalPrice: basePrice,
           price: effectivePrice,
           variants: (item.variants || []).map((v: any) => {
@@ -82,6 +125,7 @@ export function useAddMenuItem() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pos", "menu", "items"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "menu", "stock-items"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "billing", "menu"] });
     },
   });
 }
@@ -94,6 +138,9 @@ export function useUpdateMenuItem() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pos", "menu", "items"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "menu", "stock-items"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "billing", "menu"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "menu"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "billing"] });
     },
   });
 }
@@ -105,6 +152,7 @@ export function useDeleteMenuItem() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pos", "menu", "items"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "menu", "stock-items"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "billing", "menu"] });
     },
   });
 }
@@ -178,21 +226,21 @@ function patchMenuItemInCache(
     { queryKey: ["pos", "menu", "items"] },
     (old) => {
       if (!old || !Array.isArray(old)) return old;
-      return old.map((item) => (item.id === updated.id ? { ...item, ...updated } : item));
+      return old.map((item) => (String(item.id) === String(updated.id) ? { ...item, ...updated } : item));
     },
   );
   queryClient.setQueriesData<MenuItem[]>(
     { queryKey: ["pos", "billing", "menu"] },
     (old) => {
       if (!old || !Array.isArray(old)) return old;
-      return old.map((item) => (item.id === updated.id ? { ...item, ...updated } : item));
+      return old.map((item) => (String(item.id) === String(updated.id) ? { ...item, ...updated } : item));
     },
   );
   queryClient.setQueriesData<MenuItem[]>(
     { queryKey: ["pos", "menu", "stock-items"] },
     (old) => {
       if (!old || !Array.isArray(old)) return old;
-      return old.map((item) => (item.id === updated.id ? { ...item, ...updated } : item));
+      return old.map((item) => (String(item.id) === String(updated.id) ? { ...item, ...updated } : item));
     },
   );
 }

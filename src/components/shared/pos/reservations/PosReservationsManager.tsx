@@ -13,6 +13,7 @@ function toStandardIsoDate(rawDate?: string, fallbackIso?: string): string {
 }
 
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   Table as TableIcon,
   LayoutGrid,
@@ -32,6 +33,10 @@ import {
   ArrowLeftRight,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ColorActionPrint, ColorActionView } from "@/components/common/ColorActionIcons";
+import { PageHeader, KpiCard } from "@/components/ui/Primitives";
+import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
+import { PrintReportButton } from "@/components/ui/PrintReportButton";
 import {
   usePosReservations,
   usePosTables,
@@ -45,9 +50,12 @@ import {
 import type { ReservationItem, RestaurantTable } from "@/types/posTables";
 import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 import { usePosDate } from "@/hooks/usePosDate";
+import { openPrintReportTable } from "@/utils/printReportTable";
+import { formatDateIndian } from "@/utils/dateUtils";
 import { NewReservationModal } from "../tables/NewReservationModal";
 import { ReservationDetailSlide } from "../tables/ReservationDetailSlide";
 import { SwitchTableModal } from "../tables/SwitchTableModal";
+import { fuzzyMatch } from "@/utils/fuzzySearch";
 import { exportToExcel } from "@/utils/exportUtils";
 import {
   PosDataGrid,
@@ -64,34 +72,10 @@ function getTodayIso() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-const AVATAR_COLORS = [
-  "bg-emerald-100 text-emerald-800 border-emerald-200",
-  "bg-blue-100 text-blue-800 border-blue-200",
-  "bg-purple-100 text-purple-800 border-purple-200",
-  "bg-amber-100 text-amber-800 border-amber-200",
-  "bg-rose-100 text-rose-800 border-rose-200",
-  "bg-teal-100 text-teal-800 border-teal-200",
-];
-
-function getInitials(name?: string) {
-  if (!name) return "G";
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function getAvatarColor(name?: string) {
-  if (!name) return AVATAR_COLORS[0];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-
 const VISIBLE_COLUMNS_KEY = "retrod:pos-reservations:visible-columns";
 
 export function PosReservationsManager() {
+  const navigate = useNavigate();
   // Query data
   const { data: reservations = [], isLoading: isLoadingReservations } = usePosReservations();
   const { data: tables = [] } = usePosTables();
@@ -107,7 +91,7 @@ export function PosReservationsManager() {
   // View state
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string | string[]>("all");
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [switchReservation, setSwitchReservation] = useState<ReservationItem | null>(null);
@@ -134,24 +118,33 @@ export function PosReservationsManager() {
   const [selectedReservation, setSelectedReservation] = useState<ReservationItem | null>(null);
   const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
 
-  // Filtered reservations
+  // Filtered reservations (Intelligent Multi-Field Fuzzy Search)
   const filteredReservations = useMemo(() => {
     return reservations.filter((res) => {
-      // 1. Search Query
+      // 1. Multi-Field Fuzzy Search
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchName = res.customerName.toLowerCase().includes(q);
-        const matchPhone = (res.customerPhone || "").toLowerCase().includes(q);
-        const matchTable = (res.tableNumber || "").toLowerCase().includes(q);
-        const matchNotes = (res.notes || "").toLowerCase().includes(q);
-        if (!matchName && !matchPhone && !matchTable && !matchNotes) {
+        const matches = fuzzyMatch(searchQuery, [
+          res.customerName,
+          res.customerPhone || "",
+          res.tableNumber || "",
+          res.notes || "",
+          res.reservationDate || "",
+          res.reservationTime || "",
+          res.status || "",
+          String((res as any).guestCount || res.guests || ""),
+        ]);
+        if (!matches) {
           return false;
         }
       }
 
       // 2. Status Filter
       if (statusFilter !== "all") {
-        if (res.status.toLowerCase() !== statusFilter.toLowerCase()) {
+        if (Array.isArray(statusFilter)) {
+          if (!statusFilter.map((s) => s.toLowerCase()).includes(res.status.toLowerCase())) {
+            return false;
+          }
+        } else if (res.status.toLowerCase() !== statusFilter.toLowerCase()) {
           return false;
         }
       }
@@ -194,12 +187,34 @@ export function PosReservationsManager() {
   };
 
   const handleSeatGuests = (tableId: string, reservationId?: string) => {
+    const matchedRes =
+      (reservationId ? reservations.find((r) => r.id === reservationId) : undefined) ||
+      selectedReservation ||
+      reservations.find((r) => r.tableId === tableId);
+    const matchedTable =
+      tables.find((t) => t.id === tableId) ||
+      selectedTable ||
+      (matchedRes ? tables.find((t) => t.tableNumber === matchedRes.tableNumber) : undefined);
+
     seatGuestsMutation.mutate(
-      { tableId, reservationId },
+      { tableId, reservationId: reservationId || matchedRes?.id },
       {
         onSuccess: () => {
           toast.success("Guests seated successfully");
           setIsDetailSlideOpen(false);
+          navigate({
+            to: "/pos/billing",
+            search: {
+              orderType: "dine_in",
+              table: matchedTable?.tableNumber || matchedRes?.tableNumber || undefined,
+              tableId: matchedTable?.id || tableId,
+              reservationId: reservationId || matchedRes?.id,
+              guests: matchedRes?.guests || matchedTable?.capacity || 2,
+              pax: matchedRes?.guests || matchedTable?.capacity || 2,
+              guestName: matchedRes?.customerName || undefined,
+              guestPhone: matchedRes?.customerPhone || undefined,
+            },
+          });
         },
       },
     );
@@ -233,7 +248,7 @@ export function PosReservationsManager() {
       "Guest Name": r.customerName,
       "Phone": r.customerPhone || "N/A",
       "Email": r.customerEmail || "N/A",
-      "Guests (Pax)": r.guests,
+      "Pax": r.guestCount ?? r.guests ?? (r as any).pax ?? (r as any).covers ?? 1,
       "Table": r.tableNumber,
       "Date": r.reservationDate,
       "Time": r.reservationTime,
@@ -250,7 +265,59 @@ export function PosReservationsManager() {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (filteredReservations.length === 0) {
+      toast.info("No reservations to print");
+      return;
+    }
+
+    const columns = [
+      { header: "RES ID", align: "left" as const },
+      { header: "GUEST NAME", align: "left" as const },
+      { header: "CONTACT", align: "left" as const },
+      { header: "TABLE / DETAILS", align: "left" as const },
+      { header: "DATE", align: "center" as const },
+      { header: "TIME / SLOT", align: "center" as const },
+      { header: "SOURCE", align: "left" as const },
+      { header: "STATUS", align: "center" as const },
+      { header: "Pax", align: "center" as const },
+      { header: "DEPOSIT (₹)", align: "right" as const },
+    ];
+
+    const rows = filteredReservations.map((r) => [
+      (r as any).reservationNumber || r.id,
+      r.customerName || "Walk-in Guest",
+      r.customerPhone || "—",
+      r.tableNumber ? `Table ${r.tableNumber}` : "Dine-In",
+      formatDateIndian(r.reservationDate),
+      r.reservationTime || "—",
+      (r as any).source || "Direct Walk-in",
+      (r.status || "CONFIRMED").toUpperCase(),
+      (r as any).guestCount ?? r.guests ?? (r as any).pax ?? (r as any).covers ?? 1,
+      Number(r.depositAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+    ]);
+
+    const totalDeposit = filteredReservations.reduce((sum, r) => sum + Number(r.depositAmount || 0), 0);
+
+    openPrintReportTable({
+      hotelName: "Anshu Suite Restaurant",
+      title: "RESERVATIONS MASTER LIST",
+      subtitle: `Stay / Reservation Window: ${fromDate} to ${toDate} • Total: ${filteredReservations.length} Bookings`,
+      dateRange: `${formatDateIndian(fromDate)} to ${formatDateIndian(toDate)}`,
+      columns,
+      rows,
+      summaryTotals: [
+        "TOTAL",
+        `${filteredReservations.length} Bookings`,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        totalDeposit.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      ],
+    });
   };
 
   // Columns definition for PosDataGrid
@@ -264,69 +331,51 @@ export function PosReservationsManager() {
         filterable: true,
         minWidth: 220,
         render: (_, res) => (
-          <div className="flex items-center gap-2.5 py-1">
-            <div
-              className={`w-8 h-8 rounded-full border flex items-center justify-center font-bold text-xs shrink-0 ${getAvatarColor(
-                res.customerName,
-              )}`}
-            >
-              {getInitials(res.customerName)}
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-slate-900 truncate text-[12.5px]">
-                  {res.customerName}
+          <div className="py-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-foreground truncate text-[12.5px]">
+                {res.customerName}
+              </span>
+              {res.isVip && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                  <Crown className="w-2.5 h-2.5" /> VIP
                 </span>
-                {res.isVip && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                    <Crown className="w-2.5 h-2.5" /> VIP
-                  </span>
-                )}
-              </div>
-              {res.customerPhone ? (
-                <div className="flex items-center gap-1 text-[11px] text-slate-500 font-mono mt-0.5">
-                  <Phone className="w-2.5 h-2.5 text-slate-400" />
-                  <span>{res.customerPhone}</span>
-                </div>
-              ) : null}
+              )}
             </div>
+            {res.customerPhone ? (
+              <div className="flex items-center gap-1 text-[11px] text-foreground/70 font-mono mt-0.5">
+                <Phone className="w-2.5 h-2.5 text-foreground/60" />
+                <span>{res.customerPhone}</span>
+              </div>
+            ) : null}
           </div>
         ),
       },
       {
         id: "guests",
-        header: "Guests / Pax",
+        header: "Pax",
         accessorKey: "guests",
         sortable: true,
         filterable: true,
         align: "center",
         minWidth: 120,
         render: (_, res) => (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 font-bold text-slate-700 text-xs">
-            <Users className="w-3.5 h-3.5 text-slate-400" />
-            {res.guests} Pax
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary-tint/30 font-bold text-foreground text-xs">
+            <Users className="w-3.5 h-3.5 text-primary" />
+            {res.guestCount ?? res.guests ?? (res as any).pax ?? (res as any).covers ?? 1} Pax
           </span>
         ),
       },
       {
         id: "tableNumber",
-        header: "Table / Area",
+        header: "Table",
         accessorKey: "tableNumber",
         sortable: true,
         filterable: true,
-        minWidth: 150,
-        render: (_, res) => {
-          const table = tables.find(
-            (t) => t.id === res.tableId || t.tableNumber === res.tableNumber,
-          );
-          const areaName = table?.area || "Dining Area";
-          return (
-            <div>
-              <div className="font-bold text-slate-900 text-xs">{res.tableNumber}</div>
-              <div className="text-[11px] text-slate-500">{areaName}</div>
-            </div>
-          );
-        },
+        minWidth: 120,
+        render: (_, res) => (
+          <div className="font-bold text-foreground text-xs">{res.tableNumber}</div>
+        ),
       },
       {
         id: "reservationDate",
@@ -336,9 +385,9 @@ export function PosReservationsManager() {
         filterable: true,
         minWidth: 130,
         render: (_, res) => (
-          <div className="flex items-center gap-1.5 font-medium text-slate-700 text-xs">
-            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>{res.reservationDate || "Today"}</span>
+          <div className="flex items-center gap-1.5 font-medium text-foreground text-xs">
+            <Calendar className="w-3.5 h-3.5 text-primary shrink-0" />
+            <span>{res.reservationDate ? formatDateIndian(res.reservationDate) : "Today"}</span>
           </div>
         ),
       },
@@ -350,11 +399,11 @@ export function PosReservationsManager() {
         filterable: true,
         minWidth: 140,
         render: (_, res) => (
-          <div className="flex items-center gap-1.5 font-medium text-slate-700 text-xs">
-            <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <div className="flex items-center gap-1.5 font-medium text-foreground text-xs">
+            <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
             <span>{res.reservationTime}</span>
             {res.endTime && (
-              <span className="text-slate-400 text-[10.5px]"> – {res.endTime}</span>
+              <span className="text-foreground/60 text-[10.5px]"> – {res.endTime}</span>
             )}
           </div>
         ),
@@ -370,31 +419,31 @@ export function PosReservationsManager() {
         render: (_, res) => {
           if (res.status === "seated") {
             return (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                Seated
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700 border border-red-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
+                Dine-in
               </span>
             );
           }
           if (res.status === "completed") {
             return (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
                 Completed
               </span>
             );
           }
           if (res.status === "cancelled") {
             return (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
                 Cancelled
               </span>
             );
           }
           return (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700 border border-orange-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
               Reserved
             </span>
           );
@@ -452,9 +501,9 @@ export function PosReservationsManager() {
               type="button"
               onClick={() => handleOpenDetail(res)}
               title="View Details"
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
             >
-              <Eye className="w-3.5 h-3.5" />
+              <ColorActionView className="w-4 h-4" />
             </button>
             {res.status === "reserved" && (
               <button
@@ -509,60 +558,83 @@ export function PosReservationsManager() {
     }
   };
 
+  const confirmedCount = useMemo(() => {
+    return reservations.filter((r) => r.status?.toLowerCase().includes("confirm")).length;
+  }, [reservations]);
+
+  const seatedCount = useMemo(() => {
+    return reservations.filter((r) => r.status?.toLowerCase().includes("seat") || r.status?.toLowerCase().includes("din")).length;
+  }, [reservations]);
+
+  const pendingOrCancelledCount = useMemo(() => {
+    return reservations.filter((r) => r.status?.toLowerCase().includes("cancel") || r.status?.toLowerCase().includes("pend")).length;
+  }, [reservations]);
+
   return (
     <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50 pb-8">
-      {/* Top Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 sm:px-6 py-2.5 shrink-0">
-        <div>
-          <h1 className="font-serif text-[20px] sm:text-[22px] font-bold tracking-tight text-slate-900 leading-tight">
-            Reservations List
-          </h1>
-          <p className="text-[11px] text-slate-500">
-            Real-time table bookings, guest arrivals, and reservation schedules
-          </p>
-        </div>
-
-        {/* Top Right Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleExportExcel}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-2xs transition cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
-            Excel
-          </button>
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-2xs transition cursor-pointer"
-          >
-            <Printer className="w-3.5 h-3.5 text-slate-500" />
-            Print
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsNewBookingOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold text-white bg-teal-600 rounded-xl hover:bg-teal-700 shadow-sm transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            Book Reservation
-          </button>
-        </div>
-      </div>
+      {/* 1. Page Header (PMS Standard) */}
+      <PageHeader
+        title="Reservations List"
+        eyebrow="Dining Tables & Banquet Booking Management"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <ExportToExcelButton onClick={handleExportExcel} />
+            <PrintReportButton
+              onClick={handlePrint}
+              disabled={filteredReservations.length === 0}
+              title="Print Reservations Master List"
+            />
+            <button
+              type="button"
+              onClick={() => setIsNewBookingOpen(true)}
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 text-[12px] font-semibold text-primary-foreground bg-primary rounded-lg hover:bg-primary-pressed shadow-xs transition cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Book Reservation</span>
+            </button>
+          </div>
+        }
+      />
 
       <div className="responsive-page-x py-4 sm:py-5 space-y-4">
+        {/* 2. KPI Metric Cards (PMS Standard) */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard
+            label="Total Bookings"
+            value={String(reservations.length)}
+            accent="brand"
+            subtitle="Recorded dining reservations"
+          />
+          <KpiCard
+            label="Confirmed"
+            value={String(confirmedCount)}
+            accent="info"
+            subtitle="Upcoming guest arrivals"
+          />
+          <KpiCard
+            label="Seated & Dining"
+            value={String(seatedCount)}
+            accent="success"
+            subtitle="Currently occupied at tables"
+          />
+          <KpiCard
+            label="Pending / Cancelled"
+            value={String(pendingOrCancelledCount)}
+            accent="warning"
+            subtitle="Awaiting deposit or released"
+          />
+        </div>
         {/* View Switcher & Filter Toolbar — Aligned in one line */}
-        <div className="flex items-center gap-2 bg-white p-2.5 sm:p-3 rounded-xl border border-slate-300 shadow-2xs overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-2 bg-card p-2.5 sm:p-3 rounded-xl border border-border shadow-2xs overflow-x-auto scrollbar-none">
           {/* View Mode Buttons */}
-          <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200/60 shrink-0">
+          <div className="inline-flex p-1 rounded-xl bg-surface border border-border shrink-0">
             <button
               type="button"
               onClick={() => setViewMode("table")}
               className={`inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer whitespace-nowrap ${
                 viewMode === "table"
                   ? "bg-teal-700 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  : "text-foreground hover:text-primary"
               }`}
             >
               <TableIcon className="w-3.5 h-3.5" />
@@ -574,7 +646,7 @@ export function PosReservationsManager() {
               className={`inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer whitespace-nowrap ${
                 viewMode === "grid"
                   ? "bg-teal-700 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  : "text-foreground hover:text-primary"
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
@@ -590,7 +662,7 @@ export function PosReservationsManager() {
                 setAreaFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 focus:border-teal-500 focus:outline-hidden cursor-pointer shrink-0"
+              className="h-8.5 rounded-lg border border-border bg-card px-2.5 text-xs font-medium text-foreground focus:border-teal-500 focus:outline-hidden cursor-pointer shrink-0"
             >
               <option value="all">All Dining Areas</option>
               {areas.map((a) => (
@@ -608,20 +680,21 @@ export function PosReservationsManager() {
               setStatusFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 focus:border-teal-500 focus:outline-hidden cursor-pointer shrink-0"
+            className="h-8.5 rounded-lg border border-border bg-card px-2.5 text-xs font-medium text-foreground focus:border-teal-500 focus:outline-hidden cursor-pointer shrink-0"
           >
             <option value="all">All Statuses</option>
             <option value="reserved">Reserved</option>
-            <option value="seated">Seated</option>
+            <option value="seated">Dine-in</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
           </select>
 
-          {/* Sliding Date Range Picker */}
+          {/* Sliding Date Range Picker (Reservations can search future dates) */}
           <div className="shrink-0">
             <PosDateRangePicker
               from={fromDate}
               to={toDate}
+              allowFutureDates={true}
               onSelect={({ from, to }) => {
                 setFromDate(from);
                 setToDate(to);
@@ -649,7 +722,7 @@ export function PosReservationsManager() {
             className={`h-8.5 px-2.5 rounded-lg border text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
               !fromDate && !toDate
                 ? "bg-teal-700 text-white border-teal-800 shadow-2xs"
-                : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+                : "bg-card text-foreground border-border hover:bg-primary-tint/20"
             }`}
             title="Toggle between All Dates and Selected Date"
           >
@@ -658,7 +731,7 @@ export function PosReservationsManager() {
 
           {/* Search Input */}
           <div className="relative min-w-[180px] sm:min-w-[220px] flex-1">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-foreground/60 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search code, guest, phone, table..."
@@ -667,7 +740,7 @@ export function PosReservationsManager() {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              className="h-8.5 w-full rounded-lg border border-slate-300 bg-white pl-8 pr-3 text-[12px] font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-hidden"
+              className="h-8.5 w-full rounded-lg border border-border bg-card pl-8 pr-3 text-[12px] font-medium text-foreground placeholder-foreground/60 focus:border-teal-500 focus:outline-hidden"
             />
           </div>
 
@@ -765,45 +838,40 @@ export function PosReservationsManager() {
 
                           {/* Status pill */}
                           {res.status === "seated" ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
-                              Seated
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-300">
+                              Dine-in
+                            </span>
+                          ) : res.status === "completed" ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
+                              Completed
                             </span>
                           ) : res.status === "cancelled" ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
                               Cancelled
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-300">
                               Reserved
                             </span>
                           )}
                         </div>
 
                         {/* Guest details */}
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-10 h-10 rounded-full border flex items-center justify-center font-bold text-sm shrink-0 ${getAvatarColor(
-                              res.customerName,
-                            )}`}
-                          >
-                            {getInitials(res.customerName)}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-sm text-slate-900 truncate">
-                                {res.customerName}
-                              </span>
-                              {res.isVip && (
-                                <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                              )}
-                            </div>
-                            {res.customerPhone && (
-                              <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
-                                <Phone className="w-3 h-3 text-slate-400" />
-                                {res.customerPhone}
-                              </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-sm text-slate-900 truncate">
+                              {res.customerName}
+                            </span>
+                            {res.isVip && (
+                              <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                             )}
                           </div>
+                          {res.customerPhone && (
+                            <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
+                              <Phone className="w-3 h-3 text-slate-400" />
+                              {res.customerPhone}
+                            </div>
+                          )}
                         </div>
 
                         {/* Notes / Details */}
@@ -821,7 +889,7 @@ export function PosReservationsManager() {
                       >
                         <div className="flex items-center gap-1 text-xs font-bold text-slate-700">
                           <Users className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{res.guests} Guests</span>
+                          <span>{res.guestCount ?? res.guests ?? (res as any).pax ?? (res as any).covers ?? 1} Guests</span>
                         </div>
 
                         <div className="flex items-center gap-2">

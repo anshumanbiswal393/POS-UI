@@ -31,6 +31,7 @@ export const ALL_POS_PERMISSIONS: Permission[] = [
   "pos.reports.export",
   "pos.settings.manage",
   "pos.users.manage",
+  "pos.notifications.waiter",
 ];
 
 export const ALL_PERMISSIONS: Permission[] = [
@@ -255,6 +256,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "pos.billing.split",
     "pos.menu.view",
     "pos.reports.view",
+    "pos.notifications.waiter",
   ],
   pos_waiter: [
     "pos.orders.view",
@@ -266,6 +268,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "pos.billing.view",
     "pos.billing.create",
     "pos.menu.view",
+    "pos.notifications.waiter",
   ],
   pos_cashier: [
     "pos.orders.view",

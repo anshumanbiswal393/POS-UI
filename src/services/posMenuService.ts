@@ -3,6 +3,7 @@ import type {
   MenuCategory,
   MenuItemCommission,
   MenuItem,
+  MenuItemIngredient,
   MenuItemImage,
   PhysicalMenuRecord,
   MenuScheduleItem,
@@ -12,6 +13,8 @@ import type {
   ScheduleVariantItem,
   ScheduleTableItem,
 } from "@/types/posMenu";
+
+export type { MenuItemIngredient };
 import httpClient from "@/utils/httpClient";
 import { API_ENDPOINTS } from "@/config/apiEndpoints";
 import { isBackendOutletId } from "@/utils/outletId";
@@ -269,6 +272,156 @@ function unwrapList<T>(data: unknown): T[] {
   return [];
 }
 
+const itemPlatesStoreKey = (outletId?: string) => `retrod_pos_item_plates:${outletId || "default"}`;
+
+export function getStoredItemPlates(outletId?: string): Record<string, number> {
+  if (typeof window === "undefined") return {};
+  try {
+    const primaryKey = itemPlatesStoreKey(outletId);
+    const raw = localStorage.getItem(primaryKey);
+    const parsed: Record<string, number> = raw ? JSON.parse(raw) : {};
+
+    // Merge plates recorded across any other stored outlet keys (e.g. default, or specific outlet UUID)
+    // to guarantee cross-user and cross-role consistency within the same restaurant outlet
+    const merged: Record<string, number> = { ...parsed };
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("retrod_pos_item_plates:") && key !== primaryKey) {
+        try {
+          const other = JSON.parse(localStorage.getItem(key) || "{}");
+          if (other && typeof other === "object") {
+            for (const [id, qty] of Object.entries(other)) {
+              if (merged[id] === undefined && typeof qty === "number") {
+                merged[id] = qty;
+              }
+            }
+          }
+        } catch {}
+      }
+    }
+    return merged;
+  } catch {
+    return {};
+  }
+}
+
+export function saveStoredItemPlates(outletId: string | undefined, data: Record<string, number>) {
+  if (typeof window === "undefined") return;
+  try {
+    const key = itemPlatesStoreKey(outletId);
+    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem("retrod_pos_item_plates:default", JSON.stringify(data));
+    const active = localStorage.getItem("retrod_pos_active_outlet_id");
+    if (active && active !== outletId) {
+      localStorage.setItem(itemPlatesStoreKey(active), JSON.stringify(data));
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function updateItemPlates(
+  outletId: string | undefined,
+  itemId: string,
+  deltaOrExact: number,
+  isDelta = false,
+): number {
+  const stored = getStoredItemPlates(outletId);
+  const current = Number(stored[itemId] ?? 0);
+  const next = isDelta ? Math.max(0, current + deltaOrExact) : Math.max(0, deltaOrExact);
+  stored[itemId] = next;
+  saveStoredItemPlates(outletId, stored);
+
+  menuItemsStore = menuItemsStore.map((item) =>
+    item.id === itemId ? { ...item, plates: next } : item,
+  );
+  saveMenuItemsToStorage(menuItemsStore);
+
+  // Sync to backend menu item if it is a backend UUID item
+  if (/^[0-9a-f-]{36}$/i.test(itemId)) {
+    try {
+      httpClient.patch(API_ENDPOINTS.MENU.UPDATE_ITEM(itemId), { plates: next }).catch(() => {});
+    } catch {}
+  }
+
+  return next;
+}
+
+const itemRawMaterialsStoreKey = (outletId?: string) => `retrod_pos_item_raw_materials:${outletId || "default"}`;
+
+export function getStoredItemRawMaterials(outletId?: string): Record<string, MenuItemIngredient[]> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(itemRawMaterialsStoreKey(outletId));
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveStoredItemRawMaterials(
+  outletId: string | undefined,
+  itemId: string,
+  rawMaterials: MenuItemIngredient[],
+) {
+  if (typeof window === "undefined") return;
+  try {
+    const stored = getStoredItemRawMaterials(outletId);
+    stored[itemId] = rawMaterials;
+    localStorage.setItem(itemRawMaterialsStoreKey(outletId), JSON.stringify(stored));
+  } catch {
+    // ignore
+  }
+}
+
+const itemMealTimesStoreKey = (outletId?: string) =>
+  `retrod_pos_item_mealtimes:${outletId || "default"}`;
+
+export function getStoredItemMealTimes(outletId?: string): Record<string, string[]> {
+  if (typeof window === "undefined") return {};
+  try {
+    const primaryKey = itemMealTimesStoreKey(outletId);
+    const raw = localStorage.getItem(primaryKey);
+    const parsed: Record<string, string[]> = raw ? JSON.parse(raw) : {};
+    const merged: Record<string, string[]> = { ...parsed };
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("retrod_pos_item_mealtimes:") && key !== primaryKey) {
+        try {
+          const other = JSON.parse(localStorage.getItem(key) || "{}");
+          if (other && typeof other === "object") {
+            Object.entries(other).forEach(([k, v]) => {
+              if (merged[k] === undefined && Array.isArray(v)) {
+                merged[k] = v as string[];
+              }
+            });
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+    return merged;
+  } catch {
+    return {};
+  }
+}
+
+export function saveStoredItemMealTimes(
+  outletId: string | undefined,
+  itemId: string,
+  mealTimes: string[],
+) {
+  if (typeof window === "undefined") return;
+  try {
+    const stored = getStoredItemMealTimes(outletId);
+    stored[itemId] = mealTimes;
+    localStorage.setItem(itemMealTimesStoreKey(outletId), JSON.stringify(stored));
+  } catch {
+    // ignore
+  }
+}
+
 function toMenuItemWritePayload(item: Partial<MenuItem> & { outletId?: string }) {
   const itemType =
     item.itemType === "Non-Veg" ? "NON_VEG" : item.itemType === "Egg" ? "EGG" : "VEG";
@@ -305,6 +458,10 @@ function toMenuItemWritePayload(item: Partial<MenuItem> & { outletId?: string })
     })),
     commissionType: item.commissionType,
     commissionValue: item.commissionValue,
+    plates: item.plates,
+    rawMaterials: item.rawMaterials,
+    mealTimes: item.mealTimes || ["All Day"],
+    meal_times: item.mealTimes || ["All Day"],
   };
 }
 let commissionsStore: MenuItemCommission[] = [...initialCommissions];
@@ -330,11 +487,45 @@ export const posMenuService = {
           params: { outletId: effectiveId, outlet_id: effectiveId, page_size: 500 },
         });
         const items = unwrapList<MenuItem>(res.data);
+        const platesMap = getStoredItemPlates(effectiveId);
+        const rawMaterialsMap = getStoredItemRawMaterials(effectiveId);
+        const mealTimesMap = getStoredItemMealTimes(effectiveId);
+        const mergedItems = items.map((i) => {
+          const storedQty = platesMap[i.id];
+          const plates =
+            storedQty !== undefined && storedQty > 0
+              ? storedQty
+              : i.plates !== undefined && i.plates !== null && Number(i.plates) > 0
+                ? Number(i.plates)
+                : undefined;
+          const rawItem = i as unknown as Record<string, unknown>;
+          const subCategory = (i.subCategory || rawItem.sub_category || rawItem.subcategory || "") as string;
+          const apiMealTimes =
+            (Array.isArray(rawItem.mealTimes) && rawItem.mealTimes.length > 0)
+              ? (rawItem.mealTimes as string[])
+              : (Array.isArray(rawItem.meal_times) && rawItem.meal_times.length > 0)
+                ? (rawItem.meal_times as string[])
+                : (mealTimesMap[i.id] && mealTimesMap[i.id].length > 0)
+                  ? mealTimesMap[i.id]
+                  : ["All Day"];
+          return {
+            ...i,
+            plates,
+            subCategory,
+            sub_category: subCategory,
+            mealTimes: apiMealTimes,
+            meal_times: apiMealTimes,
+            rawMaterials:
+              i.rawMaterials && i.rawMaterials.length > 0
+                ? i.rawMaterials
+                : (rawMaterialsMap[i.id] ?? []),
+          };
+        });
         menuItemsStore = [
           ...menuItemsStore.filter((m) => m.outletId !== effectiveId),
-          ...items,
+          ...mergedItems,
         ];
-        return items;
+        return mergedItems;
       } catch {
         return [];
       }
@@ -342,32 +533,89 @@ export const posMenuService = {
 
     // Never return mock demo dishes. Return empty if no valid outlet or no dishes configured.
     if (!effectiveId) return [];
-    return menuItemsStore.filter((item) => item.outletId === effectiveId);
+    const platesMap = getStoredItemPlates(effectiveId);
+    const rawMaterialsMap = getStoredItemRawMaterials(effectiveId);
+    const mealTimesMap = getStoredItemMealTimes(effectiveId);
+    return menuItemsStore
+      .filter((item) => item.outletId === effectiveId)
+      .map((i) => {
+        const storedQty = platesMap[i.id];
+        const plates =
+          storedQty !== undefined && storedQty > 0
+            ? storedQty
+            : i.plates !== undefined && i.plates !== null && Number(i.plates) > 0
+              ? Number(i.plates)
+              : undefined;
+        const rawItem = i as unknown as Record<string, unknown>;
+        const apiMealTimes =
+          (Array.isArray(rawItem.mealTimes) && rawItem.mealTimes.length > 0)
+            ? (rawItem.mealTimes as string[])
+            : (Array.isArray(rawItem.meal_times) && rawItem.meal_times.length > 0)
+              ? (rawItem.meal_times as string[])
+              : (mealTimesMap[i.id] && mealTimesMap[i.id].length > 0)
+                ? mealTimesMap[i.id]
+                : ["All Day"];
+        return {
+          ...i,
+          plates,
+          mealTimes: apiMealTimes,
+          meal_times: apiMealTimes,
+          rawMaterials:
+            i.rawMaterials && i.rawMaterials.length > 0
+              ? i.rawMaterials
+              : (rawMaterialsMap[i.id] ?? []),
+        };
+      });
   },
 
-  getMenuItemById: async (id: string) => {
+  getMenuItemById: async (id: string | number) => {
     try {
-      const res = await httpClient.get<MenuItem>(API_ENDPOINTS.MENU.ITEM_BY_ID(id));
+      const res = await httpClient.get<MenuItem>(API_ENDPOINTS.MENU.ITEM_BY_ID(String(id)));
       if (res.data) return res.data;
     } catch {
       // Fallback
     }
-    return menuItemsStore.find((i) => i.id === id) || null;
+    return menuItemsStore.find((i) => String(i.id) === String(id)) || null;
   },
 
-  addMenuItem: async (item: Omit<MenuItem, "id" | "updatedAt">) => {
+  addMenuItem: async (item: Omit<MenuItem, "id" | "updatedAt"> & { id?: string }) => {
     const newItem: MenuItem = {
       ...item,
       outletId: item.outletId || "outlet-primary",
-      id: `itm-${Date.now()}`,
+      id: (item as any).id || `itm-${Date.now()}`,
       updatedAt: "Just now",
       images: item.images || [],
+      plates:
+        item.plates !== undefined && item.plates !== null && (item.plates as any) !== "" && Number(item.plates) > 0
+          ? Number(item.plates)
+          : undefined,
+      mealTimes: item.mealTimes || ["All Day"],
     };
+    if (item.plates !== undefined) {
+      updateItemPlates(newItem.outletId, newItem.id, item.plates, false);
+    }
+    if (item.rawMaterials && item.rawMaterials.length > 0) {
+      saveStoredItemRawMaterials(newItem.outletId, newItem.id, item.rawMaterials);
+    }
+    if (item.mealTimes && item.mealTimes.length > 0) {
+      saveStoredItemMealTimes(newItem.outletId, newItem.id, item.mealTimes as string[]);
+    }
     if (isBackendOutletId(newItem.outletId)) {
       const res = await httpClient.post<MenuItem>(
         API_ENDPOINTS.MENU.CREATE_ITEM,
         toMenuItemWritePayload(newItem),
       );
+      if (res.data) {
+        if (item.plates !== undefined) {
+          updateItemPlates(newItem.outletId, res.data.id, item.plates, false);
+        }
+        if (item.rawMaterials && item.rawMaterials.length > 0) {
+          saveStoredItemRawMaterials(newItem.outletId, res.data.id, item.rawMaterials);
+        }
+        if (item.mealTimes && item.mealTimes.length > 0) {
+          saveStoredItemMealTimes(newItem.outletId, res.data.id, item.mealTimes as string[]);
+        }
+      }
       return res.data;
     }
     menuItemsStore = [newItem, ...menuItemsStore];
@@ -376,6 +624,15 @@ export const posMenuService = {
   },
 
   updateMenuItem: async (id: string, data: Partial<MenuItem>) => {
+    if (data.plates !== undefined) {
+      updateItemPlates(data.outletId, id, data.plates, false);
+    }
+    if (data.rawMaterials) {
+      saveStoredItemRawMaterials(data.outletId, id, data.rawMaterials);
+    }
+    if (data.mealTimes && data.mealTimes.length > 0) {
+      saveStoredItemMealTimes(data.outletId, id, data.mealTimes as string[]);
+    }
     if (isBackendOutletId(data.outletId) || /^[0-9a-f-]{36}$/i.test(id)) {
       const res = await httpClient.patch<MenuItem>(
         API_ENDPOINTS.MENU.UPDATE_ITEM(id),
@@ -384,10 +641,23 @@ export const posMenuService = {
       return res.data;
     }
     menuItemsStore = menuItemsStore.map((item) =>
-      item.id === id ? { ...item, ...data, updatedAt: "Just now" } : item,
+      String(item.id) === String(id) ? { ...item, ...data, updatedAt: "Just now" } : item,
     );
     saveMenuItemsToStorage(menuItemsStore);
-    return menuItemsStore.find((i) => i.id === id);
+    return menuItemsStore.find((i) => String(i.id) === String(id));
+  },
+
+  updateItemPlates: (
+    outletId: string | undefined,
+    itemId: string,
+    deltaOrExact: number,
+    isDelta = false,
+  ) => {
+    return updateItemPlates(outletId, itemId, deltaOrExact, isDelta);
+  },
+
+  deductItemPlates: (outletId: string | undefined, itemId: string, platesToDeduct: number) => {
+    return updateItemPlates(outletId, itemId, -platesToDeduct, true);
   },
 
   deleteMenuItem: async (id: string) => {
@@ -395,7 +665,7 @@ export const posMenuService = {
       await httpClient.delete(API_ENDPOINTS.MENU.DELETE_ITEM(id));
       return true;
     }
-    menuItemsStore = menuItemsStore.filter((i) => i.id !== id);
+    menuItemsStore = menuItemsStore.filter((i) => String(i.id) !== String(id));
     saveMenuItemsToStorage(menuItemsStore);
     return true;
   },
@@ -407,7 +677,7 @@ export const posMenuService = {
       return res.data;
     }
     menuItemsStore = menuItemsStore.map((item) => {
-      if (item.id === id) {
+      if (String(item.id) === String(id)) {
         const nextVal = !item[platform];
         return {
           ...item,
@@ -418,7 +688,7 @@ export const posMenuService = {
       return item;
     });
     saveMenuItemsToStorage(menuItemsStore);
-    return menuItemsStore.find((i) => i.id === id);
+    return menuItemsStore.find((i) => String(i.id) === String(id));
   },
 
   bulkUpdatePlatformAvailability: async (
@@ -460,7 +730,7 @@ export const posMenuService = {
       return res.data;
     }
     menuItemsStore = menuItemsStore.map((item) => {
-      if (item.id === id) {
+      if (String(item.id) === String(id)) {
         const nextStatus = item.status === "Active" ? "Inactive" : "Active";
         return {
           ...item,
@@ -471,7 +741,7 @@ export const posMenuService = {
       }
       return item;
     });
-    return menuItemsStore.find((i) => i.id === id);
+    return menuItemsStore.find((i) => String(i.id) === String(id));
   },
 
   // 3. Multi-Image Management per Item
@@ -483,7 +753,7 @@ export const posMenuService = {
   ) => {
     let existing = existingImages;
     if (!existing) {
-      const found = menuItemsStore.find((i) => i.id === itemId);
+      const found = menuItemsStore.find((i) => String(i.id) === String(itemId));
       existing = found?.images || [];
     }
     const hasExistingPrimary = existing.some((img) => img.isPrimary);
@@ -516,7 +786,7 @@ export const posMenuService = {
 
     let foundInStore = false;
     menuItemsStore = menuItemsStore.map((item) => {
-      if (item.id === itemId) {
+      if (String(item.id) === String(itemId)) {
         foundInStore = true;
         const patched = {
           ...item,
@@ -563,7 +833,7 @@ export const posMenuService = {
   ) => {
     let existing = existingImages;
     if (!existing) {
-      const found = menuItemsStore.find((i) => i.id === itemId);
+      const found = menuItemsStore.find((i) => String(i.id) === String(itemId));
       existing = found?.images || [];
     }
     const filtered = existing.filter((img) => img.id !== imageId);
@@ -595,7 +865,7 @@ export const posMenuService = {
 
     let foundInStore = false;
     menuItemsStore = menuItemsStore.map((item) => {
-      if (item.id === itemId) {
+      if (String(item.id) === String(itemId)) {
         foundInStore = true;
         const patched = {
           ...item,
@@ -642,7 +912,7 @@ export const posMenuService = {
   ) => {
     let existing = existingImages;
     if (!existing) {
-      const found = menuItemsStore.find((i) => i.id === itemId);
+      const found = menuItemsStore.find((i) => String(i.id) === String(itemId));
       existing = found?.images || [];
     }
     const updatedImages = existing.map((img) => ({
@@ -673,7 +943,7 @@ export const posMenuService = {
 
     let foundInStore = false;
     menuItemsStore = menuItemsStore.map((item) => {
-      if (item.id === itemId) {
+      if (String(item.id) === String(itemId)) {
         foundInStore = true;
         const patched = {
           ...item,
@@ -948,7 +1218,7 @@ export const posMenuService = {
         });
         // Also update local store if cached
         menuItemsStore = menuItemsStore.map((item) =>
-          item.id === id ? { ...item, commissionType, commissionValue } : item,
+          String(item.id) === String(id) ? { ...item, commissionType, commissionValue } : item,
         );
         saveMenuItemsToStorage(menuItemsStore);
         return {
@@ -964,12 +1234,12 @@ export const posMenuService = {
       }
     }
     menuItemsStore = menuItemsStore.map((item) =>
-      item.id === id ? { ...item, commissionType, commissionValue } : item,
+      String(item.id) === String(id) ? { ...item, commissionType, commissionValue } : item,
     );
     saveMenuItemsToStorage(menuItemsStore);
 
     commissionsStore = commissionsStore.map((item) =>
-      item.id === id ? { ...item, commissionType, commissionValue } : item,
+      String(item.id) === String(id) ? { ...item, commissionType, commissionValue } : item,
     );
     return {
       id,

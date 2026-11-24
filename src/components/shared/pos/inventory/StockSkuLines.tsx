@@ -70,7 +70,7 @@ export function StockSkuLines({
                 ))}
               </select>
             </div>
-            <div className="col-span-4 sm:col-span-2">
+            <div className="col-span-6 sm:col-span-2">
               <input
                 type="number"
                 min="0"
@@ -80,7 +80,7 @@ export function StockSkuLines({
                 className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-[12.5px] text-right focus:border-teal-500 focus:outline-hidden"
               />
             </div>
-            <div className="col-span-3 sm:col-span-2">
+            <div className="col-span-6 sm:col-span-2">
               <input
                 type="text"
                 value={line.unit}
@@ -88,7 +88,7 @@ export function StockSkuLines({
                 className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-[12.5px] focus:border-teal-500 focus:outline-hidden"
               />
             </div>
-            <div className="col-span-4 sm:col-span-2">
+            <div className="col-span-10 sm:col-span-2">
               <input
                 type="number"
                 min="0"
@@ -98,7 +98,7 @@ export function StockSkuLines({
                 className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-[12.5px] text-right focus:border-teal-500 focus:outline-hidden"
               />
             </div>
-            <div className="col-span-1 flex justify-end">
+            <div className="col-span-2 sm:col-span-1 flex justify-end">
               {lines.length > 1 ? (
                 <button
                   type="button"

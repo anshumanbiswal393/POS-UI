@@ -9,8 +9,10 @@ import {
 import { AddSpecialNoteModal } from "../modals/AddSpecialNoteModal";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import type { SpecialNote } from "@/types/posMenu";
+import { ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
 import { toast } from "sonner";
 import { useOutletContext } from "@/context/PosOutletContext";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 export function SpecialNoteView({ onBack }: { onBack?: () => void }) {
   const { activeOutlet } = useOutletContext();
@@ -41,8 +43,25 @@ export function SpecialNoteView({ onBack }: { onBack?: () => void }) {
     });
   };
 
+  const specialNotesWithSerial = useMemo(
+    () => specialNotes.map((n, i) => ({ ...n, serialNumber: i + 1 })),
+    [specialNotes],
+  );
+
   const columns: DataGridColumn<SpecialNote>[] = useMemo(
     () => [
+      {
+        id: "serialNumber",
+        header: "S.No",
+        minWidth: 55,
+        width: 55,
+        align: "center",
+        cell: ({ row, index }) => (
+          <span className="font-semibold text-slate-500 text-xs">
+            {(row as any).serialNumber ?? (index !== undefined ? index + 1 : 1)}
+          </span>
+        ),
+      },
       {
         id: "name",
         header: "Special Note",
@@ -58,8 +77,12 @@ export function SpecialNoteView({ onBack }: { onBack?: () => void }) {
         accessorKey: "createdAt",
         enableSorting: true,
         enableFiltering: true,
-        minWidth: 140,
-        cell: ({ row }) => <span className="text-slate-500">{row.createdAt}</span>,
+        minWidth: 150,
+        cell: ({ row }) => (
+          <span className="text-slate-600 font-medium text-[11.5px]">
+            {formatDateTimeIndian(row.createdAt)}
+          </span>
+        ),
       },
       {
         id: "available",
@@ -106,18 +129,18 @@ export function SpecialNoteView({ onBack }: { onBack?: () => void }) {
                 toast.info(`Editing "${row.name}"`);
                 setIsAddModalOpen(true);
               }}
-              className="p-1 hover:text-teal-600 hover:bg-slate-100 rounded transition cursor-pointer"
-              title="Edit"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
+              title="Edit Note"
             >
-              <Edit2 className="h-4 w-4" />
+              <ColorActionEdit className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => handleDelete(row.id, row.name)}
-              className="p-1 hover:text-red-600 hover:bg-slate-100 rounded transition cursor-pointer"
-              title="Delete"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
+              title="Delete Note"
             >
-              <Trash2 className="h-4 w-4" />
+              <ColorActionDelete className="h-4 w-4" />
             </button>
           </div>
         ),
@@ -129,7 +152,7 @@ export function SpecialNoteView({ onBack }: { onBack?: () => void }) {
   return (
     <div>
       <PosDataGrid<SpecialNote>
-        data={specialNotes}
+        data={specialNotesWithSerial}
         isLoading={isLoading}
         columns={columns}
         showToolbar

@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   resolveNotificationRole,
   filterNotificationsByRole,
   sortNotificationsRecentFirst,
   type PosNotification,
 } from "../usePosNotifications";
+import {
+  listKotReadyNotices,
+  pushKotReadyNotice,
+  dismissKotReadyNotice,
+} from "@/lib/posReadyNotifications";
 import {
   isReservationUpcomingWithin30Min,
   minutesUntilReservation,
@@ -222,6 +227,46 @@ describe("POS Notifications - Role-Based Access and Ordering", () => {
         status: "cancelled",
       };
       expect(isReservationUpcomingWithin30Min(cancelledRes, now)).toBe(false);
+    });
+  });
+
+  describe("Real-Only KOT Ready Notifications (No Dummy Seed)", () => {
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it("returns empty list on clean storage and filters out legacy dummy demo notice", () => {
+      expect(listKotReadyNotices()).toEqual([]);
+
+      localStorage.setItem(
+        "retrod:pos:kot-ready-notices:v1",
+        JSON.stringify([
+          {
+            id: "kot-ready-demo-104",
+            title: "Order #ORD-104 · Table T-12 Ready",
+            message: "Hariyali Panner & Mushroom Pakoda prepared and hot at pickup counter.",
+            createdAt: Date.now(),
+            orderNumber: "ORD-104",
+          },
+        ]),
+      );
+
+      expect(listKotReadyNotices()).toEqual([]);
+    });
+
+    it("persists and dismisses genuine KOT ready notices", () => {
+      pushKotReadyNotice({
+        id: "kot-ready-live-1",
+        outletId: "123",
+        title: "Order #201 is ready",
+        message: "Dine In · Masala Dosa ready to serve.",
+        createdAt: Date.now(),
+        orderNumber: "201",
+      });
+
+      expect(listKotReadyNotices("123").map((n) => n.id)).toEqual(["kot-ready-live-1"]);
+      dismissKotReadyNotice("kot-ready-live-1");
+      expect(listKotReadyNotices("123")).toEqual([]);
     });
   });
 });

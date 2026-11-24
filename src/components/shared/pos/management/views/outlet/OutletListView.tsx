@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { Building2, ChefHat, Plus, Store } from "lucide-react";
+import { ColorActionEdit } from "@/components/common/ColorActionIcons";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { deduplicateOutlets, isHighwayInnName } from "@/utils/outletId";
 import { locationRoleLabel } from "@/utils/outletKind";
@@ -25,7 +26,7 @@ export function OutletListView() {
     <div className="space-y-4 pb-10">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[18px] font-bold tracking-tight text-slate-900">Outlet List</h2>
+          <h2 className="text-[18px] font-bold tracking-tight text-slate-900">Outlet List</h2>
           <p className="mt-0.5 text-[12.5px] text-slate-500 max-w-xl">
             All dining, takeaway, and bar outlets registered for this property.
           </p>
@@ -115,13 +116,16 @@ export function OutletListView() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           <Link
-                            to={`/pos/management/configuration/outlet/details?outletId=${encodeURIComponent(row.id)}`}
-                            className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                            to="/pos/management/configuration/outlet/details"
+                            search={{ outletId: row.id } as any}
+                            className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 transition cursor-pointer shadow-2xs"
+                            title="Edit Details"
                           >
-                            Edit Details
+                            <ColorActionEdit className="h-4 w-4" />
                           </Link>
                           <Link
-                            to={`/pos/management/configuration/outlet?outletId=${encodeURIComponent(row.id)}`}
+                            to="/pos/management/configuration/outlet"
+                            search={{ outletId: row.id } as any}
                             className="inline-flex items-center gap-1 rounded-md border border-teal-300 bg-teal-50 px-2.5 py-1 text-[11px] font-bold text-teal-800 hover:bg-teal-100 transition cursor-pointer"
                           >
                             Setup Hub

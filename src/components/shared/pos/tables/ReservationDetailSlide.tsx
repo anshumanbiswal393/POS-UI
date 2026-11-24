@@ -147,7 +147,7 @@ export function ReservationDetailSlide({
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
                         <Users className="w-3.5 h-3.5 text-teal-600" />
-                        <span className="font-semibold text-slate-700">{res.guests} Guests</span>
+                        <span className="font-semibold text-slate-700">{res.guestCount ?? res.guests ?? (res as any).pax ?? (res as any).covers ?? 1} Guests</span>
                         <span>allocated to</span>
                         <span className="font-semibold text-teal-700">{res.tableNumber}</span>
                       </div>

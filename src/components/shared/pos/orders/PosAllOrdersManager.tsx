@@ -4,16 +4,16 @@ import { formatINR } from "@/services/posDashboardService";
 import {
   Search,
   ChevronDown,
-  Eye,
-  Printer,
-  Edit,
-  RotateCcw,
   Split,
   Calendar,
   X,
   LayoutGrid,
   Table2,
+  Printer,
+  RefreshCw,
 } from "lucide-react";
+import { ColorActionPrint, ColorActionEdit, ColorActionView } from "@/components/common/ColorActionIcons";
+import { PageHeader, KpiCard } from "@/components/ui/Primitives";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useAllOrders } from "@/hooks/queries/usePosOrders";
 import type { AllOrderItem } from "@/types/posOrders";
@@ -26,9 +26,16 @@ import {
   type DataTableColumn,
 } from "@/components/ui/data-grid";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
+import { PrintReportButton } from "@/components/ui/PrintReportButton";
 import { exportToExcel } from "@/utils/exportUtils";
 import { PosDateRangePicker } from "@/components/common/PosDateRangePicker";
 import { toast } from "sonner";
+import { openPrintReportTable } from "@/utils/printReportTable";
+import { allOrderItemToInvoicePayload, printPosInvoice } from "@/utils/printReceipt";
+import { InvoiceTemplate } from "../billing/InvoiceTemplate";
+import { OrderHistoryEditModal } from "./OrderHistoryEditModal";
+import { fuzzyMatch } from "@/utils/fuzzySearch";
+import { formatDateIndian } from "@/utils/dateUtils";
 
 
 function getOrderDateIso(r: any): string {
@@ -83,11 +90,10 @@ function orderStatusClass(status: string) {
   if (key === "printed" || key === "running") {
     return "bg-amber-50 text-amber-800 border-amber-200";
   }
-  return "bg-slate-50 text-slate-700 border-slate-200";
+  return "bg-surface text-foreground border-border";
 }
 
 export function PosAllOrdersManager() {
-  const [activeTab, setActiveTab] = useState<"order" | "advance_order">("order");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [mounted, setMounted] = useState(false);
   // Toggle state: collapsed (Picture 1) vs expanded (Picture 2)
@@ -150,6 +156,7 @@ export function PosAllOrdersManager() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [viewingOrder, setViewingOrder] = useState<AllOrderItem | null>(null);
   const [printingOrder, setPrintingOrder] = useState<AllOrderItem | null>(null);
+  const [editingOrder, setEditingOrder] = useState<AllOrderItem | null>(null);
 
   const queryFilters = useMemo(
     () => ({
@@ -161,7 +168,7 @@ export function PosAllOrdersManager() {
     }),
     [appliedFilters.startDate, appliedFilters.endDate, appliedFilters.status]
   );
-  const { data } = useAllOrders(queryFilters);
+  const { data, refetch, isFetching } = useAllOrders(queryFilters);
   const { activeOutlet } = useOutletContext();
   const liveOutlet = isBackendOutletId(activeOutlet?.id);
 
@@ -190,10 +197,6 @@ export function PosAllOrdersManager() {
 
   const filteredRecords = useMemo(() => {
     return sourceRecords.filter((r) => {
-      // Tab filter
-      if (activeTab === "advance_order" && !r.isAdvanceOrder) return false;
-      if (activeTab === "order" && r.isAdvanceOrder) return false;
-
       // Date range filter
       const orderDate = getOrderDateIso(r);
       if (appliedFilters.startDate && orderDate) {
@@ -223,46 +226,59 @@ export function PosAllOrdersManager() {
           return false;
       }
 
-      // Order ID
-      if (
-        appliedFilters.orderId &&
-        !r.orderNo.toLowerCase().includes(appliedFilters.orderId.toLowerCase())
-      ) {
-        return false;
+      // Order ID & Global Multi-Field Fuzzy Search across guest, table, item, phone, amount
+      if (appliedFilters.orderId) {
+        const matches = fuzzyMatch(
+          [
+            r.orderNo,
+            r.customerName,
+            r.customerPhone || "",
+            r.tableNo || "",
+            r.itemsSummary,
+            r.assignTo,
+            r.paymentMode,
+            r.status,
+            r.orderTypeDisplay,
+            r.grandTotalFormatted,
+            r.createdAt,
+          ],
+          appliedFilters.orderId
+        );
+        if (!matches) return false;
       }
 
-      // Customer Name
-      if (
-        appliedFilters.customerName &&
-        !r.customerName.toLowerCase().includes(appliedFilters.customerName.toLowerCase())
-      ) {
-        return false;
+      // Customer Name Fuzzy Search
+      if (appliedFilters.customerName) {
+        const matches = fuzzyMatch([r.customerName, r.customerPhone || ""], appliedFilters.customerName);
+        if (!matches) return false;
       }
 
-      // Customer Phone
-      if (
-        appliedFilters.customerPhone &&
-        !r.customerPhone?.includes(appliedFilters.customerPhone)
-      ) {
-        return false;
+      // Customer Phone Search
+      if (appliedFilters.customerPhone) {
+        const matches = fuzzyMatch([r.customerPhone || "", r.customerName], appliedFilters.customerPhone);
+        if (!matches) return false;
       }
 
-      // Table No
-      if (
-        appliedFilters.tableNo &&
-        !r.tableNo?.toLowerCase().includes(appliedFilters.tableNo.toLowerCase())
-      ) {
-        return false;
+      // Table No Search
+      if (appliedFilters.tableNo) {
+        const matches = fuzzyMatch([r.tableNo || "", r.orderTypeDisplay], appliedFilters.tableNo);
+        if (!matches) return false;
       }
 
       // Status
-      if (appliedFilters.status !== "All" && r.status !== appliedFilters.status) {
-        return false;
+      if (appliedFilters.status !== "All") {
+        const normFilter = appliedFilters.status.toLowerCase();
+        const normStatus = (r.status || "").toLowerCase();
+        if (normFilter === "completed" || normFilter === "settled") {
+          if (normStatus !== "completed" && normStatus !== "settled") return false;
+        } else if (normStatus !== normFilter) {
+          return false;
+        }
       }
 
       return true;
     });
-  }, [activeTab, appliedFilters, sourceRecords]);
+  }, [appliedFilters, sourceRecords]);
 
   const filteredGrandTotal = useMemo(() => {
     if (!filteredRecords.length) return formatINR(0);
@@ -299,13 +315,13 @@ export function PosAllOrdersManager() {
     const headers = [
       "Order No",
       "Order Type",
-      "Customer Name",
-      "Assign To",
+      "Guest Name",
+      "Taken By",
       "Items Summary",
-      "Base Amount",
+      "Order Amount",
       "Tax Amount",
-      "Grand Total",
-      "Payment Mode",
+      "Total Amount",
+      "Payment Method",
       "Status",
       "Created At",
     ];
@@ -333,6 +349,65 @@ export function PosAllOrdersManager() {
     toast.success(`Exported ${rows.length} order records to Excel`);
   };
 
+  const handlePrintReport = () => {
+    if (filteredRecords.length === 0) {
+      toast.info("No orders to print");
+      return;
+    }
+
+    const reportCols = [
+      { header: "ORDER NO", align: "left" as const },
+      { header: "ORDER TYPE", align: "left" as const },
+      { header: "GUEST NAME", align: "left" as const },
+      { header: "TAKEN BY", align: "left" as const },
+      { header: "ITEMS SUMMARY", align: "left" as const },
+      { header: "ORDER AMOUNT (₹)", align: "right" as const },
+      { header: "TAX (₹)", align: "right" as const },
+      { header: "TOTAL AMOUNT (₹)", align: "right" as const },
+      { header: "PAYMENT METHOD", align: "center" as const },
+      { header: "STATUS", align: "center" as const },
+      { header: "DATE & TIME", align: "center" as const },
+    ];
+
+    const reportRows = filteredRecords.map((r) => [
+      r.orderNo,
+      r.orderTypeDisplay || r.orderType || "Dine In",
+      r.customerName || "Walk-in Guest",
+      r.assignTo || "—",
+      r.itemsSummary || "—",
+      Number(r.myAmount ?? r.subtotal ?? (Number(String(r.myAmountFormatted || "0").replace(/[^0-9.-]+/g, "")) || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      Number(r.taxAmount ?? (Number(String(r.taxAmountFormatted || "0").replace(/[^0-9.-]+/g, "")) || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      Number(r.grandTotal ?? r.totalAmount ?? (Number(String(r.grandTotalFormatted || "0").replace(/[^0-9.-]+/g, "")) || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      r.paymentMode || "CASH",
+      (r.status || "COMPLETED").toUpperCase(),
+      r.createdAt ? formatDateIndian(r.createdAt) : "—",
+    ]);
+
+    const totalGrand = filteredRecords.reduce((s, r) => s + Number(r.grandTotal ?? r.totalAmount ?? (Number(String(r.grandTotalFormatted || "0").replace(/[^0-9.-]+/g, "")) || 0)), 0);
+
+    openPrintReportTable({
+      title: "ORDER HISTORY MASTER REPORT",
+      hotelName: activeOutlet?.name || "Anshu Suite Restaurant",
+      subtitle: `Type: ${appliedFilters.orderType || "All"} • Status: ${appliedFilters.status || "All"} • Total Orders: ${filteredRecords.length}`,
+      dateRange: `${formatDateIndian(appliedFilters.startDate)} to ${formatDateIndian(appliedFilters.endDate)}`,
+      columns: reportCols,
+      rows: reportRows,
+      summaryTotals: [
+        "TOTAL",
+        `${filteredRecords.length} Orders`,
+        "",
+        "",
+        "",
+        "",
+        "",
+        totalGrand.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+        "",
+        "",
+        "",
+      ],
+    });
+  };
+
   type OrderRowType = AllOrderItem & { tableNo?: string; customerPhone?: string };
 
   const columns: PosDataGridColumn<OrderRowType>[] = useMemo(
@@ -346,7 +421,7 @@ export function PosAllOrdersManager() {
         minWidth: 120,
         defaultWidth: 130,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="font-bold text-slate-900">{row.orderNo}</span>
+          <span className="font-bold text-foreground">{row.orderNo}</span>
         ),
       },
       {
@@ -358,12 +433,12 @@ export function PosAllOrdersManager() {
         minWidth: 150,
         defaultWidth: 170,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="font-semibold text-slate-800">{row.orderTypeDisplay}</span>
+          <span className="font-semibold text-foreground">{row.orderTypeDisplay}</span>
         ),
       },
       {
         id: "customerName",
-        header: "Customer Name",
+        header: "Guest Name",
         accessorKey: "customerName",
         enableSorting: true,
         enableFiltering: true,
@@ -373,13 +448,13 @@ export function PosAllOrdersManager() {
       },
       {
         id: "assignTo",
-        header: "Assign To",
+        header: "Taken By",
         accessorKey: "assignTo",
         enableSorting: true,
         enableFiltering: true,
         minWidth: 130,
         defaultWidth: 140,
-        cell: ({ row }: { row: OrderRowType }) => <span className="text-slate-600">{row.assignTo}</span>,
+        cell: ({ row }: { row: OrderRowType }) => <span className="text-foreground/80">{row.assignTo}</span>,
       },
       {
         id: "itemsSummary",
@@ -388,21 +463,21 @@ export function PosAllOrdersManager() {
         minWidth: 200,
         defaultWidth: 220,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="text-slate-600 font-normal leading-relaxed text-[12px]">
+          <span className="text-foreground/80 font-normal leading-relaxed text-[12px]">
             {row.itemsSummary}
           </span>
         ),
       },
       {
         id: "myAmountFormatted",
-        header: "My Amount (₹)",
+        header: "Order Amount (₹)",
         accessorKey: "myAmountFormatted",
         align: "right",
         enableSorting: true,
         minWidth: 140,
         defaultWidth: 150,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="font-medium">{row.myAmountFormatted}</span>
+          <span className="font-medium text-foreground">{row.myAmountFormatted}</span>
         ),
       },
       {
@@ -414,7 +489,7 @@ export function PosAllOrdersManager() {
         minWidth: 110,
         defaultWidth: 120,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="text-slate-500">{row.taxAmountFormatted}</span>
+          <span className="text-foreground/70">{row.taxAmountFormatted}</span>
         ),
       },
       {
@@ -426,30 +501,30 @@ export function PosAllOrdersManager() {
         minWidth: 130,
         defaultWidth: 140,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="text-slate-500">{row.discountAmountFormatted}</span>
+          <span className="text-foreground/70">{row.discountAmountFormatted}</span>
         ),
       },
       {
         id: "grandTotalFormatted",
-        header: "Grand Total (₹)",
+        header: "Total Amount (₹)",
         accessorKey: "grandTotalFormatted",
         align: "right",
         enableSorting: true,
         minWidth: 150,
         defaultWidth: 160,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="font-bold text-slate-900">{row.grandTotalFormatted}</span>
+          <span className="font-bold text-foreground">{row.grandTotalFormatted}</span>
         ),
       },
       {
         id: "paymentMode",
-        header: "Payment",
+        header: "Payment Method",
         accessorKey: "paymentMode",
         enableSorting: true,
         enableFiltering: true,
         minWidth: 120,
         defaultWidth: 130,
-        cell: ({ row }: { row: OrderRowType }) => <span className="font-medium">{row.paymentMode}</span>,
+        cell: ({ row }: { row: OrderRowType }) => <span className="font-medium text-foreground">{row.paymentMode}</span>,
       },
       {
         id: "status",
@@ -459,13 +534,17 @@ export function PosAllOrdersManager() {
         enableFiltering: true,
         minWidth: 120,
         defaultWidth: 130,
-        cell: ({ row }: { row: OrderRowType }) => (
-          <span
-            className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${orderStatusClass(row.status)}`}
-          >
-            {row.status}
-          </span>
-        ),
+        cell: ({ row }: { row: OrderRowType }) => {
+          const rawStatus = row.status || "Completed";
+          const displayStatus = rawStatus.toLowerCase() === "settled" ? "Completed" : rawStatus;
+          return (
+            <span
+              className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${orderStatusClass(displayStatus)}`}
+            >
+              {displayStatus}
+            </span>
+          );
+        },
       },
       {
         id: "createdAt",
@@ -473,8 +552,8 @@ export function PosAllOrdersManager() {
         accessorKey: "createdAt",
         enableSorting: true,
         cell: ({ row }: { row: OrderRowType }) => (
-          <span className="text-slate-500 text-[11.5px] whitespace-nowrap">
-            {row.createdAt}
+          <span className="text-foreground text-[11.5px] whitespace-nowrap">
+            {formatDateIndian(row.createdAt)}
           </span>
         ),
       },
@@ -483,38 +562,30 @@ export function PosAllOrdersManager() {
         header: "Actions",
         align: "center",
         cell: ({ row: r }: { row: OrderRowType }) => (
-          <div className="flex items-center justify-center gap-1.5 text-slate-500 py-1">
+          <div className="flex items-center justify-center gap-1.5 py-1">
             <button
               type="button"
               onClick={() => setViewingOrder(r)}
               title="View Details"
-              className="rounded-lg border border-slate-200 bg-white p-1 hover:text-sky-600 hover:border-sky-300 transition cursor-pointer shadow-2xs"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
             >
-              <Eye className="h-3.5 w-3.5" />
+              <ColorActionView className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => setPrintingOrder(r)}
               title="Print Invoice"
-              className="rounded-lg border border-slate-200 bg-white p-1 hover:text-emerald-600 hover:border-emerald-300 transition cursor-pointer shadow-2xs"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
             >
-              <Printer className="h-3.5 w-3.5" />
+              <ColorActionPrint className="h-4 w-4" />
             </button>
             <button
               type="button"
-              onClick={() => alert(`Edit Order #${r.orderNo}`)}
+              onClick={() => setEditingOrder(r)}
               title="Edit Order"
-              className="rounded-lg border border-slate-200 bg-white p-1 hover:text-amber-600 hover:border-amber-300 transition cursor-pointer shadow-2xs"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
             >
-              <Edit className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => alert(`Reorder items from #${r.orderNo}`)}
-              title="Reorder"
-              className="rounded-lg border border-slate-200 bg-white p-1 hover:text-purple-600 hover:border-purple-300 transition cursor-pointer shadow-2xs"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
+              <ColorActionEdit className="h-4 w-4" />
             </button>
           </div>
         ),
@@ -564,96 +635,112 @@ export function PosAllOrdersManager() {
     }
   };
 
+  const dineInCount = useMemo(() => {
+    return filteredRecords.filter((r) => r.orderType?.toLowerCase().includes("dine")).length;
+  }, [filteredRecords]);
+
+  const nonDineInCount = useMemo(() => {
+    return filteredRecords.filter((r) => !r.orderType?.toLowerCase().includes("dine")).length;
+  }, [filteredRecords]);
+
   return (
     <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden bg-slate-50/50">
-      {/* 1. Top Header Row - Flush with TopBar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shrink-0">
+      {/* 1. Page Header (PMS Standard) */}
+      <PageHeader
+        title="Order History"
+        eyebrow="Completed Orders & Settled Checks"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Table / Grid view switcher */}
+            <div className="flex items-center rounded-lg border border-border bg-surface p-0.5 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                title="Table view"
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer ${
+                  viewMode === "table"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-2"
+                }`}
+              >
+                <Table2 className="h-3.5 w-3.5" />
+                <span>Table</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("grid")}
+                title="Grid view"
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition cursor-pointer ${
+                  viewMode === "grid"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-2"
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span>Grid</span>
+              </button>
+            </div>
 
-        {/* Left: Title, Order tabs, Table/Grid view */}
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">Order History</h1>
-          <div className="flex items-center rounded-lg border border-slate-300 bg-slate-100 p-0.5 shadow-2xs">
+            <ExportToExcelButton onClick={handleExportExcel} />
+            <PrintReportButton
+              onClick={handlePrintReport}
+              disabled={filteredRecords.length === 0}
+              title="Print Orders Master Report"
+            />
             <button
               type="button"
               onClick={() => {
-                setActiveTab("order");
-                setCurrentPage(1);
+                refetch();
+                toast.success("Orders refreshed");
               }}
-              className={`rounded-md px-3 py-1 text-[12px] font-bold transition cursor-pointer ${
-                activeTab === "order"
-                  ? "bg-white text-teal-800 shadow-2xs border border-slate-300"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
+              disabled={isFetching}
+              title="Refresh Orders"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface text-text-primary hover:bg-surface-2 shadow-2xs transition cursor-pointer"
             >
-              Order
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("advance_order");
-                setCurrentPage(1);
-              }}
-              className={`rounded-md px-3 py-1 text-[12px] font-bold transition cursor-pointer ${
-                activeTab === "advance_order"
-                  ? "bg-white text-teal-800 shadow-2xs border border-slate-300"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Advance Order
+              <RefreshCw
+                className={`h-3.5 w-3.5 text-text-secondary ${isFetching ? "animate-spin text-primary" : ""}`}
+              />
             </button>
           </div>
-
-          <div className="flex items-center rounded-lg border border-slate-300 bg-slate-100 p-0.5 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setViewMode("table")}
-              title="Table view"
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-bold transition cursor-pointer ${
-                viewMode === "table"
-                  ? "bg-white text-teal-800 shadow-2xs border border-slate-300"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <Table2 className="h-3.5 w-3.5" />
-              <span>Table</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("grid")}
-              title="Grid view"
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-bold transition cursor-pointer ${
-                viewMode === "grid"
-                  ? "bg-white text-teal-800 shadow-2xs border border-slate-300"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              <span>Grid</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Right: Grand Total + Export */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="text-[13px] font-bold text-slate-900">
-            Grand Total :{" "}
-            <span className="text-teal-700">
-              {filteredGrandTotal}
-            </span>
-          </div>
-          <ExportToExcelButton onClick={handleExportExcel} />
-        </div>
-      </div>
+        }
+      />
 
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="responsive-page-x py-4 sm:py-5 space-y-4">
+          {/* KPI Summary Cards matching PMS */}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <KpiCard
+              label="Total Revenue"
+              value={filteredGrandTotal}
+              accent="brand"
+              subtitle="All billed orders in scope"
+            />
+            <KpiCard
+              label="Total Orders"
+              value={String(filteredRecords.length)}
+              accent="info"
+              subtitle="Completed checks"
+            />
+            <KpiCard
+              label="Dine-In Orders"
+              value={String(dineInCount)}
+              accent="success"
+              subtitle="Table seated checks"
+            />
+            <KpiCard
+              label="Takeaway & Delivery"
+              value={String(nonDineInCount)}
+              accent="warning"
+              subtitle="Pickup, parcel & room"
+            />
+          </div>
           {/* 2. Structured Filter Card */}
       <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-2xs">
         {!showMoreFilters ? (
           /* PICTURE 1: DEFAULT COMPACT SINGLE-ROW FILTER TOOLBAR */
           <div className="flex flex-wrap items-end gap-3.5">
             {/* Order Date Range */}
-            <div className="min-w-[270px] sm:min-w-[285px] flex-1">
+            <div className="w-full sm:w-auto sm:min-w-[285px] flex-1">
               <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
                 Order Date Range
               </label>
@@ -686,16 +773,16 @@ export function PosAllOrdersManager() {
               </div>
             </div>
 
-            {/* Order ID */}
-            <div className="min-w-[120px] flex-1">
+            {/* Smart Multi-Field Search */}
+            <div className="min-w-[150px] flex-1">
               <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
-                Order ID
+                Search Orders
               </label>
               <input
                 type="text"
                 value={orderIdInput}
                 onChange={(e) => setOrderIdInput(e.target.value)}
-                placeholder="e.g. 10519"
+                placeholder="Order ID, Guest, Phone, Item, Table..."
                 className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-[12.5px] text-slate-800 placeholder:text-slate-400 shadow-2xs hover:border-slate-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition"
               />
             </div>
@@ -781,13 +868,13 @@ export function PosAllOrdersManager() {
 
               <div>
                 <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
-                  Customer Name
+                  Guest Name
                 </label>
                 <input
                   type="text"
                   value={customerNameInput}
                   onChange={(e) => setCustomerNameInput(e.target.value)}
-                  placeholder="Customer Name"
+                  placeholder="Guest Name"
                   className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-[12.5px] text-slate-800 placeholder:text-slate-400 shadow-2xs hover:border-slate-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition"
                 />
               </div>
@@ -797,7 +884,7 @@ export function PosAllOrdersManager() {
             <div className="flex flex-wrap items-end gap-3.5 pt-1">
               <div className="min-w-[140px] flex-1">
                 <label className="block text-[11.5px] font-semibold text-slate-700 mb-1">
-                  Customer Phone
+                  Guest Phone
                 </label>
                 <input
                   type="text"
@@ -833,7 +920,6 @@ export function PosAllOrdersManager() {
                   >
                     <option value="All">All</option>
                     <option value="Printed">Printed</option>
-                    <option value="Settled">Settled</option>
                     <option value="Completed">Completed</option>
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -922,15 +1008,15 @@ export function PosAllOrdersManager() {
 
               <div className="mt-2.5 space-y-1 text-[12px]">
                 <div className="flex justify-between gap-2">
-                  <span className="text-slate-500">Customer</span>
+                  <span className="text-slate-500">Guest</span>
                   <span className="truncate font-medium text-slate-800">{order.customerName}</span>
                 </div>
                 <div className="flex justify-between gap-2">
-                  <span className="text-slate-500">Assign To</span>
+                  <span className="text-slate-500">Taken By</span>
                   <span className="truncate text-slate-700">{order.assignTo}</span>
                 </div>
                 <div className="flex justify-between gap-2">
-                  <span className="text-slate-500">Payment</span>
+                  <span className="text-slate-500">Payment Method</span>
                   <span className="font-medium text-slate-800">{order.paymentMode}</span>
                 </div>
                 <div className="flex justify-between gap-2">
@@ -943,38 +1029,30 @@ export function PosAllOrdersManager() {
                 {order.itemsSummary}
               </p>
 
-              <div className="mt-auto flex items-center justify-end gap-1.5 border-t border-slate-100 pt-2.5 mt-3 text-slate-500">
+              <div className="mt-auto flex items-center justify-end gap-1.5 border-t border-black pt-2.5 mt-3">
                 <button
                   type="button"
                   onClick={() => setViewingOrder(order)}
                   title="View Details"
-                  className="rounded-lg border border-slate-200 bg-white p-1.5 hover:border-sky-300 hover:text-sky-600 transition cursor-pointer shadow-2xs"
+                  className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
                 >
-                  <Eye className="h-3.5 w-3.5" />
+                  <ColorActionView className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setPrintingOrder(order)}
                   title="Print Invoice"
-                  className="rounded-lg border border-slate-200 bg-white p-1.5 hover:border-emerald-300 hover:text-emerald-600 transition cursor-pointer shadow-2xs"
+                  className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
                 >
-                  <Printer className="h-3.5 w-3.5" />
+                  <ColorActionPrint className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => alert(`Edit Order #${order.orderNo}`)}
+                  onClick={() => setEditingOrder(order)}
                   title="Edit Order"
-                  className="rounded-lg border border-slate-200 bg-white p-1.5 hover:border-amber-300 hover:text-amber-600 transition cursor-pointer shadow-2xs"
+                  className="flex items-center justify-center h-7 w-7 rounded-lg border border-black bg-white hover:bg-black/5 transition cursor-pointer shadow-2xs"
                 >
-                  <Edit className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => alert(`Reorder items from #${order.orderNo}`)}
-                  title="Reorder"
-                  className="rounded-lg border border-slate-200 bg-white p-1.5 hover:border-purple-300 hover:text-purple-600 transition cursor-pointer shadow-2xs"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
+                  <ColorActionEdit className="h-4 w-4" />
                 </button>
               </div>
             </article>
@@ -1006,7 +1084,7 @@ export function PosAllOrdersManager() {
 
             <div className="space-y-3 text-[13px]">
               <div className="flex justify-between">
-                <span className="text-slate-500">Customer Name:</span>
+                <span className="text-slate-500">Guest Name:</span>
                 <span className="font-semibold text-slate-800">{viewingOrder.customerName}</span>
               </div>
               <div className="flex justify-between">
@@ -1014,7 +1092,7 @@ export function PosAllOrdersManager() {
                 <span className="font-semibold text-slate-800">{viewingOrder.assignTo}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Payment Mode:</span>
+                <span className="text-slate-500">Payment Method:</span>
                 <span className="font-semibold text-slate-800">{viewingOrder.paymentMode}</span>
               </div>
               <div className="flex justify-between">
@@ -1043,7 +1121,7 @@ export function PosAllOrdersManager() {
                   <span>{viewingOrder.discountAmountFormatted}</span>
                 </div>
                 <div className="flex justify-between text-[15px] font-bold text-slate-900 pt-2 border-t border-slate-100">
-                  <span>Grand Total:</span>
+                  <span>Total Amount:</span>
                   <span className="text-teal-700">{viewingOrder.grandTotalFormatted}</span>
                 </div>
               </div>
@@ -1067,70 +1145,69 @@ export function PosAllOrdersManager() {
         </div>
       )}
 
-      {/* PRINT INVOICE MODAL */}
+      {/* PRINT INVOICE MODAL — Unified PMS Tax Invoice Format */}
       {printingOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-in fade-in">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-4">
-            <div className="text-center border-b border-dashed border-slate-300 pb-4">
-              <h2 className="font-serif text-[18px] font-bold text-slate-900">HIGHWAY INN RESTAURANT</h2>
-              <p className="text-[11px] text-slate-500">GSTIN: 27AABCT3518Q1ZY</p>
-              <p className="text-[11px] text-slate-500">Ph: +91 98765 43210</p>
-            </div>
-
-            <div className="text-[12px] space-y-1 border-b border-dashed border-slate-300 pb-3">
-              <div className="flex justify-between">
-                <span>Invoice: #{printingOrder.orderNo}</span>
-                <span>{printingOrder.createdAt.split(" ")[0]}</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 animate-in fade-in backdrop-blur-xs">
+          <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-slate-200 flex flex-col max-h-[92vh] overflow-hidden">
+            <div className="flex items-center justify-between p-3.5 border-b border-slate-200 bg-emerald-50 text-emerald-950 shrink-0">
+              <div className="flex items-center gap-2">
+                <Printer className="h-5 w-5 text-emerald-700" />
+                <div>
+                  <h3 className="text-sm font-bold">Tax Invoice #{printingOrder.orderNo}</h3>
+                  <p className="text-[11px] text-emerald-700">Official PMS format invoice preview</p>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span>Type: {printingOrder.orderTypeDisplay}</span>
-                <span>Time: {printingOrder.createdAt.split(" ")[1]}</span>
-              </div>
-              <div>Customer: {printingOrder.customerName}</div>
-            </div>
-
-            <div className="text-[12px] space-y-2 border-b border-dashed border-slate-300 pb-3">
-              <div className="font-semibold text-slate-800">Items:</div>
-              <div className="text-slate-600 text-[11.5px]">{printingOrder.itemsSummary}</div>
-            </div>
-
-            <div className="text-[12.5px] space-y-1 font-medium">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>{printingOrder.myAmountFormatted}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Taxes:</span>
-                <span>{printingOrder.taxAmountFormatted}</span>
-              </div>
-              <div className="flex justify-between text-[14px] font-bold text-slate-900 pt-2 border-t">
-                <span>TOTAL:</span>
-                <span>{printingOrder.grandTotalFormatted}</span>
-              </div>
-            </div>
-
-            <div className="flex justify-between gap-2 pt-3">
               <button
                 type="button"
                 onClick={() => setPrintingOrder(null)}
-                className="flex-1 rounded-lg border border-slate-300 py-2 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                className="h-7 w-7 rounded-full bg-white border border-emerald-200 hover:bg-emerald-100 flex items-center justify-center text-emerald-800 transition cursor-pointer"
               >
-                Close
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto bg-slate-100/80 flex justify-center flex-1">
+              <div className="w-full max-w-[760px] bg-white rounded-md shadow-md p-2">
+                <InvoiceTemplate invoice={allOrderItemToInvoicePayload(printingOrder, activeOutlet)} />
+              </div>
+            </div>
+
+            <div className="p-3 bg-white border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setPrintingOrder(null)}
+                className="flex-1 rounded-xl border border-slate-300 py-2.5 text-[12.5px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+              >
+                Close Preview
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  window.print();
+                  const payload = allOrderItemToInvoicePayload(printingOrder, activeOutlet);
+                  printPosInvoice(payload);
+                  toast.success(`Printing Tax Invoice #${printingOrder.orderNo}`);
                   setPrintingOrder(null);
                 }}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-sky-600 py-2 text-[12.5px] font-semibold text-white hover:bg-sky-700 cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-teal-700 py-2.5 text-[12.5px] font-bold text-white hover:bg-teal-800 cursor-pointer shadow-xs"
               >
                 <Printer className="h-4 w-4" />
-                <span>Print Bill</span>
+                <span>Print Tax Invoice</span>
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* EDIT ORDER MODAL (Add Extra / Remove Items with Confirmation) */}
+      {editingOrder && (
+        <OrderHistoryEditModal
+          isOpen={Boolean(editingOrder)}
+          onClose={() => setEditingOrder(null)}
+          order={editingOrder}
+          onOrderUpdated={() => {
+            refetch();
+          }}
+        />
       )}
     </div>
   );

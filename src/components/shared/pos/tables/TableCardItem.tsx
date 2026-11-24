@@ -1,5 +1,5 @@
 import React from "react";
-import { Users, Clock, CalendarCheck, Plus } from "lucide-react";
+import { Users, Clock, CalendarCheck, Plus, ArrowLeftRight } from "lucide-react";
 import type { RestaurantTable, ReservationItem } from "@/types/posTables";
 
 interface TableCardItemProps {
@@ -7,6 +7,7 @@ interface TableCardItemProps {
   onSelectReserved: (table: RestaurantTable, reservation?: ReservationItem) => void;
   onSelectTable: (table: RestaurantTable) => void;
   onDeleteTable?: (tableId: string) => void;
+  onSwitchOccupiedTable?: (table: RestaurantTable) => void;
 }
 
 /**
@@ -24,6 +25,8 @@ function Chair({
     chairBg = "bg-teal-600 border-teal-700/70";
   } else if (status === "occupied") {
     chairBg = "bg-orange-500 border-orange-600/70";
+  } else if (status === "billed") {
+    chairBg = "bg-amber-500 border-amber-600/70";
   }
 
   const isHorizontal = orientation === "top" || orientation === "bottom";
@@ -52,6 +55,7 @@ export function TableCardItem({
   onSelectReserved,
   onSelectTable,
   onDeleteTable,
+  onSwitchOccupiedTable,
 }: TableCardItemProps) {
   const { status, capacity, tableNumber, activeReservation, activeOrder } = table;
 
@@ -100,6 +104,10 @@ export function TableCardItem({
     cardBgClass = "bg-[#fdfaf6] hover:bg-[#fffcf9] border-orange-200/80 hover:border-orange-300";
     footerBgClass = "bg-[#faeee2]/70 border-orange-200/60";
     surfaceStyle = "bg-orange-50/90 text-orange-950 border-orange-300 shadow-2xs ring-1 ring-orange-400/30";
+  } else if (status === "billed") {
+    cardBgClass = "bg-[#fffbeb] hover:bg-[#fef3c7] border-amber-300/80 hover:border-amber-400";
+    footerBgClass = "bg-amber-100/70 border-amber-200";
+    surfaceStyle = "bg-amber-500 text-white border-amber-600 shadow-2xs ring-1 ring-amber-400/40";
   } else if (status === "reserved") {
     cardBgClass = "bg-[#f6fbfb] hover:bg-[#faffff] border-teal-200/80 hover:border-teal-300";
     footerBgClass = "bg-[#e6f7f6]/70 border-teal-200/60";
@@ -127,7 +135,7 @@ export function TableCardItem({
       <div className="flex items-start justify-between px-3.5 pt-2.5 pb-0.5 shrink-0">
         <div className="min-w-0 pr-2">
           <h3 className="text-[13px] font-bold text-slate-900 tracking-tight leading-snug truncate">
-            {tableNumber}
+            {tableNumber || activeOrder?.tableNumber || "Table"}
           </h3>
           <div className="flex items-center gap-1 text-[10.5px] font-medium text-slate-500 mt-0.5">
             <Users className="w-3 h-3 text-slate-400 shrink-0" />
@@ -174,7 +182,18 @@ export function TableCardItem({
                     </span>
                     <span className="text-orange-300 font-normal">•</span>
                     <span className="text-orange-950 font-extrabold">
-                      ₹{Math.round(activeOrder?.totalAmount || 0).toLocaleString("en-IN")}
+                      ₹{Math.round(activeOrder?.totalAmount || activeOrder?.grandTotal || (activeOrder as any)?.amount || 0).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </div>
+              ) : status === "billed" ? (
+                <div className="flex flex-col items-center justify-center gap-1 w-full">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-600 text-white shadow-xs leading-none">
+                    Billed
+                  </span>
+                  <div className="flex items-center justify-center gap-1 text-[9.5px] font-bold text-amber-950 leading-tight whitespace-nowrap">
+                    <span className="text-amber-950 font-extrabold">
+                      ₹{Math.round(activeOrder?.totalAmount || activeOrder?.grandTotal || (activeOrder as any)?.amount || 0).toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
@@ -215,19 +234,34 @@ export function TableCardItem({
 
       {/* 3. Bottom Zone: Status & Order / Reservation details Footer Bar */}
       <div className={`px-3.5 py-1.5 shrink-0 border-t flex items-center justify-between ${footerBgClass}`}>
-        {status === "occupied" ? (
+        {status === "occupied" || status === "billed" ? (
           <>
             <div className="min-w-0 pr-2">
-              <div className="text-[12.5px] font-extrabold text-slate-900 leading-tight">
-                ₹{Math.round(activeOrder?.totalAmount || 0).toLocaleString("en-IN")}
+              <div className="text-[12px] font-extrabold text-slate-900 leading-tight truncate">
+                {activeReservation?.customerName || activeOrder?.guestName || `₹${Math.round(activeOrder?.totalAmount || activeOrder?.grandTotal || (activeOrder as any)?.amount || 0).toLocaleString("en-IN")}`}
               </div>
-              <div className="text-[9.5px] font-medium text-slate-500 mt-0.5">
-                {activeOrder?.orderNumber ? `Order #${activeOrder.orderNumber}` : "1 active order"}
+              <div className="text-[9.5px] font-medium text-slate-500 mt-0.5 truncate">
+                {status === "billed" ? "Bill Printed · Do Not Seat" : activeOrder?.orderNumber ? `Order #${activeOrder.orderNumber}` : activeReservation?.isMerged ? "Merged Table" : "1 active order"}
               </div>
             </div>
-            <div className="flex items-center gap-1 text-[10.5px] font-semibold text-orange-800 shrink-0">
-              <Clock className="w-3 h-3 text-orange-600 shrink-0" />
-              <span>{formatElapsed(activeOrder?.elapsedMinutes || 0)}</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className={`flex items-center gap-1 text-[10.5px] font-semibold ${status === "billed" ? "text-amber-800" : "text-orange-800"}`}>
+                <Clock className={`w-3 h-3 shrink-0 ${status === "billed" ? "text-amber-600" : "text-orange-600"}`} />
+                <span>{formatElapsed(activeOrder?.elapsedMinutes || 0)}</span>
+              </div>
+              {onSwitchOccupiedTable && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSwitchOccupiedTable(table);
+                  }}
+                  className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-white border border-amber-300 text-amber-900 hover:bg-amber-100 transition shadow-2xs cursor-pointer ml-1"
+                  title={`Switch table for ${table.tableNumber}`}
+                >
+                  <ArrowLeftRight className="w-3 h-3 text-amber-700" />
+                </button>
+              )}
             </div>
           </>
         ) : status === "reserved" ? (

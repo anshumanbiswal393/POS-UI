@@ -21,6 +21,7 @@ import {
   Files,
   ChevronRight,
 } from "lucide-react";
+import { ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
 import {
   DataTableHeader,
   DataTableFooter,
@@ -32,6 +33,7 @@ import {
   type RecipeFormValues,
   type RecipeIngredientInput,
 } from "@/components/shared/pos/inventory/modals/CreateRecipeModal";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 import { ExploreRecipesModal } from "@/components/shared/pos/inventory/modals/ExploreRecipesModal";
 
 interface RecipeRow {
@@ -48,20 +50,21 @@ interface RecipeRow {
 
 const DEMO_RECIPES: RecipeRow[] = [];
 
-function mapRecipe(r: DishRecipe): RecipeRow {
+function mapRecipe(r: any): RecipeRow {
+  const dishName = r.menuItem || r.name || r.menuItemName || "Unnamed Dish";
   return {
     id: r.id,
-    name: r.name || r.menuItemName || r.menuItem || "Unnamed Recipe",
+    name: r.menuItem || r.name || r.menuItemName || "Unnamed Recipe",
     category: r.category || "Main Course",
-    menuItem: r.menuItemName || r.menuItem || r.name,
+    menuItem: dishName,
     yieldQty: String(r.yieldQty ?? "1"),
     yieldUnit: r.yieldUnit || "portion",
     prepTimeMinutes: String(r.prepTimeMinutes ?? "15"),
     notes: r.notes || "",
-    ingredients: (r.ingredients || []).map((ing, idx) => ({
+    ingredients: (r.ingredients || []).map((ing: any, idx: number) => ({
       id: ing.id || `ing-${idx}-${ing.stockItemId}`,
       stockItemId: ing.stockItemId,
-      name: ing.stockItemName || ing.name || "",
+      name: ing.name || ing.stockItemName || ing.stock_item_name || "",
       quantity: String(ing.quantity || 0),
       unit: ing.unit || "Kg",
     })),
@@ -86,6 +89,7 @@ export function RecipeManagementView() {
   const [pageSize, setPageSize] = useState(10);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<RecipeRow | null>(null);
   const [isExploreOpen, setIsExploreOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<RecipeRow | null>(null);
   const [createPrefill, setCreatePrefill] = useState<Partial<RecipeFormValues> | null>(null);
@@ -316,7 +320,7 @@ export function RecipeManagementView() {
 
       {/* 2. Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-serif text-[18px] font-bold text-slate-900 tracking-tight">Recipe Management</h2>
+        <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">Recipe Management</h2>
 
         <div className="flex flex-wrap items-center gap-3">
           <button
@@ -528,29 +532,18 @@ export function RecipeManagementView() {
                         <button
                           type="button"
                           onClick={() => openEdit(item)}
-                          className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
+                          className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 shadow-2xs transition cursor-pointer"
                           title="Edit Recipe"
                         >
-                          <Edit2 className="h-4 w-4" />
+                          <ColorActionEdit className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (confirm(`Delete recipe "${item.name}"?`)) {
-                              if (isLive) {
-                                deleteRecipe.mutate(item.id, {
-                                  onSuccess: () => toast.success(`Deleted "${item.name}"`),
-                                });
-                              } else {
-                                setLocalRecipes((prev) => prev.filter((r) => r.id !== item.id));
-                                toast.success(`Deleted "${item.name}"`);
-                              }
-                            }
-                          }}
-                          className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-rose-600 transition cursor-pointer"
-                          title="Delete"
+                          onClick={() => setDeleteTarget(item)}
+                          className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
+                          title="Delete Recipe"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <ColorActionDelete className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
@@ -610,6 +603,37 @@ export function RecipeManagementView() {
         existingNames={recipes.map((r) => r.name)}
         onUseSuggestion={handleUseSuggestion}
         onAddSelected={handleAddFromSuggestions}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete Dish Recipe"
+        itemName={deleteTarget?.name}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to permanently delete recipe{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.name}"</span>?
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            if (isLive) {
+              deleteRecipe.mutate(deleteTarget.id, {
+                onSuccess: () => toast.success(`Deleted "${deleteTarget.name}"`),
+              });
+            } else {
+              setLocalRecipes((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+              toast.success(`Deleted "${deleteTarget.name}"`);
+            }
+            setDeleteTarget(null);
+          }
+        }}
       />
     </div>
   );

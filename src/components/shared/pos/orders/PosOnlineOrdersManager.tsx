@@ -19,7 +19,9 @@ import {
   XCircle,
   BellRing,
   FileText,
+  Printer,
 } from "lucide-react";
+import { openPrintReportTable } from "@/utils/printReportTable";
 import {
   useOnlineOrders,
   useAcceptOnlineOrderMutation,
@@ -31,6 +33,9 @@ import { exportToExcel } from "@/utils/exportUtils";
 import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid";
 import { ExportToExcelButton } from "@/components/ui/ExportToExcelButton";
+import { ColorActionPrint, ColorActionView } from "@/components/common/ColorActionIcons";
+import { fuzzyMatch } from "@/utils/fuzzySearch";
+import { formatDateIndian } from "@/utils/dateUtils";
 
 export function PosOnlineOrdersManager() {
   const [platformTab, setPlatformTab] = useState<"all" | "zomato" | "swiggy" | "direct_web">("all");
@@ -89,11 +94,22 @@ export function PosOnlineOrdersManager() {
       }
 
       if (searchOrderNo.trim()) {
-        const q = searchOrderNo.toLowerCase();
-        const matchesNo = r.orderNo.toLowerCase().includes(q);
-        const matchesCustomer = r.customerName.toLowerCase().includes(q);
-        const matchesOtp = r.otp.includes(q);
-        if (!matchesNo && !matchesCustomer && !matchesOtp) return false;
+        const matches = fuzzyMatch(
+          [
+            r.orderNo,
+            r.customerName,
+            r.customerPhone || "",
+            r.otp,
+            r.platform,
+            r.riderDetails || "",
+            r.statusDisplay || "",
+            r.itemsText || "",
+            r.dateTime || "",
+            String(r.grandTotal || r.totalAmount || ""),
+          ],
+          searchOrderNo,
+        );
+        if (!matches) return false;
       }
 
       return true;
@@ -204,7 +220,7 @@ export function PosOnlineOrdersManager() {
       "Outlet",
       "Order Type",
       "Rider Details",
-      "Customer Name",
+      "Guest Name",
       "Phone",
       "OTP",
       "Date & Time",
@@ -233,6 +249,65 @@ export function PosOnlineOrdersManager() {
       rows,
     });
     toast.success(`Exported ${rows.length} online aggregator orders to Excel`);
+  };
+
+  const handlePrintReport = () => {
+    if (filteredRecords.length === 0) {
+      toast.info("No online orders to print");
+      return;
+    }
+
+    const reportCols = [
+      { header: "ORDER NO", align: "left" as const },
+      { header: "PLATFORM", align: "center" as const },
+      { header: "OUTLET", align: "left" as const },
+      { header: "RIDER DETAILS", align: "left" as const },
+      { header: "GUEST NAME", align: "left" as const },
+      { header: "PHONE", align: "left" as const },
+      { header: "OTP", align: "center" as const },
+      { header: "DATE & TIME", align: "center" as const },
+      { header: "TOTAL (₹)", align: "right" as const },
+      { header: "STATUS", align: "center" as const },
+    ];
+
+    const reportRows = filteredRecords.map((r) => [
+      `#${r.orderNo}`,
+      (r.platform || "").toUpperCase(),
+      r.outletName,
+      r.riderDetails || "—",
+      r.customerName || "—",
+      r.customerPhone || "—",
+      r.otp || "—",
+      formatDateIndian(r.dateTime) || r.dateTime,
+      Number(r.totalAmount || r.grandTotal || (Number(String(r.totalAmountFormatted || "0").replace(/[^0-9.-]+/g, "")) || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      (r.statusDisplay || r.status).toUpperCase(),
+    ]);
+
+    const totalAmount = filteredRecords.reduce(
+      (s, r) => s + Number(r.totalAmount || r.grandTotal || (Number(String(r.totalAmountFormatted || "0").replace(/[^0-9.-]+/g, "")) || 0)),
+      0,
+    );
+
+    openPrintReportTable({
+      title: "ONLINE AGGREGATOR ORDERS REPORT",
+      hotelName: "Anshu Suite Restaurant",
+      subtitle: `Platform: ${platformTab.toUpperCase()} • Range: ${selectedRange} • Total Orders: ${filteredRecords.length}`,
+      dateRange: selectedRange,
+      columns: reportCols,
+      rows: reportRows,
+      summaryTotals: [
+        "TOTAL",
+        `${filteredRecords.length} Orders`,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+        "",
+      ],
+    });
   };
 
   const dateRanges = ["Today", "Yesterday", "Last 5 Days Orders", "Last 7 Days", "Last 30 Days"];
@@ -267,13 +342,13 @@ export function PosOnlineOrdersManager() {
             <div className="mt-0.5 text-[11px] text-text-secondary font-medium">
               {row.outletName}
             </div>
-            <div className="text-[10.5px] text-text-disabled">{row.dateTime}</div>
+            <div className="text-[10.5px] text-text-disabled">{formatDateIndian(row.dateTime) || row.dateTime}</div>
           </div>
         ),
       },
       {
         id: "customerName",
-        header: "Customer & Rider",
+        header: "Guest & Rider",
         accessorKey: "customerName",
         enableSorting: true,
         enableFiltering: true,
@@ -421,9 +496,9 @@ export function PosOnlineOrdersManager() {
               type="button"
               onClick={() => setViewingOrder(ord)}
               title="View Full Order Details"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-surface hover:bg-surface-2 text-text-primary shadow-2xs transition cursor-pointer"
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-black bg-white hover:bg-black/5 shadow-2xs transition cursor-pointer"
             >
-              <Eye className="h-3.5 w-3.5 text-text-secondary" />
+              <ColorActionView className="h-4 w-4" />
             </button>
           </div>
         ),
@@ -443,7 +518,7 @@ export function PosOnlineOrdersManager() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-serif text-[20px] sm:text-[22px] font-bold text-text-primary tracking-tight leading-tight">
+              <h1 className="text-[20px] sm:text-[22px] font-bold text-text-primary tracking-tight leading-tight">
                 Online Aggregator Hub
               </h1>
               <span className="inline-flex items-center gap-1 rounded-full bg-primary-tint px-2 py-0.2 text-[10.5px] font-bold text-primary border border-primary/30">
@@ -504,6 +579,16 @@ export function PosOnlineOrdersManager() {
           </button>
 
           <ExportToExcelButton onClick={handleExportExcel} />
+          <button
+            type="button"
+            onClick={handlePrintReport}
+            disabled={filteredRecords.length === 0}
+            className="flex h-8 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-[11.5px] font-bold text-text-primary hover:bg-surface-2 shadow-2xs transition cursor-pointer disabled:opacity-50"
+            title="Print Online Orders Master Report"
+          >
+            <ColorActionPrint className="h-3.5 w-3.5" />
+            <span>Print</span>
+          </button>
 
           <button
             type="button"
@@ -564,7 +649,7 @@ export function PosOnlineOrdersManager() {
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-disabled" />
             <input
               type="text"
-              placeholder="Search Order #, Customer, Phone, or OTP..."
+              placeholder="Search Order #, Guest, Phone, or OTP..."
               value={searchOrderNo}
               onChange={(e) => {
                 setSearchOrderNo(e.target.value);
@@ -717,13 +802,13 @@ export function PosOnlineOrdersManager() {
               </div>
 
               <div className="flex items-start gap-3 py-1.5 last:pb-0">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 shadow-2xs">
-                  <Eye className="h-4 w-4 text-slate-600" />
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white shadow-2xs">
+                  <ColorActionView className="h-4 w-4" />
                 </div>
                 <div>
                   <span className="font-extrabold text-slate-900">👁️ Eye Icon (Details):</span>
                   <p className="text-[11px] text-slate-600 leading-snug mt-0.5">
-                    Opens complete customer info, rider phone, OTP verification, and item breakdown.
+                    Opens complete guest info, rider phone, OTP verification, and item breakdown.
                   </p>
                 </div>
               </div>
@@ -769,7 +854,7 @@ export function PosOnlineOrdersManager() {
 
             <div className="space-y-2 text-[12px]">
               <div className="flex justify-between py-0.5 border-b border-slate-100">
-                <span className="text-slate-500">Customer:</span>
+                <span className="text-slate-500">Guest:</span>
                 <span className="font-bold text-slate-900">
                   {viewingOrder.customerName} ({viewingOrder.customerPhone})
                 </span>

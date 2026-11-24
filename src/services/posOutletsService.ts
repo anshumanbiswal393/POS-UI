@@ -43,6 +43,7 @@ export type CreateOutletPayload = {
   city?: string;
   timezone?: string;
   address?: string;
+  orderTypes?: string[];
   area?: string;
   latitude?: string;
   longitude?: string;
@@ -112,6 +113,18 @@ export function mapOutletApiToPosOutlet(dto: OutletApiDto): PosOutlet {
   const parentOutletId =
     typeof parentRaw === "string" && parentRaw.trim() ? String(parentRaw) : null;
   const kind = (dto.outlet_type || "PRIMARY").toUpperCase();
+  const gstinVal =
+    (dto as any).gstin ||
+    meta.gstin ||
+    (dto as any).gstNumber ||
+    (dto as any).gst_number ||
+    meta.gst_number ||
+    meta.gstNumber ||
+    (dto as any).taxId ||
+    (dto as any).tax_id ||
+    meta.tax_id ||
+    meta.taxId ||
+    undefined;
   return {
     id: String(dto.id),
     name: dto.name,
@@ -135,6 +148,9 @@ export function mapOutletApiToPosOutlet(dto: OutletApiDto): PosOutlet {
     parentOutletId,
     propertyId: dto.property ? String(dto.property) : null,
     tenantId: dto.tenant ? String(dto.tenant) : null,
+    gstin: gstinVal,
+    gstNumber: gstinVal,
+    taxId: gstinVal,
   };
 }
 
@@ -214,6 +230,8 @@ export const posOutletsService = {
       city: payload.city,
       timezone: payload.timezone,
       address: payload.address,
+      orderTypes: payload.orderTypes,
+      order_types: payload.orderTypes,
       area: payload.area,
       latitude: payload.latitude,
       longitude: payload.longitude,
@@ -273,7 +291,9 @@ export const posOutletsService = {
         address: payload.address || "",
         contact: payload.phone || payload.ownerMobile || payload.directNumber || "",
         orderTypes:
-          kind === "KITCHEN" || kind === "VIRTUAL"
+          payload.orderTypes && payload.orderTypes.length > 0
+            ? payload.orderTypes
+            : kind === "KITCHEN" || kind === "VIRTUAL"
             ? ["Online Delivery", "Takeaway"]
             : ["Dine-In", "Takeaway", "Room Service"],
         status: payload.is_active === false ? "Inactive" : "Active",
@@ -301,6 +321,10 @@ export const posOutletsService = {
         if (payload.phone) body.phone = payload.phone;
         if (payload.address) {
           body.meta_settings = { address: payload.address };
+        }
+        if (payload.orderTypes) {
+          body.orderTypes = payload.orderTypes;
+          body.order_types = payload.orderTypes;
         }
         if (payload.status) {
           body.is_active = payload.status === "Active";

@@ -5,8 +5,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { BedDouble, Receipt, UtensilsCrossed } from "lucide-react";
+import { BedDouble, Receipt, UtensilsCrossed, Printer } from "lucide-react";
 import type { HotelRoom, RoomFolioOrder } from "@/types/posRoomService";
+import { toast } from "sonner";
+import { roomFolioOrderToInvoicePayload, printPosInvoice } from "@/utils/printReceipt";
 
 type RoomFolioOrderSlideProps = {
   isOpen: boolean;
@@ -18,7 +20,21 @@ function formatMoney(value: number) {
   return `₹${Number(value || 0).toLocaleString("en-IN")}`;
 }
 
-function OrderBlock({ order }: { order: RoomFolioOrder }) {
+function OrderBlock({
+  order,
+  roomNumber,
+  guestName,
+}: {
+  order: RoomFolioOrder;
+  roomNumber?: string;
+  guestName?: string;
+}) {
+  const handlePrint = () => {
+    const payload = roomFolioOrderToInvoicePayload(order, roomNumber, guestName);
+    printPosInvoice(payload);
+    toast.success(`Printing folio tax invoice for Order ${order.orderNumber}`);
+  };
+
   return (
     <div className="rounded-xl border border-border bg-surface p-3 space-y-2">
       <div className="flex items-start justify-between gap-2">
@@ -26,11 +42,21 @@ function OrderBlock({ order }: { order: RoomFolioOrder }) {
           <p className="font-mono text-[13px] font-black text-text-primary">{order.orderNumber}</p>
           <p className="text-[11px] text-text-secondary">{order.createdAt || "—"}</p>
         </div>
-        <div className="text-right">
-          <p className="text-[14px] font-black text-primary">{formatMoney(order.totalAmount)}</p>
-          <p className="text-[10.5px] font-semibold text-teal-800">
-            {order.paymentMode || "Add to Room Folio"}
-          </p>
+        <div className="text-right flex items-center gap-2">
+          <div>
+            <p className="text-[14px] font-black text-primary">{formatMoney(order.totalAmount)}</p>
+            <p className="text-[10.5px] font-semibold text-teal-800">
+              {order.paymentMode || "Add to Room Folio"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handlePrint}
+            title="Print Folio Invoice"
+            className="p-1.5 rounded-lg border border-border bg-white hover:bg-slate-50 text-slate-700 hover:text-teal-700 transition cursor-pointer shadow-2xs"
+          >
+            <Printer className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
       {order.items?.length ? (
@@ -90,7 +116,14 @@ export function RoomFolioOrderSlide({ isOpen, onClose, room }: RoomFolioOrderSli
               <p className="text-[12.5px] font-semibold">No F&amp;B orders on this room yet</p>
             </div>
           ) : (
-            orders.map((order) => <OrderBlock key={order.id} order={order} />)
+            orders.map((order) => (
+              <OrderBlock
+                key={order.id}
+                order={order}
+                roomNumber={room?.roomNumber}
+                guestName={room?.guest?.name}
+              />
+            ))
           )}
         </div>
       </SheetContent>

@@ -30,8 +30,7 @@ export function usePosDashboard(filters?: DashboardFilterParams) {
     queryKey: [...POS_DASHBOARD_QUERY_KEY, mergedFilters],
     queryFn: () => getPosDashboardData(mergedFilters),
     placeholderData: (previousData) => previousData,
-    staleTime: 1000 * 30,
-    refetchInterval: 1000 * 30,
+    staleTime: 2 * 60 * 1000,
     enabled: isRealBackendOutlet && !isLoadingOutlets,
   });
 }

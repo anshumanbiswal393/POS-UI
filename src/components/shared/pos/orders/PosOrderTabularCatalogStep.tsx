@@ -86,15 +86,17 @@ export function PosOrderTabularCatalogStep({
       .map((item) => {
         const primaryImg =
           item.images?.find((img) => img.isPrimary)?.url || item.images?.[0]?.url;
+        const rawType = String(item.itemType || (item as any)?.item_type || (item as any)?.diet || "").trim().toLowerCase();
+        const catLower = String(item.category || "").toLowerCase();
         const diet: "veg" | "non_veg" | "egg" | "drinks" =
-          item.itemType === "Veg"
-            ? "veg"
-            : item.itemType === "Egg"
-              ? "egg"
-              : item.category.toLowerCase().includes("bev") ||
-                item.category.toLowerCase().includes("cocktail") ||
-                item.category.toLowerCase().includes("vodka") ||
-                item.category.toLowerCase().includes("whisky")
+          rawType === "egg" || catLower.includes("egg")
+            ? "egg"
+            : rawType === "veg" || rawType === "vegetarian"
+              ? "veg"
+              : catLower.includes("bev") ||
+                catLower.includes("cocktail") ||
+                catLower.includes("vodka") ||
+                catLower.includes("whisky")
                 ? "drinks"
                 : "non_veg";
 
@@ -123,7 +125,7 @@ export function PosOrderTabularCatalogStep({
   }, [catalogItems]);
 
   const [selectedCategory, setSelectedCategory] = useState<BillingCategory>("All Items");
-  const [dietFilter, setDietFilter] = useState<"all" | "veg" | "non_veg">("all");
+  const [dietFilter, setDietFilter] = useState<"all" | "veg" | "non_veg" | "egg">("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -219,20 +221,20 @@ export function PosOrderTabularCatalogStep({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleSearchKeyDown}
-              className="w-full pl-9 pr-14 py-2 text-xs text-[#000000] dark:text-white bg-surface border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium placeholder:text-[#64748b] shadow-xs"
+              className="w-full pl-9 pr-14 py-2 text-xs text-foreground bg-surface border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium placeholder:text-foreground/60 shadow-xs"
             />
             <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
               {searchQuery ? (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                  className="text-foreground hover:text-primary cursor-pointer p-0.5"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               ) : (
-                <span className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-500 bg-surface-2 rounded border border-border">
-                  <Barcode className="w-3 h-3 text-slate-400 inline mr-0.5" />/
+                <span className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono font-bold text-foreground bg-surface-2 rounded border border-border">
+                  <Barcode className="w-3 h-3 text-primary inline mr-0.5" />/
                 </span>
               )}
             </div>
@@ -260,6 +262,18 @@ export function PosOrderTabularCatalogStep({
             >
               <FoodTypeIcon type="veg" size="sm" />
               Veg
+            </button>
+            <button
+              type="button"
+              onClick={() => setDietFilter("egg")}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition cursor-pointer ${
+                dietFilter === "egg"
+                  ? "bg-amber-600 text-white shadow-xs font-bold"
+                  : "text-amber-700 hover:bg-amber-50"
+              }`}
+            >
+              <FoodTypeIcon type="egg" size="sm" />
+              Egg
             </button>
             <button
               type="button"
@@ -296,9 +310,9 @@ export function PosOrderTabularCatalogStep({
       </div>
 
       {/* 2-Column Split: 65%-70% Catalog Grid & Search (Left 8 cols) + Fixed/35% Bill Panel (Right 4 cols) */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden bg-background">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 lg:overflow-hidden bg-background">
         {/* Left Column: Product Grid & Search */}
-        <div className="lg:col-span-8 overflow-y-auto p-3.5 border-r border-border bg-surface">
+        <div className="lg:col-span-8 overflow-x-auto lg:overflow-y-auto p-3.5 border-b lg:border-b-0 lg:border-r border-border bg-surface">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-border bg-surface-2 text-text-secondary font-bold uppercase text-[10.5px]">
@@ -421,8 +435,8 @@ export function PosOrderTabularCatalogStep({
           </table>
         </div>
 
-        {/* Right Column: Cart & Order Ticket Panel (Fixed 380px feel) */}
-        <div className="lg:col-span-4 flex flex-col justify-between p-3.5 bg-surface-2/40 overflow-y-auto min-w-[340px]">
+        {/* Right Column: Cart & Order Ticket Panel */}
+        <div className="lg:col-span-4 w-full min-w-0 flex flex-col justify-between p-3.5 bg-surface-2/40 lg:overflow-y-auto">
           <div>
             <div className="p-3 bg-surface rounded-xl border border-border shadow-e1 mb-3">
               <div className="flex items-center justify-between">

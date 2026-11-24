@@ -1,5 +1,6 @@
-import { useState, useEffect, useId } from "react";
+import { useState, useEffect, useId, useMemo } from "react";
 import { User, Mail, ShieldCheck, Phone, AlertCircle, Check } from "lucide-react";
+import { useOutletContext } from "@/context/PosOutletContext";
 import {
   PosCreateCancelButton,
   PosCreatePanel,
@@ -32,14 +33,6 @@ const ROLE_OPTIONS = [
   "System Auditor",
 ];
 
-const OUTLET_OPTIONS = [
-  "HIGHWAY INN BAR & RESTAURANT",
-  "All Outlets",
-  "Outlet #2 - Downtown Lounge",
-  "Outlet #3 - Express Counter",
-  "Main Kitchen & Commissary",
-];
-
 export function AddAdminUserModal({
   isOpen,
   onClose,
@@ -47,6 +40,15 @@ export function AddAdminUserModal({
   initialData,
   existingEmails = [],
 }: AddAdminUserModalProps) {
+  const { activeOutlet, outlets } = useOutletContext();
+  const outletOptions = useMemo(() => {
+    if (outlets?.length) {
+      return [...outlets.map((o) => o.name), "All Outlets"];
+    }
+    return [activeOutlet?.name || "Main Outlet", "All Outlets"];
+  }, [outlets, activeOutlet]);
+
+  const defaultOutletName = activeOutlet?.name || "Main Outlet";
   const isEditMode = Boolean(initialData?.id);
   const formId = useId();
 
@@ -54,7 +56,7 @@ export function AddAdminUserModal({
     name: "",
     email: "",
     type: "Restaurant User",
-    outlet: "HIGHWAY INN BAR & RESTAURANT",
+    outlet: defaultOutletName,
     phone: "",
     status: "Active",
   });
@@ -69,7 +71,7 @@ export function AddAdminUserModal({
         name: initialData.name || "",
         email: initialData.email || "",
         type: initialData.type || "Restaurant User",
-        outlet: initialData.outlet || "HIGHWAY INN BAR & RESTAURANT",
+        outlet: initialData.outlet || defaultOutletName,
         phone: initialData.phone || "",
         status: initialData.status || "Active",
       });
@@ -80,14 +82,14 @@ export function AddAdminUserModal({
         name: "",
         email: "",
         type: "Restaurant User",
-        outlet: "HIGHWAY INN BAR & RESTAURANT",
+        outlet: defaultOutletName,
         phone: "",
         status: "Active",
       });
       setTouched({});
       setErrors({});
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, defaultOutletName]);
 
   // Validation engine
   const validate = (data: AdminUserFormData) => {
@@ -342,7 +344,7 @@ export function AddAdminUserModal({
                   onChange={(e) => setFormData((prev) => ({ ...prev, outlet: e.target.value }))}
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-900 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 cursor-pointer"
                 >
-                  {OUTLET_OPTIONS.map((opt) => (
+                  {outletOptions.map((opt) => (
                     <option key={opt} value={opt}>
                       {opt}
                     </option>

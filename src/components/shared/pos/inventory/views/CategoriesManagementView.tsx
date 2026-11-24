@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   useStockCategories,
+  useStockItems,
   useUpsertStockCategory,
   useDeleteStockCategory,
 } from "@/hooks/queries/usePosInventory";
+import { useOutletContext } from "@/context/PosOutletContext";
 import {
   Plus,
   Trash2,
@@ -12,6 +14,7 @@ import {
   Layers,
   X,
 } from "lucide-react";
+import { ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
 import { toast } from "sonner";
 import { PosDataGrid } from "@/components/ui/data-grid";
 import type { DataGridColumn } from "@/components/ui/data-grid/types";
@@ -21,6 +24,8 @@ import {
   PosCreateSubmitButton,
 } from "@/components/layout/pos/PosCreatePanel";
 import type { StockCategory, StockSubCategory } from "@/types/posInventory";
+import { extractCategoriesFromStock, getDeletedCategoryNames } from "@/services/posInventoryService";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 
 const STANDARD_UNITS = [
   "Kg",
@@ -44,12 +49,26 @@ interface SubCategoryDraft {
 }
 
 export function CategoriesManagementView() {
-  const { data: categories = [], isLoading } = useStockCategories();
+  const { activeOutlet } = useOutletContext();
+  const { data: rawCategories = [], isLoading } = useStockCategories();
+  const { data: stockItems = [] } = useStockItems();
+
+  const deletedCategoryNames = useMemo(
+    () => getDeletedCategoryNames(activeOutlet?.id),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeOutlet?.id, rawCategories],
+  );
+
+  const categories = useMemo(() => {
+    return extractCategoriesFromStock(stockItems, rawCategories, deletedCategoryNames);
+  }, [stockItems, rawCategories, deletedCategoryNames]);
+
   const upsertCategory = useUpsertStockCategory();
   const deleteCategory = useDeleteStockCategory();
 
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<StockCategory | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const [categoryName, setCategoryName] = useState("");
   const [subCategories, setSubCategories] = useState<SubCategoryDraft[]>([
@@ -111,6 +130,7 @@ export function CategoriesManagementView() {
       {
         id: editingCategory?.id,
         name: trimmedName,
+        oldName: editingCategory?.name,
         subCategories: validSubCategories,
       },
       {
@@ -130,13 +150,33 @@ export function CategoriesManagementView() {
   };
 
   const handleDelete = (id: string, name: string) => {
-    deleteCategory.mutate(id, {
-      onSuccess: () => toast.success(`Category '${name}' deleted`),
-      onError: () => toast.error("Could not delete category"),
-    });
+    deleteCategory.mutate(
+      { id, name },
+      {
+        onSuccess: () => toast.success(`Category '${name}' deleted`),
+        onError: () => toast.error("Could not delete category"),
+      },
+    );
   };
 
+  const categoriesWithSerial = useMemo(
+    () => categories.map((c, i) => ({ ...c, serialNumber: i + 1 })),
+    [categories],
+  );
+
   const columns: DataGridColumn<StockCategory>[] = [
+    {
+      id: "serialNumber",
+      header: "S.No",
+      sortable: false,
+      align: "center",
+      width: 60,
+      render: (_: any, row: any, index: number) => (
+        <span className="font-semibold text-slate-500 text-xs">
+          {row.serialNumber ?? index + 1}
+        </span>
+      ),
+    },
     {
       id: "name",
       header: "Category Name",
@@ -144,18 +184,16 @@ export function CategoriesManagementView() {
       filterable: true,
       width: 220,
       render: (val: any) => (
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 border border-teal-200/80">
-            <FolderTree className="h-3.5 w-3.5" />
-          </div>
-          <span className="font-bold text-foreground text-xs">{val}</span>
-        </div>
+        <span className="font-bold text-foreground text-xs">{val}</span>
       ),
     },
     {
       id: "subCategories",
       header: "Subcategories & Units",
       sortable: false,
+      filterable: true,
+      filterValueAccessor: (row) =>
+        row.subCategories?.map((s) => `${s.name} ${s.unit}`).join(" ") || "",
       width: 480,
       render: (_: any, row: StockCategory) => {
         const subs = row.subCategories || [];
@@ -198,28 +236,28 @@ export function CategoriesManagementView() {
       align: "right",
       width: 100,
       render: (_: any, row: StockCategory) => (
-        <div className="flex items-center justify-end gap-1 text-muted-foreground">
+        <div className="flex items-center justify-end gap-1.5">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               openEditModal(row);
             }}
-            className="p-1 hover:text-primary hover:bg-surface-2 rounded transition cursor-pointer"
+            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-sky-500 hover:bg-sky-50/60 shadow-2xs transition cursor-pointer"
             title="Edit Category & Subcategories"
           >
-            <Edit2 className="h-3.5 w-3.5" />
+            <ColorActionEdit className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              handleDelete(row.id, row.name);
+              setDeleteTarget({ id: row.id, name: row.name });
             }}
-            className="p-1 hover:text-red-500 hover:bg-surface-2 rounded transition cursor-pointer"
+            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
             title="Delete Category"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <ColorActionDelete className="h-3.5 w-3.5" />
           </button>
         </div>
       ),
@@ -231,12 +269,9 @@ export function CategoriesManagementView() {
       {/* 1. Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-lg font-bold text-foreground tracking-tight">
+          <h2 className="text-lg font-bold text-foreground tracking-tight">
             Stock Categories & Subcategories
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Maintain raw material categories, define subcategories, and assign measurement units.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -253,11 +288,9 @@ export function CategoriesManagementView() {
 
       {/* 2. Interactive Data Grid */}
       <PosDataGrid
-        data={categories}
+        data={categoriesWithSerial}
         columns={columns}
         keyField="id"
-        title="Stock Category Catalog"
-        subtitle="Hierarchy of raw material groups and associated units"
         showToolbar
         storageKey="pos-stock-categories-management"
         themeVariant="primary"
@@ -279,9 +312,7 @@ export function CategoriesManagementView() {
         footer={
           <>
             <PosCreateCancelButton onClick={() => setIsPanelOpen(false)} />
-            <PosCreateSubmitButton>
-              {editingCategory ? "Save Changes" : "Save Category"}
-            </PosCreateSubmitButton>
+            <PosCreateSubmitButton>Save</PosCreateSubmitButton>
           </>
         }
       >
@@ -362,6 +393,31 @@ export function CategoriesManagementView() {
           </div>
         </div>
       </PosCreatePanel>
+
+      {/* 4. Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete Stock Category"
+        itemName={deleteTarget?.name}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to permanently delete category{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.name}"</span>?
+              All associated subcategory mappings will also be removed.
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            handleDelete(deleteTarget.id, deleteTarget.name);
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }

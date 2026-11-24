@@ -36,13 +36,16 @@ export type BillingMenuItem = {
   code: string;
   name: string;
   category: BillingCategory;
+  subCategory?: string;
   diet: "veg" | "non_veg" | "egg" | "drinks";
   price: number;
   originalPrice?: number;
   commissionType?: string;
   commissionValue?: number | null;
+  status?: "Active" | "Inactive" | "Out_of_Stock";
   inStock: boolean;
   stockCount?: number;
+  plates?: number;
   prepTimeMinutes: number;
   isPopular?: boolean;
   isChefSpecial?: boolean;
@@ -50,6 +53,8 @@ export type BillingMenuItem = {
   modifierGroups?: BillingModifierGroup[];
   imageUrl?: string;
   description?: string;
+  mealTimes?: string[];
+  meal_times?: string[];
 };
 
 export type BillingSelectedModifier = {
@@ -132,6 +137,7 @@ export type BillSettlementRecord = {
   grandTotal: number;
   paymentMethod: BillingPaymentMethod;
   tenderedAmount: number;
+  depositAmount?: number;
   changeDue: number;
   settledAt: string;
   specialNote?: string;

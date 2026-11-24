@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { Check, Copy, Lock } from "lucide-react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { Check, Copy, Lock, Camera, Upload, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { authApi } from "@/services/auth-api";
+import { syncAuthSession } from "@/utils/cookieAuth";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { OutletsManagementView } from "@/components/shared/pos/settings/OutletsManagementView";
 import { PosPanel } from "@/components/shared/pos/PosPanel";
@@ -80,6 +82,10 @@ export function PosSettingsScreen() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [taxSettings, setTaxSettings] = useState<PosTaxSettings>(() => getPosTaxSettings());
+  const [newTaxRateInput, setNewTaxRateInput] = useState("");
+
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string>(user?.avatarUrl ?? "");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isKitchen && activeTab !== "account") {
@@ -90,7 +96,111 @@ export function PosSettingsScreen() {
   useEffect(() => {
     setProfileName(user?.name ?? "");
     setProfilePhone(user?.phone ?? "");
-  }, [user?.id, user?.name, user?.phone]);
+    setProfileAvatarUrl(user?.avatarUrl ?? "");
+  }, [user?.id, user?.name, user?.phone, user?.avatarUrl]);
+
+  function handleAvatarFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image file size should be less than 5MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const rawDataUrl = event.target?.result as string;
+      if (!rawDataUrl) return;
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxDim = 256;
+        const minSide = Math.min(img.width, img.height);
+        const sx = (img.width - minSide) / 2;
+        const sy = (img.height - minSide) / 2;
+        canvas.width = maxDim;
+        canvas.height = maxDim;
+        const ctx = canvas.getContext("2d");
+        const finalUrl = ctx
+          ? (() => {
+              ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, maxDim, maxDim);
+              return canvas.toDataURL("image/jpeg", 0.9);
+            })()
+          : rawDataUrl;
+
+        setProfileAvatarUrl(finalUrl);
+        if (user) {
+          updateUser(user.id, { avatarUrl: finalUrl });
+          syncAuthSession(null, { ...user, avatarUrl: finalUrl }, user.tenant_subdomain);
+        }
+        toast.success("Profile picture updated. Click 'Save Profile' to commit changes.");
+      };
+      img.src = rawDataUrl;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function handleRemoveAvatar() {
+    setProfileAvatarUrl("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (user) {
+      updateUser(user.id, { avatarUrl: undefined });
+      syncAuthSession(null, { ...user, avatarUrl: undefined }, user.tenant_subdomain);
+      try {
+        await authApi.updateProfile({ avatar_url: "" });
+      } catch (err) {
+        console.warn("Could not sync avatar removal to backend:", err);
+      }
+    }
+    toast.success("Profile picture removed.");
+  }
+
+  async function handleSaveProfile(event: React.FormEvent) {
+    event.preventDefault();
+    if (!user) return;
+    const phone = profilePhone.replace(/\D/g, "");
+    if (phone && phone.length !== 10) {
+      setPhoneError("Phone number must be exactly 10 digits.");
+      return;
+    }
+    setPhoneError(null);
+    setSavingProfile(true);
+    try {
+      const updatedName = profileName.trim() || user.name;
+      const avatarToSave = profileAvatarUrl.trim() || "";
+      const updatedPatch = {
+        name: updatedName,
+        initials: initialsFromName(updatedName),
+        phone,
+        avatarUrl: avatarToSave || undefined,
+      };
+
+      // 1. Persist to Backend API (/api/auth/me/)
+      try {
+        await authApi.updateProfile({
+          name: updatedName,
+          phone,
+          avatar_url: avatarToSave,
+        });
+      } catch (backendErr: any) {
+        console.warn("Backend profile save notice:", backendErr?.message || backendErr);
+      }
+
+      // 2. Persist to local AuthProvider & session cookies/storage
+      updateUser(user.id, updatedPatch);
+      syncAuthSession(null, { ...user, ...updatedPatch }, user.tenant_subdomain);
+
+      toast.success("Profile saved successfully.");
+    } catch (err: any) {
+      console.error("Save profile error:", err);
+      toast.error(err?.message || "Could not save profile.");
+    } finally {
+      setSavingProfile(false);
+    }
+  }
 
   useEffect(() => {
     if (activeTab === "receipts") {
@@ -129,24 +239,6 @@ export function PosSettingsScreen() {
     persistTheme(next);
   }
 
-  function handleSaveProfile(event: React.FormEvent) {
-    event.preventDefault();
-    if (!user) return;
-    const phone = profilePhone.replace(/\D/g, "");
-    if (phone && phone.length !== 10) {
-      setPhoneError("Phone number must be exactly 10 digits.");
-      return;
-    }
-    setPhoneError(null);
-    setSavingProfile(true);
-    updateUser(user.id, {
-      name: profileName.trim() || user.name,
-      initials: initialsFromName(profileName.trim() || user.name),
-      phone,
-    });
-    setSavingProfile(false);
-    toast.success("Profile saved.");
-  }
 
   async function handleCopyLicense() {
     try {
@@ -174,20 +266,20 @@ export function PosSettingsScreen() {
   }
 
   return (
-    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[200px_minmax(0,1fr)]">
+    <div className="pos-page-container grid grid-cols-1 items-start gap-4 lg:grid-cols-[200px_minmax(0,1fr)]">
       <aside className="overflow-hidden rounded-xl border border-border bg-surface shadow-xs lg:sticky lg:top-3">
-        <div className="border-b border-primary/20 bg-primary/10 px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-primary">
+        <div className="hidden lg:block border-b border-primary/20 bg-primary/10 px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-primary">
           Settings Menu
         </div>
-        <ul className="space-y-1 p-2">
+        <ul className="flex lg:block gap-1 p-2 overflow-x-auto lg:overflow-visible lg:space-y-1">
           {visibleMenu.map((item) => {
             const selected = activeTab === item.id;
             return (
-              <li key={item.id}>
+              <li key={item.id} className="shrink-0 lg:shrink">
                 <button
                   type="button"
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full rounded-lg px-3 py-2.5 text-left text-[13px] font-medium transition cursor-pointer ${
+                  className={`w-full whitespace-nowrap lg:whitespace-normal rounded-lg px-3 py-2 lg:py-2.5 text-left text-[12.5px] lg:text-[13px] font-medium transition cursor-pointer ${
                     selected
                       ? "bg-primary font-semibold text-primary-foreground shadow-xs"
                       : "text-text-secondary hover:bg-primary/10 hover:text-primary"
@@ -202,94 +294,173 @@ export function PosSettingsScreen() {
       </aside>
 
       {activeTab === "account" && (
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <section className="rounded-xl border border-border bg-surface p-5 shadow-xs">
-            <div className="mb-5 border-b border-border pb-3">
-              <h2 className="text-[16px] font-bold text-text-primary">Profile Details</h2>
-            </div>
-
-            <div className="mb-5 flex items-center gap-4 rounded-xl border border-border bg-surface-2/40 p-4">
-              {user?.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt={user?.name || "Profile"}
-                  className="h-16 w-16 rounded-full object-cover border-2 border-primary/20 shrink-0"
-                />
-              ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary/20 bg-primary/10 text-lg font-extrabold text-primary shrink-0">
-                  {user?.initials ?? "U"}
-                </div>
-              )}
-              <div>
-                <div className="text-[13px] font-bold text-text-primary">Profile Picture</div>
-                <div className="mt-1 text-[12px] font-semibold text-primary">Signed in on this POS</div>
+        <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
+          {/* Left Column: Profile Details & Theme Color & Layout */}
+          <div className="space-y-4">
+            <section className="rounded-xl border border-border bg-surface p-5 shadow-xs">
+              <div className="mb-5 border-b border-border pb-3">
+                <h2 className="text-[16px] font-bold text-text-primary">Profile Details</h2>
               </div>
-            </div>
 
-            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <div className="mb-5 flex flex-wrap items-center gap-4 rounded-xl border border-border bg-surface-2/40 p-4">
+                <div className="relative group shrink-0">
+                  {profileAvatarUrl ? (
+                    <img
+                      src={profileAvatarUrl}
+                      alt={profileName || "Profile"}
+                      className="h-16 w-16 rounded-full object-cover border-2 border-primary/30 shadow-xs"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary/20 bg-primary/10 text-lg font-extrabold text-primary">
+                      {initialsFromName(profileName || user?.name || "U")}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Change profile picture"
+                    className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    <Camera className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <div className="text-[13px] font-bold text-text-primary">Profile Picture</div>
+                  <div className="mt-0.5 text-[11px] text-text-secondary">
+                    Upload your photo to personalize your terminal profile.
+                  </div>
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarFileChange}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1 text-[11.5px] font-medium text-text-primary hover:bg-surface-2 transition cursor-pointer shadow-2xs"
+                    >
+                      <Upload className="h-3.5 w-3.5 text-primary" />
+                      {profileAvatarUrl ? "Change Photo" : "Upload Photo"}
+                    </button>
+                    {profileAvatarUrl && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveAvatar}
+                        className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50/50 px-2 py-1 text-[11.5px] font-medium text-rose-600 hover:bg-rose-100/60 transition cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveProfile} className="space-y-4">
+                <label className="block">
+                  <span className="mb-1 block text-[11px] font-medium uppercase text-text-secondary">Full Name</span>
+                  <input
+                    required
+                    value={profileName}
+                    onChange={(event) => setProfileName(event.target.value)}
+                    className="w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] text-text-primary outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1 flex items-center gap-1 text-[11px] font-medium uppercase text-text-secondary">
+                    Email Address <Lock className="h-3 w-3 text-text-disabled" />
+                  </span>
+                  <input
+                    readOnly
+                    value={user?.email ?? ""}
+                    className="w-full cursor-not-allowed rounded-md border border-border bg-surface-2 px-3 py-2 text-[13px] text-text-secondary outline-none"
+                  />
+                  <span className="mt-1 block text-[10px] text-text-disabled">
+                    Email address can only be changed by the Superadmin.
+                  </span>
+                </label>
+
+                <label className="block">
+                  <span className="mb-1 block text-[11px] font-medium uppercase text-text-secondary">Phone Number</span>
+                  <input
+                    inputMode="numeric"
+                    maxLength={10}
+                    placeholder="e.g. 9999999999"
+                    value={profilePhone}
+                    onChange={(event) => {
+                      setProfilePhone(event.target.value.replace(/\D/g, "").slice(0, 10));
+                      if (phoneError) setPhoneError(null);
+                    }}
+                    className={`w-full rounded-md border bg-surface px-3 py-2 text-[13px] text-text-primary outline-none focus:ring-2 focus:ring-primary/20 ${
+                      phoneError ? "border-rose-500" : "border-border"
+                    }`}
+                  />
+                  {phoneError && <span className="mt-1 block text-[11px] font-medium text-rose-500">{phoneError}</span>}
+                </label>
+
+                <label className="block">
+                  <span className="mb-1 flex items-center gap-1 text-[11px] font-medium uppercase text-text-secondary">
+                    Designated Role <Lock className="h-3 w-3 text-text-disabled" />
+                  </span>
+                  <input
+                    readOnly
+                    value={user?.role_name || formatRoleLabel(user ? roleLabel(user.role) : "Staff")}
+                    className="w-full cursor-not-allowed rounded-md border border-border bg-surface-2 px-3 py-2 text-[13px] font-medium text-text-secondary outline-none"
+                  />
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={savingProfile}
+                  className="rounded-md bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                >
+                  {savingProfile ? "Saving..." : "Save Profile"}
+                </button>
+              </form>
+            </section>
+
+            {/* Theme Color & Layout moved here, below Profile Details for balanced alignment */}
+            <section className="rounded-xl border border-border bg-surface p-5 shadow-xs">
+              <div className="mb-4 border-b border-border pb-3">
+                <h2 className="text-[16px] font-bold text-text-primary">Theme Color & Layout</h2>
+              </div>
               <label className="block">
-                <span className="mb-1 block text-[11px] font-medium uppercase text-text-secondary">Full Name</span>
-                <input
-                  required
-                  value={profileName}
-                  onChange={(event) => setProfileName(event.target.value)}
-                  className="w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] text-text-primary outline-none focus:ring-2 focus:ring-primary/20"
-                />
+                <span className="mb-1.5 block text-[11px] font-medium uppercase text-text-secondary">Active Theme</span>
+                <div className="flex items-center gap-2.5">
+                  <select
+                    value={theme}
+                    onChange={(event) => selectTheme(event.target.value as AppTheme)}
+                    className="h-9 min-w-0 flex-1 rounded-md border border-border bg-surface px-3 text-[13px] text-text-primary focus:border-primary focus:outline-none"
+                  >
+                    {GROUP_ORDER.map((group) => (
+                      <optgroup key={group} label={APP_THEME_GROUP_LABELS[group]}>
+                        {APP_THEMES.filter((item) => item.group === group).map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <div className="flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface px-2.5">
+                    {selectedTheme.swatches.slice(0, 3).map((swatch) => (
+                      <span
+                        key={swatch}
+                        className="h-3.5 w-3.5 rounded-full border border-black/15"
+                        style={{ backgroundColor: swatch }}
+                      />
+                    ))}
+                  </div>
+                </div>
               </label>
+            </section>
+          </div>
 
-              <label className="block">
-                <span className="mb-1 flex items-center gap-1 text-[11px] font-medium uppercase text-text-secondary">
-                  Email Address <Lock className="h-3 w-3 text-text-disabled" />
-                </span>
-                <input
-                  readOnly
-                  value={user?.email ?? ""}
-                  className="w-full cursor-not-allowed rounded-md border border-border bg-surface-2 px-3 py-2 text-[13px] text-text-secondary outline-none"
-                />
-                <span className="mt-1 block text-[10px] text-text-disabled">
-                  Email address can only be changed by the Superadmin.
-                </span>
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-[11px] font-medium uppercase text-text-secondary">Phone Number</span>
-                <input
-                  inputMode="numeric"
-                  maxLength={10}
-                  placeholder="e.g. 9999999999"
-                  value={profilePhone}
-                  onChange={(event) => {
-                    setProfilePhone(event.target.value.replace(/\D/g, "").slice(0, 10));
-                    if (phoneError) setPhoneError(null);
-                  }}
-                  className={`w-full rounded-md border bg-surface px-3 py-2 text-[13px] text-text-primary outline-none focus:ring-2 focus:ring-primary/20 ${
-                    phoneError ? "border-rose-500" : "border-border"
-                  }`}
-                />
-                {phoneError && <span className="mt-1 block text-[11px] font-medium text-rose-500">{phoneError}</span>}
-              </label>
-
-              <label className="block">
-                <span className="mb-1 flex items-center gap-1 text-[11px] font-medium uppercase text-text-secondary">
-                  Designated Role <Lock className="h-3 w-3 text-text-disabled" />
-                </span>
-                <input
-                  readOnly
-                  value={user?.role_name || formatRoleLabel(user ? roleLabel(user.role) : "Staff")}
-                  className="w-full cursor-not-allowed rounded-md border border-border bg-surface-2 px-3 py-2 text-[13px] font-medium text-text-secondary outline-none"
-                />
-              </label>
-
-              <button
-                type="submit"
-                disabled={savingProfile}
-                className="rounded-md bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground hover:bg-primary/90 cursor-pointer"
-              >
-                {savingProfile ? "Saving..." : "Save Profile"}
-              </button>
-            </form>
-          </section>
-
+          {/* Right Column: Currently using this POS & Subscription & Licensing */}
           <div className="space-y-4">
             {!isKitchen && (
               <section className="rounded-xl border border-border bg-surface p-5 shadow-xs">
@@ -301,7 +472,7 @@ export function PosSettingsScreen() {
                     <img
                       src={user.avatarUrl}
                       alt={user?.name || "User"}
-                      className="h-11 w-11 rounded-full object-cover shrink-0"
+                      className="h-11 w-11 rounded-full object-cover shrink-0 border border-primary/20 shadow-xs"
                     />
                   ) : (
                     <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-primary-foreground shrink-0">
@@ -390,41 +561,6 @@ export function PosSettingsScreen() {
                 </div>
               </section>
             )}
-
-            <section className="rounded-xl border border-border bg-surface p-5 shadow-xs">
-              <div className="mb-4 border-b border-border pb-3">
-                <h2 className="text-[16px] font-bold text-text-primary">Theme Color & Layout</h2>
-              </div>
-              <label className="block">
-                <span className="mb-1.5 block text-[11px] font-medium uppercase text-text-secondary">Active Theme</span>
-                <div className="flex items-center gap-2.5">
-                  <select
-                    value={theme}
-                    onChange={(event) => selectTheme(event.target.value as AppTheme)}
-                    className="h-9 min-w-0 flex-1 rounded-md border border-border bg-surface px-3 text-[13px] text-text-primary focus:border-primary focus:outline-none"
-                  >
-                    {GROUP_ORDER.map((group) => (
-                      <optgroup key={group} label={APP_THEME_GROUP_LABELS[group]}>
-                        {APP_THEMES.filter((item) => item.group === group).map((item) => (
-                          <option key={item.value} value={item.value}>
-                            {item.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                  <div className="flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface px-2.5">
-                    {selectedTheme.swatches.slice(0, 3).map((swatch) => (
-                      <span
-                        key={swatch}
-                        className="h-3.5 w-3.5 rounded-full border border-black/15"
-                        style={{ backgroundColor: swatch }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </label>
-            </section>
           </div>
         </div>
       )}
@@ -517,70 +653,168 @@ export function PosSettingsScreen() {
 
       {activeTab === "receipts" && (
         <PosPanel title="Receipt & invoice" hint="GST, service charge, and tax breakup applied on billing.">
+          <div className="mb-4 flex items-center justify-between rounded-xl border border-border bg-surface px-4 py-3">
+            <div>
+              <span className="block text-xs font-semibold text-text-secondary">Registered GSTIN</span>
+              <span className="font-mono text-sm font-bold text-text-primary">
+                {activeOutlet.gstin || (activeOutlet as any).gstNumber || (activeOutlet as any).taxId || "Not Registered"}
+              </span>
+            </div>
+            <span className="text-xs text-text-secondary">{activeOutlet.name}</span>
+          </div>
           <p className="mb-4 text-[13px] text-text-secondary">
-            Configure CGST, SGST, and service charge for {activeOutlet.name}. Billing uses these rates
-            automatically (no per-check toggle).
+            Configure CGST, SGST, service charge, and selectable tax % slabs for {activeOutlet.name}. In POS Billing, tax is calculated strictly in % using these rates.
           </p>
           <form
-            className="grid max-w-lg gap-3 sm:grid-cols-3"
+            className="space-y-4 max-w-xl"
             onSubmit={(event) => {
               event.preventDefault();
               const next: PosTaxSettings = {
                 cgstPercent: Math.max(0, Number(taxSettings.cgstPercent) || 0),
                 sgstPercent: Math.max(0, Number(taxSettings.sgstPercent) || 0),
                 serviceChargePercent: Math.max(0, Number(taxSettings.serviceChargePercent) || 0),
+                taxRates: (taxSettings.taxRates && taxSettings.taxRates.length > 0
+                  ? taxSettings.taxRates
+                  : DEFAULT_POS_TAX_SETTINGS.taxRates
+                )
+                  .map((r) => Number(r))
+                  .filter((r) => !isNaN(r) && r >= 0)
+                  .sort((a, b) => a - b),
               };
               savePosTaxSettings(next);
               setTaxSettings(next);
               toast.success("Tax & service charge settings saved.");
             }}
           >
-            <label className="block text-[12px] font-semibold text-text-secondary">
-              CGST %
-              <input
-                type="number"
-                min={0}
-                step={0.1}
-                value={taxSettings.cgstPercent}
-                onChange={(e) =>
-                  setTaxSettings((prev) => ({ ...prev, cgstPercent: Number(e.target.value) }))
-                }
-                className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-[13px] font-bold text-text-primary"
-              />
-            </label>
-            <label className="block text-[12px] font-semibold text-text-secondary">
-              SGST %
-              <input
-                type="number"
-                min={0}
-                step={0.1}
-                value={taxSettings.sgstPercent}
-                onChange={(e) =>
-                  setTaxSettings((prev) => ({ ...prev, sgstPercent: Number(e.target.value) }))
-                }
-                className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-[13px] font-bold text-text-primary"
-              />
-            </label>
-            <label className="block text-[12px] font-semibold text-text-secondary">
-              Service Charge %
-              <input
-                type="number"
-                min={0}
-                step={0.1}
-                value={taxSettings.serviceChargePercent}
-                onChange={(e) =>
-                  setTaxSettings((prev) => ({
-                    ...prev,
-                    serviceChargePercent: Number(e.target.value),
-                  }))
-                }
-                className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-[13px] font-bold text-text-primary"
-              />
-            </label>
-            <div className="sm:col-span-3 flex items-center gap-2 pt-1">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="block text-[12px] font-semibold text-text-secondary">
+                CGST %
+                <input
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  value={taxSettings.cgstPercent}
+                  onChange={(e) =>
+                    setTaxSettings((prev) => ({ ...prev, cgstPercent: Number(e.target.value) }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-[13px] font-bold text-text-primary"
+                />
+              </label>
+              <label className="block text-[12px] font-semibold text-text-secondary">
+                SGST %
+                <input
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  value={taxSettings.sgstPercent}
+                  onChange={(e) =>
+                    setTaxSettings((prev) => ({ ...prev, sgstPercent: Number(e.target.value) }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-[13px] font-bold text-text-primary"
+                />
+              </label>
+              <label className="block text-[12px] font-semibold text-text-secondary">
+                Service Charge %
+                <input
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  value={taxSettings.serviceChargePercent}
+                  onChange={(e) =>
+                    setTaxSettings((prev) => ({
+                      ...prev,
+                      serviceChargePercent: Number(e.target.value),
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-[13px] font-bold text-text-primary"
+                />
+              </label>
+            </div>
+
+            {/* Selectable Tax % Slabs for POS billing dropdown */}
+            <div className="rounded-xl border border-border bg-surface-2/40 p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[12.5px] font-bold text-text-primary">
+                    Selectable Tax % Values (POS Dropdown)
+                  </div>
+                  <div className="text-[11px] text-text-secondary">
+                    Add or remove the tax % rates available in the POS screen tax dropdown.
+                  </div>
+                </div>
+              </div>
+
+              {/* Tax % pills */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                {(taxSettings.taxRates || DEFAULT_POS_TAX_SETTINGS.taxRates).map((rate) => (
+                  <span
+                    key={rate}
+                    className="inline-flex items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1 text-[12px] font-bold text-teal-800"
+                  >
+                    <span>{rate}%</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = (taxSettings.taxRates || DEFAULT_POS_TAX_SETTINGS.taxRates).filter(
+                          (r) => r !== rate,
+                        );
+                        setTaxSettings((prev) => ({ ...prev, taxRates: updated }));
+                      }}
+                      className="ml-1 text-teal-600 hover:text-rose-600 font-bold cursor-pointer"
+                      title={`Remove ${rate}%`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              {/* Add custom tax rate input */}
+              <div className="flex items-center gap-2 pt-1.5">
+                <div className="relative w-32">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.5}
+                    placeholder="e.g. 12"
+                    value={newTaxRateInput}
+                    onChange={(e) => setNewTaxRateInput(e.target.value)}
+                    className="h-8 w-full rounded-lg border border-border bg-surface px-2.5 pr-6 text-[12px] font-bold text-text-primary"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-bold text-text-secondary">
+                    %
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const parsed = parseFloat(newTaxRateInput);
+                    if (isNaN(parsed) || parsed < 0) {
+                      toast.error("Please enter a valid tax percentage.");
+                      return;
+                    }
+                    const current = taxSettings.taxRates || DEFAULT_POS_TAX_SETTINGS.taxRates;
+                    if (current.includes(parsed)) {
+                      toast.info(`${parsed}% is already in the list.`);
+                      return;
+                    }
+                    const updated = [...current, parsed].sort((a, b) => a - b);
+                    setTaxSettings((prev) => ({ ...prev, taxRates: updated }));
+                    setNewTaxRateInput("");
+                    toast.success(`Added ${parsed}% tax option.`);
+                  }}
+                  className="h-8 rounded-lg border border-border bg-surface px-3 text-[12px] font-bold text-text-primary hover:bg-surface-2 transition cursor-pointer"
+                >
+                  + Add Tax %
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
               <button
                 type="submit"
-                className="rounded-lg bg-primary px-3.5 py-2 text-[12.5px] font-bold text-primary-foreground"
+                className="rounded-lg bg-primary px-3.5 py-2 text-[12.5px] font-bold text-primary-foreground hover:bg-primary/90 transition cursor-pointer"
               >
                 Save tax settings
               </button>
@@ -591,7 +825,7 @@ export function PosSettingsScreen() {
                   savePosTaxSettings(DEFAULT_POS_TAX_SETTINGS);
                   toast.info("Reset to default GST / service charge rates.");
                 }}
-                className="rounded-lg border border-border px-3 py-2 text-[12.5px] font-semibold text-text-secondary"
+                className="rounded-lg border border-border px-3 py-2 text-[12.5px] font-semibold text-text-secondary hover:bg-surface-2 transition cursor-pointer"
               >
                 Reset defaults
               </button>

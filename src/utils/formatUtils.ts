@@ -1,14 +1,31 @@
+import { formatDateIndian, formatDateTimeIndian, parseDateSafeIndian, toStorageIsoDate } from "./dateUtils";
+import { toTitleCase, formatTitleCaseSafe, isExcludedFromTitleCase } from "./textUtils";
+
+export {
+  formatDateIndian,
+  formatDateTimeIndian,
+  parseDateSafeIndian,
+  toStorageIsoDate,
+  toTitleCase,
+  formatTitleCaseSafe,
+  isExcludedFromTitleCase,
+};
+
+/**
+ * Standardized Date Formatter for POS SaaS.
+ * Defaults to Indian standard format DD-MM-YYYY (e.g. 14-11-2026).
+ */
 export function formatDate(
   value: string | Date | null | undefined,
   options?: Intl.DateTimeFormatOptions,
 ): string {
   if (!value) return "—";
+  if (!options) {
+    return formatDateIndian(value);
+  }
   const date = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString(
-    undefined,
-    options ?? { year: "numeric", month: "short", day: "2-digit" },
-  );
+  return date.toLocaleDateString(undefined, options);
 }
 
 export function formatNumber(

@@ -2,12 +2,18 @@ export type KotPrintLine = {
   name: string;
   quantity: number;
   notes?: string;
+  variant?: string;
 };
 
 export type KotPrintPayload = {
-  kotId: number;
+  kotId: number | string;
+  kotNumber?: string;
+  orderNumber?: string;
   orderType: string;
+  tableOrRoom?: string;
+  waiterName?: string;
   customerName?: string;
+  pax?: number;
   /** Epoch ms when ticket was created */
   createdTimestamp: number;
   /** Display string if available (fallback formats from timestamp) */
@@ -15,10 +21,14 @@ export type KotPrintPayload = {
   items: KotPrintLine[];
   isModified?: boolean;
   specialNote?: string;
+  outletName?: string;
+  status?: string;
+  isHistory?: boolean;
 };
 
-function escapeHtml(value: string) {
-  return value
+function escapeHtml(value: string | number | undefined | null) {
+  if (value === undefined || value === null) return "";
+  return String(value)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -27,7 +37,7 @@ function escapeHtml(value: string) {
 
 function formatOrderTime(payload: KotPrintPayload) {
   if (payload.createdAt && payload.createdAt !== "--") return payload.createdAt;
-  return new Date(payload.createdTimestamp).toLocaleString("en-GB", {
+  return new Date(payload.createdTimestamp || Date.now()).toLocaleString("en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -38,7 +48,90 @@ function formatOrderTime(payload: KotPrintPayload) {
   });
 }
 
+export function extractAndSanitizeMergeTable(
+  specialNote?: string,
+  tableOrRoom?: string,
+  orderType?: string,
+): { cleanSpecialNote?: string; displayTableOrRoom?: string } {
+  let note = specialNote?.trim() || "";
+  let mergedTablesText: string | undefined = undefined;
+
+  // Extract merge table phrases:
+  // 1. With seats/pax: "Merged tables: Table #1 + Table #2 (6 seats) for 4 pax."
+  const fullMergeMatch = note.match(
+    /(?:Merged\s+tables?|Merge\s+tables?|Merged)\s*:\s*(.+?)\s*\(\d+\s*seats?\)\s*(?:for\s*\d+\s*pax)?\.?/i,
+  );
+  if (fullMergeMatch) {
+    mergedTablesText = fullMergeMatch[1].trim();
+    note = note.replace(fullMergeMatch[0], "").trim();
+  } else {
+    // 2. Simple merge: "Merged tables: Table 1 + Table 2." or "Merged: T1, T2"
+    const simpleMergeMatch = note.match(
+      /(?:Merged\s+tables?|Merge\s+tables?|Merged)\s*:\s*([^.\n\r]+)\.?/i,
+    );
+    if (simpleMergeMatch) {
+      mergedTablesText = simpleMergeMatch[1].trim();
+      note = note.replace(simpleMergeMatch[0], "").trim();
+    }
+  }
+
+  // Extract "Merged with Table 2"
+  const mergedWithMatch = note.match(/Merged\s+with\s+([^.\n\r]+?)(?:\.|$)/i);
+  if (mergedWithMatch) {
+    const withTable = mergedWithMatch[1].trim();
+    if (!mergedTablesText) {
+      mergedTablesText = tableOrRoom ? `${tableOrRoom} + ${withTable}` : withTable;
+    }
+    note = note.replace(mergedWithMatch[0], "").trim();
+  }
+
+  // Strip any remaining merge prefixes/fragments from cooking instructions
+  note = note
+    .replace(/(?:^|[.,\s]+)(?:Merged\s+tables?|Merge\s+tables?|Merged)\s*:[^.,\n\r]+/gi, "")
+    .replace(/^\s*[.,;:\s]+/, "")
+    .replace(/[,;:\s]+$/, "")
+    .trim();
+
+  if (/^[.,;:\s]*$/.test(note)) {
+    note = "";
+  }
+
+  const cleanSpecialNote = note.length > 0 ? note : undefined;
+
+  let displayTableOrRoom = tableOrRoom?.trim() || "";
+  const tableHasMultiple =
+    displayTableOrRoom.includes("+") ||
+    (displayTableOrRoom.includes(",") && /table|t\d/i.test(displayTableOrRoom));
+  const tableHasMergedPrefix = /merged/i.test(displayTableOrRoom);
+
+  if (tableHasMultiple) {
+    const clean = displayTableOrRoom.replace(/^(?:merged\s+tables?|merged)\s*:\s*/i, "").trim();
+    displayTableOrRoom = `MERGED TABLES: ${clean}`;
+  } else if (tableHasMergedPrefix) {
+    const clean = displayTableOrRoom.replace(/^(?:merged\s+tables?|merged)\s*:\s*/i, "").trim();
+    displayTableOrRoom = `MERGED TABLES: ${clean}`;
+  } else if (mergedTablesText) {
+    const cleanMerged = mergedTablesText.replace(/^(?:merged\s+tables?|merged)\s*:\s*/i, "").trim();
+    displayTableOrRoom = `MERGED TABLES: ${cleanMerged}`;
+  } else if (orderType && orderType.includes("+")) {
+    const m = orderType.match(/\(([^)]+)\)/);
+    if (m && m[1]) {
+      displayTableOrRoom = `MERGED TABLES: ${m[1].trim()}`;
+    }
+  }
+
+  return {
+    cleanSpecialNote,
+    displayTableOrRoom: displayTableOrRoom || undefined,
+  };
+}
+
 function buildKotHtml(payload: KotPrintPayload) {
+  const { cleanSpecialNote, displayTableOrRoom } = extractAndSanitizeMergeTable(
+    payload.specialNote,
+    payload.tableOrRoom,
+    payload.orderType,
+  );
   const itemsHtml = payload.items
     .map(
       (line, idx) => `
@@ -46,11 +139,8 @@ function buildKotHtml(payload: KotPrintPayload) {
         <td class="idx">${idx + 1}</td>
         <td class="item">
           <div class="name">${escapeHtml(line.name)}</div>
-          ${
-            line.notes
-              ? `<div class="note">★ ${escapeHtml(line.notes)}</div>`
-              : ""
-          }
+          ${line.variant ? `<div class="variant">[${escapeHtml(line.variant)}]</div>` : ""}
+          ${line.notes ? `<div class="note">★ ${escapeHtml(line.notes)}</div>` : ""}
         </td>
         <td class="qty">×${line.quantity}</td>
       </tr>`,
@@ -61,15 +151,25 @@ function buildKotHtml(payload: KotPrintPayload) {
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>KOT #${payload.kotId}</title>
+  <title>KOT #${escapeHtml(payload.kotId)}</title>
   <style>
-    @page { size: 80mm auto; margin: 4mm; }
-    * { box-sizing: border-box; }
+    @page {
+      size: 80mm auto;
+      margin: 2mm 3mm;
+    }
+    * {
+      box-sizing: border-box;
+    }
     body {
       margin: 0;
+      padding: 0;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
-      color: #111;
+      color: #000;
       background: #fff;
+      font-size: 12px;
+      line-height: 1.35;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     .slip {
       width: 72mm;
@@ -78,71 +178,116 @@ function buildKotHtml(payload: KotPrintPayload) {
     }
     .center { text-align: center; }
     .title {
-      font-size: 15px;
-      font-weight: 800;
+      font-size: 16px;
+      font-weight: 900;
       letter-spacing: 0.04em;
-      text-transform: uppercase;
     }
     .sub {
       font-size: 11px;
+      font-weight: 600;
       margin-top: 2px;
     }
     .rule {
       border: none;
-      border-top: 1px dashed #333;
-      margin: 8px 0;
+      border-top: 1.5px dashed #000;
+      margin: 6px 0;
     }
-    .meta {
+    .meta-box {
       font-size: 11px;
       line-height: 1.45;
     }
-    .meta strong { font-weight: 800; }
+    .kot-id-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+    .kot-id {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+    }
     .badge {
       display: inline-block;
-      border: 1px solid #111;
-      padding: 1px 5px;
+      border: 1.5px solid #000;
+      padding: 1px 6px;
       font-size: 10px;
-      font-weight: 800;
-      margin-left: 4px;
+      font-weight: 900;
+      text-transform: uppercase;
+      border-radius: 3px;
+    }
+    .loc-highlight {
+      font-size: 15px;
+      font-weight: 900;
+      text-transform: uppercase;
+      margin: 3px 0;
+      padding: 2px 0;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 12px;
+      margin: 6px 0;
     }
     th {
       text-align: left;
-      font-size: 10px;
+      font-size: 10.5px;
       text-transform: uppercase;
       letter-spacing: 0.04em;
       padding-bottom: 4px;
-      border-bottom: 1px solid #111;
+      border-bottom: 1.5px solid #000;
+      font-weight: 900;
     }
     td {
       vertical-align: top;
       padding: 5px 0;
-      border-bottom: 1px dotted #bbb;
+      border-bottom: 1.5px solid #000;
     }
-    .idx { width: 14px; color: #555; }
-    .qty {
-      width: 28px;
-      text-align: right;
+    .idx { width: 14px; font-weight: 900; color: #000; }
+    .item { text-align: left; }
+    .name { font-size: 13px; font-weight: 900; }
+    .variant { font-size: 11px; font-weight: 800; color: #000; }
+    .note {
+      font-size: 11px;
+      margin-top: 2px;
       font-weight: 800;
+      color: #000;
+    }
+    .qty {
+      width: 32px;
+      text-align: right;
+      font-size: 15px;
+      font-weight: 900;
       white-space: nowrap;
     }
-    .name { font-weight: 700; }
-    .note {
+    .special-note-box {
+      margin: 8px 0;
+      padding: 6px 8px;
+      border: 1.5px dashed #000;
+      border-radius: 4px;
+      font-size: 11.5px;
+    }
+    .special-note-header {
       font-size: 10px;
-      margin-top: 2px;
-      font-weight: 600;
+      font-weight: 900;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    .special-note-body {
+      font-size: 12.5px;
+      font-weight: 900;
+      line-height: 1.3;
     }
     .footer {
-      margin-top: 10px;
-      font-size: 10px;
+      margin-top: 8px;
+      font-size: 10.5px;
+      font-weight: 700;
       text-align: center;
-    }
-    @media print {
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
 </head>
@@ -150,66 +295,110 @@ function buildKotHtml(payload: KotPrintPayload) {
   <div class="slip">
     <div class="center">
       <div class="title">Kitchen Order Ticket</div>
-      <div class="sub">Retrod POS · KOT</div>
+      <div class="sub">${escapeHtml(payload.outletName || "Anshu Suite Kitchen")}</div>
     </div>
+
     <hr class="rule" />
-    <div class="meta">
-      <div><strong>KOT #${payload.kotId}</strong>${
-        payload.isModified ? '<span class="badge">UPDATED</span>' : ""
-      }</div>
-      <div>${escapeHtml(payload.orderType)}</div>
-      <div>Time: ${escapeHtml(formatOrderTime(payload))}</div>
-      <div>Printed: ${escapeHtml(
-        new Date().toLocaleString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: true,
-        }),
-      )}</div>
+
+    <div class="meta-box">
+      <div class="kot-id-row">
+        <span class="kot-id">KOT #${escapeHtml(payload.kotId)}</span>
+        ${
+          payload.isHistory || (payload.status && !["new", "draft"].includes(payload.status.toLowerCase()))
+            ? `<span class="badge">${escapeHtml(
+                payload.status && payload.status.toLowerCase() !== "new"
+                  ? payload.status.toUpperCase()
+                  : "COMPLETED"
+              )}</span>`
+            : payload.isModified
+              ? '<span class="badge">UPDATED / EXTRA</span>'
+              : '<span class="badge">NEW</span>'
+        }
+      </div>
+
+      ${
+        displayTableOrRoom
+          ? `<div class="loc-highlight">${escapeHtml(displayTableOrRoom)}</div>`
+          : ""
+      }
+
+      <div class="row">
+        <span>Order: <strong>#${escapeHtml(payload.orderNumber || payload.kotId)}</strong></span>
+        <span>${escapeHtml(payload.orderType)}</span>
+      </div>
+
+      ${
+        payload.waiterName
+          ? `<div class="row">
+          <span>Steward: <strong>${escapeHtml(payload.waiterName)}</strong></span>
+          ${payload.pax ? `<span>PAX: ${escapeHtml(payload.pax)}</span>` : "<span></span>"}
+        </div>`
+          : ""
+      }
+
+      ${
+        payload.customerName && payload.customerName !== "--" && payload.customerName !== "Guest"
+          ? `<div>Guest: ${escapeHtml(payload.customerName)}</div>`
+          : ""
+      }
+
+      <div class="row" style="font-size: 10px; color: #333; margin-top: 2px;">
+        <span>Time: ${escapeHtml(formatOrderTime(payload))}</span>
+        <span>Printed: ${escapeHtml(
+          new Date().toLocaleTimeString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true,
+          }),
+        )}</span>
+      </div>
     </div>
+
     <hr class="rule" />
+
+    {/* Order Items Table (STRICTLY NO PRICES) */}
     <table>
       <thead>
         <tr>
-          <th>#</th>
+          <th style="width: 14px;">#</th>
           <th>Item</th>
           <th class="qty">Qty</th>
         </tr>
       </thead>
       <tbody>
-        ${itemsHtml || `<tr><td colspan="3" class="center">No items</td></tr>`}
+        ${itemsHtml || '<tr><td colspan="3" class="center">No items</td></tr>'}
       </tbody>
     </table>
+
     ${
-      payload.specialNote
-        ? `<div style="margin: 8px 0; padding: 6px 8px; background: #fffbe8; border: 1.5px dashed #333; border-radius: 4px; font-size: 11px;">
-        <strong style="display: block; font-size: 10px; text-transform: uppercase; margin-bottom: 2px;">★ Special Note:</strong>
-        <span style="font-size: 12px; font-weight: 800;">${escapeHtml(payload.specialNote)}</span>
+      cleanSpecialNote
+        ? `<div class="special-note-box">
+        <div class="special-note-header">★ Special Cooking Instructions:</div>
+        <div class="special-note-body">${escapeHtml(cleanSpecialNote)}</div>
       </div>`
         : ""
     }
+
     <hr class="rule" />
-    <div class="footer">— End of KOT #${payload.kotId} —</div>
+    <div class="footer">— End of KOT #${escapeHtml(payload.kotId)} —</div>
   </div>
 </body>
 </html>`;
 }
 
-const IFRAME_ID = "retrod-kot-print-frame";
+const KOT_IFRAME_ID = "retrod-kot-print-frame";
 
-/** Prints KOT via a hidden iframe (no popup — avoids browser blockers) */
+/** Prints KOT in 80mm bill size format without prices (only items & order identifiers) via a hidden iframe */
 export function printKotTicket(payload: KotPrintPayload) {
   if (typeof document === "undefined") {
     throw new Error("Print is only available in the browser");
   }
 
-  let iframe = document.getElementById(IFRAME_ID) as HTMLIFrameElement | null;
+  let iframe = document.getElementById(KOT_IFRAME_ID) as HTMLIFrameElement | null;
   if (!iframe) {
     iframe = document.createElement("iframe");
-    iframe.id = IFRAME_ID;
+    iframe.id = KOT_IFRAME_ID;
     iframe.setAttribute("title", "KOT Print");
     iframe.style.position = "fixed";
     iframe.style.right = "0";

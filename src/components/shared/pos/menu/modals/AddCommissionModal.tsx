@@ -183,11 +183,12 @@ export function AddCommissionModal({
         <>
           <PosCreateCancelButton onClick={onClose} />
           <PosCreateSubmitButton
-            label={bulkMutation.isPending ? "Saving..." : "Save Commission"}
             icon={Check}
             disabled={bulkMutation.isPending || targetItemIds.length === 0 || numVal <= 0}
             isSubmitting={bulkMutation.isPending}
-          />
+          >
+            {bulkMutation.isPending ? "Saving..." : "Save Commission"}
+          </PosCreateSubmitButton>
         </>
       }
     >
@@ -197,7 +198,7 @@ export function AddCommissionModal({
           <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
             Apply Commission To
           </label>
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <button
               type="button"
               onClick={() => setApplyMode("individual")}

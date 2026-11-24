@@ -23,6 +23,7 @@ export interface DataGridColumn<T = any> {
   getValue?: (row: T) => any;
   filterValueAccessor?: (row: T) => any;
   render?: (value: any, row: T, index: number) => ReactNode;
+  formatter?: (value: any, row: T, index?: number) => ReactNode | string;
   cell?: (info: { row: T; value: any; index: number }) => ReactNode;
   headerRender?: () => ReactNode;
 }

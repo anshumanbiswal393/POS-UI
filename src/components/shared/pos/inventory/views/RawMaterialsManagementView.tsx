@@ -10,7 +10,6 @@ import {
 } from "@/hooks/queries/usePosInventory";
 import {
   Plus,
-  Star,
   Check,
   Trash2,
   FolderTree,
@@ -24,6 +23,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ColorActionEdit, ColorActionDelete } from "@/components/common/ColorActionIcons";
 import {
   DataTableHeader,
   DataTableFooter,
@@ -35,6 +35,9 @@ import {
   PosCreateSubmitButton,
 } from "@/components/layout/pos/PosCreatePanel";
 import type { StockItem } from "@/types/posInventory";
+import { fuzzyFilter } from "@/utils/fuzzySearch";
+import { formatDateIndian, compareDates } from "@/utils/dateUtils";
+import { StockDeleteConfirmModal } from "../modals/StockDeleteConfirmModal";
 
 const STANDARD_UNITS = [
   "Kg",
@@ -223,6 +226,36 @@ export function RawMaterialsManagementView() {
         setIsCreateOpen(false);
         const actionVerb = editingItem ? "updated" : "created";
         toast.success(`Raw material '${name.trim()}' ${actionVerb} successfully.`);
+
+        // Ensure category and subcategory are saved permanently
+        const existingCat = allCategoriesList.find(
+          (c) => c.name.toLowerCase() === finalCategory.toLowerCase(),
+        );
+        const existingSubs = existingCat?.subCategories || [];
+        const hasSub =
+          finalSubCategory &&
+          existingSubs.some(
+            (s) => s.name.toLowerCase() === finalSubCategory.toLowerCase(),
+          );
+        if (!existingCat || (finalSubCategory && !hasSub)) {
+          const nextSubs = existingSubs.map((s, idx) => ({
+            ...s,
+            id: s.id || `sub-${existingCat?.id || "cat"}-${idx}-${(s.name || "").replace(/\s+/g, "-")}`,
+          }));
+          if (finalSubCategory && !hasSub) {
+            nextSubs.push({
+              id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+              name: finalSubCategory,
+              unit: unit || "Kg",
+            });
+          }
+          upsertCategory.mutate({
+            id: existingCat?.id,
+            name: finalCategory,
+            subCategories: nextSubs,
+          });
+        }
+
         resetForm();
       },
       onError: () =>
@@ -265,6 +298,8 @@ export function RawMaterialsManagementView() {
     );
   };
 
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
   const toggleFavorite = (id: string) => {
     const row = items.find((it) => it.id === id);
     patchItem.mutate({ id, data: { isFavorite: !row?.isFavorite } });
@@ -284,9 +319,9 @@ export function RawMaterialsManagementView() {
     code: skuItem.sku || skuItem.code || skuItem.id,
     name: skuItem.rawMaterial || skuItem.name || "",
     category: skuItem.category || "General",
-    subCategory: skuItem.subCategory || "",
+    subCategory: (skuItem.subCategory || (skuItem as any).sub_category || "").trim(),
     unit: skuItem.unit || "Kg",
-    availableStock: skuItem.availableStock ?? 0,
+    availableStock: skuItem.availableStock ?? skuItem.quantityOnHand ?? (skuItem as any).quantity_on_hand ?? skuItem.closingStock ?? 0,
     alertQuantity: skuItem.alertQuantity ?? skuItem.reorderLevel ?? skuItem.minThreshold ?? 5,
     pricePerUnit: skuItem.pricePerUnit ?? skuItem.unitCost ?? 0,
     isReturnable: Boolean(skuItem.isReturnable),
@@ -295,7 +330,51 @@ export function RawMaterialsManagementView() {
     isActive: skuItem.isActive !== false,
   }));
 
-  const activeCategory = categories.find((c) => c.name === selectedCategory);
+  const allCategoriesList = (() => {
+    const map = new Map<string, { id?: string; name: string; subCategories?: { id?: string; name: string; unit?: string }[] }>();
+    for (const c of categories) {
+      if (c.name?.trim()) {
+        map.set(c.name.trim().toLowerCase(), {
+          id: c.id,
+          name: c.name.trim(),
+          subCategories: c.subCategories
+            ? c.subCategories.map((s, idx) => ({
+                ...s,
+                id: s.id || `sub-${c.id || "cat"}-${idx}-${(s.name || "").replace(/\s+/g, "-")}`,
+              }))
+            : [],
+        });
+      }
+    }
+    for (const it of items) {
+      const rawCat = (it.category || "").trim();
+      if (!rawCat) continue;
+      const key = rawCat.toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, {
+          id: `cat-${key.replace(/\s+/g, "-")}`,
+          name: rawCat,
+          subCategories: [],
+        });
+      }
+      const target = map.get(key)!;
+      const rawSub = (it.subCategory || (it as any).sub_category || "").trim();
+      if (rawSub && target.subCategories) {
+        if (!target.subCategories.some((s) => s.name.toLowerCase() === rawSub.toLowerCase())) {
+          target.subCategories.push({
+            id: `sub-${target.id || key}-${target.subCategories.length}-${rawSub.replace(/\s+/g, "-")}`,
+            name: rawSub,
+            unit: it.unit || "Kg",
+          });
+        }
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  })();
+
+  const activeCategory = allCategoriesList.find(
+    (c) => c.name.toLowerCase() === selectedCategory.toLowerCase(),
+  );
   const currentSubCategories = activeCategory?.subCategories || [];
 
   // Table search, filter, sort & pagination state
@@ -306,33 +385,40 @@ export function RawMaterialsManagementView() {
   const [sortConfig, setSortConfig] = useState<{ colId: string; direction: "asc" | "desc" } | null>(null);
 
   const columns: DataTableColumn<RawMaterialRow>[] = [
-    { id: "code", label: "CODE", sortable: true },
-    { id: "name", label: "MATERIAL NAME", sortable: true },
-    { id: "category", label: "CATEGORY & SUBCATEGORY", sortable: true },
-    { id: "stock", label: "STOCK / ALERT QTY", sortable: true },
-    { id: "pricePerUnit", label: "PRICE / UNIT", sortable: true },
-    { id: "isReturnable", label: "RETURNABLE", align: "center", sortable: true },
-    { id: "expiryDate", label: "EXPIRY DATE", sortable: true },
-    { id: "isFavorite", label: "FAVOURITE", align: "center" },
-    { id: "isActive", label: "STATUS", align: "center", sortable: true },
-    { id: "actions", label: "ACTIONS", align: "right" },
+    { id: "serialNumber", label: "S.No", align: "center", sortable: false },
+    { id: "code", label: "Code", sortable: true },
+    { id: "name", label: "Material Name", sortable: true },
+    { id: "category", label: "Category & Subcategory", sortable: true },
+    { id: "stock", label: "Stock / Alert Qty", sortable: true },
+    { id: "pricePerUnit", label: "Price / Unit", sortable: true },
+    { id: "isReturnable", label: "Returnable", align: "center", sortable: true },
+    { id: "expiryDate", label: "Expiry Date", sortable: true },
+    { id: "isActive", label: "Status", align: "center", sortable: true },
+    { id: "actions", label: "Actions", align: "right" },
   ];
 
-  // Filtering
-  const filteredItems = items.filter((item) => {
-    const query = searchQuery.trim().toLowerCase();
-    const matchesSearch =
-      !query ||
-      item.name.toLowerCase().includes(query) ||
-      item.code.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query) ||
-      item.subCategory.toLowerCase().includes(query);
-    const matchesCategory =
-      categoryFilter === "All" || item.category === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  // Filtering with multi-field fuzzy search
+  const filteredItems = (() => {
+    let result = items;
+    if (categoryFilter !== "All") {
+      result = result.filter((item) => item.category === categoryFilter);
+    }
+    if (searchQuery.trim()) {
+      result = fuzzyFilter(result, searchQuery, [
+        (item) => item.name,
+        (item) => item.code,
+        (item) => item.category,
+        (item) => item.subCategory,
+        (item) => item.unit,
+        (item) => String(item.availableStock),
+        (item) => String(item.pricePerUnit),
+        (item) => item.expiryDate || "",
+      ]);
+    }
+    return result;
+  })();
 
-  // Sorting
+  // Sorting with chronological date support
   const sortedItems = [...filteredItems].sort((a, b) => {
     if (!sortConfig) return 0;
     const { colId, direction } = sortConfig;
@@ -348,6 +434,10 @@ export function RawMaterialsManagementView() {
     if (aVal === bVal) return 0;
     if (aVal === null || aVal === undefined) return 1;
     if (bVal === null || bVal === undefined) return -1;
+    if (colId === "expiryDate") {
+      const cmp = compareDates(aVal, bVal);
+      return direction === "asc" ? cmp : -cmp;
+    }
     if (typeof aVal === "string") {
       return direction === "asc"
         ? aVal.localeCompare(String(bVal))
@@ -367,12 +457,9 @@ export function RawMaterialsManagementView() {
       {/* 1. Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-lg font-bold text-foreground tracking-tight">
+          <h2 className="text-lg font-bold text-foreground tracking-tight">
             Raw Materials & Ingredients Catalog
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Configure stock items, categorize ingredients, set alert thresholds, and manage shelf-life.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -418,7 +505,7 @@ export function RawMaterialsManagementView() {
               className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500 cursor-pointer"
             >
               <option value="All">All Categories ({items.length})</option>
-              {categories.map((c) => (
+              {allCategoriesList.map((c) => (
                 <option key={c.id || c.name} value={c.name}>
                   {c.name}
                 </option>
@@ -455,10 +542,13 @@ export function RawMaterialsManagementView() {
                   </td>
                 </tr>
               ) : (
-                paginatedRows.map((row) => {
+                paginatedRows.map((row, idx) => {
                   const isLow = row.availableStock <= row.alertQuantity;
                   return (
                     <tr key={row.id} className="hover:bg-slate-50/70 transition">
+                      <td className="px-3 py-3 text-center font-semibold text-slate-500 text-xs">
+                        {(currentPage - 1) * pageSize + idx + 1}
+                      </td>
                       <td className="px-4 py-3 font-mono font-bold text-teal-700 text-xs">
                         {row.code}
                       </td>
@@ -514,9 +604,9 @@ export function RawMaterialsManagementView() {
                           const isExpired = diffDays < 0;
                           return (
                             <div className="flex flex-col text-xs">
-                              <span className="font-semibold text-slate-900 flex items-center gap-1">
-                                <Calendar className="h-3 w-3 text-slate-400" />
-                                {row.expiryDate}
+                              <span className="font-semibold text-foreground flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-primary" />
+                                {formatDateIndian(row.expiryDate)}
                               </span>
                               {isExpired ? (
                                 <span className="text-[10px] font-bold text-rose-600">Expired</span>
@@ -528,20 +618,6 @@ export function RawMaterialsManagementView() {
                         })() : (
                           <span className="text-slate-400 text-xs">—</span>
                         )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => toggleFavorite(row.id)}
-                          className={`p-1.5 rounded-md transition cursor-pointer ${
-                            row.isFavorite
-                              ? "text-amber-500 hover:text-amber-600 bg-amber-50"
-                              : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-                          }`}
-                          title={row.isFavorite ? "Remove from favourites" : "Mark as favourite"}
-                        >
-                          <Star className={`h-4 w-4 ${row.isFavorite ? "fill-amber-400 text-amber-500" : ""}`} />
-                        </button>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
@@ -568,18 +644,18 @@ export function RawMaterialsManagementView() {
                           <button
                             type="button"
                             onClick={() => handleStartEdit(row)}
-                            className="p-1.5 hover:text-teal-700 hover:bg-teal-50 text-slate-500 rounded-md transition cursor-pointer"
+                            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 shadow-2xs transition cursor-pointer"
                             title="Edit Raw Material"
                           >
-                            <Pencil className="h-4 w-4" />
+                            <ColorActionEdit className="h-4 w-4" />
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(row.id)}
-                            className="p-1.5 hover:text-red-500 hover:bg-rose-50 text-slate-400 rounded-md transition cursor-pointer"
+                            onClick={() => setDeleteTarget({ id: row.id, name: row.name })}
+                            className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-rose-500 hover:bg-rose-50/60 shadow-2xs transition cursor-pointer"
                             title="Delete Item"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <ColorActionDelete className="h-4 w-4" />
                           </button>
                         </div>
                       </td>
@@ -674,7 +750,7 @@ export function RawMaterialsManagementView() {
               className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-medium"
             >
               <option value="">— Select Category —</option>
-              {categories.map((c) => (
+              {allCategoriesList.map((c) => (
                 <option key={c.id || c.name} value={c.name}>
                   {c.name}
                 </option>
@@ -977,6 +1053,31 @@ export function RawMaterialsManagementView() {
         </div>,
         document.body,
       )}
+
+      {/* Delete Confirmation Modal */}
+      <StockDeleteConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete Raw Material"
+        itemName={deleteTarget?.name}
+        description={
+          deleteTarget ? (
+            <>
+              Are you sure you want to permanently delete raw material{" "}
+              <span className="font-semibold text-slate-900">"{deleteTarget.name}"</span>?
+              This will remove the item from raw materials inventory and stock reports.
+            </>
+          ) : undefined
+        }
+        onConfirm={() => {
+          if (deleteTarget) {
+            handleDelete(deleteTarget.id);
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -121,7 +121,7 @@ export function DeviceMappingView() {
     <div className="space-y-4 w-full pb-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[18px] font-bold text-text-primary tracking-tight">Device Mapping</h2>
+          <h2 className="text-[18px] font-bold text-text-primary tracking-tight">Device Mapping</h2>
           <p className="text-[12.5px] text-text-secondary mt-0.5">
             Authorized POS hardware, Captain Android/iOS tablets, and kitchen display screen
             bindings.

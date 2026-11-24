@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, LayoutGrid } from "lucide-react";
-import type { TableShape } from "@/types/posTables";
+import type { RestaurantTable, TableShape } from "@/types/posTables";
 import {
   PosCreateCancelButton,
   PosCreatePanel,
@@ -19,6 +19,8 @@ interface AddTableModalProps {
     shape?: TableShape;
   }) => void;
   nextTableNumberHint?: number;
+  editingTable?: RestaurantTable | null;
+  onUpdateTable?: (tableId: string, data: Partial<RestaurantTable>) => void;
 }
 
 const SEATER_OPTIONS = [2, 4, 6, 8, 10, 12];
@@ -30,6 +32,8 @@ export function AddTableModal({
   defaultArea,
   onAddTable,
   nextTableNumberHint = 13,
+  editingTable,
+  onUpdateTable,
 }: AddTableModalProps) {
   const [tableNumber, setTableNumber] = useState(`Table #${nextTableNumberHint}`);
   const [capacity, setCapacity] = useState<number>(4);
@@ -41,14 +45,24 @@ export function AddTableModal({
 
   useEffect(() => {
     if (isOpen) {
-      setTableNumber(`Table #${nextTableNumberHint}`);
-      setSelectedArea(defaultArea || areas[0] || "");
-      setCapacity(4);
-      setIsCustomCapacity(false);
-      setCustomCapacity("");
-      setError("");
+      if (editingTable) {
+        setTableNumber(editingTable.tableNumber);
+        setSelectedArea(editingTable.area || defaultArea || areas[0] || "");
+        setCapacity(editingTable.capacity || 4);
+        setShape(editingTable.shape || (editingTable.capacity >= 6 ? "rectangle" : "square"));
+        setIsCustomCapacity(!SEATER_OPTIONS.includes(editingTable.capacity));
+        setCustomCapacity(!SEATER_OPTIONS.includes(editingTable.capacity) ? String(editingTable.capacity) : "");
+        setError("");
+      } else {
+        setTableNumber(`Table #${nextTableNumberHint}`);
+        setSelectedArea(defaultArea || areas[0] || "");
+        setCapacity(4);
+        setIsCustomCapacity(false);
+        setCustomCapacity("");
+        setError("");
+      }
     }
-  }, [isOpen, defaultArea, areas, nextTableNumberHint]);
+  }, [isOpen, defaultArea, areas, nextTableNumberHint, editingTable]);
 
   const handleCapacitySelect = (seats: number) => {
     setIsCustomCapacity(false);
@@ -77,12 +91,18 @@ export function AddTableModal({
       return;
     }
 
-    onAddTable({
+    const payload = {
       tableNumber: tableNumber.trim(),
       capacity: finalCapacity,
       area: selectedArea,
-      shape: finalCapacity >= 6 && shape === "square" ? "rectangle" : shape,
-    });
+      shape: finalCapacity >= 6 && shape === "square" ? ("rectangle" as TableShape) : shape,
+    };
+
+    if (editingTable && onUpdateTable) {
+      onUpdateTable(editingTable.id, payload);
+    } else {
+      onAddTable(payload);
+    }
 
     onClose();
   };
@@ -91,7 +111,7 @@ export function AddTableModal({
     <PosCreatePanel
       open={isOpen}
       onClose={onClose}
-      title="Add New Table"
+      title={editingTable ? `Edit ${editingTable.tableNumber}` : "Add New Table"}
       description="Configure table seating capacity, area, and visual layout"
       icon={LayoutGrid}
       onSubmit={handleSubmit}
@@ -100,7 +120,7 @@ export function AddTableModal({
           <PosCreateCancelButton onClick={onClose} />
           <PosCreateSubmitButton>
             <Plus className="h-3.5 w-3.5" />
-            Create Table
+            {editingTable ? "Save Changes" : "Create Table"}
           </PosCreateSubmitButton>
         </>
       }

@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import { useOutletContext } from "@/context/PosOutletContext";
 import posManagementService, { type POSExpenseDto } from "@/services/posManagementService";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 interface ExpenseLogEntry {
   id: string;
@@ -58,7 +59,7 @@ export function ExpenseLogsView() {
         return {
           id: exp.id,
           voucherNo: exp.expense_number || `EXP-${exp.id.slice(0, 8).toUpperCase()}`,
-          timestamp: exp.expense_date ? new Date(exp.expense_date).toLocaleString("en-IN") : "",
+          timestamp: formatDateTimeIndian(exp.expense_date),
           category: exp.category || "General Expense",
           amount: parseFloat(exp.amount) || 0,
           paymentMode: exp.payment_mode || "Petty Cash Drawer",
@@ -121,7 +122,7 @@ export function ExpenseLogsView() {
 
   const handleApprove = async (id: string, voucherNo: string) => {
     try {
-      await posManagementService.approveExpense(id);
+      await posManagementService.approveExpense(id, "Store Manager");
       toast.success(`Voucher ${voucherNo} approved!`);
       await fetchExpenses();
     } catch (err) {
@@ -274,7 +275,7 @@ export function ExpenseLogsView() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             <Receipt className="h-5 w-5 text-teal-600" />
             Expense & Petty Cash Logs
           </h2>

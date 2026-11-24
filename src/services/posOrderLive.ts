@@ -52,6 +52,8 @@ export type LiveOrderPayload = {
   serviceCharge?: number;
   discountAmount?: number;
   grandTotal?: number;
+  append?: boolean;
+  append_items?: boolean;
   sendKot?: boolean;
   markSettled?: boolean;
   paymentMode?: string;
@@ -75,42 +77,61 @@ export type LiveOrderPayload = {
 
 function kotStatusUi(raw?: string): KotItem["status"] {
   const key = (raw || "").toUpperCase();
-  if (key === "READY" || raw === "Prepared") return "Prepared";
+  if (key === "CANCELLED" || raw === "Cancelled") return "Cancelled";
+  if (key === "READY" || raw === "Ready" || raw === "Prepared") return "Prepared";
   if (key === "SERVED" || raw === "Served") return "Served";
   if (key === "PREPARING" || raw === "In Kitchen") return "In Kitchen";
   if (key === "PENDING" || raw === "Not Prepared") return "Not Prepared";
-  if (raw === "In Kitchen" || raw === "Prepared" || raw === "Served" || raw === "Not Prepared") {
-    return raw;
+  if (raw === "In Kitchen" || raw === "Prepared" || raw === "Served" || raw === "Not Prepared" || raw === "Ready" || raw === "Cancelled") {
+    return raw as KotItem["status"];
   }
   return "In Kitchen";
 }
 
-export function mapLiveKotRecord(r: KotRecordApiDto & Record<string, any>): KotItem {
-  const status = kotStatusUi(r.statusLabel || r.status);
+export function mapLiveKotRecord(r?: (KotRecordApiDto & Record<string, any>) | null): KotItem {
+  if (!r) {
+    return {
+      id: "",
+      kotId: 0,
+      orderType: "",
+      customerName: "--",
+      customerPhone: "--",
+      itemCount: 0,
+      itemsText: "",
+      status: "In Kitchen",
+      billPrintDate: "",
+      completeDuration: "",
+      createdAt: "",
+    };
+  }
+  const status = kotStatusUi(r?.statusLabel || r?.status);
   return {
-    id: String(r.id),
-    kotId: Number(r.kotId || 0),
-    orderId: r.orderId,
-    orderNumber: r.orderNumber,
-    orderType: r.orderType,
-    customerName: r.customerName || "--",
-    customerPhone: r.customerPhone || "--",
-    itemCount: Number(r.itemCount || r.items?.length || 0),
-    itemsText: r.itemsText || "",
-    items: (r.items || []).map((i: any) => ({
-      name: i.name,
-      quantity: Number(i.quantity || 1),
-      notes: i.notes || undefined,
+    id: String(r?.id || ""),
+    kotId: Number(r?.kotId || 0),
+    kotNumber: r?.kotNumber || r?.kot_number || undefined,
+    orderId: r?.orderId,
+    orderNumber: r?.orderNumber,
+    orderType: r?.orderType || "",
+    tableOrRoom: r?.tableOrRoom || r?.tableNumber || r?.roomNumber || undefined,
+    waiterName: r?.waiterName || r?.waiter_name || undefined,
+    customerName: r?.customerName || "--",
+    customerPhone: r?.customerPhone || "--",
+    itemCount: Number(r?.itemCount || r?.items?.length || 0),
+    itemsText: r?.itemsText || "",
+    items: (r?.items || []).map((i: any) => ({
+      name: i?.name || "Item",
+      quantity: Number(i?.quantity || 1),
+      notes: i?.notes || undefined,
     })),
     status,
-    notes: r.notes || r.orderNote || r.order_note || undefined,
-    orderNote: r.orderNote || r.order_note || undefined,
-    billPrintDate: r.billPrintDate || "",
-    completeDuration: r.completeDuration || "",
-    createdAt: r.createdAt || "",
-    createdTimestamp: r.createdTimestamp || Date.now(),
-    readyTimestamp: r.readyTimestamp,
-    isModified: Boolean(r.isModified),
+    notes: r?.notes || r?.orderNote || r?.order_note || undefined,
+    orderNote: r?.orderNote || r?.order_note || undefined,
+    billPrintDate: r?.billPrintDate || "",
+    completeDuration: r?.completeDuration || "",
+    createdAt: r?.createdAt || "",
+    createdTimestamp: r?.createdTimestamp || Date.now(),
+    readyTimestamp: r?.readyTimestamp,
+    isModified: Boolean(r?.isModified),
   };
 }
 
@@ -148,8 +169,10 @@ export function mapSerializedOrderToCurrent(o: Record<string, any>) {
     waiterName: o.waiterName || "Captain",
     pax: o.pax || 1,
     itemsSummary: o.itemsSummary || "",
-    amount: Number(o.grandTotal ?? o.amount ?? 0),
-    amountFormatted: formatINR(Number(o.grandTotal ?? o.amount ?? 0)),
+    amount: Number(o.grandTotal ?? o.totalAmount ?? o.amount ?? 0),
+    totalAmount: Number(o.totalAmount ?? o.grandTotal ?? o.amount ?? 0),
+    grandTotal: Number(o.grandTotal ?? o.totalAmount ?? o.amount ?? 0),
+    amountFormatted: formatINR(Number(o.grandTotal ?? o.totalAmount ?? o.amount ?? 0)),
     startTime: o.startTime || "",
     createdTimestamp: Number(o.createdTimestamp || Date.now()),
     elapsedMinutes: Number(o.elapsedMinutes || 1),
@@ -276,12 +299,17 @@ export async function liveGetHistory(outletId?: string, filters?: Record<string,
     assignTo: r.waiterName || r.assignTo || "Captain",
     itemsSummary: r.itemsSummary || "",
     items: r.items || [],
+    myAmount: Number(r.myAmount ?? r.subtotal ?? 0),
+    subtotal: Number(r.subtotal ?? r.myAmount ?? 0),
+    taxAmount: Number(r.taxAmount ?? 0),
+    discountAmount: Number(r.discountAmount ?? 0),
+    grandTotal: Number(r.grandTotal ?? r.amount ?? r.totalAmount ?? 0),
+    totalAmount: Number(r.totalAmount ?? r.grandTotal ?? r.amount ?? 0),
+    amount: Number(r.amount ?? r.grandTotal ?? 0),
     myAmountFormatted: formatINR(Number(r.myAmount ?? r.subtotal ?? 0)),
     taxAmountFormatted: formatINR(Number(r.taxAmount ?? 0)),
     discountAmountFormatted: formatINR(Number(r.discountAmount ?? 0)),
     grandTotalFormatted: formatINR(Number(r.grandTotal ?? r.amount ?? 0)),
-    grandTotal: Number(r.grandTotal ?? r.amount ?? 0),
-    amount: Number(r.amount ?? r.grandTotal ?? 0),
     paymentMode: r.paymentMode || r.payment_mode || "Cash",
     payment_mode: r.payment_mode || r.paymentMode || "CASH",
     status: r.status || "Settled",
@@ -295,6 +323,7 @@ export async function liveGetHistory(outletId?: string, filters?: Record<string,
     isOnlineOrder: Boolean(r.isOnlineOrder),
     isAdvanceOrder: Boolean(r.isAdvanceOrder),
     isSplitBill: Boolean(r.isSplitBill),
+    pax: Number(r.pax ?? (r.meta as any)?.pax ?? r.guestCount ?? 1) || 1,
     tableNo:
       (r.meta as any)?.tableLabel ||
       (r.meta as any)?.fullTableNumber ||
@@ -314,21 +343,56 @@ export async function liveGetHistory(outletId?: string, filters?: Record<string,
       formattedAmount: formatINR(p.amount),
     })),
     records,
-    totalCount: Number(data.totalCount ?? data.count ?? records.length),
+    totalCount: Number(data.totalCount ?? (data as any).count ?? records.length),
     page: Number(data.page || 1),
     pageSize: Number(data.pageSize || records.length || 10),
   };
 }
 
-export async function liveGetKot(outletId?: string): Promise<KotData> {
-  const params = orderScope(outletId);
-  if (!params) return { records: [], totalCount: 0 };
+export async function liveGetKot(outletId?: string, filters?: Record<string, any>): Promise<KotData> {
+  const scope = orderScope(outletId);
+  if (!scope) return { records: [], totalCount: 0 };
+  const params = { ...scope, ...(filters || {}) };
+
+  const isHistoryQuery = Boolean(
+    filters?.status ||
+    filters?.date_from ||
+    filters?.date_to ||
+    filters?.from ||
+    filters?.to ||
+    filters?.startDate ||
+    filters?.endDate ||
+    filters?.includeHistory ||
+    filters?.includeSettled
+  );
+
+  if (!isHistoryQuery) {
+    // Explicitly remove includeSettled filter only for live cook queue so closed/settled orders never leak into KDS
+    delete (params as any).includeSettled;
+  }
+
   const res = await httpClient.get<KotApiResponse & { kots?: KotRecordApiDto[] }>(API_ENDPOINTS.ORDERS.KOT, {
     params,
   });
   const rows = (res.data?.records || res.data?.kots || []) as any[];
-  const records = rows.map(mapLiveKotRecord);
-  return { records, totalCount: Number(res.data?.totalCount ?? res.data?.count ?? records.length) };
+  const mapped = rows.map(mapLiveKotRecord).filter(Boolean) as KotItem[];
+
+  // For history queries, return all tickets returned by the backend.
+  // For the active kitchen cook queue (no filters/history), filter out non-active tickets.
+  const records = isHistoryQuery
+    ? mapped
+    : mapped.filter(
+        (k) =>
+          k &&
+          k.status !== "Served" &&
+          k.status !== "Prepared" &&
+          (k as any).status !== "Ready" &&
+          (k as any).status !== "Cancelled" &&
+          (k as any).status !== "Settled" &&
+          (k as any).status !== "settled",
+      );
+
+  return { records, totalCount: Number(res.data?.totalCount ?? (res.data as any)?.count ?? records.length) };
 }
 
 export function compactTableNumber(table?: string): string | undefined {
@@ -390,6 +454,8 @@ function toOrderWriteBody(payload: Partial<LiveOrderPayload>) {
     guest_phone: payload.guestPhone ? String(payload.guestPhone).slice(0, 32) : undefined,
     waiterName: payload.waiterName ? String(payload.waiterName).slice(0, 100) : undefined,
     waiter_name: payload.waiterName ? String(payload.waiterName).slice(0, 100) : undefined,
+    append: payload.append,
+    append_items: payload.append,
     sendKot: payload.sendKot,
     send_kot: payload.sendKot,
     markSettled: payload.markSettled,
@@ -399,7 +465,7 @@ function toOrderWriteBody(payload: Partial<LiveOrderPayload>) {
     mark_settled: payload.markSettled,
     paymentMode: payload.paymentMode,
     payment_mode: payload.paymentMode,
-    items: undefined,
+    items: undefined as any,
   });
   if (payload.items) {
     body.items = payload.items.map((item) =>
@@ -448,6 +514,8 @@ export async function liveSettleOrder(
   body: {
     paymentMode: string;
     tenderedAmount?: number;
+    depositAmount?: number;
+    deposit_amount?: number;
     folioId?: string;
     reservationId?: string;
     idempotencyKey?: string;
@@ -473,26 +541,85 @@ export async function liveKotReady(ticketId: string) {
   return res.data;
 }
 
+export async function liveKotCancel(ticketId: string, note = "Cancelled from KOT") {
+  const res = await httpClient.post(API_ENDPOINTS.ORDERS.KOT_CANCEL(ticketId), { note });
+  return res.data;
+}
+
 export async function liveKotServed(ticketId: string) {
   const res = await httpClient.post(API_ENDPOINTS.ORDERS.KOT_SERVED(ticketId), {});
   return res.data;
 }
 
-export async function liveGetDueBills(outletId?: string) {
+export async function liveGetDueBills(outletId?: string, options?: { includeSettled?: boolean }) {
   const params = orderScope(outletId);
   if (!params) return [];
   const res = await httpClient.get(API_ENDPOINTS.ORDERS.DUE_SETTLEMENT, { params });
-  return ((res.data?.bills || []) as any[]).map((b) => ({
-    ...b,
-    agingBucket: b.agingBucket || (b.daysOverdue > 30 ? "30+" : b.daysOverdue > 15 ? "16-30" : "0-15"),
-    status: b.status || "Pending",
-  }));
+  const rawBills = (res.data?.bills || []) as any[];
+
+  // Check local/active reservations to ensure any reservation deposit reduces the due amount
+  const localReservations =
+    typeof window !== "undefined"
+      ? (() => {
+          try {
+            const effective =
+              outletId ||
+              localStorage.getItem("retrod_pos_active_outlet_id") ||
+              "default";
+            const raw = localStorage.getItem(`retrod_pos_reservations_${effective}`);
+            return raw ? JSON.parse(raw) : [];
+          } catch {
+            return [];
+          }
+        })()
+      : [];
+
+  const processed = rawBills.map((b) => {
+    let paidAmount = Number(b.paidAmount || 0);
+    const totalAmount = Number(b.totalAmount || 0);
+    let dueAmount = Number(b.dueAmount ?? Math.max(0, totalAmount - paidAmount));
+
+    const deposit = Number(b.depositAmount || 0);
+
+    // If backend already deducted deposit into paidAmount and dueAmount, do NOT re-deduct
+    if (deposit > 0) {
+      // Due amount should be totalAmount - paidAmount
+      dueAmount = Math.max(0, totalAmount - paidAmount);
+    }
+
+    const isSettled = dueAmount === 0 || String(b.status || "").toLowerCase() === "settled";
+
+    return {
+      ...b,
+      depositAmount: deposit,
+      totalAmount,
+      paidAmount,
+      dueAmount,
+      agingBucket:
+        b.agingBucket ||
+        (b.daysOverdue > 30 ? "30+" : b.daysOverdue > 15 ? "16-30" : "0-15"),
+      status: isSettled ? "Settled" : paidAmount > 0 ? "Partial" : (b.status || "Pending"),
+      orderStatus: isSettled ? "Paid" : "Ongoing",
+    };
+  });
+
+  if (!options?.includeSettled) {
+    return processed.filter((b) => b.dueAmount > 0 && b.status !== "Settled");
+  }
+
+  return processed;
 }
 
-export async function liveSettleDue(billId: string, paymentMode: string, paidAmount: number) {
+export async function liveSettleDue(
+  billId: string,
+  paymentMode: string,
+  paidAmount: number,
+  depositAmount?: number,
+) {
   const res = await httpClient.post(API_ENDPOINTS.ORDERS.DUE_SETTLE(billId), {
     paymentMode,
     paidAmount,
+    depositAmount,
   });
   return res.data;
 }

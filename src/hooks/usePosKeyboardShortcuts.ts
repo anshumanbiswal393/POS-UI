@@ -52,11 +52,15 @@ export function usePosKeyboardShortcuts(options?: PosKeyboardShortcutOptions) {
         return;
       }
 
-      // F3 or Ctrl+K / Cmd+K: Focus Global Search
+      // F3 or Ctrl+K / Cmd+K: Focus Menu Catalog Search (in Billing) or Global Search
       if (event.key === "F3" || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k")) {
         event.preventDefault();
-        const searchInput = (document.getElementById("pos-global-search") ||
-          document.querySelector("[data-pos-search]")) as HTMLInputElement | null;
+        const searchInput = (
+          document.getElementById("pos-billing-search") ||
+          document.querySelector("[data-pos-catalog-search]") ||
+          document.getElementById("pos-global-search") ||
+          document.querySelector("[data-pos-search]")
+        ) as HTMLInputElement | null;
         if (searchInput) {
           searchInput.focus();
           searchInput.select();
@@ -64,11 +68,14 @@ export function usePosKeyboardShortcuts(options?: PosKeyboardShortcutOptions) {
         return;
       }
 
-      // F4: Hold Bill (if on Billing page with onHoldBill) or Jump to Settlement
+      // F4: Hold Bill (if on Billing page) or Jump to Settlement (on other pages)
       if (event.key === "F4") {
         event.preventDefault();
         if (options?.onHoldBill) {
           options.onHoldBill();
+        } else if (pathname === "/pos/billing" || pathname.startsWith("/pos/billing")) {
+          // Inside billing without explicit option: trigger POS hold order custom event
+          window.dispatchEvent(new CustomEvent("pos:hold-order"));
         } else if (!options?.disableGlobalNav) {
           navigate({ to: "/pos/settlement" });
         }
@@ -87,8 +94,8 @@ export function usePosKeyboardShortcuts(options?: PosKeyboardShortcutOptions) {
         return;
       }
 
-      // F9: Settle / Pay Bill
-      if (event.key === "F9") {
+      // F9 / F10: Settle / Pay Bill
+      if (event.key === "F9" || event.key === "F10") {
         event.preventDefault();
         if (options?.onPaySettle) {
           options.onPaySettle();
@@ -99,11 +106,12 @@ export function usePosKeyboardShortcuts(options?: PosKeyboardShortcutOptions) {
         return;
       }
 
-      // Escape: Dismiss focused input or dispatch cancel
+      // Escape: Dismiss focused input or dispatch modal/drawer dismiss
       if (event.key === "Escape") {
         if (isInputFocused && activeElement) {
           activeElement.blur();
         }
+        window.dispatchEvent(new CustomEvent("pos:escape-dismiss"));
       }
     }
 

@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import { useOutletContext } from "@/context/PosOutletContext";
 import posManagementService, { type POSManagementLogDto } from "@/services/posManagementService";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 interface StoreLogEntry {
   id: string;
@@ -38,7 +39,7 @@ export function OnlineStoreLogsView() {
         const connected = Boolean(log.details?.connected ?? true);
         return {
           id: log.id,
-          timestamp: log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "",
+          timestamp: formatDateTimeIndian(log.created_at),
           platform: (log.details?.platform as string) || "Retrod Online Store",
           event: connected ? "STORE_ONLINE" : "STORE_OFFLINE",
           operator: (log.details?.operator as string) || log.actor_name || "Management Admin",
@@ -142,7 +143,7 @@ export function OnlineStoreLogsView() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             <Globe className="h-5 w-5 text-teal-600" />
             Online Store Status & Aggregator Connectivity Logs
           </h2>

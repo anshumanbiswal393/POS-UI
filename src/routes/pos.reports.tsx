@@ -12,7 +12,7 @@ function ReportsMainLayoutRoute() {
   if (pathname === "/pos/reports/day-end") {
     return (
       <GuardedRoute permission="pos.reports.view">
-        <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50 pb-8">
+        <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-background pb-8">
           <div className="responsive-page-x py-4 sm:py-5 space-y-4 flex-1">
             <DayEndSummaryView />
           </div>
@@ -23,7 +23,7 @@ function ReportsMainLayoutRoute() {
   if (pathname === "/pos/reports/notifications") {
     return (
       <GuardedRoute permission="pos.reports.view">
-        <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-slate-50/50 pb-8">
+        <div className="flex flex-col flex-1 min-h-0 w-full overflow-y-auto bg-background pb-8">
           <div className="responsive-page-x py-4 sm:py-5 space-y-4 flex-1">
             <Outlet />
           </div>

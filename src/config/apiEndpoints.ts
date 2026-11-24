@@ -76,6 +76,7 @@ export const API_ENDPOINTS = {
     ONLINE: "/api/pos/orders/online/",
     KOT: "/api/pos/kot/",
     KOT_READY: (id: string) => `/api/pos/kot/${id}/ready/`,
+    KOT_CANCEL: (id: string) => `/api/pos/kot/${id}/cancel/`,
     KOT_SERVED: (id: string) => `/api/pos/kot/${id}/served/`,
     ADVANCE: (id: string) => `/api/pos/orders/${id}/advance-stage/`,
     SETTLE: (id: string) => `/api/pos/orders/${id}/settle/`,

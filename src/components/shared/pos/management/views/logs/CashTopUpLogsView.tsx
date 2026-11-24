@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { PosDataGrid, type PosDataGridColumn } from "@/components/ui/data-grid/PosDataGrid";
 import { useOutletContext } from "@/context/PosOutletContext";
 import posManagementService, { type POSManagementLogDto } from "@/services/posManagementService";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 interface CashTopUpLogEntry {
   id: string;
@@ -50,7 +51,7 @@ export function CashTopUpLogsView() {
       const mapped: CashTopUpLogEntry[] = data.map((log: POSManagementLogDto) => ({
         id: log.id,
         topupId: log.reference_id || `TOP-${log.id.slice(0, 8).toUpperCase()}`,
-        timestamp: log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "",
+        timestamp: formatDateTimeIndian(log.created_at),
         terminal: (log.details?.terminal as string) || (log.details?.register as string) || "Terminal POS 1 (Counter)",
         topupAmount: Number(log.details?.amount || 0),
         previousBalance: Number(log.details?.previousBalance || 0),
@@ -231,7 +232,7 @@ export function CashTopUpLogsView() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-[20px] font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             <ArrowUpCircle className="h-5 w-5 text-teal-600" />
             Cash Top-Up & Float Addition Logs
           </h2>

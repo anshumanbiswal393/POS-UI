@@ -33,6 +33,8 @@ import { cn } from "@/lib/utils";
 import { useOutletContext } from "@/context/PosOutletContext";
 import { isDiningOutlet } from "@/utils/outletKind";
 import { deduplicateOutlets } from "@/utils/outletId";
+import { listKotReadyNotices, KOT_READY_EVENT } from "@/lib/posReadyNotifications";
+import { WAITER_SERVED_EVENT } from "@/services/posWaiterNotificationService";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,6 +107,24 @@ export function PosSidebar({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeLinkRef = useRef<HTMLAnchorElement | null>(null);
   const { activeOutlet, outlets, setActiveOutlet } = useOutletContext();
+  const [readyNoticeCount, setReadyNoticeCount] = useState<number>(() => {
+    return listKotReadyNotices().length;
+  });
+
+  useEffect(() => {
+    const updateCount = () => {
+      setReadyNoticeCount(listKotReadyNotices(activeOutlet?.id).length);
+    };
+    updateCount();
+    if (typeof window !== "undefined") {
+      window.addEventListener(KOT_READY_EVENT, updateCount);
+      window.addEventListener(WAITER_SERVED_EVENT, updateCount);
+      return () => {
+        window.removeEventListener(KOT_READY_EVENT, updateCount);
+        window.removeEventListener(WAITER_SERVED_EVENT, updateCount);
+      };
+    }
+  }, [activeOutlet?.id]);
   const availableOutlets = useMemo(
     () => deduplicateOutlets(outlets, activeOutlet?.id),
     [outlets, activeOutlet?.id],
@@ -217,6 +237,7 @@ export function PosSidebar({
       if (node.id === "live-orders" || node.to === "/pos/orders") return true;
       if (node.id === "all-orders" || node.to === "/pos/orders/all") return true;
       if (node.id === "reservations" || node.to === "/pos/reservations") return true;
+      if (node.id === "notifications" || node.to === "/pos/notifications") return true;
       if (node.id === "settings" || node.to === "/pos/settings") return true;
       if (node.id === "help" || node.to === "/pos/help") return true;
       return false;
@@ -333,7 +354,7 @@ export function PosSidebar({
       return items;
     }
 
-    const allowedWaiterIds = new Set(["take-order", "billing", "daily", "reservations"]);
+    const allowedWaiterIds = new Set(["take-order", "billing", "daily", "reservations", "notifications"]);
     const candidateItems = isWaiter
       ? POS_NAV_ITEMS.filter((item) => allowedWaiterIds.has(item.id))
       : POS_NAV_ITEMS;
@@ -486,12 +507,12 @@ export function PosSidebar({
   return (
     <aside
       className={cn(
-        "sticky top-0 z-30 flex h-screen flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-xs transition-[width] duration-200",
+        "sticky top-0 z-30 flex h-screen flex-col bg-sidebar text-sidebar-foreground border-r border-border transition-[width] duration-200",
         collapsed ? "w-[64px]" : "w-[268px]",
       )}
     >
       {/* Logo & Top Header */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border px-3">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-3">
         {!collapsed ? (
           <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2">
@@ -553,7 +574,7 @@ export function PosSidebar({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="mx-3 mt-3 flex items-center justify-between rounded-lg border border-sidebar-border bg-sidebar-hover/40 px-3 py-2 text-left transition hover:bg-sidebar-hover outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+              className="mx-3 mt-3 flex items-center justify-between rounded-lg border border-border bg-sidebar-hover/40 px-3 py-2 text-left transition hover:bg-sidebar-hover outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
               title={`Active: ${activeOutlet?.name || "Choose Outlet"}`}
             >
               <div className="min-w-0 flex-1 pr-1">
@@ -622,7 +643,7 @@ export function PosSidebar({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-sidebar-border bg-sidebar-hover/40 text-sidebar-foreground transition hover:bg-sidebar-hover outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-sidebar-hover/40 text-sidebar-foreground transition hover:bg-sidebar-hover outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
                 title={`Active: ${activeOutlet?.name || "Choose Outlet"}`}
               >
                 <Store className="h-4 w-4 text-primary" />
@@ -795,13 +816,18 @@ export function PosSidebar({
                 onClick={onNavigate}
                 title={item.label}
                 className={cn(
-                  "flex items-center justify-center rounded-md px-2 py-2.5 transition-colors",
+                  "relative flex items-center justify-center rounded-md px-2 py-2.5 transition-colors",
                   collapsedActive
                     ? "bg-primary text-primary-foreground"
                     : "text-sidebar-foreground hover:bg-sidebar-hover",
                 )}
               >
-                <Icon className="h-[18px] w-[18px] shrink-0 stroke-[1.5]" />
+                <div className="relative">
+                  <Icon className="h-[18px] w-[18px] shrink-0 stroke-[1.5]" />
+                  {item.id === "notifications" && readyNoticeCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-background animate-pulse" />
+                  )}
+                </div>
               </Link>
             );
           }
@@ -860,6 +886,16 @@ export function PosSidebar({
                   )}
                 />
                 <span className="truncate">{item.label}</span>
+                {item.id === "notifications" && readyNoticeCount > 0 && (
+                  <span
+                    className={cn(
+                      "ml-auto rounded-full px-1.5 py-0.2 text-[10px] font-bold transition-all animate-pulse",
+                      activeLeaf ? "bg-amber-400 text-amber-950" : "bg-amber-500 text-white"
+                    )}
+                  >
+                    {readyNoticeCount}
+                  </span>
+                )}
               </Link>
               {!collapsed && (
                 <button
@@ -895,7 +931,7 @@ export function PosSidebar({
         })}
       </nav>
 
-      <div className="space-y-0.5 border-t border-sidebar-border p-2">
+      <div className="space-y-0.5 border-t border-border p-2">
         {POS_FOOTER_NAV_ITEMS.filter((item) => isNodeAllowed(item)).map((item) => {
           const Icon = item.icon;
           const active = isActive(item.to);

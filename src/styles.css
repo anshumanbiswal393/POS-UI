@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap");
 
 @import "tailwindcss" source(none);
 @source "../src";
@@ -7,10 +7,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Playfair Display", ui-serif, Georgia, serif;
-  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
 
   --radius-sm: 4px;
   --radius-md: 6px;
@@ -79,6 +79,55 @@
   --color-teal-900: var(--teal-900);
   --color-teal-950: var(--teal-950);
 
+  /* Global Palette Standardization — matches PMS Reference */
+  --color-slate-50: var(--background);
+  --color-slate-100: var(--surface-2);
+  --color-slate-200: var(--border);
+  --color-slate-300: var(--border);
+  --color-slate-400: var(--border-strong);
+  --color-slate-500: #000000;
+  --color-slate-600: #000000;
+  --color-slate-700: #000000;
+  --color-slate-800: #000000;
+  --color-slate-900: #000000;
+  --color-slate-950: #000000;
+
+  --color-gray-50: var(--background);
+  --color-gray-100: var(--surface-2);
+  --color-gray-200: var(--border);
+  --color-gray-300: var(--border);
+  --color-gray-400: var(--border-strong);
+  --color-gray-500: #000000;
+  --color-gray-600: #000000;
+  --color-gray-700: #000000;
+  --color-gray-800: #000000;
+  --color-gray-900: #000000;
+  --color-gray-950: #000000;
+
+  --color-zinc-50: var(--background);
+  --color-zinc-100: var(--surface-2);
+  --color-zinc-200: var(--border);
+  --color-zinc-300: var(--border);
+  --color-zinc-400: var(--border-strong);
+  --color-zinc-500: #000000;
+  --color-zinc-600: #000000;
+  --color-zinc-700: #000000;
+  --color-zinc-800: #000000;
+  --color-zinc-900: #000000;
+  --color-zinc-950: #000000;
+
+  --color-neutral-50: var(--background);
+  --color-neutral-100: var(--surface-2);
+  --color-neutral-200: var(--border);
+  --color-neutral-300: var(--border);
+  --color-neutral-400: var(--border-strong);
+  --color-neutral-500: #000000;
+  --color-neutral-600: #000000;
+  --color-neutral-700: #000000;
+  --color-neutral-800: #000000;
+  --color-neutral-900: #000000;
+  --color-neutral-950: #000000;
+
   --shadow-e1: 0 1px 3px rgba(15, 118, 110, 0.14);
   --shadow-e2: 0 4px 12px rgba(15, 118, 110, 0.2);
   --shadow-e3: 0 8px 24px rgba(15, 118, 110, 0.28);
@@ -87,10 +136,10 @@
 :root {
   --radius: 8px;
 
-  /* Backgrounds & Canvas — matches PMS */
-  --background: oklch(0.978 0.01 165);
+  /* Backgrounds & Canvas — exact PMS forest-slate-executive tokens */
+  --background: oklch(0.977 0.008 165);
   --surface: #FFFFFF;
-  --surface-2: oklch(0.963 0.012 165);
+  --surface-2: oklch(0.963 0.01 170);
   --foreground: #000000;
 
   --card: #FFFFFF;
@@ -107,14 +156,14 @@
   --secondary: oklch(0.962 0.007 175);
   --secondary-foreground: #000000;
   --muted: oklch(0.962 0.007 175);
-  --muted-foreground: #64748b;
+  --muted-foreground: #000000;
   --accent: oklch(0.95 0.015 150);
   --accent-foreground: #000000;
 
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
 
-  /* Neutrals & Borders */
+  /* Neutrals & Borders — exact PMS forest-slate-executive border tokens */
   --border: oklch(0.74 0.015 170);
   --border-subtle: oklch(0.81 0.01 170);
   --border-strong: oklch(0.63 0.02 170);
@@ -132,17 +181,17 @@
   --info-tint: oklch(0.95 0.04 263);
   --gold: oklch(0.82 0.14 86);
 
-  /* Text Contrast Standards */
+  /* Text Contrast Standards — Kept crisp, dark and legible */
   --text-primary: #000000;
   --text-secondary: #000000;
-  --text-disabled: #64748b;
+  --text-disabled: #000000;
 
-  /* Sidebar — matches PMS: pure white surface with dark text and crisp border */
+  /* Sidebar — matches PMS: pure white surface with dark text and clean border */
   --sidebar: var(--surface);
   --sidebar-foreground: #000000;
   --sidebar-hover: var(--surface-2);
-  --sidebar-muted: #64748b;
-  --sidebar-border: oklch(0.79 0.02 160);
+  --sidebar-muted: #000000;
+  --sidebar-border: oklch(0.78 0.012 170);
 
   /* Theme-adaptive teal color scale mapping */
   --teal-50: var(--primary-tint, color-mix(in srgb, var(--primary) 8%, white));
@@ -177,7 +226,7 @@
   --secondary: oklch(0.305 0.03 240);
   --secondary-foreground: #FFFFFF;
   --muted: oklch(0.305 0.03 240);
-  --muted-foreground: oklch(0.8 0.02 240);
+  --muted-foreground: #FFFFFF;
   --accent: oklch(0.34 0.05 175);
   --accent-foreground: #FFFFFF;
 
@@ -201,14 +250,47 @@
   --gold: oklch(0.87 0.16 86);
 
   --text-primary: #FFFFFF;
-  --text-secondary: oklch(0.9 0.01 250);
-  --text-disabled: oklch(0.72 0.1 318);
+  --text-secondary: #FFFFFF;
+  --text-disabled: #FFFFFF;
 
   --sidebar: oklch(0.14 0.02 250);
   --sidebar-foreground: oklch(0.95 0.005 250);
   --sidebar-hover: oklch(0.20 0.025 250);
-  --sidebar-muted: oklch(0.70 0.015 250);
+  --sidebar-muted: #FFFFFF;
   --sidebar-border: oklch(0.24 0.02 250);
+
+  /* Dark mode mappings for neutral colors */
+  --color-slate-400: #FFFFFF;
+  --color-slate-500: #FFFFFF;
+  --color-slate-600: #FFFFFF;
+  --color-slate-700: #FFFFFF;
+  --color-slate-800: #FFFFFF;
+  --color-slate-900: #FFFFFF;
+  --color-slate-950: #FFFFFF;
+
+  --color-gray-400: #FFFFFF;
+  --color-gray-500: #FFFFFF;
+  --color-gray-600: #FFFFFF;
+  --color-gray-700: #FFFFFF;
+  --color-gray-800: #FFFFFF;
+  --color-gray-900: #FFFFFF;
+  --color-gray-950: #FFFFFF;
+
+  --color-zinc-400: #FFFFFF;
+  --color-zinc-500: #FFFFFF;
+  --color-zinc-600: #FFFFFF;
+  --color-zinc-700: #FFFFFF;
+  --color-zinc-800: #FFFFFF;
+  --color-zinc-900: #FFFFFF;
+  --color-zinc-950: #FFFFFF;
+
+  --color-neutral-400: #FFFFFF;
+  --color-neutral-500: #FFFFFF;
+  --color-neutral-600: #FFFFFF;
+  --color-neutral-700: #FFFFFF;
+  --color-neutral-800: #FFFFFF;
+  --color-neutral-900: #FFFFFF;
+  --color-neutral-950: #FFFFFF;
 
   /* Dark mode theme-adaptive teal color scale mapping */
   --teal-50: color-mix(in srgb, var(--primary) 18%, #121824);
@@ -240,7 +322,7 @@
   --secondary: oklch(0.962 0.02 300);
   --secondary-foreground: #000000;
   --muted: oklch(0.962 0.02 300);
-  --muted-foreground: #64748b;
+  --muted-foreground: #000000;
   --accent: oklch(0.95 0.03 285);
   --accent-foreground: #000000;
   --border: oklch(0.75 0.03 300);
@@ -251,7 +333,7 @@
   --ring: oklch(0.53 0.12 300);
   --text-primary: #000000;
   --text-secondary: #000000;
-  --text-disabled: #64748b;
+  --text-disabled: #000000;
 }
 
 .theme-emerald-gold-luxury {
@@ -270,7 +352,7 @@
   --secondary: oklch(0.965 0.012 90);
   --secondary-foreground: #000000;
   --muted: oklch(0.965 0.012 90);
-  --muted-foreground: #64748b;
+  --muted-foreground: #000000;
   --accent: oklch(0.95 0.03 86);
   --accent-foreground: #000000;
   --border: oklch(0.75 0.025 160);
@@ -282,7 +364,7 @@
   --gold: oklch(0.82 0.09 86);
   --text-primary: #000000;
   --text-secondary: #000000;
-  --text-disabled: #64748b;
+  --text-disabled: #000000;
 }
 
 .theme-ocean-cyan-modern {
@@ -301,7 +383,7 @@
   --secondary: oklch(0.965 0.012 220);
   --secondary-foreground: #000000;
   --muted: oklch(0.965 0.012 220);
-  --muted-foreground: #64748b;
+  --muted-foreground: #000000;
   --accent: oklch(0.955 0.025 210);
   --accent-foreground: #000000;
   --border: oklch(0.75 0.025 225);
@@ -310,41 +392,39 @@
   --input: oklch(0.75 0.025 225);
   --sidebar-border: oklch(0.79 0.02 225);
   --ring: oklch(0.52 0.11 240);
-  --info: oklch(0.56 0.11 235);
   --text-primary: #000000;
   --text-secondary: #000000;
-  --text-disabled: #64748b;
+  --text-disabled: #000000;
 }
 
 .theme-sunset-amber {
   --background: oklch(0.982 0.012 60);
   --surface: #FFFFFF;
-  --surface-2: oklch(0.965 0.018 58);
+  --surface-2: oklch(0.965 0.018 55);
   --foreground: #000000;
   --card: #FFFFFF;
   --card-foreground: #000000;
   --popover: #FFFFFF;
   --popover-foreground: #000000;
-  --primary: oklch(0.56 0.11 45);
+  --primary: oklch(0.54 0.14 52);
   --primary-foreground: #FFFFFF;
-  --primary-pressed: oklch(0.5 0.11 42);
-  --primary-tint: oklch(0.95 0.03 50);
-  --secondary: oklch(0.968 0.014 72);
+  --primary-pressed: oklch(0.48 0.14 50);
+  --primary-tint: oklch(0.95 0.04 55);
+  --secondary: oklch(0.965 0.015 65);
   --secondary-foreground: #000000;
-  --muted: oklch(0.968 0.014 72);
-  --muted-foreground: #64748b;
-  --accent: oklch(0.95 0.03 35);
+  --muted: oklch(0.965 0.015 65);
+  --muted-foreground: #000000;
+  --accent: oklch(0.955 0.03 60);
   --accent-foreground: #000000;
   --border: oklch(0.75 0.025 54);
   --border-subtle: oklch(0.82 0.018 54);
   --border-strong: oklch(0.64 0.035 54);
   --input: oklch(0.75 0.025 54);
   --sidebar-border: oklch(0.79 0.02 54);
-  --ring: oklch(0.56 0.11 45);
-  --warning: oklch(0.62 0.11 58);
+  --ring: oklch(0.54 0.14 52);
   --text-primary: #000000;
   --text-secondary: #000000;
-  --text-disabled: #64748b;
+  --text-disabled: #000000;
 }
 
 .theme-high-contrast {
@@ -356,89 +436,85 @@
   --card-foreground: #000000;
   --popover: #FFFFFF;
   --popover-foreground: #000000;
-  --primary: oklch(0.44 0.18 250);
+  --primary: oklch(0.42 0.15 255);
   --primary-foreground: #FFFFFF;
-  --primary-pressed: oklch(0.38 0.18 250);
-  --primary-tint: oklch(0.94 0.025 250);
-  --secondary: oklch(0.97 0.01 250);
+  --primary-pressed: oklch(0.36 0.15 255);
+  --primary-tint: oklch(0.93 0.04 255);
+  --secondary: oklch(0.95 0.01 250);
   --secondary-foreground: #000000;
-  --muted: oklch(0.97 0.01 250);
-  --muted-foreground: #71717a;
-  --accent: oklch(0.95 0.02 225);
+  --muted: oklch(0.95 0.01 250);
+  --muted-foreground: #000000;
+  --accent: oklch(0.94 0.02 255);
   --accent-foreground: #000000;
   --border: oklch(0.58 0.03 255);
   --border-subtle: oklch(0.68 0.02 255);
   --border-strong: oklch(0.48 0.04 255);
   --input: oklch(0.58 0.03 255);
   --sidebar-border: oklch(0.62 0.025 255);
-  --ring: oklch(0.44 0.18 250);
-  --success: oklch(0.45 0.16 150);
-  --warning: oklch(0.54 0.14 78);
-  --error: oklch(0.49 0.2 30);
-  --info: oklch(0.44 0.18 250);
+  --ring: oklch(0.42 0.15 255);
   --text-primary: #000000;
   --text-secondary: #000000;
-  --text-disabled: #71717a;
+  --text-disabled: #000000;
 }
 
 .theme-graphite-blue-pro {
   --background: oklch(0.976 0.006 250);
   --surface: #FFFFFF;
-  --surface-2: oklch(0.962 0.008 245);
+  --surface-2: oklch(0.962 0.009 250);
   --foreground: #000000;
   --card: #FFFFFF;
   --card-foreground: #000000;
   --popover: #FFFFFF;
   --popover-foreground: #000000;
-  --primary: oklch(0.49 0.09 255);
+  --primary: oklch(0.48 0.07 250);
   --primary-foreground: #FFFFFF;
-  --primary-pressed: oklch(0.43 0.09 255);
-  --primary-tint: oklch(0.94 0.02 248);
-  --secondary: oklch(0.962 0.007 240);
+  --primary-pressed: oklch(0.42 0.07 250);
+  --primary-tint: oklch(0.94 0.02 250);
+  --secondary: oklch(0.962 0.006 250);
   --secondary-foreground: #000000;
-  --muted: oklch(0.962 0.007 240);
-  --muted-foreground: #64748b;
-  --accent: oklch(0.95 0.015 235);
+  --muted: oklch(0.962 0.006 250);
+  --muted-foreground: #000000;
+  --accent: oklch(0.95 0.015 240);
   --accent-foreground: #000000;
   --border: oklch(0.74 0.015 245);
   --border-subtle: oklch(0.81 0.01 245);
   --border-strong: oklch(0.63 0.02 245);
   --input: oklch(0.74 0.015 245);
   --sidebar-border: oklch(0.78 0.012 245);
-  --ring: oklch(0.49 0.09 255);
+  --ring: oklch(0.48 0.07 250);
   --text-primary: #000000;
   --text-secondary: #000000;
-  --text-disabled: #64748b;
+  --text-disabled: #000000;
 }
 
 .theme-royal-plum-business {
   --background: oklch(0.976 0.012 305);
   --surface: #FFFFFF;
-  --surface-2: oklch(0.962 0.014 300);
+  --surface-2: oklch(0.962 0.015 305);
   --foreground: #000000;
   --card: #FFFFFF;
   --card-foreground: #000000;
   --popover: #FFFFFF;
   --popover-foreground: #000000;
-  --primary: oklch(0.48 0.11 298);
+  --primary: oklch(0.49 0.1 305);
   --primary-foreground: #FFFFFF;
-  --primary-pressed: oklch(0.42 0.11 298);
-  --primary-tint: oklch(0.94 0.03 300);
-  --secondary: oklch(0.962 0.01 300);
+  --primary-pressed: oklch(0.43 0.1 305);
+  --primary-tint: oklch(0.94 0.025 305);
+  --secondary: oklch(0.962 0.01 305);
   --secondary-foreground: #000000;
-  --muted: oklch(0.962 0.01 300);
-  --muted-foreground: #64748b;
-  --accent: oklch(0.95 0.02 285);
+  --muted: oklch(0.962 0.01 305);
+  --muted-foreground: #000000;
+  --accent: oklch(0.95 0.02 295);
   --accent-foreground: #000000;
   --border: oklch(0.74 0.018 300);
   --border-subtle: oklch(0.81 0.012 300);
   --border-strong: oklch(0.63 0.025 300);
   --input: oklch(0.74 0.018 300);
   --sidebar-border: oklch(0.78 0.015 300);
-  --ring: oklch(0.48 0.11 298);
+  --ring: oklch(0.49 0.1 305);
   --text-primary: #000000;
   --text-secondary: #000000;
-  --text-disabled: #64748b;
+  --text-disabled: #000000;
 }
 
 .theme-forest-slate-executive {
@@ -457,7 +533,7 @@
   --secondary: oklch(0.962 0.007 175);
   --secondary-foreground: #000000;
   --muted: oklch(0.962 0.007 175);
-  --muted-foreground: #64748b;
+  --muted-foreground: #000000;
   --accent: oklch(0.95 0.015 150);
   --accent-foreground: #000000;
   --border: oklch(0.74 0.015 170);
@@ -468,13 +544,13 @@
   --ring: oklch(0.47 0.095 166);
   --text-primary: #000000;
   --text-secondary: #000000;
-  --text-disabled: #64748b;
+  --text-disabled: #000000;
 }
 
 .theme-copper-night {
   --background: oklch(0.978 0.015 55);
   --surface: #FFFFFF;
-  --surface-2: oklch(0.963 0.02 50);
+  --surface-2: oklch(0.965 0.02 55);
   --foreground: #000000;
   --card: #FFFFFF;
   --card-foreground: #000000;
@@ -482,13 +558,13 @@
   --popover-foreground: #000000;
   --primary: oklch(0.53 0.13 45);
   --primary-foreground: #FFFFFF;
-  --primary-pressed: oklch(0.46 0.13 45);
-  --primary-tint: oklch(0.94 0.03 50);
-  --secondary: oklch(0.965 0.015 55);
+  --primary-pressed: oklch(0.47 0.13 45);
+  --primary-tint: oklch(0.95 0.035 55);
+  --secondary: oklch(0.965 0.015 65);
   --secondary-foreground: #000000;
-  --muted: oklch(0.965 0.015 55);
-  --muted-foreground: #64748b;
-  --accent: oklch(0.95 0.03 40);
+  --muted: oklch(0.965 0.015 65);
+  --muted-foreground: #000000;
+  --accent: oklch(0.955 0.025 50);
   --accent-foreground: #000000;
   --border: oklch(0.75 0.025 55);
   --border-subtle: oklch(0.82 0.018 55);
@@ -498,17 +574,35 @@
   --ring: oklch(0.53 0.13 45);
   --text-primary: #000000;
   --text-secondary: #000000;
-  --text-disabled: #64748b;
+  --text-disabled: #000000;
 }
 
 @layer base {
   * {
     border-color: var(--color-border);
+    font-family: var(--font-sans);
   }
   html,
-  body {
-    font-family: var(--font-sans);
-    font-feature-settings: "ss01", "cv11";
+  body,
+  button,
+  input,
+  optgroup,
+  select,
+  textarea,
+  table,
+  th,
+  td,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  span,
+  a {
+    font-family: var(--font-sans) !important;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -524,12 +618,39 @@
     background-color: var(--color-primary-tint);
     color: var(--color-primary-pressed);
   }
+
+  /* Universal Elimination of Grey Colors across all components */
+  ::placeholder,
+  input::placeholder,
+  textarea::placeholder {
+    color: #000000 !important;
+    opacity: 0.65 !important;
+  }
+
+  .dark ::placeholder,
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #ffffff !important;
+    opacity: 0.65 !important;
+  }
+
+  :disabled:not([class*="text-"]):not([class*="bg-rose"]):not([class*="text-rose"]):not([class*="text-white"]),
+  [disabled]:not([class*="text-"]):not([class*="bg-rose"]):not([class*="text-rose"]):not([class*="text-white"]),
+  [aria-disabled="true"]:not([class*="text-"]):not([class*="bg-rose"]):not([class*="text-rose"]):not([class*="text-white"]) {
+    color: #000000;
+  }
+
+  .dark :disabled:not([class*="text-"]):not([class*="bg-rose"]):not([class*="text-rose"]):not([class*="text-white"]),
+  .dark [disabled]:not([class*="text-"]):not([class*="bg-rose"]):not([class*="text-rose"]):not([class*="text-white"]),
+  .dark [aria-disabled="true"]:not([class*="text-"]):not([class*="bg-rose"]):not([class*="text-rose"]):not([class*="text-white"]) {
+    color: #ffffff;
+  }
 }
 
 @layer utilities {
   .font-display,
   .font-serif {
-    font-family: var(--font-display);
+    font-family: var(--font-sans) !important;
   }
   .font-mono {
     font-family: var(--font-mono);
@@ -583,19 +704,42 @@
   }
 
   .responsive-page-x {
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
   }
   @media (min-width: 640px) {
+    .responsive-page-x {
+      padding-left: 1.25rem;
+      padding-right: 1.25rem;
+    }
+  }
+  @media (min-width: 1024px) {
     .responsive-page-x {
       padding-left: 1.5rem;
       padding-right: 1.5rem;
     }
   }
-  @media (min-width: 1280px) {
+  @media (min-width: 1536px) {
     .responsive-page-x {
       padding-left: 2rem;
       padding-right: 2rem;
+    }
+  }
+
+  /* Constrain management/report/form views cleanly on ultrawide/2K+ monitors */
+  .pos-page-container {
+    width: 100%;
+    max-width: 1680px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Lock terminal to viewport only on laptops/desktops with comfortable vertical room */
+  @media (min-width: 1024px) and (min-height: 700px) {
+    .pos-terminal-viewport {
+      height: calc(100dvh - 3.5rem);
+      max-height: calc(100dvh - 3.5rem);
+      overflow: hidden;
     }
   }
 
@@ -741,9 +885,9 @@
 
   td {
     padding: 7px 10px !important;
-    border: 1px solid #cbd5e1 !important;
+    border: 1px solid #000000 !important;
     font-size: 11px !important;
-    color: #0f172a !important;
+    color: #000000 !important;
     width: auto !important;
     min-width: 0 !important;
     max-width: none !important;
@@ -753,7 +897,7 @@
   }
 
   tbody tr:nth-child(even) td {
-    background-color: #f8fafc !important;
+    background-color: #ffffff !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -802,4 +946,62 @@
 
 .animate-chevron-slide-2 {
   animation: chevronSlideLoop 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.8s;
+}
+
+/* ==========================================================================
+   Excel-Style POS Data Table Grid Standard
+   - Proper column lines (vertical borders)
+   - Proper row lines (horizontal borders)
+   - Solid high-contrast black gridlines (no grey borders)
+   - Center alignment for all headers and cell elements
+   ========================================================================== */
+.pos-excel-grid,
+.pos-data-table table,
+table.excel-format {
+  border-collapse: collapse !important;
+  border: 1.5px solid var(--border-strong) !important;
+  text-align: center !important;
+}
+
+.pos-excel-grid th,
+.pos-excel-grid td,
+.pos-data-table table th,
+.pos-data-table table td,
+table.excel-format th,
+table.excel-format td {
+  border-right: 1px solid var(--border) !important;
+  border-bottom: 1px solid var(--border) !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+.pos-excel-grid th,
+.pos-data-table table th,
+table.excel-format th {
+  border-bottom: 2px solid var(--border-strong) !important;
+  font-weight: 700 !important;
+}
+
+/* Ensure flex/inline elements inside table cells and headers remain centered (except dish name column) */
+.pos-excel-grid th:not(.dish-col) > div,
+.pos-excel-grid td:not(.dish-col) > div,
+.pos-data-table table th:not(.dish-col) > div,
+.pos-data-table table td:not(.dish-col) > div,
+table.excel-format th:not(.dish-col) > div,
+table.excel-format td:not(.dish-col) > div {
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+/* Explicit left alignment for dishes column in menu catalog */
+.pos-excel-grid .dish-col,
+.pos-excel-grid td.dish-col,
+.pos-excel-grid th.dish-col,
+table.excel-format .dish-col,
+table.excel-format td.dish-col,
+table.excel-format th.dish-col,
+table.excel-format td.dish-col > div,
+table.excel-format th.dish-col > div {
+  text-align: left !important;
+  justify-content: flex-start !important;
 }

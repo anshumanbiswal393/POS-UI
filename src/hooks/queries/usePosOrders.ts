@@ -13,6 +13,8 @@ import {
   advanceCurrentOrderById,
   markKotPrepared,
   markKotReadyLive,
+  cancelKotLive,
+  cancelKotLocal,
   markKotServedLive,
   settleDueBill,
   settleDueBillLive,
@@ -42,20 +44,19 @@ export function useLiveOrders() {
     queryKey: ["pos", "orders", "live", outletId],
     queryFn: () => getLiveOrdersSummary(outletId),
     initialData: live ? undefined : () => getInitialLiveOrdersData(),
-    staleTime: 1000 * 15,
-    refetchInterval: 1000 * 30,
+    staleTime: 60 * 1000,
   });
 }
 
-export function useCurrentOrdersTimeline() {
-  const outletId = useActiveOutletId();
+export function useCurrentOrdersTimeline(outletIdParam?: string) {
+  const activeOutletId = useActiveOutletId();
+  const outletId = outletIdParam || activeOutletId;
   const live = isBackendOutletId(outletId);
   return useQuery({
     queryKey: ["pos", "orders", "current-timeline", outletId],
     queryFn: async (): Promise<CurrentOrderRecord[]> => getCurrentOrdersTimeline(outletId),
     initialData: live ? undefined : [],
-    staleTime: 1000 * 5,
-    refetchInterval: 1000 * 15,
+    staleTime: 60 * 1000,
   });
 }
 
@@ -74,21 +75,33 @@ export function useAdvanceCurrentOrderStageMutation() {
 export function useAllOrders(filters?: Record<string, any>) {
   const outletId = useActiveOutletId();
   const live = isBackendOutletId(outletId);
+  const normalizedFilters = filters
+    ? {
+        ...filters,
+        status: Array.isArray(filters.status) ? filters.status.join(",") : filters.status,
+      }
+    : undefined;
   return useQuery({
-    queryKey: ["pos", "orders", "all", outletId, filters],
-    queryFn: () => getAllOrders(filters, outletId),
+    queryKey: ["pos", "orders", "all", outletId, normalizedFilters],
+    queryFn: () => getAllOrders(normalizedFilters, outletId),
     initialData: live ? undefined : () => getInitialAllOrdersData(),
-    staleTime: 1000 * 30,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useOnlineOrders(filters?: Record<string, any>) {
+export function useOnlineOrders(filters?: Record<string, any> & { channel?: string | string[] }) {
+  const normalizedFilters = filters
+    ? {
+        ...filters,
+        channel: Array.isArray(filters.channel) ? filters.channel.join(",") : filters.channel,
+        status: Array.isArray(filters.status) ? filters.status.join(",") : filters.status,
+      }
+    : undefined;
   return useQuery({
-    queryKey: ["pos", "orders", "online", filters],
-    queryFn: () => getOnlineOrders(filters),
+    queryKey: ["pos", "orders", "online", normalizedFilters],
+    queryFn: () => getOnlineOrders(normalizedFilters),
     initialData: () => getInitialOnlineOrdersData(),
-    staleTime: 1000 * 15,
-    refetchInterval: 1000 * 30,
+    staleTime: 60 * 1000,
   });
 }
 
@@ -99,8 +112,7 @@ export function useKotOrders(filters?: Record<string, any>) {
     queryKey: ["pos", "orders", "kot", outletId, filters],
     queryFn: () => getKotOrders(filters, outletId),
     initialData: live ? undefined : () => getInitialKotData(),
-    staleTime: 1000 * 5,
-    refetchInterval: 1000 * 15,
+    staleTime: 60 * 1000,
   });
 }
 
@@ -110,8 +122,7 @@ export function useDueBills() {
     queryKey: ["pos", "orders", "due-bills", outletId],
     queryFn: () => getDueBills(outletId),
     enabled: Boolean(outletId),
-    staleTime: 1000 * 5,
-    refetchInterval: (query) => (query.state.status === "error" ? 1000 * 5 : 1000 * 15),
+    staleTime: 60 * 1000,
     refetchOnMount: "always",
     retry: 2,
   });
@@ -129,12 +140,29 @@ export function useMarkKotPreparedMutation() {
     },
     onSuccess: () => {
       queryClient.setQueriesData({ queryKey: ["pos", "orders", "kot"] }, (old: { records?: Array<{ id: string; status?: string }> } | undefined) => {
-        if (!old?.records) return old;
+        if (!old?.records || !Array.isArray(old.records)) return old;
         return {
           ...old,
-          records: old.records.filter((r) => r.status !== "Prepared" && r.status !== "Served"),
+          records: old.records.filter((r) => r && r.status !== "Prepared" && r.status !== "Served" && r.status !== "Ready"),
         };
       });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders", "current-timeline"] });
+    },
+  });
+}
+
+export function useCancelKotMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { ticketId?: string; kotId?: number; note?: string }) => {
+      if (input.ticketId && /^[0-9a-f-]{36}$/i.test(input.ticketId)) {
+        return cancelKotLive(input.ticketId, input.note);
+      }
+      return cancelKotLocal(Number(input.kotId), input.note);
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "kot"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "live"] });
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "current-timeline"] });
@@ -162,13 +190,15 @@ export function useSettleDueBillMutation() {
       paymentMode,
       paidAmount,
       orderId,
+      depositAmount,
     }: {
       billId: string;
       paymentMode: "Cash" | "Card" | "UPI" | "Room Charge" | "Split";
       paidAmount?: number;
       orderId?: string;
       tableNumber?: string;
-    }) => settleDueBillLive(billId, paymentMode, paidAmount, orderId),
+      depositAmount?: number;
+    }) => settleDueBillLive(billId, paymentMode, paidAmount, orderId, depositAmount),
     onSuccess: (data, vars) => {
       const settled = (data as { settledBill?: { status?: string; dueAmount?: number; tableOrRoom?: string } })?.settledBill;
       const fullyPaid =
@@ -185,7 +215,7 @@ export function useSettleDueBillMutation() {
             .then(() => {
               queryClient.invalidateQueries({ queryKey: POS_RESERVATIONS_QUERY_KEY });
             })
-            .catch(() => {});
+            .catch(() => { });
         }
       }
       queryClient.invalidateQueries({ queryKey: ["pos", "orders", "due-bills"] });

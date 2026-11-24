@@ -25,13 +25,19 @@ export const INVENTORY_QUERY_KEYS = {
   consumption: ["pos", "inventory", "consumption"] as const,
   settings: ["pos", "inventory", "settings"] as const,
   units: ["pos", "inventory", "units"] as const,
+  movements: ["pos", "inventory", "movements"] as const,
 };
+
+export const queryKeys = INVENTORY_QUERY_KEYS;
 
 function invalidateStock(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.stockItems });
+  queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.categories });
   queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.overview });
   queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.alerts });
   queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.consumption });
+  queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.movements });
+  queryClient.invalidateQueries({ queryKey: ["pos", "inventory", "movements"] });
 }
 
 export function useInventoryVendors() {
@@ -201,14 +207,6 @@ export function useWastageEntries() {
   });
 }
 
-export function useConsumptionReport() {
-  const { activeOutlet } = useOutletContext();
-  return useQuery({
-    queryKey: [...INVENTORY_QUERY_KEYS.consumption, activeOutlet.id],
-    queryFn: () => posInventoryService.getConsumption(activeOutlet.id),
-  });
-}
-
 export function useUpdateStockItem() {
   const queryClient = useQueryClient();
   const { activeOutlet } = useOutletContext();
@@ -299,8 +297,13 @@ export function useCreateWastage() {
 
 export function useDeleteWastage() {
   const queryClient = useQueryClient();
+  const { activeOutlet } = useOutletContext();
   return useMutation({
-    mutationFn: (id: string) => posInventoryService.deleteWastage(id),
+    mutationFn: (payload: string | { id: string; stockItemId?: string; quantity?: number }) => {
+      const id = typeof payload === "string" ? payload : payload.id;
+      const extra = typeof payload === "object" ? payload : undefined;
+      return posInventoryService.deleteWastage(id, activeOutlet.id, extra);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.wastage });
       invalidateStock(queryClient);
@@ -379,10 +382,12 @@ export function useUpsertStockCategory() {
   const queryClient = useQueryClient();
   const { activeOutlet } = useOutletContext();
   return useMutation({
-    mutationFn: (data: Partial<StockCategory> & { name: string }) =>
+    mutationFn: (data: Partial<StockCategory> & { name: string; oldName?: string }) =>
       posInventoryService.upsertCategory(data, activeOutlet?.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.categories });
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.stockItems });
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.overview });
     },
   });
 }
@@ -391,9 +396,15 @@ export function useDeleteStockCategory() {
   const queryClient = useQueryClient();
   const { activeOutlet } = useOutletContext();
   return useMutation({
-    mutationFn: (id: string) => posInventoryService.deleteCategory(id, activeOutlet?.id),
+    mutationFn: (param: string | { id: string; name?: string }) => {
+      const id = typeof param === "string" ? param : param.id;
+      const name = typeof param === "object" ? param.name : undefined;
+      return posInventoryService.deleteCategory(id, activeOutlet?.id, name);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.categories });
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.stockItems });
+      queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEYS.overview });
     },
   });
 }

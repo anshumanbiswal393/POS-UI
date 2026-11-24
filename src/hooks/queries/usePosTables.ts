@@ -13,6 +13,7 @@ export const POS_AREAS_QUERY_KEY = ["pos", "dining-areas"];
 function useOutletScopedTables() {
   const { activeOutlet } = useOutletContext();
   const outletId = activeOutlet?.id || "";
+  setTablesOutletScope(outletId || null, false);
   useEffect(() => {
     setTablesOutletScope(outletId || null, false);
   }, [outletId]);
@@ -26,9 +27,9 @@ export function useDiningAreas() {
     queryKey: [...POS_AREAS_QUERY_KEY, outletId, highwayDemo],
     queryFn: () => {
       setTablesOutletScope(outletId, highwayDemo);
-      return posTablesService.getAreas();
+      return posTablesService.getAreas(outletId);
     },
-    staleTime: 1000 * 60,
+    staleTime: 5 * 60 * 1000,
     enabled: Boolean(outletId),
   });
 }
@@ -39,7 +40,7 @@ export function useAddAreaMutation() {
   return useMutation({
     mutationFn: (areaName: string) => {
       setTablesOutletScope(outletId, highwayDemo);
-      return posTablesService.addArea(areaName);
+      return posTablesService.addArea(areaName, outletId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: POS_AREAS_QUERY_KEY });
@@ -63,7 +64,7 @@ export function useUpdateAreaMutation() {
   return useMutation({
     mutationFn: ({ oldName, newName }: { oldName: string; newName: string }) => {
       setTablesOutletScope(outletId, highwayDemo);
-      return posTablesService.updateArea(oldName, newName);
+      return posTablesService.updateArea(oldName, newName, outletId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: POS_AREAS_QUERY_KEY });
@@ -87,7 +88,7 @@ export function useDeleteAreaMutation() {
   return useMutation({
     mutationFn: (areaName: string) => {
       setTablesOutletScope(outletId, highwayDemo);
-      return posTablesService.deleteArea(areaName);
+      return posTablesService.deleteArea(areaName, outletId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: POS_AREAS_QUERY_KEY });
@@ -116,7 +117,7 @@ export function useAddTableMutation() {
       shape?: "rectangle" | "square" | "circle";
     }) => {
       setTablesOutletScope(outletId, highwayDemo);
-      return posTablesService.addTable(input);
+      return posTablesService.addTable(input, outletId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
@@ -126,6 +127,10 @@ export function useAddTableMutation() {
     },
     onError: (err: unknown) => {
       const message =
+        (err as { response?: { data?: { detail?: string; table_number?: string[]; non_field_errors?: string[] } } })
+          ?.response?.data?.table_number?.[0] ||
+        (err as { response?: { data?: { detail?: string; non_field_errors?: string[] } } })
+          ?.response?.data?.non_field_errors?.[0] ||
         (err as { message?: string })?.message ||
         (err as { data?: { detail?: string } })?.data?.detail ||
         "Could not save table";
@@ -140,7 +145,7 @@ export function useDeleteTableMutation() {
   return useMutation({
     mutationFn: (tableId: string) => {
       setTablesOutletScope(outletId, highwayDemo);
-      return posTablesService.deleteTable(tableId);
+      return posTablesService.deleteTable(tableId, outletId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
@@ -158,15 +163,45 @@ export function useDeleteTableMutation() {
   });
 }
 
+export function useUpdateTableMutation() {
+  const { outletId, highwayDemo } = useOutletScopedTables();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      tableId,
+      data,
+    }: {
+      tableId: string;
+      data: Partial<import("@/types/posTables").RestaurantTable>;
+    }) => {
+      setTablesOutletScope(outletId, highwayDemo);
+      return posTablesService.updateTable(tableId, data, outletId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_TABLE_STATS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_AREAS_QUERY_KEY });
+      toast.success("Table updated successfully");
+    },
+    onError: (err: unknown) => {
+      const message =
+        (err as { message?: string })?.message ||
+        (err as { data?: { detail?: string } })?.data?.detail ||
+        "Could not update table";
+      toast.error(String(message));
+    },
+  });
+}
+
 export function usePosTables(area?: DiningArea) {
   const { outletId, highwayDemo } = useOutletScopedTables();
   return useQuery({
     queryKey: [...POS_TABLES_QUERY_KEY, outletId, area, highwayDemo],
     queryFn: () => {
       setTablesOutletScope(outletId, highwayDemo);
-      return posTablesService.getTables(area);
+      return posTablesService.getTables(area, outletId);
     },
-    staleTime: 1000 * 10,
+    staleTime: 60 * 1000,
     enabled: Boolean(outletId),
   });
 }
@@ -177,9 +212,9 @@ export function usePosReservations() {
     queryKey: [...POS_RESERVATIONS_QUERY_KEY, outletId],
     queryFn: () => {
       setTablesOutletScope(outletId, highwayDemo);
-      return posTablesService.getReservations();
+      return posTablesService.getReservations(outletId);
     },
-    staleTime: 1000 * 10,
+    staleTime: 60 * 1000,
     enabled: Boolean(outletId),
   });
 }
@@ -190,9 +225,9 @@ export function usePosTableStats(area?: DiningArea) {
     queryKey: [...POS_TABLE_STATS_QUERY_KEY, outletId, area, highwayDemo],
     queryFn: () => {
       setTablesOutletScope(outletId, highwayDemo);
-      return posTablesService.getStats(area);
+      return posTablesService.getStats(area, outletId);
     },
-    staleTime: 1000 * 10,
+    staleTime: 60 * 1000,
     enabled: Boolean(outletId),
   });
 }
@@ -240,7 +275,39 @@ export function useSwitchTableMutation() {
       queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: POS_RESERVATIONS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: POS_TABLE_STATS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "current-orders"] });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("pos:table-updated"));
+        window.dispatchEvent(new CustomEvent("retrod_pos_tables_changed"));
+      }
       toast.success(`Reservation switched to ${updated.tableNumber}`);
+    },
+    onError: (err: unknown) => {
+      const message =
+        (err as { message?: string })?.message ||
+        (err as { data?: { detail?: string } })?.data?.detail ||
+        "Could not switch table";
+      toast.error(String(message));
+    },
+  });
+}
+
+export function useSwitchOccupiedTableMutation() {
+  const { outletId, highwayDemo } = useOutletScopedTables();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ fromTableId, toTableId }: { fromTableId: string; toTableId: string }) => {
+      setTablesOutletScope(outletId, highwayDemo);
+      return posTablesService.switchOccupiedTable(fromTableId, toTableId);
+    },
+    onSuccess: ({ sourceTable, targetTable }) => {
+      queryClient.invalidateQueries({ queryKey: POS_TABLES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_RESERVATIONS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: POS_TABLE_STATS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["pos", "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", "current-orders"] });
+      toast.success(`Dine-in switched from ${sourceTable.tableNumber} to ${targetTable.tableNumber}`);
     },
     onError: (err: unknown) => {
       const message =

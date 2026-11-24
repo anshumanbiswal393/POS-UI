@@ -4,6 +4,8 @@ import { useScheduleVariants, useAddScheduleVariant } from "@/hooks/queries/useP
 import type { ScheduleVariantItem } from "@/types/posMenu";
 import { PosDataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { toast } from "sonner";
+import { ColorActionEdit } from "@/components/common/ColorActionIcons";
+import { formatDateTimeIndian } from "@/utils/dateUtils";
 
 export function ScheduleVariantsTab() {
   const { data: variants, isLoading, isFetching } = useScheduleVariants();
@@ -101,8 +103,12 @@ export function ScheduleVariantsTab() {
         accessorKey: "createdAt",
         enableSorting: true,
         enableFiltering: true,
-        minWidth: 120,
-        cell: ({ row }) => <span className="text-slate-500 text-[12px]">{row.createdAt}</span>,
+        minWidth: 150,
+        cell: ({ row }) => (
+          <span className="text-slate-600 font-medium text-[11.5px]">
+            {formatDateTimeIndian(row.createdAt)}
+          </span>
+        ),
       },
       {
         id: "modifiedAt",
@@ -110,8 +116,12 @@ export function ScheduleVariantsTab() {
         accessorKey: "modifiedAt",
         enableSorting: true,
         enableFiltering: true,
-        minWidth: 120,
-        cell: ({ row }) => <span className="text-slate-500 text-[12px]">{row.modifiedAt}</span>,
+        minWidth: 150,
+        cell: ({ row }) => (
+          <span className="text-slate-600 font-medium text-[11.5px]">
+            {formatDateTimeIndian(row.modifiedAt)}
+          </span>
+        ),
       },
       {
         id: "actions",
@@ -121,22 +131,22 @@ export function ScheduleVariantsTab() {
         sortable: false,
         filterable: false,
         cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-1.5 text-slate-400">
+          <div className="flex items-center justify-end gap-1.5">
             <button
               type="button"
               onClick={() => toast.info(`Editing variation ${row.name}`)}
-              className="p-1 hover:text-teal-600 hover:bg-slate-100 rounded transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-amber-500 hover:bg-amber-50/60 shadow-2xs transition cursor-pointer"
               title="Edit Variation"
             >
-              <Edit2 className="h-4 w-4" />
+              <ColorActionEdit className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => toast.success(`Duplicated ${row.name}`)}
-              className="p-1 hover:text-teal-600 hover:bg-slate-100 rounded transition cursor-pointer"
+              className="flex items-center justify-center h-7 w-7 rounded-lg border border-slate-300 bg-white hover:border-teal-500 hover:bg-teal-50/60 shadow-2xs transition cursor-pointer text-slate-500"
               title="Duplicate"
             >
-              <Copy className="h-4 w-4" />
+              <Copy className="h-3.5 w-3.5" />
             </button>
           </div>
         ),

@@ -1,4 +1,5 @@
 import { PosDateCalendarPopover } from "./PosDateCalendarPopover";
+import { PosGlobalSearch } from "./PosGlobalSearch";
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
@@ -6,7 +7,6 @@ import {
   Bug,
   Calendar,
   ChevronDown,
-  ChevronRight,
   ChevronsRight,
   FileText,
   HelpCircle,
@@ -15,11 +15,8 @@ import {
   Search,
   ScrollText,
   ShieldCheck,
-  Sparkles,
   Plus,
   Settings,
-  PanelLeftClose,
-  PanelLeftOpen,
   ChefHat,
   CreditCard,
   Package,
@@ -108,6 +105,14 @@ export function PosTopBar({
   const isKitchen = roleStr === "pos_kitchen" || roleStr.includes("kitchen");
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (mobileSearchOpen) {
+      mobileSearchInputRef.current?.focus();
+    }
+  }, [mobileSearchOpen]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -173,13 +178,25 @@ export function PosTopBar({
 
   const getBreadcrumbTitle = (pathname: string) => {
     if (pathname.includes("/take-order")) return "Take Order";
-    if (pathname.includes("/billing")) return "POS";
-    if (pathname.includes("/orders")) return "Orders";
+    if (pathname.includes("/billing")) return "POS Billing";
+    if (pathname.includes("/kot")) return "Kitchen Orders";
+    if (pathname.includes("/settlement")) return "Pending Payments";
+    if (pathname.includes("/orders/all")) return "Order History";
+    if (pathname.includes("/orders")) return "Current Orders";
+    if (pathname.includes("/reservations")) return "Reservations";
+    if (pathname.includes("/room-service")) return "Room Service";
     if (pathname.includes("/menu")) return "Food Menu";
+    if (pathname.includes("/inventory/purchase")) return "Purchases & Invoices";
+    if (pathname.includes("/inventory/production")) return "Daily Kitchen Prep";
+    if (pathname.includes("/inventory/wastage")) return "Stock Wastage";
+    if (pathname.includes("/inventory/available-stock")) return "Available Stock";
     if (pathname.includes("/inventory")) return "Stock & Inventory";
     if (pathname.includes("/reports")) return "Reports & Graphs";
     if (pathname.includes("/management/users/roles")) return "User Roles";
     if (pathname.includes("/management/users")) return "Users";
+    if (pathname.includes("/management/accounting")) return "Accounting";
+    if (pathname.includes("/management/logs")) return "System Logs";
+    if (pathname.includes("/management/audit")) return "Audit Trail";
     if (pathname.includes("/management")) return "Management";
     if (pathname.includes("/settings")) return "Settings";
     if (pathname.includes("/help")) return "Help Guide";
@@ -196,22 +213,22 @@ export function PosTopBar({
   ];
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-3 sm:px-4 lg:px-5 shadow-2xs print:hidden">
-      {/* Left: Nav toggles & Breadcrumbs */}
-      <div className="flex shrink-0 items-center gap-2 sm:gap-2.5 min-w-0">
-        {onOpenMobileNav && (
-          <button
-            type="button"
-            aria-label="Open navigation"
-            onClick={onOpenMobileNav}
-            className="rounded-md p-1.5 text-text-secondary hover:bg-surface-2 lg:hidden cursor-pointer"
-          >
-            <Menu className="h-4.5 w-4.5" />
-          </button>
-        )}
+    <header className="sticky top-0 z-40 shrink-0 overflow-x-clip bg-surface print:hidden">
+      <div className="flex h-14 items-center justify-between gap-2 sm:gap-3 px-2.5 sm:px-4 lg:px-5 border-b border-border">
+        {/* Left: Nav toggles & Breadcrumbs */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+          {onOpenMobileNav && (
+            <button
+              type="button"
+              aria-label="Open navigation"
+              onClick={onOpenMobileNav}
+              className="rounded-md p-1.5 text-text-secondary hover:bg-surface-2 lg:hidden cursor-pointer shrink-0"
+            >
+              <Menu className="h-4.5 w-4.5" />
+            </button>
+          )}
 
-        {onToggleSidebar && (
-          sidebarCollapsed ? (
+          {onToggleSidebar && sidebarCollapsed && (
             <button
               type="button"
               aria-label="Expand sidebar"
@@ -225,56 +242,46 @@ export function PosTopBar({
                 <ChevronsRight className="absolute h-4 w-4 stroke-[2.5] text-black animate-chevron-slide-2" />
               </div>
             </button>
-          ) : (
-            <button
-              type="button"
-              aria-label="Collapse sidebar"
-              onClick={onToggleSidebar}
-              title="Collapse sidebar"
-              className="hidden lg:flex items-center justify-center rounded-md p-1.5 text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer"
-            >
-              <PanelLeftClose className="h-4.5 w-4.5" />
-            </button>
-          )
-        )}
+          )}
 
-        <nav aria-label="Breadcrumbs" className="flex items-center gap-1.5 text-[12px] sm:text-[13px]">
-          <span className="text-text-secondary whitespace-nowrap">Main Modules</span>
-          <span className="text-text-disabled">/</span>
-          <span className="truncate font-medium text-text-primary max-w-[150px] sm:max-w-none">{breadcrumbTitle}</span>
-        </nav>
-      </div>
+          <nav aria-label="Breadcrumbs" className="flex items-center gap-1.5 text-[12px] sm:text-[13px] min-w-0">
+            <span className="hidden xl:inline text-text-secondary whitespace-nowrap">Main Modules</span>
+            <span className="hidden xl:inline text-text-disabled">/</span>
+            <span className="truncate font-semibold sm:font-medium text-text-primary max-w-[125px] min-[420px]:max-w-[180px] sm:max-w-[200px] xl:max-w-none">{breadcrumbTitle}</span>
+          </nav>
+        </div>
 
-      {/* Center: Search input */}
-      <div className="relative min-w-0 flex-1 max-w-xs sm:max-w-sm lg:max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-disabled" />
-        <input
-          id="pos-global-search"
-          data-pos-search
-          type="text"
-          placeholder="Search orders, tables, rooms, menu... (F3)"
-          aria-label="Search orders, tables, rooms"
-          className="h-9 w-full rounded-md border border-border bg-surface-2/60 pl-9 pr-14 text-[12.5px] text-text-primary placeholder:text-text-disabled focus:border-primary focus:bg-surface focus:outline-hidden transition-all"
-        />
-        <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center rounded border border-border bg-surface px-1.5 py-0.5 text-[9.5px] font-semibold text-text-disabled">
-          F3 / ⌘K
-        </kbd>
-      </div>
+        {/* Center: Search input on wide Laptop/Desktop (>=xl so sidebar + actions never crush it) */}
+        <div className="hidden xl:block min-w-[210px] flex-1 max-w-md">
+          <PosGlobalSearch id="pos-global-search" />
+        </div>
 
-      {/* Right: Actions + Date + Notifications + User Guide + Profile */}
-      <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
-        {!isKitchen && (
-          <Link
-            to="/pos/billing"
-            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-primary px-3 text-[12.5px] font-semibold leading-none text-primary-foreground hover:bg-primary-pressed transition cursor-pointer"
+        {/* Right: Actions + Date + Notifications + User Guide + Profile */}
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          {/* Compact Search Trigger (<xl) */}
+          <button
+            type="button"
+            aria-label={mobileSearchOpen ? "Close search" : "Open search"}
+            onClick={() => setMobileSearchOpen((v) => !v)}
+            className="flex xl:hidden h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-md border border-border/80 bg-surface text-text-secondary hover:bg-surface-2 cursor-pointer shrink-0"
           >
-            <Plus className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">New Order</span>
-          </Link>
-        )}
+            <Search className="h-4 w-4" />
+          </button>
 
-        {/* Interactive Single-Date Calendar Popover */}
-        <PosDateCalendarPopover />
+          {!isKitchen && (
+            <Link
+              to="/pos/billing"
+              aria-label="New Order"
+              title="New Order"
+              className="inline-flex h-8 w-8 sm:h-9 sm:w-auto shrink-0 items-center justify-center gap-1.5 rounded-md bg-primary px-0 sm:px-3 text-[12.5px] font-semibold leading-none text-primary-foreground hover:bg-primary-pressed transition cursor-pointer"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">New Order</span>
+            </Link>
+          )}
+
+          {/* Interactive Single-Date Calendar Popover */}
+          <PosDateCalendarPopover />
 
         {/* Notifications */}
         <DropdownMenu
@@ -287,7 +294,7 @@ export function PosTopBar({
               type="button"
               aria-label="Notifications"
               title="Notifications"
-              className={`relative flex h-9 w-9 items-center justify-center rounded-md text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer outline-none ${
+              className={`relative flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-md text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer outline-none ${
                 hasUrgentAlerts
                   ? "ring-2 ring-rose-500/70 bg-rose-50/90 text-rose-600 animate-pulse"
                   : ""
@@ -316,7 +323,7 @@ export function PosTopBar({
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-80 sm:w-96 overflow-hidden rounded-xl border border-border bg-white p-0 text-text-primary shadow-2xl data-[state=closed]:animate-none"
+            className="w-[min(24rem,calc(100vw-1rem))] overflow-hidden rounded-xl border border-border bg-white p-0 text-text-primary shadow-2xl data-[state=closed]:animate-none"
           >
             <div className="flex items-center justify-between border-b border-primary/10 bg-primary-tint px-3.5 py-2.5">
               <div className="flex items-center gap-2">
@@ -421,13 +428,13 @@ export function PosTopBar({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Fullscreen Toggle Button */}
+        {/* Fullscreen Toggle Button (hidden on mobile where fullscreen API is limited) */}
         <button
           type="button"
           onClick={toggleFullscreen}
           aria-label={isFullscreen ? "Exit Fullscreen" : "Full Screen"}
           title={isFullscreen ? "Exit Full Screen (Esc)" : "Full Screen"}
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/80 bg-surface text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer outline-none shadow-2xs"
+          className="hidden sm:flex h-9 w-9 items-center justify-center rounded-lg border border-border/80 bg-surface text-text-secondary hover:bg-surface-2 hover:text-text-primary transition cursor-pointer outline-none shadow-2xs"
         >
           {isFullscreen ? (
             <Minimize className="h-4.5 w-4.5" />
@@ -442,28 +449,21 @@ export function PosTopBar({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-2 rounded-md border border-border bg-surface px-2.5 py-1 hover:bg-surface-2 transition cursor-pointer outline-none"
+              aria-label={user?.name || "User profile"}
+              title={user?.name || "User profile"}
+              className="flex items-center justify-center rounded-full transition cursor-pointer outline-none ring-2 ring-transparent hover:ring-primary/30 focus-visible:ring-2 focus-visible:ring-primary shrink-0"
             >
               {user?.avatarUrl ? (
                 <img
                   src={user.avatarUrl}
                   alt={user?.name || "User"}
-                  className="h-7 w-7 rounded-full object-cover shrink-0 border border-primary/20"
+                  className="h-9 w-9 rounded-full object-cover shrink-0 border border-border shadow-xs hover:opacity-95"
                 />
               ) : (
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary font-bold text-[11px] text-primary-foreground shrink-0">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary font-bold text-[12px] text-primary-foreground shrink-0 shadow-xs">
                   {user?.initials || "U"}
                 </div>
               )}
-              <div className="hidden text-left md:block min-w-0">
-                <div className="text-[12.5px] font-semibold text-text-primary leading-tight truncate max-w-[130px]" title={user?.name || "User"}>
-                  {user?.name || "User"}
-                </div>
-                <div className="text-[10.5px] text-text-secondary leading-tight truncate max-w-[130px]" title={user?.role_name || (user ? roleLabel(user.role) : "Staff")}>
-                  {user?.role_name || (user ? roleLabel(user.role) : "Staff")}
-                </div>
-              </div>
-              <ChevronRight className="hidden md:block h-3.5 w-3.5 text-text-disabled shrink-0" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -479,15 +479,6 @@ export function PosTopBar({
                 </div>
               )}
             </div>
-            {!isKitchen && (
-              <DropdownMenuItem
-                onClick={() => navigate({ to: "/pos/settings" })}
-                className="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium"
-              >
-                <Sparkles className="h-4 w-4 text-amber-500" />
-                <span>Upgrade plan</span>
-              </DropdownMenuItem>
-            )}
             <DropdownMenuItem
               onClick={() => navigate({ to: "/pos/settings" })}
               className="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium"
@@ -555,7 +546,19 @@ export function PosTopBar({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
+
+      {/* Expandable Compact Global Search Bar (<xl) */}
+      {mobileSearchOpen && (
+        <div className="xl:hidden border-b border-border bg-surface px-2.5 sm:px-4 py-2 animate-in slide-in-from-top-1 duration-150">
+          <PosGlobalSearch
+            id="pos-global-search-mobile"
+            isMobile={true}
+            onCloseMobile={() => setMobileSearchOpen(false)}
+          />
+        </div>
+      )}
     </header>
   );
 }
