@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
-import { useRouterState } from "@tanstack/react-router";
+import { useRouterState, Link } from "@tanstack/react-router";
+import { Store, Plus, RotateCw } from "lucide-react";
 import { PosSidebar } from "@/components/layout/pos/PosSidebar";
 import { PosTopBar } from "@/components/layout/pos/PosTopBar";
 import { PosSubscriptionRenewalBanner } from "@/components/common/PosSubscriptionRenewalBanner";
 // import { OnlineOrderAlertModal } from "@/components/shared/pos/orders/OnlineOrderAlertModal";
+import { useOutletContext } from "@/context/PosOutletContext";
 import { useIsCompactViewport } from "@/hooks/use-mobile";
 import { usePosKeyboardShortcuts } from "@/hooks/usePosKeyboardShortcuts";
 import { cn } from "@/lib/utils";
@@ -14,10 +16,17 @@ export function PosShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const isCompactNav = useIsCompactViewport();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { hasOutlets, isLoadingOutlets, refreshOutlets } = useOutletContext();
   const isBillingPage = pathname === "/pos/billing" || pathname.startsWith("/pos/billing");
   const isKotPage = pathname === "/pos/kot" || pathname.startsWith("/pos/kot");
   const isDashboard = pathname === "/pos" || pathname === "/pos/";
   const isFullWorkspacePage = isBillingPage || isKotPage;
+  const isOutletOnboardingExempt =
+    pathname.startsWith("/pos/management/configuration/outlet/add") ||
+    pathname.startsWith("/pos/management/configuration/outlet/list") ||
+    pathname.startsWith("/pos/settings") ||
+    pathname.startsWith("/pos/help");
+  const showEmptyOutletsState = !isLoadingOutlets && !hasOutlets && !isOutletOnboardingExempt;
 
   // On POS Billing & KOT, default to collapsed so full workspace is visible; on other routes keep open
   const [desktopCollapsed, setDesktopCollapsed] = useState(() => isFullWorkspacePage);
@@ -156,7 +165,42 @@ export function PosShell({ children }: { children: React.ReactNode }) {
           "flex-1 min-w-0 flex flex-col pb-[env(safe-area-inset-bottom)] print:!m-0 print:!p-0 print:!w-full print:!overflow-visible",
           isDashboard ? "lg:h-full lg:min-h-0 lg:overflow-hidden" : "",
         )}>
-          {children}
+          {showEmptyOutletsState ? (
+            <div className="flex flex-1 items-center justify-center p-6">
+              <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm space-y-4">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Store className="h-7 w-7" />
+                </div>
+                <div className="space-y-1.5">
+                  <h2 className="text-lg font-bold text-slate-900">
+                    No Outlets Registered Yet (0 Outlets)
+                  </h2>
+                  <p className="text-[13px] text-slate-500 leading-relaxed">
+                    Your property does not have any dining or kitchen outlets configured in the database yet. Add your first outlet or have your Superadmin onboard one to begin POS operations.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+                  <Link
+                    to="/pos/management/configuration/outlet/add"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground shadow-xs hover:bg-primary-pressed transition cursor-pointer"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add First Outlet
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => void refreshOutlets()}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    <RotateCw className="h-3.5 w-3.5" />
+                    Refresh
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            children
+          )}
         </main>
       </div>
 

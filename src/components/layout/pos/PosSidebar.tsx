@@ -106,7 +106,7 @@ export function PosSidebar({
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeLinkRef = useRef<HTMLAnchorElement | null>(null);
-  const { activeOutlet, outlets, setActiveOutlet } = useOutletContext();
+  const { activeOutlet, outlets, hasOutlets, setActiveOutlet } = useOutletContext();
   const [readyNoticeCount, setReadyNoticeCount] = useState<number>(() => {
     return listKotReadyNotices().length;
   });
@@ -575,21 +575,25 @@ export function PosSidebar({
             <button
               type="button"
               className="mx-3 mt-3 flex items-center justify-between rounded-lg border border-border bg-sidebar-hover/40 px-3 py-2 text-left transition hover:bg-sidebar-hover outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
-              title={`Active: ${activeOutlet?.name || "Choose Outlet"}`}
+              title={hasOutlets ? `Active: ${activeOutlet?.name || "Choose Outlet"}` : "No Outlets Found (0 outlets)"}
             >
               <div className="min-w-0 flex-1 pr-1">
                 <div className="truncate text-[13px] font-semibold text-sidebar-foreground">
-                  {activeOutlet?.name || "Choose Outlet"}
+                  {hasOutlets ? (activeOutlet?.name || "Choose Outlet") : "No Outlets Found"}
                 </div>
                 <div className="flex items-center gap-1 text-[11px] text-sidebar-muted">
                   <span className="truncate">
-                    {activeOutlet?.city || activeOutlet?.cuisine || "Dine-In"}
+                    {hasOutlets ? (activeOutlet?.city || activeOutlet?.cuisine || "Dine-In") : "Add an outlet"}
                   </span>
                   <span className="opacity-50">·</span>
-                  <span className="shrink-0">
-                    {activeOutlet?.type === "Virtual Outlet" ? "Virtual" : "Primary"}
-                  </span>
-                  <span className="opacity-50">·</span>
+                  {hasOutlets && (
+                    <>
+                      <span className="shrink-0">
+                        {activeOutlet?.type === "Virtual Outlet" ? "Virtual" : "Primary"}
+                      </span>
+                      <span className="opacity-50">·</span>
+                    </>
+                  )}
                   <span className="shrink-0">
                     {availableOutlets.length} {availableOutlets.length === 1 ? "outlet" : "outlets"}
                   </span>
@@ -602,27 +606,33 @@ export function PosSidebar({
             <DropdownMenuLabel className="text-xs text-sidebar-muted">Select Outlet</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup className="max-h-[300px] overflow-y-auto">
-              {availableOutlets.map((outlet) => {
-                const isSelected = activeOutlet?.id === outlet.id;
-                return (
-                  <DropdownMenuItem
-                    key={outlet.id}
-                    onClick={() => {
-                      setActiveOutlet(outlet.id);
-                      onNavigate?.();
-                    }}
-                    className="flex items-center justify-between cursor-pointer py-2"
-                  >
-                    <div className="flex flex-col gap-0.5 min-w-0 pr-2">
-                      <span className="text-[13px] font-medium truncate">{outlet.name}</span>
-                      <span className="text-[11px] text-muted-foreground truncate">
-                        {outlet.cuisine || outlet.type}
-                      </span>
-                    </div>
-                    {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
-                  </DropdownMenuItem>
-                );
-              })}
+              {availableOutlets.length === 0 ? (
+                <div className="px-3 py-3 text-center text-[12px] text-muted-foreground">
+                  No outlets registered yet (0)
+                </div>
+              ) : (
+                availableOutlets.map((outlet) => {
+                  const isSelected = activeOutlet?.id === outlet.id;
+                  return (
+                    <DropdownMenuItem
+                      key={outlet.id}
+                      onClick={() => {
+                        setActiveOutlet(outlet.id);
+                        onNavigate?.();
+                      }}
+                      className="flex items-center justify-between cursor-pointer py-2"
+                    >
+                      <div className="flex flex-col gap-0.5 min-w-0 pr-2">
+                        <span className="text-[13px] font-medium truncate">{outlet.name}</span>
+                        <span className="text-[11px] text-muted-foreground truncate">
+                          {outlet.cuisine || outlet.type}
+                        </span>
+                      </div>
+                      {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                    </DropdownMenuItem>
+                  );
+                })
+              )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
@@ -653,27 +663,33 @@ export function PosSidebar({
               <DropdownMenuLabel className="text-xs text-sidebar-muted">Select Outlet</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup className="max-h-[300px] overflow-y-auto">
-                {availableOutlets.map((outlet) => {
-                  const isSelected = activeOutlet?.id === outlet.id;
-                  return (
-                    <DropdownMenuItem
-                      key={outlet.id}
-                      onClick={() => {
-                        setActiveOutlet(outlet.id);
-                        onNavigate?.();
-                      }}
-                      className="flex items-center justify-between cursor-pointer py-2"
-                    >
-                      <div className="flex flex-col gap-0.5 min-w-0 pr-2">
-                        <span className="text-[13px] font-medium truncate">{outlet.name}</span>
-                        <span className="text-[11px] text-muted-foreground truncate">
-                          {outlet.cuisine || outlet.type}
-                        </span>
-                      </div>
-                      {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
-                    </DropdownMenuItem>
-                  );
-                })}
+                {availableOutlets.length === 0 ? (
+                  <div className="px-3 py-3 text-center text-[12px] text-muted-foreground">
+                    No outlets registered yet (0)
+                  </div>
+                ) : (
+                  availableOutlets.map((outlet) => {
+                    const isSelected = activeOutlet?.id === outlet.id;
+                    return (
+                      <DropdownMenuItem
+                        key={outlet.id}
+                        onClick={() => {
+                          setActiveOutlet(outlet.id);
+                          onNavigate?.();
+                        }}
+                        className="flex items-center justify-between cursor-pointer py-2"
+                      >
+                        <div className="flex flex-col gap-0.5 min-w-0 pr-2">
+                          <span className="text-[13px] font-medium truncate">{outlet.name}</span>
+                          <span className="text-[11px] text-muted-foreground truncate">
+                            {outlet.cuisine || outlet.type}
+                          </span>
+                        </div>
+                        {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                      </DropdownMenuItem>
+                    );
+                  })
+                )}
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>

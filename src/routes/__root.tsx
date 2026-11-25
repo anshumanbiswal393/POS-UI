@@ -157,7 +157,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function AuthGate() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { isAuthenticated, loading, redirectToPmsLogin } = useAuth();
+  const { isAuthenticated, loading, redirectToPmsLogin, user, logout } = useAuth();
 
   if (pathname === "/login" || pathname === "/login/" || pathname.startsWith("/login")) {
     return <Outlet />;
@@ -197,6 +197,71 @@ function AuthGate() {
         </div>
       );
     }
+  }
+
+  const isSuperadminUser =
+    Boolean(user?.is_superuser) ||
+    String(user?.role || "").toLowerCase() === "super_admin" ||
+    String(user?.role || "").toLowerCase() === "superadmin";
+
+  const lacksPosSubscription =
+    isAuthenticated &&
+    !isSuperadminUser &&
+    Array.isArray(user?.subscribed_products) &&
+    !user.subscribed_products.some((p) => String(p).toUpperCase() === "POS");
+
+  if (lacksPosSubscription) {
+    const pmsOrigin =
+      typeof window !== "undefined" && window.location.hostname.includes("dev.retrod.in")
+        ? "https://app.dev.retrod.in"
+        : typeof window !== "undefined" && window.location.hostname.endsWith("retrod.in")
+          ? "https://app.retrod.in"
+          : "http://localhost:3000";
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+        <div className="w-full max-w-md rounded-2xl border border-border bg-white p-8 text-center shadow-lg space-y-4">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 text-2xl font-bold">
+            !
+          </div>
+          <h2 className="text-lg font-bold text-text-primary">
+            Upgrade Your Subscription Plan
+          </h2>
+          <p className="text-[13px] text-text-secondary leading-relaxed">
+            Your active Retrod subscription does not include <strong>Point of Sale (POS)</strong>.
+            Upgrade your subscription plan or contact Retrod support to activate POS for your property.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = `${pmsOrigin}/settings`;
+              }}
+              className="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground hover:bg-primary-pressed transition cursor-pointer"
+            >
+              Upgrade Subscription Plan
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = `${pmsOrigin}/`;
+              }}
+              className="w-full sm:w-auto inline-flex items-center justify-center rounded-lg border border-border bg-white px-4 py-2 text-[13px] font-semibold text-text-primary hover:bg-slate-50 transition cursor-pointer"
+            >
+              Back to PMS
+            </button>
+          </div>
+          <div className="pt-2 border-t border-border">
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="text-[12px] font-medium text-destructive hover:underline cursor-pointer"
+            >
+              Log out and sign in with another account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // POS-only product: every screen uses PosShell

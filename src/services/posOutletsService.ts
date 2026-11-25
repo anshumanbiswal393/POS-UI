@@ -173,6 +173,7 @@ export function findLiveHighwayInn(outlets: PosOutlet[]): PosOutlet | undefined 
 export const posOutletsService = {
   async listOutlets(params?: { propertyId?: string; tenantId?: string }): Promise<PosOutlet[]> {
     let remote: PosOutlet[] = [];
+    let backendSucceeded = false;
     try {
       const res = await httpClient.get("/api/pos/outlets/", {
         params: {
@@ -181,6 +182,7 @@ export const posOutletsService = {
           page_size: 200,
         },
       });
+      backendSucceeded = true;
       remote = unwrapList(res.data)
         .map(mapOutletApiToPosOutlet)
         .filter((o) => !isDummyOutlet(o.name, o.code));
@@ -188,28 +190,18 @@ export const posOutletsService = {
       // Remote fetch failed or offline
     }
 
+    // Backend DB is the authoritative source: if DB says 0 outlets, return [] cleanly
+    if (backendSucceeded) {
+      return deduplicateOutlets(remote).filter((o) => !isDummyOutlet(o.name, o.code));
+    }
+
     const local = getLocalCustomOutlets().filter((o) => {
       if (isDummyOutlet(o.name, o.code)) return false;
       if (params?.propertyId && o.propertyId && o.propertyId !== params.propertyId) return false;
       return true;
     });
-    // If backend returns outlets, backend is the authoritative source.
-    // Only keep unsaved local offline drafts (starting with outlet-local-).
-    const localDrafts =
-      remote.length > 0
-        ? local.filter(
-            (o) =>
-              o.id.startsWith("outlet-local-") &&
-              !remote.some(
-                (r) =>
-                  r.id === o.id ||
-                  (r.code && r.code === o.code) ||
-                  r.name.toLowerCase() === o.name.toLowerCase(),
-              ),
-          )
-        : local;
 
-    return deduplicateOutlets([...remote, ...localDrafts]).filter((o) => !isDummyOutlet(o.name, o.code));
+    return deduplicateOutlets(local).filter((o) => !isDummyOutlet(o.name, o.code));
   },
 
   async createOutlet(payload: CreateOutletPayload): Promise<PosOutlet> {

@@ -165,6 +165,9 @@ export function mapBackendUserToAppUser(
     subscription_plan: backendUser?.subscription_plan,
     subscription_expiry: backendUser?.subscription_expiry,
     license_key: backendUser?.license_key,
+    subscribed_products: Array.isArray(backendUser?.subscribed_products)
+      ? backendUser.subscribed_products
+      : undefined,
     assigned_outlet_id: assignedOutletId,
     assigned_outlet_name: assignedOutletName,
     outlet_id: assignedOutletId,

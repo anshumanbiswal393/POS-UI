@@ -23,6 +23,7 @@ export interface AppUser {
   subscription_expiry?: string;
   license_key?: string;
   is_superuser?: boolean;
+  subscribed_products?: string[];
   assigned_outlet_id?: string;
   assigned_outlet_name?: string;
   outlet_id?: string;

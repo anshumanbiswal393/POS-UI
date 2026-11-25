@@ -21,21 +21,21 @@ export const KNOWN_DUMMY_IDS = new Set([
 export const DEMO_OUTLET_IDS = new Set<string>();
 
 export const DEFAULT_FALLBACK_OUTLET: PosOutlet = {
-  id: "outlet-default",
-  name: "Main Outlet",
-  code: "MAIN-01",
+  id: "",
+  name: "No Outlet Selected",
+  code: "",
   type: "Primary Outlet",
   outletKind: "PRIMARY",
   cuisine: "Multi-Cuisine & Bar",
-  description: "Primary dining and POS outlet",
+  description: "No POS outlet selected",
   address: "",
   contact: "",
   orderTypes: ["Dine-In", "Takeaway", "Room Service"],
-  status: "Active",
+  status: "Inactive",
   menuCount: 0,
 };
 
-export const INITIAL_OUTLETS: PosOutlet[] = [DEFAULT_FALLBACK_OUTLET];
+export const INITIAL_OUTLETS: PosOutlet[] = [];
 
 /** Clean out any stale dummy outlet identifiers from browser localStorage */
 function cleanBrowserStorage() {
@@ -105,6 +105,7 @@ function mergeOutletLists(prev: PosOutlet[], incoming: PosOutlet[], activeId?: s
 type PosOutletContextType = {
   activeOutlet: PosOutlet;
   outlets: PosOutlet[];
+  hasOutlets: boolean;
   isLoadingOutlets: boolean;
   refreshOutlets: () => Promise<void>;
   setActiveOutlet: (outletId: string) => void;
@@ -121,18 +122,18 @@ const PosOutletContext = createContext<PosOutletContextType | undefined>(undefin
 
 export function PosOutletProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [outlets, setOutlets] = useState<PosOutlet[]>([DEFAULT_FALLBACK_OUTLET]);
-  const [isLoadingOutlets, setIsLoadingOutlets] = useState(false);
+  const [outlets, setOutlets] = useState<PosOutlet[]>([]);
+  const [isLoadingOutlets, setIsLoadingOutlets] = useState(true);
   const [activeOutletId, setActiveOutletId] = useState<string>(() => {
-    if (typeof window === "undefined") return DEFAULT_FALLBACK_OUTLET.id;
+    if (typeof window === "undefined") return "";
     try {
       const stored = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
       if (stored && isBackendOutletId(stored) && !KNOWN_DUMMY_IDS.has(stored) && !DEMO_OUTLET_IDS.has(stored)) {
         return stored;
       }
-      return DEFAULT_FALLBACK_OUTLET.id;
+      return "";
     } catch {
-      return DEFAULT_FALLBACK_OUTLET.id;
+      return "";
     }
   });
 
@@ -173,15 +174,19 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
   const refreshOutlets = useCallback(async () => {
     setIsLoadingOutlets(true);
     try {
-      const { propId, propName } = getActivePropertyInfo();
+      const { propId } = getActivePropertyInfo();
+      const tenantSub = user?.tenant_subdomain || undefined;
 
-      // 1. Fetch outlets for the tenant in a single direct call
-      let remote = await posOutletsService.listOutlets();
+      // 1. Fetch outlets scoped to active property & tenant from DB
+      let remote = await posOutletsService.listOutlets({
+        propertyId: propId || undefined,
+        tenantId: tenantSub,
+      });
 
-      // 2. If nothing returned and propId is provided, try property-scoped query
-      if (remote.length === 0 && propId) {
+      // 2. If property filter had 0 outlets but tenant has outlets under another property, fallback to tenant query
+      if (remote.length === 0 && propId && tenantSub) {
         remote = await posOutletsService.listOutlets({
-          propertyId: propId,
+          tenantId: tenantSub,
         });
       }
 
@@ -192,63 +197,25 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         return true;
       });
 
-      // If real outlets exist, remove any auto-generated "Strict Minimal" empty outlets
+      // If real outlets exist, remove any legacy "Strict Minimal" empty outlets
       const hasRealOutlets = remote.some((o) => !o.name.toLowerCase().includes("strict"));
       if (hasRealOutlets) {
         remote = remote.filter((o) => !o.name.toLowerCase().includes("strict"));
       }
 
-      let finalOutlets: PosOutlet[];
-
-      if (remote.length > 0) {
-        finalOutlets = deduplicateOutlets(remote);
-      } else {
-        let created: PosOutlet | null = null;
-        if (propId && isBackendOutletId(propId)) {
-          try {
-            const propCode =
-              (propName.replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase() || "MAIN") + "-01";
-            created = await posOutletsService.createOutlet({
-              name: `${propName} Restaurant`,
-              code: propCode,
-              outlet_type: "PRIMARY",
-              property: propId,
-              tenant: user?.tenant_subdomain || undefined,
-              cuisine: "Multi-Cuisine & Bar",
-              phone: user?.phone || undefined,
-              orderTypes: ["Dine-In", "Takeaway", "Room Service"],
-              is_active: true,
-            });
-          } catch (e) {
-            console.error("Failed to auto-create primary outlet in DB", e);
-          }
-        }
-        if (created?.id && isBackendOutletId(created.id)) {
-          finalOutlets = [created];
-        } else {
-          const propCode =
-            (propName.replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase() || "MAIN") + "-01";
-          const dynamicDefault: PosOutlet = {
-            id: propId ? `outlet-${propId}` : "outlet-default",
-            name: `${propName} Restaurant`,
-            code: propCode,
-            type: "Primary Outlet",
-            outletKind: "PRIMARY",
-            cuisine: "Multi-Cuisine & Bar",
-            description: `Main dining outlet for ${propName}`,
-            address: "",
-            contact: user?.phone || "",
-            orderTypes: ["Dine-In", "Takeaway", "Room Service"],
-            status: "Active",
-            menuCount: 0,
-            propertyId: propId || null,
-            tenantId: user?.tenant_subdomain || null,
-          };
-          finalOutlets = [dynamicDefault];
-        }
-      }
+      // Truthful DB state: do NOT auto-create outlets or inject client-side fallbacks when DB has 0 outlets
+      const finalOutlets = remote.length > 0 ? deduplicateOutlets(remote) : [];
 
       setOutlets(finalOutlets);
+      if (finalOutlets.length === 0) {
+        try {
+          localStorage.removeItem(STORAGE_KEY_ACTIVE_ID);
+          localStorage.removeItem("retrod_pos_custom_outlets");
+        } catch {}
+        setActiveOutletId("");
+        return;
+      }
+
       setActiveOutletId((prevId) => {
         // Priority 1: User's explicitly assigned outlet
         const userAssignedId = user?.assigned_outlet_id || user?.outlet_id;
@@ -264,7 +231,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
           return userAssignedId;
         }
 
-        // Priority 2: Stored previous active outlet (preserve existing backend outlet ID across users)
+        // Priority 2: Stored previous active outlet IF it actually belongs to finalOutlets
         const storedActive =
           typeof window !== "undefined"
             ? localStorage.getItem(STORAGE_KEY_ACTIVE_ID)
@@ -273,16 +240,12 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         if (
           candidateId &&
           isBackendOutletId(candidateId) &&
-          !KNOWN_DUMMY_IDS.has(candidateId) &&
-          !DEMO_OUTLET_IDS.has(candidateId)
+          finalOutlets.some((o) => o.id === candidateId)
         ) {
-          const matchedOutlet = finalOutlets.find((o) => o.id === candidateId);
-          if (!matchedOutlet || !matchedOutlet.name.toLowerCase().includes("strict")) {
-            try {
-              localStorage.setItem(STORAGE_KEY_ACTIVE_ID, candidateId);
-            } catch {}
-            return candidateId;
-          }
+          try {
+            localStorage.setItem(STORAGE_KEY_ACTIVE_ID, candidateId);
+          } catch {}
+          return candidateId;
         }
 
         // Priority 3: Primary physical outlet or first backend outlet
@@ -308,35 +271,8 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
         return nextId;
       });
     } catch {
-      const { propId, propName } = getActivePropertyInfo();
-      const storedActive =
-        typeof window !== "undefined"
-          ? localStorage.getItem(STORAGE_KEY_ACTIVE_ID)
-          : null;
-      const validStoredId =
-        storedActive &&
-        isBackendOutletId(storedActive) &&
-        !KNOWN_DUMMY_IDS.has(storedActive) &&
-        !DEMO_OUTLET_IDS.has(storedActive)
-          ? storedActive
-          : null;
-      const dynamicDefault: PosOutlet = {
-        id: validStoredId || (propId ? `outlet-${propId}` : "outlet-default"),
-        name: `${propName} Restaurant`,
-        code: "MAIN-01",
-        type: "Primary Outlet",
-        outletKind: "PRIMARY",
-        cuisine: "Multi-Cuisine & Bar",
-        description: `Main dining outlet for ${propName}`,
-        address: "",
-        contact: "",
-        orderTypes: ["Dine-In", "Takeaway", "Room Service"],
-        status: "Active",
-        menuCount: 0,
-        propertyId: propId || null,
-      };
-      setOutlets([dynamicDefault]);
-      setActiveOutletId(dynamicDefault.id);
+      setOutlets([]);
+      setActiveOutletId("");
     } finally {
       setIsLoadingOutlets(false);
     }
@@ -472,6 +408,7 @@ export function PosOutletProvider({ children }: { children: React.ReactNode }) {
       value={{
         activeOutlet,
         outlets,
+        hasOutlets: outlets.length > 0,
         isLoadingOutlets,
         refreshOutlets,
         setActiveOutlet: handleSetActiveOutlet,

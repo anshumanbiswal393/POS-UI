@@ -253,10 +253,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [entitlements, setEntitlements] = useState<TenantEntitlements>(DEFAULT_ENTITLEMENTS);
   const [hydrated, setHydrated] = useState<boolean>(false);
 
+  const getCentralPmsLoginUrl = () => {
+    if (typeof window === "undefined") return "/login";
+    const host = window.location.hostname;
+    if (host.includes("dev.retrod.in")) return "https://app.dev.retrod.in/login";
+    if (host.endsWith("retrod.in")) return "https://app.retrod.in/login";
+    return "/login";
+  };
+
   const redirectToPmsLogin = () => {
     if (typeof window === "undefined") return;
-    if (window.location.pathname !== "/login") {
-      window.location.href = "/login";
+    const loginUrl = getCentralPmsLoginUrl();
+    if (loginUrl.startsWith("http")) {
+      window.location.href = loginUrl;
+    } else if (window.location.pathname !== "/login") {
+      window.location.href = loginUrl;
     }
   };
 
@@ -505,7 +516,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authApi.logout();
         setUser(null);
         if (typeof window !== "undefined") {
-          window.location.href = "/login";
+          window.location.href = getCentralPmsLoginUrl();
         }
       },
       redirectToPmsLogin,
